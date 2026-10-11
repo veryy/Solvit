@@ -69,7 +69,9 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
         val input = Json.parseToJsonElement(arguments).jsonObject
         val js = engine ?: error("插件未启用")
         withContext(Dispatchers.Default) {
-            withTimeout(timeoutMs) {
+            // Let the native execution deadline fire first; this also bounds
+            // promises waiting on asynchronous host operations.
+            withTimeout(timeoutMs + 1_000) {
                 js.evaluate<String>("JSON.stringify(await solvitPlugin.tools[${JsonPrimitive(tool)}](JSON.parse(${JsonPrimitive(input.toString())}), ctx))")
             }
         }

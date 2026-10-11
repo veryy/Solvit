@@ -1,6 +1,6 @@
 package dev.solvit.plugins
 
-import com.dokar.quickjs.QuickJsException
+import com.dokar.quickjs.QuickJsInterruptedException
 import dev.solvit.core.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
@@ -39,7 +39,11 @@ class ScriptRuntimeTest {
         val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo: async args => await __solvitHostCall('storage.get','{}')}};"),
             ScriptHost { _, _, _ -> calls++; JsonNull })
         executor.start()
-        try { assertFailsWith<QuickJsException> { executor.execute("echo", "{}") }; assertEquals(0, calls) }
+        try {
+            val failure = assertFailsWith<IllegalStateException> { executor.execute("echo", "{}") }
+            assertEquals("插件未声明 storage 权限", failure.message)
+            assertEquals(0, calls)
+        }
         finally { executor.stop() }
     }
 
@@ -58,7 +62,7 @@ class ScriptRuntimeTest {
     @Test fun infiniteLoopIsInterruptedByEngineDeadline() = runBlocking<Unit> {
         val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo: args => {while(true){}}}};"), deniedHost, timeoutMs = 100)
         executor.start()
-        try { withTimeout(5_000) { assertFailsWith<QuickJsException> { executor.execute("echo", "{}") } } }
+        try { withTimeout(5_000) { assertFailsWith<QuickJsInterruptedException> { executor.execute("echo", "{}") } } }
         finally { executor.stop() }
     }
 
