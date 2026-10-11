@@ -35,6 +35,22 @@ class OpenAiProviderTest {
         }
     }
 
+    @Test fun compatibleGatewayEmptyFinishReasonDoesNotEndOrRejectTheStream() = runTest {
+        val frames = listOf(
+            """{"choices":[{"delta":{"content":"","extra_fields":null,"function_call":null,"refusal":"","role":"assistant","tool_calls":[]},"finish_reason":"","index":0,"logprobs":null}],"object":"chat.completion.chunk","usage":null}""",
+            """{"choices":[{"delta":{"content":"你好","tool_calls":[]},"finish_reason":"","index":0}]}""",
+            """{"choices":[{"delta":{"content":"！"},"finish_reason":"stop","index":0}]}""",
+        ).joinToString("\n\n") { "data: $it" } + "\n\ndata: [DONE]\n\n"
+        withServer(frames) { provider, request, _ ->
+            assertEquals(listOf(ModelChunk.Text("你好"), ModelChunk.Text("！"), ModelChunk.Done), provider.stream(request).toList())
+        }
+    }
+    @Test fun emptyFinishReasonWithoutRealCompletionStillFails() = runTest {
+        withServer("""data: {"choices":[{"delta":{"content":"partial"},"finish_reason":""}]}""" + "\n\n") { provider, request, _ ->
+            assertFailsWith<ModelException> { provider.stream(request).toList() }
+        }
+    }
+
     @Test fun httpErrorsPreserveRemoteExplanationWhileRedactingCredentials() = runTest {
         withServer("private-key server debug details", 401) { provider, request, _ ->
             val failure = assertFailsWith<ModelException> { provider.stream(request).toList() }
