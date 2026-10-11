@@ -3,6 +3,8 @@ package dev.solvit.provider
 import dev.solvit.core.*
 import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
+import okhttp3.Call
+import okhttp3.EventListener
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import java.util.concurrent.TimeUnit
@@ -61,14 +63,20 @@ class ModelCatalogTest {
         } finally { close(client); server.shutdown() }
     }
     @Test fun cancellationClosesPendingBodyAndCatalogRemainsReusable() = runBlocking<Unit> {
-        val server = MockWebServer(); val client = client(); server.start()
+        val bodyStarted = CompletableDeferred<Unit>()
+        val server = MockWebServer()
+        val client = OkHttpClient.Builder().eventListener(object : EventListener() {
+            override fun responseBodyStart(call: Call) { bodyStarted.complete(Unit) }
+        }).build()
+        server.start()
         try {
             val catalog = OpenAiModelCatalog(client)
             val config = ModelConfig(server.url("/v1").toString(), "")
-            server.enqueue(MockResponse().setBody("""{"data":[{"id":"slow"}]}""").setBodyDelay(10, TimeUnit.SECONDS))
+            server.enqueue(MockResponse().setBody("""{"data":[{"id":"slow"}]}""").setBodyDelay(2, TimeUnit.SECONDS))
             val pending = async(start = CoroutineStart.UNDISPATCHED) { catalog.models(config) }
             assertNotNull(server.takeRequest(5, TimeUnit.SECONDS))
-            withTimeout(2000) { pending.cancelAndJoin() }
+            withTimeout(5000) { bodyStarted.await() }
+            withTimeout(1000) { pending.cancelAndJoin() }
             assertTrue(pending.isCancelled)
             server.enqueue(MockResponse().setBody("""{"data":[{"id":"next"}]}"""))
             assertEquals("next", catalog.models(config).single().id)
