@@ -17,6 +17,10 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装、真实模型连接和交互体验尚未验证。
 
+从 0.1.1 起，启动时检查 GitHub 最新正式版本；有更新会在聊天顶部显示下载卡片，也可以点击顶部“检查更新”按钮。下载更新会打开浏览器，无需向应用授予自动安装权限。
+
+0.1.1 起使用固定 APK 签名，后续版本可保持相同签名。最初的 0.1.0 使用临时构建签名，无法覆盖安装为新签名版本；请勿直接卸载有重要记录的旧版，当前尚无聊天导出功能。
+
 安装 debug APK 后，点击右上角模型设置：
 
 | 服务 | API 基础地址 | 模型示例 |
@@ -48,6 +52,8 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 | `app` | 启动组合、加密设置、ViewModel、原生 UI |
 
 详细设计、参考源码、生命周期规则、扩展方式见 [架构说明](docs/architecture.md)。测试中的 Greeting 插件与 MemoryStore 演示服务扩展与存储替换。
+
+后续完整产品目标与验证状态见 [产品进度](docs/product-roadmap.md)。更新检查是独立的 `release-updates` 内置插件。
 
 ## 当前边界
 
