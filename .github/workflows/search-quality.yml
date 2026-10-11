@@ -13,6 +13,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Build current search source remotely
+        working-directory: plugin-sdk
+        run: npm ci && npm run build:builtins
       - name: Install isolated browser verifier
         run: |
           npm install --prefix "$RUNNER_TEMP/solvit-search-browser" playwright@1.51.1
