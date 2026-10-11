@@ -50,7 +50,7 @@ async function search(args: JsonObject, ctx: PluginContext): Promise<JsonValue> 
 }
 export default definePlugin({ tools: {
   search,
-  async read_page(args, ctx) {
+  async read_page(args: JsonObject, ctx: PluginContext): Promise<JsonValue> {
     const url = textArgument(args, 'url', 2048);
     if (!httpsUrl(url)) return { error: '网页地址必须是 HTTPS。' };
     // Search service credentials are NEVER sent to visited pages.

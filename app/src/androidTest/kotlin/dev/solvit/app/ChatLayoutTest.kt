@@ -123,6 +123,37 @@ class ChatLayoutTest {
             store.close()
         }
     }
+    @Test fun applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        val role = AgentRole("ui-role-switch", "UI role switch", "Answer as a Kotlin developer",pluginIds=setOf("dev.solvit.web-search"))
+        runBlocking { app.roles.save(role) }
+        try {
+            rule.onNodeWithContentDescription("设置").performClick()
+            rule.onNodeWithText("角色管理与 Skills").performClick()
+            rule.onNodeWithText(role.name).performScrollTo()
+            rule.onNode(hasText("用于此对话") and hasAnyAncestor(hasAnyDescendant(hasText(role.name)))).performClick()
+            rule.waitUntil(8000) { rule.onAllNodes(hasText("已应用UI role switch",substring=true)).fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithContentDescription("关闭").performClick()
+            rule.onNodeWithContentDescription("返回聊天").performClick()
+            rule.onNodeWithContentDescription("对话历史").performClick()
+            rule.onNodeWithTag("new_chat").performClick()
+            rule.waitUntil(8000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithContentDescription("设置").performClick()
+            rule.onNodeWithText("角色管理与 Skills").performClick()
+            rule.onNodeWithText(role.name).performScrollTo()
+            rule.onNodeWithText("✓ 当前使用").assertExists()
+            screenshot("role-applied-new-chat")
+        } finally {
+            // Clear bindings before deleting a restricted role, so later fixtures stay usable.
+            runBlocking {
+                val store = SqliteChatStore(app)
+                try { store.sessions().first().forEach { if (runCatching { app.roles.selected(it.id)?.id }.getOrNull() == role.id) app.roles.select(it.id,null) } }
+                finally { store.close() }
+                app.roles.delete(role.id)
+            }
+        }
+    }
     @Test fun replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal() {
         ready()
         val app=rule.activity.application as SolvitApplication

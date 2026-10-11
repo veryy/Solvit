@@ -62,7 +62,7 @@ class TerminalGrid(val columns: Int = 80, val rows: Int = 24) {
         x++
     }
     private fun csi(command: Char) {
-        val private = sequence.startsWith("?")
+        val privateMode = sequence.startsWith("?")
         val args = sequence.removePrefix("?").split(';').map { it.toIntOrNull() ?: 0 }
         fun arg(i: Int = 0, default: Int = 1) = args.getOrElse(i) { 0 }.let { if (it == 0) default else it }
         fun erase(row: Int, from: Int, to: Int) { for (col in from.coerceAtLeast(0)..to.coerceAtMost(columns - 1)) screen[row][col] = Cell(background = background) }
@@ -87,7 +87,7 @@ class TerminalGrid(val columns: Int = 80, val rows: Int = 24) {
             '@' -> repeat(arg().coerceAtMost(columns)) { screen[y].add(x.coerceAtMost(columns - 1), Cell()); screen[y].removeLast() }
             'L' -> repeat(arg().coerceAtMost(rows)) { if (y in top..bottom) { screen.add(y, blank()); screen.removeAt(bottom + 1) } }
             'M' -> repeat(arg().coerceAtMost(rows)) { if (y in top..bottom) { screen.removeAt(y); screen.add(bottom, blank()) } }
-            'h', 'l' -> if (private) args.forEach { when (it) {
+            'h', 'l' -> if (privateMode) args.forEach { when (it) {
                 25 -> cursorVisible = command == 'h'
                 1049 -> if (command == 'h' && primary == null) { primary = screen; savedX = x; savedY = y; screen = MutableList(rows) { blank() }; x = 0; y = 0 }
                     else if (command == 'l' && primary != null) { screen = primary!!; primary = null; x = savedX; y = savedY; top = 0; bottom = rows - 1 }
