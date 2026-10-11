@@ -66,6 +66,22 @@ class ScriptRuntimeTest {
         finally { executor.stop() }
     }
 
+    @Test fun cancellingEvaluationCancelsPendingNativeHostWorkBeforeReturning() = runBlocking<Unit> {
+        val started = CompletableDeferred<Unit>()
+        val cancelled = CompletableDeferred<Unit>()
+        val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo:async args=>await ctx.storage.get('wait')}};", listOf("storage")),
+            ScriptHost { _, _, _ ->
+                started.complete(Unit)
+                try { awaitCancellation() } finally { cancelled.complete(Unit) }
+            })
+        executor.start()
+        try {
+            val job = launch { executor.execute("echo", "{}") }
+            withTimeout(5_000) { started.await(); job.cancelAndJoin() }
+            assertTrue(cancelled.isCompleted)
+        } finally { executor.stop() }
+    }
+
     @Test fun toolRegistrationsDisappearWhenPluginUnloads() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val manager = PluginManager(scope = scope)
