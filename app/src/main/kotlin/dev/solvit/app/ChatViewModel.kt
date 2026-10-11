@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.*
 import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore) : ViewModel() {
+class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null) : ViewModel() {
     val error = MutableStateFlow<String?>(null)
     private val selected = MutableStateFlow<String?>(null)
     val sessionId = selected.asStateFlow()
@@ -42,7 +42,12 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     fun newChat() {
         if (busy.value) return
         viewModelScope.launch {
-            try { selected.value = chat.createSession().id; error.value = null }
+            try {
+                val role = selected.value?.let { roles?.selected(it) }
+                val session = chat.createSession()
+                if (role != null) roles?.select(session.id, role.id)
+                selected.value = session.id; error.value = null
+            }
             catch (e: Exception) { error.value = "创建对话失败" }
         }
     }

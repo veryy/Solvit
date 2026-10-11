@@ -54,10 +54,10 @@ class DefaultChatService(
             settled = true
         }
         try {
+            val role = roles?.selected(sessionId)
             persist(ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim()))
             admitted = true
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
-            val role = roles?.selected(sessionId)
             val messages = buildList {
                 if (config.systemPrompt.isNotBlank()) add(ModelMessage(Role.SYSTEM, config.systemPrompt))
                 if (!role?.prompt.isNullOrBlank()) add(ModelMessage(Role.SYSTEM, role!!.prompt))

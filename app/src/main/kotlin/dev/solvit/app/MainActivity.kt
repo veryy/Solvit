@@ -53,7 +53,7 @@ class MainActivity : ComponentActivity() {
                             val service = result!!.getOrThrow()
                             val factory = remember(service) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles) as T
                             } }
                             val vm: ChatViewModel = viewModel(factory = factory)
                             val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {
@@ -66,7 +66,12 @@ class MainActivity : ComponentActivity() {
                                 override fun <T : ViewModel> create(modelClass: Class<T>): T = MarketplaceViewModel(app.marketplace) as T
                             } }
                             val marketVm: MarketplaceViewModel = viewModel(factory = marketFactory)
-                            ChatScreen(vm, updateVm, marketVm)
+                            val agentFactory = remember(app.roles, app.skills) { object : ViewModelProvider.Factory {
+                                @Suppress("UNCHECKED_CAST")
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = AgentLibraryViewModel(app.roles, app.skills, app.marketplace) as T
+                            } }
+                            val agentVm: AgentLibraryViewModel = viewModel(factory = agentFactory)
+                            ChatScreen(vm, updateVm, marketVm, agentVm)
                         }
                     }
                 }
@@ -90,7 +95,7 @@ private fun SolvitTheme(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace: MarketplaceViewModel) {
+private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace: MarketplaceViewModel, agents: AgentLibraryViewModel) {
     val updateState by updates.state.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
     val messages by vm.messages.collectAsStateWithLifecycle()
@@ -103,13 +108,18 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val saving by vm.saving.collectAsStateWithLifecycle()
     val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
     val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
+    val activeRole by agents.activeRole.collectAsStateWithLifecycle()
+    val missingRole by agents.missingRole.collectAsStateWithLifecycle()
+    val agentBusy by agents.busy.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var pluginsOpen by rememberSaveable { mutableStateOf(false) }
+    var agentsOpen by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<ChatSession?>(null) }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val list = rememberLazyListState()
+    LaunchedEffect(selected) { agents.setSession(selected) }
     LaunchedEffect(messages.size, draft) {
         val count = list.layoutInfo.totalItemsCount
         if (count > 0) list.animateScrollToItem(count - 1)
@@ -177,7 +187,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                             Spacer(Modifier.width(8.dp))
                             FilledIconButton(
                                 onClick = { if (busy) vm.stop() else if (vm.send(input)) input = "" },
-                                enabled = busy || (ready && input.isNotBlank()), modifier = Modifier.size(52.dp),
+                                enabled = busy || (ready && input.isNotBlank() && !missingRole && !agentBusy), modifier = Modifier.size(52.dp),
                             ) { Icon(if (busy) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send, if (busy) "停止生成" else "发送") }
                         }
                         Text("AI 可能出错，请核实重要信息", style = MaterialTheme.typography.labelSmall,
@@ -188,6 +198,10 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
                 AppUpdateCard(updateState, onDismiss = updates::dismiss, onRetry = { updates.check() })
+                OutlinedButton(onClick = { agentsOpen = true }, enabled = ready && !busy && !agentBusy,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth()) {
+                    Text(if (missingRole) "角色已删除 · 重新选择" else "角色：${activeRole?.name ?: "默认"} · 管理角色与 Skills")
+                }
             if (messages.isEmpty() && !busy) {
                 Column(Modifier.weight(1f).fillMaxWidth().padding(32.dp), verticalArrangement = Arrangement.Center) {
                     Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
@@ -226,6 +240,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     if (settingsOpen) ModelSettings(config, saving, error, onDismiss = { if (!saving) settingsOpen = false },
         onSave = { vm.saveConfig(it) { settingsOpen = false } })
     if (pluginsOpen) PluginMarketplaceDialog(marketplace, onDismiss = { pluginsOpen = false })
+    if (agentsOpen) AgentLibraryDialog(agents, onDismiss = { agentsOpen = false })
     deleteTarget?.let { session ->
         AlertDialog(onDismissRequest = { deleteTarget = null }, title = { Text("删除对话？") },
             text = { Text("“${session.title}” 的记录将从本机删除。") },
