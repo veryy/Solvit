@@ -24,4 +24,17 @@ class PostTurnHooksTest {
         assertNull(registry.resolve(target))
         assertTrue(registry.admit(null).isEmpty())
     }
+    @Test fun nativeFailureAndRevocationRemainClassifiedAcrossPromiseBoundaries() = runTest {
+        val target = PostTurnTarget("dev.solvit.memory", "1.2.0", "a".repeat(64))
+        val revoked = PostTurnExecutionContext(target, PostTurnModel { _, _ -> throw PostTurnRevokedException() }) {}
+        assertFailsWith<PostTurnRevokedException> { revoked.complete("extract", "source") }
+        assertTrue(revoked.revoked)
+        val failed = PostTurnExecutionContext(target, PostTurnModel { _, _ -> throw ModelException("private details") }) {}
+        assertFailsWith<ModelException> { failed.complete("extract", "source") }
+        assertEquals(PostTurnFailure.MODEL, failed.nativeFailure)
+        val invalid = PostTurnExecutionContext(target, PostTurnModel { _, _ -> throw PostTurnWorkException(PostTurnFailure.INVALID_OUTPUT) }) {}
+        assertFailsWith<PostTurnWorkException> { invalid.complete("extract", "source") }
+        assertEquals(PostTurnFailure.INVALID_OUTPUT, invalid.nativeFailure)
+    }
+
 }

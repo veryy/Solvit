@@ -26,6 +26,7 @@ class PostTurnExecutionContext(val target: PostTurnTarget, private val model: Po
     suspend fun complete(instructions: String, input: String): String {
         ensureAuthorized()
         try { return model.complete(instructions, input) }
+        catch (e: PostTurnRevokedException) { revoked = true; throw e }
         catch (e: ModelException) { recordFailure(PostTurnFailure.MODEL); throw e }
         catch (e: PostTurnWorkException) { recordFailure(e.failure); throw e }
     }
