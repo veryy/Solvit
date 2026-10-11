@@ -124,7 +124,8 @@ class ChatLayoutTest {
 
     @Test fun nativeMemoryRecallSwitchSavesAndReopensWithoutTextEntry() {
         ready()
-        val extension = InstalledExtension("dev.solvit.memory", "本地记忆", "1.1.0", setOf("storage"), emptySet(), false, emptyList(),
+        val extension = InstalledExtension(id = "dev.solvit.memory", name = "本地记忆", version = "1.1.0",
+            permissions = setOf("storage"), enabled = false, tools = emptyList(),
             settings = listOf(ExtensionSetting("autoRecall", "自动将相关记忆用于聊天", "boolean", defaultValue = "true")), contextHooks = setOf("beforeModel"))
         val saved = MutableStateFlow(mapOf("autoRecall" to "true"))
         val service = object : MarketplaceService {
