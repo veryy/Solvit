@@ -120,12 +120,15 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val busy by vm.busy.collectAsStateWithLifecycle()
     val ready by vm.ready.collectAsStateWithLifecycle()
     val draft by vm.draft.collectAsStateWithLifecycle()
+    val reasoning by vm.reasoning.collectAsStateWithLifecycle()
+    val transcript by vm.liveTranscript.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
     val errorDetails by vm.errorDetails.collectAsStateWithLifecycle()
     var showErrorDetails by remember { mutableStateOf(false) }
     val saving by vm.saving.collectAsStateWithLifecycle()
     val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
     val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
+    val chatRows = presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity)
     val missingRole by agents.missingRole.collectAsStateWithLifecycle()
     val agentBusy by agents.busy.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }
@@ -154,7 +157,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     }
     val list = rememberLazyListState()
     LaunchedEffect(selected) { agents.setSession(selected); workspaces.selectChat(selected) }
-    LaunchedEffect(messages.size, draft) {
+    LaunchedEffect(chatRows.size, draft, reasoning, toolActivity) {
         val count = list.layoutInfo.totalItemsCount
         if (count > 0) list.animateScrollToItem(count - 1)
     }
@@ -198,7 +201,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                     navigationIcon = { IconButton(onClick = { hideInput(); scope.launch { drawer.open() } }) { Icon(Icons.Default.Menu, "对话历史") } },
                     actions = {
                         IconButton(onClick = { hideInput(); pluginsOpen = true }) { Icon(Icons.Default.Extension, "插件市场") }
-                        IconButton(onClick = vm::newChat, enabled = ready && !busy) { Icon(Icons.Default.Add, "新对话") }
+                        IconButton(onClick = { hideInput(); settingsOpen = true }) { Icon(Icons.Default.Settings, "设置") }
                     },
                 )
             },
@@ -260,12 +263,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             } else {
                 LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(messages, key = { it.id }) { MessageCard(it) }
-                    items(toolActivity, key = { "tool-${it.call.id}" }) { ToolActivityCard(it) }
-                    if (busy) item(key = "live") {
-                        MessageCard(ChatMessage("live", selected.orEmpty(), Role.ASSISTANT,
-                            if (draft.isEmpty()) "正在思考…" else draft))
-                    }
+                    items(chatRows, key = { it.id }) { ChatBubble(it) }
                 }
             }
             }
@@ -301,25 +299,6 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             text = { Text("“${session.title}” 的记录将从本机删除。") },
             confirmButton = { TextButton(onClick = { vm.delete(session.id); deleteTarget = null }) { Text("删除") } },
             dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("取消") } })
-    }
-}
-
-@Composable
-private fun MessageCard(message: ChatMessage) {
-    val user = message.role == Role.USER
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = if (user) Alignment.End else Alignment.Start) {
-        Text(if (user) "你" else if (message.role == Role.TOOL) "工具结果" else "Solvit", style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
-        Surface(shape = RoundedCornerShape(20.dp),
-            color = if (user) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow) {
-            Column(Modifier.padding(16.dp)) {
-                SelectionContainer { Text(message.content.ifEmpty { if (message.toolCalls.isNotEmpty()) "调用工具：" + message.toolCalls.joinToString { it.name } else if (message.status == MessageStatus.INTERRUPTED) "已停止生成" else "未收到回复" }, style = MaterialTheme.typography.bodyLarge) }
-                if (message.status != MessageStatus.COMPLETE) Text(
-                    if (message.status == MessageStatus.INTERRUPTED) "已停止 · 此回复不参与后续上下文" else "回复失败 · 此回复不参与后续上下文",
-                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp))
-            }
-        }
     }
 }
 
@@ -424,19 +403,4 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
     }, confirmButton = { TextButton(onClick = { picker = false }) { Text("关闭") } })
 }
 
-@Composable
-private fun ToolActivityCard(activity: ModelChunk.ToolActivity) {
-    var expanded by remember(activity.call.id) { mutableStateOf(false) }
-    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
-        Text(activity.call.name, style = MaterialTheme.typography.titleSmall)
-        Text(when (activity.stage) {
-            ToolStage.CONFIRMING -> "等待确认"
-            ToolStage.RUNNING -> "执行中…"
-            ToolStage.SUCCEEDED -> "已完成"
-            ToolStage.FAILED -> "执行失败"
-            ToolStage.DENIED -> "已拒绝"
-        })
-        TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "收起详情" else "查看参数与结果") }
-        if (expanded) SelectionContainer { Text(activity.call.argumentsJson + "\n" + activity.result.orEmpty()) }
-    } }
-}
+
