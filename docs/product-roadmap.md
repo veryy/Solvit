@@ -13,7 +13,8 @@
 - 0.5.1：TS MCP、加密插件配置、声明式配置页、HTTPS 取消通知与取消后插件复用已发布；[45 个 Android 测试、Lint、APK、TS、市场、实际公网 HTTPS MCP 与发布通过](https://github.com/veryy/Solvit/actions/runs/38107628413)，[下载 0.5.1 APK](https://github.com/veryy/Solvit/releases/tag/v0.5.1)。0.5.0 标签被新增取消回归阻止发布，修复保留在后续提交中。
 - 0.6.0：Skills 文本包导入/导出、角色绑定、只读 JS beforeModel Hook 已发布；[55 个 Android 测试、23 个 TS 测试、Lint、APK、市场、公网 MCP/Skills 与发布通过](https://github.com/veryy/Solvit/actions/runs/38109369009)，[下载 0.6.0 APK](https://github.com/veryy/Solvit/releases/tag/v0.6.0)。市场已上线含 ISC 署名的 Skills 1.0.1，旧客户端过滤验证通过。
 - 尚未验证真机安装、文件选择和真实模型调用。
-- 首版使用临时 CI debug 签名。后续构建改用 GitHub Actions Secret 中的固定签名，以保证后续版本可覆盖安装。0.1.0 与新签名不兼容，不能声称可以直接覆盖安装。
+- 已验证旧发布包证书实际不一致：0.1.1 为 `38e4509c12faf87d88884164d3ff6c3917c56f5084c9b491147abd567462c0a1`，0.6.0 为 `2e19f1533b57158d82700f975cee433b6cd6dc64effa6f210a7c7b8431a8be66`。0.7.0 明确指定 CI 密钥路径，并强制校验固定证书；旧版无法承诺覆盖安装。正常同签名覆盖保留数据，卸载后的配置需预先导出的备份恢复。
+- 0.7.0 设置分组、主题、应用内更新/进度/说明、密码加密配置备份、每轮时间上下文已提交；远程构建跟踪中。
 
 ## 工作清单
 
@@ -28,7 +29,7 @@
 | 内置 MCP 插件、安装配置与角色绑定 | 0.5.1 已发布；TS、公网 HTTPS 演示、Android HTTPS 与取消通知、宿主取消后复用及停用回归通过 Actions 38107628413；0.6.0 已实现按角色绑定 MCP 插件；多服务器、每工具绑定、OAuth、stdio 等待实现 | 真实 MCP 服务连接、发现和调用 |
 | 内置 Skills 插件、按需加载与角色绑定 | 0.6.0 已发布，55 个 Android/23 个 TS 测试通过；真实 QuickJS→角色→Agent→SQLite 集成验证、公网目录与下载校验通过；真机/真实模型待验 | 技能包导入、发现、上下文注入 |
 | 内置记忆插件、画像、抽取、合并、图、文档分块、混合检索 | TS 事实合并、候选批量抽取、画像、直接关系、文本分块和 BM25 已提交且 TS 测试通过；Android 宿主测试通过 Actions 38105286718，自动 Hook、向量混合检索待实现 | 持久化、检索、更新删除和上下文使用 |
-| Shell、Linux 环境、终端、SSH/SFTP、编辑器、项目管理 | 待实现 | 本地和远程执行、流式输出、取消及文件操作 |
+| Shell、Linux 环境、终端、SSH/SFTP、编辑器、项目管理 | JVM Shell 作业引擎已提交并通过真实 Linux 子进程测试 Actions 38110132814；Android 宿主、Root、终端 UI 与其他系统能力待接入 | 本地和远程执行、流式输出、取消及文件操作 |
 | 普通权限、无障碍、Shizuku、Root 与逐工具策略 | 待实现 | 设备检测、授权交互、实际执行前强制检查 |
 | Hook、模型扩展与声明式插件 UI | 声明式配置 UI、只读 beforeModel Hook 和角色上下文已发布并通过远程验证；模型扩展、其他 Hook 和 UI 待实现 | 插件改变执行流程与渲染设置，不修改 App 核心 |
 

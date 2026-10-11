@@ -17,11 +17,13 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装、真实模型连接和交互体验尚未验证。
 
-从 0.1.1 起，启动时检查 GitHub 最新正式版本；有更新会在聊天顶部显示下载卡片，也可以点击顶部“检查更新”按钮。下载更新会打开浏览器，无需向应用授予自动安装权限。
+0.7.0 源码已将设置整理为模型配置、角色与 Skills、插件、外观、配置备份、应用更新和关于等分组。启动时顶部显示更新检查进度，只有发现新版才显示卡片；手动检查在“设置 → 应用更新”。版本说明在应用内查看，APK 在应用内后台下载并显示进度，校验完成后打开 Android 系统安装程序。
 
-0.1.1 起使用固定 APK 签名，后续版本可保持相同签名。最初的 0.1.0 使用临时构建签名，无法覆盖安装为新签名版本；请勿直接卸载有重要记录的旧版，当前尚无聊天导出功能。
+**签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
 
-安装 debug APK 后，点击右上角模型设置：
+“设置 → 配置备份与恢复”可使用密码加密导出模型/API Key、提示词、角色和外观；在重装或换机后导入，密钥会重新加密到本机 Keystore。备份文件应保存在应用之外。聊天记录、插件包、插件密钥和记忆暂不包含；卸载会删除数据，无法恢复此前未备份的配置。应用仍禁用自动云备份。
+
+安装 debug APK 后，点击右上角“设置 → 模型与连接”：
 
 | 服务 | API 基础地址 | 模型示例 |
 | --- | --- | --- |
@@ -33,7 +35,9 @@
 
 ## 在聊天中使用插件工具
 
-安装插件后，在“已安装”页面启用并授予声明权限。例如启用“当前时间”，然后在聊天中询问当前时间。配置的模型需要支持 Chat Completions 工具调用。
+安装插件后，在“已安装”页面启用并授予声明权限。默认角色可以使用全部已启用插件；自定义角色需在“设置 → 角色管理与 Skills”绑定相应插件。页面显示 AI 可发现的工具数量。配置的模型需支持 Chat Completions 工具调用，工具执行仍需确认。
+
+时间插件 1.1.0 会在每轮聊天读取当前时间并加入模型上下文，因此模型不主动调用工具时也能回答时间。Solvit 0.7.0 提供 Android 真实时区；较旧 API 3 宿主回退到 JS UTC 时间。仅升级字节完全匹配原始离线包的时间插件，保留启用状态；修改过的插件不会被覆盖。禁用插件或角色未绑定时，不提供它的时间上下文。
 
 模型提出工具调用时，Solvit 显示工具描述和完整参数，点击“允许这一次”后执行。拒绝会回传拒绝结果；“停止生成”会取消等待和执行。工具状态与结果可以展开查看。默认整次回复最多 8 轮、16 次工具执行，每次执行有 60 秒上限，JS 引擎期限为 30 秒。
 
@@ -55,14 +59,14 @@
 
 [0.6.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.6.0)，[完整远程验证与发布通过](https://github.com/veryy/Solvit/actions/runs/38109369009)。纯 TS Skills 技能库支持：SKILL.md、文本资源 ZIP 和 JSON 包导入，原生查看、删除、导出；每轮自动提供角色允许的元数据，正文及引用文件按需加载。使用入口是聊天顶部“角色”按钮；先在插件页启用 Skills，再创建角色绑定插件和技能。详细格式、权限和当前边界见 [Skills 与角色](docs/skills.md)。
 
-角色提示词和插件绑定按对话保存，新对话继承当前角色。MCP、记忆和其他工具按插件绑定；模型工具仍需逐次确认。API 3 的 beforeModel Hook 只允许读插件存储。
+角色提示词和插件绑定按对话保存，新对话继承当前角色。MCP、记忆和其他工具按插件绑定；模型工具仍需逐次确认。API 3 的 beforeModel Hook 只允许读插件存储和当前时间。
 
 ## 构建
 
 需要 JDK 17、Android SDK Platform 36、Build Tools 36.0.0。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
 
 ```sh
-./gradlew :core:test :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:lintDebug :app:assembleDebug
+./gradlew :core:test :system-runtime:test :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同命令并上传 APK 和测试报告。Gradle Wrapper 固定为 9.3.1，AGP 9.1.1 使用内置 Kotlin，项目 Kotlin 版本 2.4.10，以接入具有超时与取消能力的 QuickJS 插件引擎。
@@ -75,6 +79,7 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 | `provider-openai` | OkHttp 网络与 SSE，独立注册 ModelProvider |
 | `storage-sqlite` | ChatStore 的 Android SQLite 实现 |
 | `chat-runtime` | 有界工具 Agent、消息结算、上下文和 ChatService 插件 |
+| `system-runtime` | Shell 作业、流式输出与取消引擎（尚未接入 Android/UI） |
 | `release-updates` | GitHub Release 更新检查 |
 | `plugin-runtime` | QuickJS 引擎、JS 工具适配、依赖、权限与执行限制 |
 | `plugin-market` | HTTPS 目录、包校验、安装启停、独立存储和权限配置 |

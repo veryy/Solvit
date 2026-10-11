@@ -67,3 +67,5 @@ Hook 只允许读取本插件存储，不允许 settings.get、storage.set 或 H
 普通工具与 Hook 都能通过 `ctx.role` 取得宿主提供的角色 ID、名称和 skillIds；默认角色为 null。插件 ID 由宿主用于工具发现及执行范围检查，管理参数不能伪造角色。`ctx.role` 的数据不可视为不同插件间存储隔离。
 
 manifest 工具设置 `exposure: "management"` 后，只出现在原生管理调用中，不向模型提供。默认值为 `chat`。Skills 导入、删除、导出使用 management；聊天正文/资源读取使用 chat。示例及限制见 [Skills](../docs/skills.md)。
+
+Solvit 0.7.0 为 API 3 提供可选 `ctx.clock.now()`，返回 `utc`、`localTime`、Android IANA `timezone` 和 JS 约定的 `timezoneOffsetMinutes`（上海为 -480）。这是只读服务，可在 beforeModel 中使用；旧宿主不存在此属性，插件应检查后回退到 JS Date。实际示例见 [时间插件](../builtin-plugins/clock/index.ts)。
