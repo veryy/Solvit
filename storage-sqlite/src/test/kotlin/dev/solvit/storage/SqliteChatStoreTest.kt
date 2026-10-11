@@ -30,11 +30,12 @@ class SqliteChatStoreTest {
             db.version = 1
         }
         val call = ToolCall("call", "clock", "{\"zone\":\"UTC\"}")
-        val assistant = ChatMessage("a", "s", Role.ASSISTANT, "", toolCalls = listOf(call))
-        val result = ChatMessage("t", "s", Role.TOOL, "UTC", toolCallId = call.id)
+        val assistant = ChatMessage("a", "s", Role.ASSISTANT, "", toolCalls = listOf(call), reasoning = "Check the live clock")
+        val result = ChatMessage("t", "s", Role.TOOL, "UTC", toolCallId = call.id, toolStage = ToolStage.SUCCEEDED)
         SqliteChatStore(context).use { store ->
             assertEquals("hello", store.history("s").single().content)
             assertTrue(store.history("s").single().toolCalls.isEmpty())
+            assertEquals("", store.history("s").single().reasoning)
             store.appendBatch(listOf(assistant, result))
         }
         SqliteChatStore(context).use { store ->

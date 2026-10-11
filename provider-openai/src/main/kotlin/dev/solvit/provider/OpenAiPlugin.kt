@@ -77,6 +77,9 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                         checkFinishReason(reason)
                         val message = choice["message"]?.jsonObject ?: throw ModelException("响应缺少 message")
                         val text = message["content"]?.jsonPrimitive?.contentOrNull
+                        val reasoning = message["reasoning_content"]?.jsonPrimitive?.contentOrNull
+                            ?: message["reasoning"]?.jsonPrimitive?.contentOrNull
+                        if (!reasoning.isNullOrEmpty()) emit(ModelChunk.Reasoning(reasoning))
                         if (!text.isNullOrEmpty()) { hasText = true; emit(ModelChunk.Text(text)) }
                         val calls = message["tool_calls"]?.jsonArray?.map { element ->
                             val call = element.jsonObject
@@ -116,6 +119,9 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                                 pending.add(part)
                             }
                             val content = delta?.get("content")?.jsonPrimitive?.contentOrNull
+                            val reasoning = delta?.get("reasoning_content")?.jsonPrimitive?.contentOrNull
+                                ?: delta?.get("reasoning")?.jsonPrimitive?.contentOrNull
+                            if (!reasoning.isNullOrEmpty()) emit(ModelChunk.Reasoning(reasoning))
                             if (!content.isNullOrEmpty()) { hasText = true; emit(ModelChunk.Text(content)) }
                             if (reason != null) { finished = true; finishReason = reason }
                         }

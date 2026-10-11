@@ -38,6 +38,7 @@ class DefaultChatService(
         config.validate()?.let { error(it) }
         check(turn.tryLock()) { "已有回复正在生成" }
         val answer = StringBuilder()
+        val reasoning = StringBuilder()
         val transcript = mutableListOf<ModelMessage>()
         var settled = false
         var admitted = false
@@ -49,7 +50,8 @@ class DefaultChatService(
             val batch = transcript.map { message -> ChatMessage(
                 UUID.randomUUID().toString(), sessionId, message.role, message.content, status,
                 toolCalls = message.toolCalls, toolCallId = message.toolCallId,
-            ) } + ChatMessage(UUID.randomUUID().toString(), sessionId, Role.ASSISTANT, answer.toString(), status)
+                reasoning = message.reasoning, toolStage = message.toolStage,
+            ) } + ChatMessage(UUID.randomUUID().toString(), sessionId, Role.ASSISTANT, answer.toString(), status, reasoning = reasoning.toString())
             store.appendBatch(batch)
             batch.forEach { events.publish(CoreEvent.MessageStored(sessionId, it.id)) }
             settled = true
@@ -70,10 +72,12 @@ class DefaultChatService(
                 check(!done) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { answer.append(chunk.value); emit(chunk) }
+                    is ModelChunk.Reasoning -> { reasoning.append(chunk.value); emit(chunk) }
                     is ModelChunk.ToolCalls -> error("Agent 暴露了未处理的工具调用")
                     is ModelChunk.Transcript -> {
                         transcript += chunk.message
-                        if (chunk.message.role == Role.ASSISTANT) answer.setLength(0)
+                        if (chunk.message.role == Role.ASSISTANT) { answer.setLength(0); reasoning.setLength(0) }
+                        emit(chunk)
                     }
                     is ModelChunk.ToolActivity -> emit(chunk)
                     ModelChunk.Done -> {

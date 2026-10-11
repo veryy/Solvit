@@ -26,6 +26,12 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     val ready = MutableStateFlow(false)
     val busy = MutableStateFlow(false)
     val draft = MutableStateFlow("")
+    val reasoning = MutableStateFlow("")
+    val liveTranscript = MutableStateFlow<List<ModelMessage>>(emptyList())
+    var turnBaseline: String? = null
+        private set
+    var sendingText: String = ""
+        private set
     val saving = MutableStateFlow(false)
     val toolActivity = MutableStateFlow<List<ModelChunk.ToolActivity>>(emptyList())
     val toolApproval = MutableStateFlow<ToolApproval?>(null)
@@ -89,6 +95,8 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         dismissError()
         config.value.validate()?.let { error.value = it; return false }
         draft.value = ""
+        reasoning.value = ""; liveTranscript.value = emptyList()
+        turnBaseline = messages.value.lastOrNull()?.id; sendingText = text.trim()
         toolActivity.value = emptyList()
         busy.value = true
         val snapshot = config.value
@@ -105,8 +113,12 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                 }
                 chat.send(id, text, snapshot, gate).collect { chunk -> when (chunk) {
                     is ModelChunk.Text -> draft.value += chunk.value
+                    is ModelChunk.Reasoning -> reasoning.value += chunk.value
                     is ModelChunk.ToolCalls -> error("Agent 暴露了未处理工具调用")
-                    is ModelChunk.Transcript -> Unit
+                    is ModelChunk.Transcript -> {
+                        liveTranscript.value += chunk.message
+                        if (chunk.message.role == Role.ASSISTANT) { draft.value = ""; reasoning.value = "" }
+                    }
                     is ModelChunk.ToolActivity -> toolActivity.value =
                         toolActivity.value.filterNot { it.call.id == chunk.call.id } + chunk
                     ModelChunk.Done -> draft.value = ""
@@ -115,7 +127,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             catch (e: ModelException) { error.value = e.message; errorDetails.value = e.details }
             catch (e: IOException) { error.value = "网络连接失败，请检查 API 地址和网络" }
             catch (e: Exception) { error.value = "发送失败，请检查模型配置或缩短对话后重试" }
-            finally { busy.value = false; draft.value = ""; toolApproval.value = null }
+            finally { busy.value = false; draft.value = ""; reasoning.value = ""; liveTranscript.value = emptyList(); toolApproval.value = null }
         }
         return true
     }

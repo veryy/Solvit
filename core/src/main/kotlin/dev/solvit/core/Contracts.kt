@@ -14,6 +14,8 @@ data class ChatMessage(
     val status: MessageStatus = MessageStatus.COMPLETE,
     val toolCalls: List<ToolCall> = emptyList(),
     val toolCallId: String? = null,
+    val reasoning: String = "",
+    val toolStage: ToolStage? = null,
 )
 data class ChatSession(val id: String, val title: String, val updatedAt: Long)
 data class ToolCall(val id: String, val name: String, val argumentsJson: String)
@@ -22,6 +24,8 @@ data class ModelMessage(
     val content: String,
     val toolCalls: List<ToolCall> = emptyList(),
     val toolCallId: String? = null,
+    val reasoning: String = "",
+    val toolStage: ToolStage? = null,
 )
 
 /** Not a data class: toString must never reveal API keys. */
@@ -70,6 +74,8 @@ data class ModelRequest(
 )
 sealed interface ModelChunk {
     data class Text(val value: String) : ModelChunk
+    /** Provider-supplied reasoning, kept separate from the visible answer. */
+    data class Reasoning(val value: String) : ModelChunk
     data class ToolCalls(val calls: List<ToolCall>) : ModelChunk
     data class ToolActivity(val call: ToolCall, val stage: ToolStage, val result: String? = null) : ModelChunk
     data class Transcript(val message: ModelMessage) : ModelChunk

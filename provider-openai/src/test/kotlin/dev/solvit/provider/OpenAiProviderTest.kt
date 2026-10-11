@@ -9,6 +9,16 @@ import okhttp3.mockwebserver.MockWebServer
 import kotlin.test.*
 
 class OpenAiProviderTest {
+    @Test fun streamsProviderReasoningSeparatelyFromAnswer() = runTest {
+        val frames = listOf(
+            """{"choices":[{"delta":{"reasoning_content":"先核对","content":""},"finish_reason":""}]}""",
+            """{"choices":[{"delta":{"reasoning":"时间"},"finish_reason":null}]}""",
+            """{"choices":[{"delta":{"content":"你好"},"finish_reason":"stop"}]}""",
+        ).joinToString("\n\n") { "data: $it" } + "\n\ndata: [DONE]\n\n"
+        withServer(frames) { provider, request, _ ->
+            assertEquals(listOf(ModelChunk.Reasoning("先核对"), ModelChunk.Reasoning("时间"), ModelChunk.Text("你好"), ModelChunk.Done), provider.stream(request).toList())
+        }
+    }
     private suspend fun withServer(body: String, status: Int = 200, contentType: String = "text/event-stream", block: suspend (OpenAiProvider, ModelRequest, MockWebServer) -> Unit) {
         val server = MockWebServer()
         val client = OkHttpClient()

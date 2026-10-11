@@ -18,6 +18,25 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun reasoningIsStreamedAndStoredButExcludedFromNextModelContext() = runTest {
+        val store = MemoryStore()
+        var observed: ModelRequest? = null
+        var first = true
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest): Flow<ModelChunk> {
+                observed = request
+                return if (first) flowOf(ModelChunk.Reasoning("private-thought"), ModelChunk.Text("answer"), ModelChunk.Done)
+                    else flowOf(ModelChunk.Text("next"), ModelChunk.Done)
+            }
+        }
+        val chat = DefaultChatService(store, agent, EventBus())
+        val chunks = chat.send("session", "question", ModelConfig()).toList()
+        assertEquals(ModelChunk.Reasoning("private-thought"), chunks.first())
+        assertEquals("private-thought", store.saved.last().reasoning)
+        first = false
+        chat.send("session", "follow-up", ModelConfig()).toList()
+        assertTrue(observed!!.messages.none { "private-thought" in it.content || it.reasoning.isNotEmpty() })
+    }
     @Test fun savesUserAndCompletedAssistantAndBuildsContextThroughInterfaces() = runTest {
         val store = MemoryStore()
         var sent: ModelRequest? = null

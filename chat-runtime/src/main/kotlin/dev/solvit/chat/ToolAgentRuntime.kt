@@ -32,12 +32,14 @@ class ToolAgentRuntime(
         var executions = 0
         for (round in 0 until maxRounds) {
             val text = StringBuilder()
+            val reasoning = StringBuilder()
             var calls = emptyList<ToolCall>()
             var completed = false
             provider.stream(request.copy(messages = messages.toList(), tools = advertised)).collect { chunk ->
                 check(!completed) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { text.append(chunk.value); emit(chunk) }
+                    is ModelChunk.Reasoning -> { reasoning.append(chunk.value); emit(chunk) }
                     is ModelChunk.ToolCalls -> {
                         check(calls.isEmpty()) { "Duplicate tool call batch" }
                         calls = chunk.calls
@@ -50,7 +52,7 @@ class ToolAgentRuntime(
             if (calls.isEmpty()) { emit(ModelChunk.Done); return@flow }
             if (round == maxRounds - 1 || executions + calls.size > maxCalls) throw ModelException("已达到工具执行上限，请继续对话")
             if (calls.any { it.name !in allowed || !seen.add(it.id) }) throw ModelException("模型调用了未提供或重复的工具")
-            val assistant = ModelMessage(Role.ASSISTANT, text.toString(), calls)
+            val assistant = ModelMessage(Role.ASSISTANT, text.toString(), calls, reasoning = reasoning.toString())
             messages += assistant
             emit(ModelChunk.Transcript(assistant))
             for (call in calls) {
@@ -74,7 +76,7 @@ class ToolAgentRuntime(
                     ToolStage.FAILED to "工具执行失败，请检查插件状态、权限和参数。"
                 }
                 emit(ModelChunk.ToolActivity(call, outcome.first, outcome.second))
-                val result = ModelMessage(Role.TOOL, outcome.second, toolCallId = call.id)
+                val result = ModelMessage(Role.TOOL, outcome.second, toolCallId = call.id, toolStage = outcome.first)
                 messages += result
                 emit(ModelChunk.Transcript(result))
             }
