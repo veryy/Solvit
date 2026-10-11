@@ -8,3 +8,4 @@ local.properties
 .env
 
 plugin-sdk/node_modules/
+.signing/

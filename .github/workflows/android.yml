@@ -29,15 +29,21 @@ jobs:
           SOLVIT_KEYSTORE: ${{ secrets.SOLVIT_DEBUG_KEYSTORE }}
         run: |
           if [ -n "$SOLVIT_KEYSTORE" ]; then
-            mkdir -p "$HOME/.android"
-            printf '%s' "$SOLVIT_KEYSTORE" | base64 --decode > "$HOME/.android/debug.keystore"
-            chmod 600 "$HOME/.android/debug.keystore"
+            mkdir -p .signing
+            printf '%s' "$SOLVIT_KEYSTORE" | base64 --decode > .signing/debug.keystore
+            chmod 600 .signing/debug.keystore
           elif [ "${{ github.event_name }}" != "pull_request" ]; then
             echo 'Missing stable APK signing key'
             exit 1
           fi
       - name: Tests, lint and APK
         run: ./gradlew :core:test :system-runtime:test :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:lintDebug :app:assembleDebug --stacktrace
+      - name: Verify published APK signing identity
+        if: github.event_name != 'pull_request'
+        run: |
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk > apk-signing.txt
+          cat apk-signing.txt
+          grep -F 'Signer #1 certificate SHA-256 digest: f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3' apk-signing.txt
       - uses: actions/upload-artifact@v4
         with:
           name: solvit-debug-apk
@@ -71,7 +77,7 @@ jobs:
           script: |
             const fs = require('fs');
             const tag = context.ref.replace('refs/tags/', '');
-            const body = `APK 由 GitHub Actions 构建，测试与 Lint 通过。\n\n构建：https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n下载 solvit-debug.apk 安装。0.1.1 起使用固定签名；早期 0.1.0 的临时签名不能覆盖安装。尚未进行真机和真实模型验证。`;
+            const body = `APK 由 GitHub Actions 构建，测试、Lint 和签名指纹检查通过。\n\n构建：https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n下载 solvit-debug.apk 安装。0.7.0 起明确使用固定签名；0.6.0 及之前的发布包证书不同，不能覆盖安装，请先保存旧配置。正常覆盖更新保留数据，卸载会删除数据。尚未进行真机和真实模型验证。`;
             const notesPath = `docs/release-${tag.slice(1)}.md`;
             const notes = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : '';
             const releaseBody = notes ? `${notes}\n\n${body}` : body;

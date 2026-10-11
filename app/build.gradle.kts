@@ -6,8 +6,19 @@ android {
         applicationId = "dev.solvit.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.6.0"
+        versionCode = 9
+        versionName = "0.7.0"
+    }
+    // setup-android can change ANDROID_USER_HOME. Never rely on AGP's implicit
+    // debug-keystore path: CI restores and uses this exact file.
+    signingConfigs.getByName("debug") {
+        val stableKey = rootProject.file(".signing/debug.keystore")
+        if (stableKey.exists()) {
+            storeFile = stableKey
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
     }
     buildFeatures { compose = true; buildConfig = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
