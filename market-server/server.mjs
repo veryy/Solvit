@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { handleMcpDemo } from './mcp-demo.mjs';
 import { readFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { dirname, join } from 'node:path';
@@ -38,6 +39,9 @@ export function createMarketServer({ directory = join(root, 'packages') } = {}) 
       response.writeHead(status, { 'Content-Type': contentType });
       response.end(typeof body === 'string' || Buffer.isBuffer(body) ? body : JSON.stringify(body));
     };
+    if (new URL(request.url, 'http://localhost').pathname === '/mcp-demo') {
+      await handleMcpDemo(request, response); return;
+    }
     if (request.method !== 'GET' && request.method !== 'HEAD') {
       response.setHeader('Allow', 'GET, HEAD'); send(405, { error: 'Method not allowed' }); return;
     }

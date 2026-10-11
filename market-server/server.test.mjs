@@ -27,3 +27,20 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal((await fetch(base + '/api/v1/packages/../../server.mjs')).status, 404);
   } finally { await new Promise(resolve => server.close(resolve)); }
 });
+
+test('MCP demo negotiates read-only tools and rejects unknown calls and origins', async () => {
+  const server = createMarketServer();
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  const endpoint = `http://127.0.0.1:${server.address().port}/mcp-demo`;
+  let id = 0;
+  const rpc = async (method, params) => (await fetch(endpoint, { method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({jsonrpc:'2.0',id:++id,method,params}) })).json();
+  try {
+    assert.equal((await rpc('initialize',{protocolVersion:'2025-11-25'})).result.protocolVersion,'2025-11-25');
+    assert.equal((await rpc('tools/list',{})).result.tools.length,2);
+    assert.equal((await rpc('tools/call',{name:'echo',arguments:{text:'你好'}})).result.content[0].text,'你好');
+    assert.equal((await rpc('tools/call',{name:'shell',arguments:{}})).error.code,-32602);
+    assert.equal((await fetch(endpoint,{method:'POST',headers:{Origin:'https://untrusted.example'}})).status,403);
+    assert.equal((await fetch(endpoint)).status,405);
+  } finally { await new Promise(resolve => server.close(resolve)); }
+});
