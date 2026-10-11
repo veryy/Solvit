@@ -39,7 +39,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     host.call(pkg.manifest, operation, arguments).toString()
                 }
                 withTimeout(timeoutMs) {
-                    js.evaluate<Unit>("""
+                    js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
                           storage: Object.freeze({
                             get: async key => JSON.parse(await __solvitHostCall('storage.get', JSON.stringify({key}))),
@@ -50,14 +50,14 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                           })
                         });
                     """.trimIndent())
-                    js.evaluate<Unit>(pkg.source)
-                    js.evaluate<Unit>("""
+                    js.evaluate<Any?>(pkg.source)
+                    js.evaluate<Any?>("""
                         if (!globalThis.solvitPlugin || typeof solvitPlugin.tools !== 'object') throw new Error('Missing plugin.tools');
                     """.trimIndent())
                     for (tool in pkg.manifest.tools) {
-                        js.evaluate<Unit>("if (typeof solvitPlugin.tools[${JsonPrimitive(tool.name)}] !== 'function') throw new Error('Missing tool handler');")
+                        js.evaluate<Any?>("if (typeof solvitPlugin.tools[${JsonPrimitive(tool.name)}] !== 'function') throw new Error('Missing tool handler');")
                     }
-                    js.evaluate<Unit>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
+                    js.evaluate<Any?>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
                 }
                 engine = js
             } catch (e: Throwable) { js.close(); throw e }
@@ -82,7 +82,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
             val js = engine ?: return@withLock
             try {
                 withContext(Dispatchers.Default) {
-                    withTimeout(2_000) { js.evaluate<Unit>("if (solvitPlugin.deactivate) await solvitPlugin.deactivate(ctx);") }
+                    withTimeout(2_000) { js.evaluate<Any?>("if (solvitPlugin.deactivate) await solvitPlugin.deactivate(ctx);") }
                 }
             } finally { js.close(); engine = null }
         }
