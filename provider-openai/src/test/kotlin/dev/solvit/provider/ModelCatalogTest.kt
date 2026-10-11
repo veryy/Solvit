@@ -82,4 +82,22 @@ class ModelCatalogTest {
             assertEquals("next", catalog.models(config).single().id)
         } finally { close(client); server.shutdown() }
     }
+
+    @Test fun failingSubscriptionKeepsResponseButNeverExposesQueryTokenOrApiKey() = runBlocking<Unit> {
+        val server = MockWebServer(); val client = client(); server.start()
+        try {
+            val url = server.url("/subscription?token=SECRET_SUBSCRIPTION").toString()
+            server.enqueue(MockResponse().setResponseCode(404).setHeader("x-request-id", "request-42")
+                .setBody("route missing; PRIVATE_KEY; $url; Bearer OTHER_SECRET"))
+            val failure = assertFailsWith<ModelException> {
+                OpenAiModelCatalog(client).models(ModelConfig("https://provider.example/v1", "", "PRIVATE_KEY", modelListUrl = url))
+            }
+            assertFalse(failure.message!!.contains("没有"))
+            val details = assertNotNull(failure.details)
+            assertEquals(404, details.httpStatus); assertEquals("request-42", details.requestId)
+            assertTrue(details.response.contains("route missing"))
+            for (secret in listOf("PRIVATE_KEY", "SECRET_SUBSCRIPTION", "OTHER_SECRET")) assertFalse(details.display().contains(secret))
+            assertFalse(details.endpoint.contains("?"))
+        } finally { close(client); server.shutdown() }
+    }
 }

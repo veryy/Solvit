@@ -78,7 +78,17 @@ interface ModelProvider {
     val id: String
     fun stream(request: ModelRequest): Flow<ModelChunk>
 }
-class ModelException(message: String) : IOException(message)
+/** Diagnostics are already redacted by the provider; never include request prompts. */
+data class ModelErrorDetails(val endpoint: String, val httpStatus: Int? = null,
+    val response: String = "", val requestId: String? = null) {
+    fun display(): String = buildString {
+        append("地址：").append(endpoint)
+        httpStatus?.let { append("\nHTTP：").append(it) }
+        requestId?.let { append("\n请求 ID：").append(it) }
+        append("\n\n").append(response.ifBlank { "服务未返回响应正文" })
+    }
+}
+class ModelException(message: String, val details: ModelErrorDetails? = null) : IOException(message)
 interface ChatStore {
     fun sessions(): Flow<List<ChatSession>>
     fun messages(sessionId: String): Flow<List<ChatMessage>>

@@ -35,10 +35,23 @@ class OpenAiProviderTest {
         }
     }
 
-    @Test fun httpErrorsDoNotExposeRemoteBodyOrCredentials() = runTest {
+    @Test fun httpErrorsPreserveRemoteExplanationWhileRedactingCredentials() = runTest {
         withServer("private-key server debug details", 401) { provider, request, _ ->
             val failure = assertFailsWith<ModelException> { provider.stream(request).toList() }
             assertFalse(failure.message.orEmpty().contains("private-key"))
+            val details = assertNotNull(failure.details)
+            assertEquals(401, details.httpStatus)
+            assertTrue(details.response.contains("server debug details"))
+            assertFalse(details.display().contains("private-key"))
+        }
+    }
+
+    @Test fun streamErrorIncludesOriginalProviderCodeAndMessage() = runTest {
+        withServer("data: {\"error\":{\"code\":\"invalid_model\",\"message\":\"Model xyz is unavailable\"}}\n\n") { provider, request, _ ->
+            val failure = assertFailsWith<ModelException> { provider.stream(request).toList() }
+            val details = assertNotNull(failure.details)
+            assertTrue(details.response.contains("invalid_model"))
+            assertTrue(details.response.contains("Model xyz is unavailable"))
         }
     }
 

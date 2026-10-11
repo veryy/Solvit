@@ -24,6 +24,8 @@ class OpenAiModelCatalog(client: OkHttpClient) : ModelCatalogService {
         // An independent subscription URL may have its own query-token. Never
         // forward the model API key to another origin without explicit opt-in.
         if (config.apiKey.isNotBlank() && (sameOrigin || config.modelListUsesApiKey)) request.header("Authorization", "Bearer ${config.apiKey}")
+        val diagnostics = ResponseDiagnostics(config, url)
+        var lastResponse: ModelErrorDetails? = null
         val call = client.newCall(request.build())
         coroutineScope {
             val cancellation = launch(start = CoroutineStart.UNDISPATCHED) {
@@ -31,9 +33,10 @@ class OpenAiModelCatalog(client: OkHttpClient) : ModelCatalogService {
             }
             try {
                 call.await().use { response ->
-                    if (!response.isSuccessful) throw ModelException(when (response.code) {
+                    lastResponse = diagnostics.details(response)
+                    if (!response.isSuccessful) throw diagnostics.httpFailure(response, when (response.code) {
                         401, 403 -> "获取模型认证失败，请检查密钥；独立列表地址如需同一密钥，请勾选对应选项"
-                        404 -> "此服务没有默认模型列表接口，请填写独立模型列表地址或手动输入模型"
+                        404 -> "模型列表请求返回 HTTP 404，请查看服务端详细响应"
                         429 -> "获取模型过于频繁或服务限流，请稍后重试"
                         in 300..399 -> "模型列表地址发生重定向，请填写最终地址"
                         else -> "获取模型失败（HTTP ${response.code}）"
@@ -50,8 +53,15 @@ class OpenAiModelCatalog(client: OkHttpClient) : ModelCatalogService {
                             data.write(buffer, 0, n)
                         }
                     }
-                    parse(data.toByteArray().toString(Charsets.UTF_8))
+                    val text = data.toByteArray().toString(Charsets.UTF_8)
+                    lastResponse = diagnostics.details(response, text)
+                    parse(text)
                 }
+            } catch (e: CancellationException) { throw e }
+            catch (e: ModelException) { throw if (e.details != null) e else ModelException(e.message ?: "获取模型失败", lastResponse ?: diagnostics.details()) }
+            catch (e: IOException) {
+                currentCoroutineContext().ensureActive()
+                throw ModelException("获取模型连接失败，请查看详细信息", diagnostics.details(body = "${e.javaClass.simpleName}: ${e.message.orEmpty()}"))
             } finally { cancellation.cancelAndJoin(); call.cancel() }
         }
     }
@@ -72,7 +82,7 @@ class OpenAiModelCatalog(client: OkHttpClient) : ModelCatalogService {
                 (object_?.get("name") as? JsonPrimitive)?.contentOrNull?.takeIf { it.length <= 256 && it.none(Char::isISOControl) } ?: identifier,
                 (object_?.get("owned_by") as? JsonPrimitive)?.contentOrNull?.takeIf { it.length <= 256 && it.none(Char::isISOControl) })
         }.distinctBy { it.id }.sortedBy { it.id.lowercase(Locale.ROOT) }
-        if (models.isEmpty()) throw ModelException("此地址没有返回可用模型名称，可手动填写模型")
+        if (models.isEmpty()) throw ModelException("响应中未解析出可用模型名称，请查看详细信息")
         return models
     }
     private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->

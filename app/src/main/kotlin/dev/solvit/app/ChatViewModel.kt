@@ -13,6 +13,8 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     suspend fun discoverModels(candidate: ModelConfig): List<AvailableModel> =
         (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
+    val errorDetails = MutableStateFlow<ModelErrorDetails?>(null)
+    fun dismissError() { error.value = null; errorDetails.value = null }
     private val selected = MutableStateFlow<String?>(null)
     val sessionId = selected.asStateFlow()
     val sessions = chat.sessions().catch { error.value = "读取会话失败" }
@@ -42,7 +44,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             } catch (e: Exception) { error.value = "无法打开聊天存储，请重启应用" }
         }
     }
-    fun select(id: String) { if (!busy.value) { selected.value = id; draft.value = ""; error.value = null } }
+    fun select(id: String) { if (!busy.value) { selected.value = id; draft.value = ""; dismissError() } }
     fun newChat() {
         if (busy.value) return
         viewModelScope.launch {
@@ -85,7 +87,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         val id = selected.value ?: return false
         if (busy.value || !ready.value || text.isBlank()) return false
         config.value.validate()?.let { error.value = it; return false }
-        error.value = null
+        dismissError()
         draft.value = ""
         toolActivity.value = emptyList()
         busy.value = true
@@ -110,7 +112,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                     ModelChunk.Done -> draft.value = ""
                 } }
             } catch (e: CancellationException) { throw e }
-            catch (e: ModelException) { error.value = e.message }
+            catch (e: ModelException) { error.value = e.message; errorDetails.value = e.details }
             catch (e: IOException) { error.value = "网络连接失败，请检查 API 地址和网络" }
             catch (e: Exception) { error.value = "发送失败，请检查模型配置或缩短对话后重试" }
             finally { busy.value = false; draft.value = ""; toolApproval.value = null }

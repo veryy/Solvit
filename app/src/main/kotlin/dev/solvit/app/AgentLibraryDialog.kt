@@ -14,8 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.solvit.core.*
 import kotlinx.coroutines.Dispatchers
@@ -57,14 +55,14 @@ fun AgentLibraryDialog(vm: AgentLibraryViewModel, onDismiss: () -> Unit) {
             }
         }
     }
-    Dialog(onDismissRequest = { if (!busy) onDismiss() }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    FullScreenPage(onDismissRequest = { if (!busy) onDismiss() }) {
         Surface(Modifier.fillMaxSize()) {
             Scaffold(topBar = {
                 TopAppBar(title = { Text("角色与 Skills") }, navigationIcon = {
                     IconButton(onClick = onDismiss, enabled = !busy) { Icon(Icons.Default.Close, "关闭") }
                 })
             }) { padding ->
-                Column(Modifier.padding(padding).fillMaxSize()) {
+                Column(Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize()) {
                     TabRow(selectedTabIndex = tab) {
                         Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("角色") })
                         Tab(selected = tab == 1, onClick = { tab = 1; vm.refreshSkills() }, text = { Text("技能库") })

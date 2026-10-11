@@ -21,13 +21,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -111,6 +110,8 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val ready by vm.ready.collectAsStateWithLifecycle()
     val draft by vm.draft.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
+    val errorDetails by vm.errorDetails.collectAsStateWithLifecycle()
+    var showErrorDetails by remember { mutableStateOf(false) }
     val saving by vm.saving.collectAsStateWithLifecycle()
     val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
     val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
@@ -134,7 +135,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     }
 
     ModalNavigationDrawer(drawerState = drawer, drawerContent = {
-        ModalDrawerSheet {
+        ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.5f)) {
             Text("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
             FilledTonalButton(onClick = { vm.newChat(); scope.launch { drawer.close() } }, enabled = ready && !busy,
                 modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
@@ -154,8 +155,11 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                     )
                 }
             }
-            Text("轻量 · 可组合 · 原生", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(24.dp))
+            HorizontalDivider()
+            TextButton(onClick = { scope.launch { drawer.close(); settingsOpen = true } },
+                modifier = Modifier.padding(12.dp).fillMaxWidth()) {
+                Icon(Icons.Default.Settings, null); Spacer(Modifier.width(8.dp)); Text("设置")
+            }
         }
     }) {
         Scaffold(
@@ -170,7 +174,6 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                     actions = {
                         IconButton(onClick = { pluginsOpen = true }) { Icon(Icons.Default.Extension, "插件市场") }
                         IconButton(onClick = vm::newChat, enabled = ready && !busy) { Icon(Icons.Default.Add, "新对话") }
-                        IconButton(onClick = { settingsOpen = true }) { Icon(Icons.Default.Settings, "设置") }
                     },
                 )
             },
@@ -181,8 +184,9 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text(error!!, color = MaterialTheme.colorScheme.error,
                                     style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                                IconButton(onClick = { vm.error.value = null }) { Icon(Icons.Default.Close, "关闭提示") }
+                                IconButton(onClick = vm::dismissError) { Icon(Icons.Default.Close, "关闭提示") }
                             }
+                            if (errorDetails != null) TextButton(onClick = { showErrorDetails = true }) { Text("查看详细信息") }
                         }
                         Row(verticalAlignment = Alignment.Bottom) {
                             OutlinedTextField(value = input, onValueChange = { input = it },
@@ -195,8 +199,6 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                                 enabled = busy || (ready && input.isNotBlank() && !missingRole && !agentBusy), modifier = Modifier.size(52.dp),
                             ) { Icon(if (busy) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send, if (busy) "停止生成" else "发送") }
                         }
-                        Text("AI 可能出错，请核实重要信息", style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
                     }
                 }
             },
@@ -232,6 +234,8 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             }
         }
     }
+    if (showErrorDetails) errorDetails?.let { ModelErrorDialog(it) { showErrorDetails = false } }
+    LaunchedEffect(errorDetails) { showErrorDetails = false }
     toolApproval?.let { pending ->
         AlertDialog(onDismissRequest = { vm.approveTool(false) }, title = { Text("允许调用工具？") },
             text = { LazyColumn(Modifier.heightIn(max = 360.dp)) {
@@ -292,17 +296,19 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
     var models by remember { mutableStateOf<List<AvailableModel>>(emptyList()) }
     var fetching by remember { mutableStateOf(false) }
     var fetchError by remember { mutableStateOf<String?>(null) }
+    var fetchDetails by remember { mutableStateOf<ModelErrorDetails?>(null) }
+    var showFetchDetails by remember { mutableStateOf(false) }
     var picker by remember { mutableStateOf(false) }
     var search by remember { mutableStateOf("") }
     var fetchJob by remember { mutableStateOf<Job?>(null) }
     var fetchRevision by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     LaunchedEffect(base, key, listUrl, listAuth) {
-        fetchRevision++; fetchJob?.cancel(); fetching = false; models = emptyList(); fetchError = null; picker = false
+        fetchRevision++; fetchJob?.cancel(); fetching = false; models = emptyList(); fetchError = null; fetchDetails = null; showFetchDetails = false; picker = false
     }
     val candidate = ModelConfig(base.trim(), model.trim(), key.trim(), prompt, listUrl.trim(), listAuth)
     val invalid = candidate.validate()
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Scaffold(topBar = { TopAppBar(title = { Text("模型设置") }, navigationIcon = {
                 IconButton(onClick = onDismiss, enabled = !saving) { Icon(Icons.Default.Close, "关闭设置") }
@@ -312,7 +318,7 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
                     Text(if (saving) "保存中…" else "保存配置")
                 }
             }) { padding ->
-                LazyColumn(Modifier.padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     item { Text("连接你选择的模型", style = MaterialTheme.typography.headlineSmall) }
                     item { Text("支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     item { OutlinedTextField(base, { base = it }, label = { Text("API 基础地址") },
@@ -333,12 +339,12 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
                     }
                     item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilledTonalButton(enabled = !saving && !fetching && candidate.validateConnection() == null, onClick = {
-                            fetching = true; fetchError = null
+                            fetching = true; fetchError = null; fetchDetails = null
                             val revision = ++fetchRevision
                             fetchJob = scope.launch {
                                 try { val result = onFetchModels(candidate); if (revision == fetchRevision) { models = result; search = ""; picker = true } }
                                 catch (e: CancellationException) { throw e }
-                                catch (e: ModelException) { if (revision == fetchRevision) fetchError = e.message }
+                                catch (e: ModelException) { if (revision == fetchRevision) { fetchError = e.message; fetchDetails = e.details } }
                                 catch (e: Exception) { if (revision == fetchRevision) fetchError = "获取模型失败，请检查地址、密钥和网络" }
                                 finally { if (revision == fetchRevision) fetching = false }
                             }
@@ -347,7 +353,10 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
                         else if (models.isNotEmpty()) TextButton(onClick = { picker = true }) { Text("选择模型 (${models.size})") }
                     } }
                     if (fetching) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
-                    if (fetchError != null) item { Text(fetchError!!, color = MaterialTheme.colorScheme.error) }
+                    if (fetchError != null) item {
+                        Text(fetchError!!, color = MaterialTheme.colorScheme.error)
+                        if (fetchDetails != null) TextButton(onClick = { showFetchDetails = true }) { Text("查看详细信息") }
+                    }
                     item { OutlinedTextField(model, { model = it }, label = { Text("模型名称") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
                     item { OutlinedTextField(prompt, { prompt = it }, label = { Text("系统提示词") },
@@ -358,6 +367,7 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
             }
         }
     }
+    if (showFetchDetails) fetchDetails?.let { ModelErrorDialog(it) { showFetchDetails = false } }
     if (picker) AlertDialog(onDismissRequest = { picker = false }, title = { Text("选择模型") }, text = {
         Column {
             OutlinedTextField(search, { search = it }, label = { Text("搜索模型名称") }, singleLine = true, modifier = Modifier.fillMaxWidth())

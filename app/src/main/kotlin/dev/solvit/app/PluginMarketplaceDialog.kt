@@ -37,7 +37,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
     var toolTarget by remember { mutableStateOf<ToolDescriptor?>(null) }
     var arguments by remember { mutableStateOf("{}") }
 
-    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize()) {
             Scaffold(topBar = {
                 TopAppBar(title = { Text("插件") }, navigationIcon = {

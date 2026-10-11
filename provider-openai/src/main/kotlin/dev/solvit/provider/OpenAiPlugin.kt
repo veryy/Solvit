@@ -47,7 +47,10 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
             .header("Accept", "text/event-stream")
             .post(payload.toString().toRequestBody("application/json; charset=utf-8".toMediaType()))
         if (request.config.apiKey.isNotBlank()) http.header("Authorization", "Bearer ${request.config.apiKey}")
-        val call = client.newCall(http.build())
+        val httpRequest = http.build()
+        val diagnostics = ResponseDiagnostics(request.config, httpRequest.url)
+        var lastResponse: ModelErrorDetails? = null
+        val call = client.newCall(httpRequest)
         coroutineScope {
             // Cancels the blocking SSE read when the collecting coroutine is cancelled.
             val cancellation = launch(start = CoroutineStart.UNDISPATCHED) {
@@ -55,14 +58,17 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
             }
             try {
                 call.await().use { response ->
-                    if (!response.isSuccessful) throw ModelException(when (response.code) {
+                    lastResponse = diagnostics.details(response)
+                    if (!response.isSuccessful) throw diagnostics.httpFailure(response, when (response.code) {
                         401, 403 -> "认证失败，请检查 API Key 和模型权限"
                         429 -> "请求过于频繁或额度不足，请稍后重试"
                         else -> "模型服务返回 HTTP ${response.code}"
                     })
                     val body = response.body ?: throw ModelException("模型服务返回空响应")
                     if (response.header("Content-Type")?.contains("text/event-stream") != true) {
-                        val result = json.parseToJsonElement(body.string()).jsonObject
+                        val textBody = body.string()
+                        lastResponse = diagnostics.details(response, textBody)
+                        val result = json.parseToJsonElement(textBody).jsonObject
                         if (result["error"] != null) throw ModelException("模型服务返回错误")
                         val choice = result["choices"]?.jsonArray?.firstOrNull()?.jsonObject
                             ?: throw ModelException("响应中没有 choices")
@@ -91,6 +97,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                             val event = data.toString().trim()
                             data.setLength(0)
                             if (event == "[DONE]") { done = true; return }
+                            lastResponse = diagnostics.details(response, event)
                             val result = json.parseToJsonElement(event).jsonObject
                             if (result["error"] != null) throw ModelException("模型流返回错误")
                             val choice = result["choices"]?.jsonArray?.firstOrNull()?.jsonObject ?: return
@@ -124,6 +131,14 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                         emit(ModelChunk.Done)
                     }
                 }
+            } catch (e: CancellationException) { throw e }
+            catch (e: ModelException) {
+                throw if (e.details != null) e else ModelException(e.message ?: "模型请求失败", lastResponse ?: diagnostics.details())
+            } catch (e: IOException) {
+                currentCoroutineContext().ensureActive()
+                throw ModelException("模型连接失败，请查看详细信息", diagnostics.details(body = "${e.javaClass.simpleName}: ${e.message.orEmpty()}"))
+            } catch (e: Exception) {
+                throw ModelException("模型响应格式异常，请查看详细信息", lastResponse ?: diagnostics.details())
             } finally { cancellation.cancelAndJoin(); call.cancel() }
         }
     }.flowOn(Dispatchers.IO)
@@ -136,7 +151,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
     private fun checkFinishReason(reason: String?) {
         if (reason == "length") throw ModelException("回复超过模型输出限制，请缩短上下文")
         if (reason == "content_filter") throw ModelException("模型服务拒绝生成此回复")
-        if (reason != null && reason !in setOf("stop", "tool_calls")) throw ModelException("模型返回了不支持的结束原因")
+        if (reason != null && reason !in setOf("stop", "tool_calls")) throw ModelException("模型返回了未识别的结束原因，请查看详细信息")
     }
 
     private fun finishCalls(calls: List<ToolCall>, reason: String?): ModelChunk.ToolCalls? {
