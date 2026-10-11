@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装、真实模型连接和交互体验尚未验证。
 
-[0.10.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.10.0)，[远程测试、Lint、模拟器和 APK 验证通过](https://github.com/veryy/Solvit/actions/runs/38125183630)。新增原生 Android PTY 交互终端，支持 JS/TS 插件调用。当前开发版本 0.11.0 将工具调用与最终回复合并为同一聊天气泡，默认折叠工具及思考详情；新对话默认没有工作区，按需创建。设置包含模型、角色与 Skills、插件、外观、备份、更新和关于；更新说明、下载进度均在应用内显示。
+[0.11.0 版本下载](https://github.com/veryy/Solvit/releases/tag/v0.11.0)，[102 个单元测试、Android 模拟器、Lint、APK 和固定签名验证通过](https://github.com/veryy/Solvit/actions/runs/38128106191)。工具调用与最终回复合并为同一聊天气泡，默认折叠工具及思考详情，并使用原生 Markdown 富文本渲染。新对话默认没有工作区，按需创建；配置模型后隐藏空白页的配置按钮。顶部提供设置入口；工作区 Shell 的输入框保持在键盘上方。原生 Android PTY 支持 JS/TS 插件调用。设置包含模型、角色与 Skills、插件、外观、备份、更新和关于；更新说明、下载进度均在应用内显示。
 
 **签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
 
