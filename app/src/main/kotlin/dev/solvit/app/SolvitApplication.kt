@@ -37,6 +37,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var workspaces: WorkspaceService
         private set
+    lateinit var systemExecution: SystemExecutionService
+        private set
     lateinit var pluginDrafts: PluginDraftService
         private set
     override fun onCreate() {
@@ -49,7 +51,7 @@ class SolvitApplication : Application() {
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts })
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
+                listOf(PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
                     OpenAiPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 updates = manager.registry.require(UpdateServiceKey)
@@ -58,6 +60,7 @@ class SolvitApplication : Application() {
                 skills = manager.registry.require(SkillLibraryServiceKey)
                 modelCatalog = manager.registry.require(ModelCatalogServiceKey)
                 workspaces = manager.registry.require(WorkspaceServiceKey)
+                systemExecution = manager.registry.require(SystemExecutionServiceKey)
                 pluginDrafts = manager.registry.require(PluginDraftServiceKey)
                 marketPlugin.service.restore()
                 mutableReady.value = Result.success(manager.registry.require(Services.Chat))

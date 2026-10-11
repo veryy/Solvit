@@ -15,13 +15,15 @@ import java.util.UUID
 
 /** Native storage/process primitives; plugin tools remain JavaScript packages. */
 class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
-    launcher: ShellLauncher = ShellLauncher(ShellPaths("/system/bin/sh", "/system/bin/toybox", setsidArguments = listOf("setsid")))) : WorkspaceService {
+    launcher: ShellLauncher = ShellLauncher(ShellPaths("/system/bin/sh", "/system/bin/toybox", setsidArguments = listOf("setsid"))),
+    rootAccess: RootAccess = AndroidRootAccess()) : WorkspaceService {
     private val root = File(context.filesDir, "workspaces").apply { check(mkdirs() || isDirectory) }
     private val prefs = context.getSharedPreferences("workspaces", Context.MODE_PRIVATE)
     private val lock = Mutex()
     private val mutableState = MutableStateFlow(load())
     override val state = mutableState.asStateFlow()
     private val engine = ShellJobEngine(scope, launcher, root)
+    val execution = AndroidExecution(context, engine, rootAccess)
     override val jobs = engine.jobs
     private fun load(): WorkspaceState {
         val raw = prefs.getString("state", null) ?: return WorkspaceState()
@@ -130,8 +132,17 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         val owner = invocation?.descriptor?.pluginId ?: TERMINAL_OWNER
         val roleId = context[AgentRoleContext]?.role?.id
         context.ensureActive()
-        val job = engine.start(owner, roleId, ShellRequest(command, timeoutMs = timeoutMs), ExecutionMode.APP,
-            directory(workspaceId), workspaceId, shellId)
+        val job = execution.authorized(owner) { mode ->
+            if (invocation != null) {
+                val args = org.json.JSONObject(invocation.call.argumentsJson)
+                check(args.opt("shellId") == shellId && args.opt("command") == command && timeoutMs == 60_000L) { "命令与确认内容不一致" }
+                val conversation = context[ConversationContext] ?: error("Shell 调用缺少聊天工作区")
+                check(conversation.workspaceId == workspaceId && state.value.bindings[conversation.sessionId] == workspaceId)
+                invocation.claim("native.workspace.start")
+            }
+            engine.start(owner, roleId, ShellRequest(command, timeoutMs = timeoutMs), mode,
+                directory(workspaceId), workspaceId, shellId)
+        }
         try {
             val cancel: suspend () -> Unit = { engine.cancel(owner, roleId, job.id) }
             invocation?.own(job.id, cancel); context[AgentExecutionContext]?.own(job.id, cancel)
@@ -158,10 +169,11 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
 
 class WorkspacePlugin(private val androidContext: Context) : SolvitPlugin {
     override val id = "builtin.workspace"
-    override val provides = setOf(WorkspaceServiceKey)
+    override val provides = setOf(WorkspaceServiceKey, SystemExecutionServiceKey)
     override suspend fun enable(context: PluginContext) {
         val service = AndroidWorkspaces(androidContext, context.scope)
         context.own { service.close() }
         context.register(WorkspaceServiceKey, service)
+        context.register(SystemExecutionServiceKey, service.execution)
     }
 }
