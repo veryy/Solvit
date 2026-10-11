@@ -1,0 +1,18 @@
+name: Plugin marketplace
+on:
+  push:
+    paths: ['market-server/**', '.github/workflows/market.yml']
+  pull_request:
+    paths: ['market-server/**', '.github/workflows/market.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm test
+        working-directory: market-server

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Solvit 插件市场</title>
+<style>
+body{font:16px system-ui,sans-serif;background:#f6f8f2;color:#24351e;max-width:860px;margin:auto;padding:32px 20px}a{color:#365c29}header{padding:32px 0}h1{font-size:36px;margin:0 0 12px}article{background:white;border:1px solid #dce4d7;border-radius:20px;padding:24px;margin:16px 0}small{color:#53634b}.error{color:#a22424}button,a.download{display:inline-block;background:#526743;color:white;border:0;border-radius:24px;padding:12px 18px;text-decoration:none}footer{margin-top:32px;font-size:14px}#status{min-height:24px}
+</style>
+<header><h1>Solvit 插件市场</h1><p>用 JavaScript 和 TypeScript 扩展你的 Android AI 助手。</p><a href="https://github.com/veryy/Solvit/releases/latest">下载 Solvit</a></header>
+<p id="status">正在加载插件…</p><main id="plugins"></main>
+<footer>下载的插件包需要支持插件安装的 Solvit 版本。记忆、MCP、Skills 和系统执行能力正在开发。</footer>
+<script type="module">
+const status=document.querySelector('#status');
+try {
+ const response=await fetch('/api/v1/plugins');
+ if(!response.ok)throw new Error('HTTP '+response.status);
+ const catalog=await response.json();
+ status.textContent=`${catalog.plugins.length} 个插件`;
+ for(const plugin of catalog.plugins){
+  const article=document.createElement('article');
+  const heading=document.createElement('h2');heading.textContent=plugin.name;
+  const description=document.createElement('p');description.textContent=plugin.description;
+  const details=document.createElement('p');details.textContent=`版本 ${plugin.version} · ${plugin.permissions.length ? '权限：'+plugin.permissions.join('、') : '无需额外权限'}`;
+  const download=document.createElement('a');download.className='download';download.textContent='下载插件';download.href=plugin.downloadPath;
+  article.append(heading,description,details,download);document.querySelector('#plugins').append(article);
+ }
+}catch(error){status.className='error';status.textContent='暂时无法加载市场，请稍后刷新。';console.error(error);}
+</script>
+</html>

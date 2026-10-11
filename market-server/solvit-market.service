@@ -1,0 +1,20 @@
+[Unit]
+Description=Solvit plugin marketplace
+After=network.target
+
+[Service]
+Type=simple
+User=solvit-market
+Group=solvit-market
+WorkingDirectory=/opt/solvit-market
+ExecStart=/usr/bin/node /opt/solvit-market/server.mjs
+Environment=SOLVIT_MARKET_PORT=18765
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
