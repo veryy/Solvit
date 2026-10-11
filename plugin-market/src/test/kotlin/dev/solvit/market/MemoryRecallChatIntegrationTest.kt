@@ -37,11 +37,11 @@ class MemoryRecallChatIntegrationTest {
         }.toString()
         assertTrue(corpus.toByteArray().size < 220 * 1024)
         try {
-            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.enableAll()
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin()); manager.enableAll()
             val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools))
             market.restore()
             context.getSharedPreferences("extension_data.dev.solvit.memory", 0).edit().putString("memory.v1", corpus).commit()
-            market.enable("dev.solvit.memory", setOf("storage"))
+            market.enable("dev.solvit.memory", setOf("storage", "model"))
             val started = System.nanoTime()
             val result = manager.registry.require(ContextHookServiceKey).prepare(ContextInput(null, text)).single()
             val elapsedMs = (System.nanoTime() - started) / 1_000_000
@@ -60,7 +60,7 @@ class MemoryRecallChatIntegrationTest {
         var manager = PluginManager(scope = scope)
         var store = SqliteChatStore(context)
         suspend fun setup(): AndroidMarketplace {
-            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(RolesPlugin(context)); manager.enableAll()
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin()); manager.load(RolesPlugin(context)); manager.enableAll()
             return AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools), config).also { it.restore() }
         }
         val role = AgentRole("memory-role", "Memory role", "Use explicit user preferences", setOf("dev.solvit.memory"))
@@ -68,7 +68,7 @@ class MemoryRecallChatIntegrationTest {
         try {
             var market = setup()
             assertEquals("true", market.configuration("dev.solvit.memory")["autoRecall"])
-            market.enable("dev.solvit.memory", setOf("storage"))
+            market.enable("dev.solvit.memory", setOf("storage", "model"))
             var roles = manager.registry.require(RoleServiceKey)
             roles.save(role)
             val first = store.createSession(); roles.select(first.id, role.id)
@@ -120,10 +120,10 @@ class MemoryRecallChatIntegrationTest {
             market.disable("dev.solvit.memory")
             market.configure("dev.solvit.memory", mapOf("autoRecall" to "false"))
             assertFailsWith<IllegalArgumentException> { market.configure("dev.solvit.memory", mapOf("autoRecall" to "invalid")) }
-            market.enable("dev.solvit.memory", setOf("storage")); probe(false)
+            market.enable("dev.solvit.memory", setOf("storage", "model")); probe(false)
             market.disable("dev.solvit.memory")
             market.configure("dev.solvit.memory", mapOf("autoRecall" to "true"))
-            market.enable("dev.solvit.memory", setOf("storage")); probe(true)
+            market.enable("dev.solvit.memory", setOf("storage", "model")); probe(true)
             tools.executeCall(ToolCall("delete", "dev_solvit_memory_memory_delete", """{"id":"m1"}"""), allow, role)
             probe(false)
             assertTrue(hooks.prepare(ContextInput(role, "Kotlin")).isEmpty())

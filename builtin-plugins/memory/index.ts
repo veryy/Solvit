@@ -24,10 +24,10 @@ async function load(ctx: PluginContext): Promise<Database> {
         !Array.isArray(fact.tags) || fact.tags.some(tag => typeof tag !== 'string') || typeof fact.createdAt !== 'string' || typeof fact.updatedAt !== 'string') throw new Error('Invalid memory fact');
   }
   if (value.completedSources !== undefined && (!Array.isArray(value.completedSources) || value.completedSources.length > MAX_PROCESSED_SOURCES ||
-      value.completedSources.some(source => !validSource(source) || !object(source) || !Array.isArray(source.factIds) || source.factIds.length > 6 || source.factIds.some(id => typeof id !== 'string'))))
+      value.completedSources.some(source => !object(source) || !Array.isArray(source.factIds) || source.factIds.length > 6 || source.factIds.some((id: unknown) => typeof id !== 'string') || !validSource(source))))
     throw failure('STORAGE', 'Invalid completed memory sources');
   for (const fact of value.facts) if (object(fact) && fact.source !== undefined &&
-      (!validSource(fact.source) || !object(fact.source) || typeof fact.source.quote !== 'string' || !fact.source.quote.trim() || fact.source.quote.length > 500))
+      (!object(fact.source) || typeof fact.source.quote !== 'string' || !fact.source.quote.trim() || fact.source.quote.length > 500 || !validSource(fact.source)))
     throw failure('STORAGE', 'Invalid fact provenance');
   for (const edge of value.edges) if (!object(edge) || typeof edge.from !== 'string' || typeof edge.to !== 'string' || typeof edge.relation !== 'string') throw new Error('Invalid memory relation');
   for (const chunk of value.chunks) if (!object(chunk) || typeof chunk.id !== 'string' || typeof chunk.document !== 'string' || typeof chunk.title !== 'string' || typeof chunk.text !== 'string' || !Number.isInteger(chunk.index)) throw new Error('Invalid document chunk');
@@ -148,10 +148,12 @@ function recallContext(db: Database, query: string): string {
     if (!object(candidate)) continue;
     const key = String(candidate.kind) + ':' + String(candidate.id);
     if (seen.has(key)) continue;
+    const origin: unknown = 'origin' in candidate ? candidate.origin : null;
+    const modifiedByUser = 'modifiedByUser' in candidate && candidate.modifiedByUser === true;
     const row = { source: 'dev.solvit.memory/' + key, kind: String(candidate.kind), id: String(candidate.id),
       title: Array.from(String(candidate.title)).slice(0, 160).join(''),
       text: Array.from(String(candidate.text)).slice(0, 700).join(''), truncated: Array.from(String(candidate.text)).length > 700, updatedAt: String(candidate.updatedAt ?? ''),
-      ...(object(candidate.origin) && validSource(candidate.origin) ? { origin: candidate.origin as unknown as JsonValue, modifiedByUser: candidate.modifiedByUser === true } : {}) };
+      ...(object(origin) && validSource(origin) ? { origin: origin as unknown as JsonValue, modifiedByUser } : {}) };
     if (JSON.stringify([...rows, row]).length > 6000) continue;
     rows.push(row); seen.add(key);
     if (rows.length === 6) break;

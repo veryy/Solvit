@@ -135,7 +135,7 @@ class ChatLayoutTest {
                 if (wasEnabled) app.marketplace.disable(id)
                 app.marketplace.installLocal(app.assets.open("builtin-plugins/$id.solvit.json").use { it.readBytes() })
                 app.marketplace.configure(id, mapOf("autoRecall" to "true"))
-                app.marketplace.enable(id, setOf("storage"))
+                app.marketplace.enable(id, setOf("storage", "model"))
                 record = JSONObject(app.marketplace.runTool("dev_solvit_memory_memory_put",
                     """{"text":"My preferred editor is Emacs","category":"preference"}""", allow)).getJSONObject("fact").getString("id")
                 var requests = 0
@@ -163,7 +163,7 @@ class ChatLayoutTest {
                     app.marketplace.runTool("dev_solvit_memory_memory_delete", JSONObject().put("id", record).toString(), allow)
                 if (app.marketplace.installed.value.single { it.id == id }.enabled) app.marketplace.disable(id)
                 app.marketplace.installLocal(original); app.marketplace.configure(id, configuration)
-                if (wasEnabled) app.marketplace.enable(id, setOf("storage"))
+                if (wasEnabled) app.marketplace.enable(id, setOf("storage", "model"))
             }
         }
     }

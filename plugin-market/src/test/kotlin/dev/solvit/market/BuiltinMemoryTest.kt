@@ -23,7 +23,7 @@ class BuiltinMemoryTest {
         val client = OkHttpClient()
         suspend fun setup(): Pair<PluginManager, AndroidMarketplace> {
             val manager = PluginManager(scope = scope)
-            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.enableAll()
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin()); manager.enableAll()
             val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools))
             market.restore()
             return manager to market
@@ -35,7 +35,7 @@ class BuiltinMemoryTest {
             assertEquals(setOf("dev.solvit.memory", "dev.solvit.clock", "dev.solvit.mcp", "dev.solvit.skills", "dev.solvit.workspace", "dev.solvit.authoring", "dev.solvit.terminal", "dev.solvit.web-search"), market.installed.value.map { it.id }.toSet())
             assertTrue(market.installed.value.none { it.enabled })
             assertFailsWith<IllegalStateException> { market.enable("dev.solvit.memory", emptySet()) }
-            market.enable("dev.solvit.memory", setOf("storage"))
+            market.enable("dev.solvit.memory", setOf("storage", "model"))
             val saved = result(market.runTool("dev_solvit_memory_memory_put", """{"text":"喜欢星河旅行","category":"preference"}""", allow))
             val id = saved.getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
             market.runTool("dev_solvit_memory_memory_profile", """{"key":"城市","value":"上海"}""", allow)

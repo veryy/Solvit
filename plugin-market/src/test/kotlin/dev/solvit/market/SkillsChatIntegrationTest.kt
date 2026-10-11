@@ -22,7 +22,7 @@ class SkillsChatIntegrationTest {
         val client = OkHttpClient()
         val store = SqliteChatStore(context)
         try {
-            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(RolesPlugin(context)); manager.enableAll()
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin()); manager.load(RolesPlugin(context)); manager.enableAll()
             val tools = manager.registry.require(Services.Tools)
             val hooks = manager.registry.require(ContextHookServiceKey)
             val roles = manager.registry.require(RoleServiceKey)
@@ -31,7 +31,7 @@ class SkillsChatIntegrationTest {
             assertTrue(market.installed.value.any { it.id == "dev.solvit.skills" && !it.enabled })
             assertFailsWith<IllegalStateException> { market.enable("dev.solvit.skills", emptySet()) }
             market.enable("dev.solvit.skills", setOf("storage"))
-            market.enable("dev.solvit.memory", setOf("storage"))
+            market.enable("dev.solvit.memory", setOf("storage", "model"))
             val library = NativeSkillLibrary(market)
             library.importSkill(SkillBundle(null, mapOf(
                 "SKILL.md" to "---\nname: writing\ndescription: Help write prose\n---\nPRIVATE_BODY_SENTINEL: use concrete sentences.",
