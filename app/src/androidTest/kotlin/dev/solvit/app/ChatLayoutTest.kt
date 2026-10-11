@@ -35,12 +35,12 @@ class ChatLayoutTest {
         rule.onNodeWithContentDescription("发送").assertIsDisplayed()
         screenshot("chat-keyboard-floating")
     }
-    @Test fun halfWidthDrawerOpensSettingsAndLastSettingsRowCanBeSeen() {
+    @Test fun wideDrawerOpensSettingsAndLastSettingsRowCanBeSeen() {
         ready()
         rule.onNodeWithContentDescription("对话历史").performClick()
         rule.waitForIdle()
         val bounds = rule.onNodeWithTag("chat_drawer").fetchSemanticsNode().boundsInRoot
-        assertEquals(rule.activity.window.decorView.width / 2f, bounds.width, 3f)
+        assertEquals(rule.activity.window.decorView.width * 0.75f, bounds.width, 3f)
         rule.onNodeWithText("设置", useUnmergedTree = true).performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("settings_list").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("settings_list").performScrollToNode(hasText("关于 Solvit"))

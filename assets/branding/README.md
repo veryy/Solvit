@@ -1,6 +1,6 @@
 # Solvit icon
 
-Current icon: original **radiant core**, built from a hollow focus and six groups of three line rays. No letters or solid symbol fills. Off-white `#F1F1ED` on charcoal `#111113`.
+Current icon: original **radiant core**, built from a hollow focus and six groups of three line rays. No letters or solid symbol fills. Black lines on white by default. Android 13+ launchers can tint the monochrome layer with wallpaper/theme colors when themed icons are enabled. In-app tint continues to follow the Material theme.
 
 - `solvit-icon-radiant.svg`: editable vector master.
 - `solvit-icon-radiant.png`: 1024 × 1024 preview.
