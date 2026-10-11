@@ -61,6 +61,7 @@ class DefaultChatService(
                 check(!done) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { answer.append(chunk.value); emit(chunk) }
+                    is ModelChunk.ToolCalls -> error("工具调用运行器尚未接入")
                     ModelChunk.Done -> {
                         check(answer.isNotBlank()) { "模型没有返回文本回复" }
                         settle(MessageStatus.COMPLETE)

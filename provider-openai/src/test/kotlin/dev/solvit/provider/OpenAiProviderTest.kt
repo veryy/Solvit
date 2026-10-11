@@ -53,4 +53,35 @@ class OpenAiProviderTest {
             assertFailsWith<ModelException> { provider.stream(request).toList() }
         }
     }
+
+    @Test fun assemblesInterleavedToolFragmentsAndSerializesResults() = runTest {
+        val events = listOf(
+            """{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_a","type":"function","function":{"name":"clock","arguments":"{\"tz\":"}},{"index":1,"id":"call_b","type":"function","function":{"name":"echo","arguments":"{"}}]}}]}""",
+            """{"choices":[{"delta":{"tool_calls":[{"index":1,"function":{"arguments":"}"}},{"index":0,"function":{"arguments":"\"UTC\"}"}}]},"finish_reason":"tool_calls"}]}""",
+        ).joinToString("\n\n") { "data: $it" } + "\n\ndata: [DONE]\n\n"
+        withServer(events) { provider, request, server ->
+            val call = ToolCall("previous", "clock", "{}")
+            val next = request.copy(
+                tools = listOf(ToolDescriptor("clock", "Clock", """{"type":"object"}""")),
+                messages = request.messages + ModelMessage(Role.ASSISTANT, "", listOf(call)) +
+                    ModelMessage(Role.TOOL, "result", toolCallId = call.id),
+            )
+            assertEquals(listOf(
+                ModelChunk.ToolCalls(listOf(ToolCall("call_a", "clock", """{"tz":"UTC"}"""), ToolCall("call_b", "echo", "{}"))),
+                ModelChunk.Done,
+            ), provider.stream(next).toList())
+            val payload = kotlinx.serialization.json.Json.parseToJsonElement(server.takeRequest().body.readUtf8()).toString()
+            assertTrue(payload.contains("\"tool_call_id\":\"previous\""))
+            assertTrue(payload.contains("\"tool_choice\":\"auto\""))
+        }
+    }
+
+    @Test fun partialOrMalformedToolArgumentsNeverReachExecution() = runTest {
+        val call = """data: {"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call","type":"function","function":{"name":"clock","arguments":"{"}}]}}]}"""
+        for (ending in listOf("", "\n\ndata: [DONE]\n\n", "\n\ndata: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\n")) {
+            withServer(call + ending) { provider, request, _ ->
+                assertFailsWith<ModelException> { provider.stream(request).toList() }
+            }
+        }
+    }
 }

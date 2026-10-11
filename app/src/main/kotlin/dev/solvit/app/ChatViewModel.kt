@@ -73,6 +73,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             try {
                 chat.send(id, text, snapshot).collect { chunk -> when (chunk) {
                     is ModelChunk.Text -> draft.value += chunk.value
+                    is ModelChunk.ToolCalls -> error("工具调用运行器尚未接入")
                     ModelChunk.Done -> draft.value = ""
                 } }
             } catch (e: CancellationException) { throw e }

@@ -4,7 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import java.net.URI
 import java.io.IOException
 
-enum class Role { SYSTEM, USER, ASSISTANT }
+enum class Role { SYSTEM, USER, ASSISTANT, TOOL }
 enum class MessageStatus { COMPLETE, INTERRUPTED, FAILED }
 data class ChatMessage(
     val id: String,
@@ -14,7 +14,13 @@ data class ChatMessage(
     val status: MessageStatus = MessageStatus.COMPLETE,
 )
 data class ChatSession(val id: String, val title: String, val updatedAt: Long)
-data class ModelMessage(val role: Role, val content: String)
+data class ToolCall(val id: String, val name: String, val argumentsJson: String)
+data class ModelMessage(
+    val role: Role,
+    val content: String,
+    val toolCalls: List<ToolCall> = emptyList(),
+    val toolCallId: String? = null,
+)
 
 /** Not a data class: toString must never reveal API keys. */
 class ModelConfig(
@@ -36,9 +42,14 @@ class ModelConfig(
     override fun toString() = "ModelConfig(model=$model, apiKey=<redacted>)"
 }
 
-data class ModelRequest(val config: ModelConfig, val messages: List<ModelMessage>)
+data class ModelRequest(
+    val config: ModelConfig,
+    val messages: List<ModelMessage>,
+    val tools: List<ToolDescriptor> = emptyList(),
+)
 sealed interface ModelChunk {
     data class Text(val value: String) : ModelChunk
+    data class ToolCalls(val calls: List<ToolCall>) : ModelChunk
     data object Done : ModelChunk
 }
 interface ModelProvider {

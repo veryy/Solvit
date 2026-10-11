@@ -21,10 +21,24 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
         val payload = buildJsonObject {
             put("model", request.config.model)
             put("stream", true)
+            if (request.tools.isNotEmpty()) {
+                put("tool_choice", "auto")
+                putJsonArray("tools") {
+                    request.tools.forEach { tool -> add(buildJsonObject {
+                        put("type", "function")
+                        putJsonObject("function") {
+                            put("name", tool.name); put("description", tool.description)
+                            put("parameters", json.parseToJsonElement(tool.inputSchema).jsonObject)
+                        }
+                    }) }
+                }
+            }
             putJsonArray("messages") {
                 request.messages.forEach { message -> add(buildJsonObject {
                     put("role", message.role.name.lowercase())
-                    put("content", message.content)
+                    put("content", if (message.content.isEmpty() && message.toolCalls.isNotEmpty()) JsonNull else JsonPrimitive(message.content))
+                    message.toolCallId?.let { put("tool_call_id", it) }
+                    if (message.toolCalls.isNotEmpty()) put("tool_calls", JsonArray(message.toolCalls.map(::callJson)))
                 }) }
             }
         }
@@ -52,17 +66,26 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                         if (result["error"] != null) throw ModelException("模型服务返回错误")
                         val choice = result["choices"]?.jsonArray?.firstOrNull()?.jsonObject
                             ?: throw ModelException("响应中没有 choices")
-                        if (choice["finish_reason"]?.jsonPrimitive?.contentOrNull == "length")
-                            throw ModelException("回复超过模型输出限制，请缩短上下文")
-                        val text = choice["message"]?.jsonObject?.get("content")?.jsonPrimitive?.contentOrNull
-                            ?: throw ModelException("模型没有返回文本回复")
-                        emit(ModelChunk.Text(text))
+                        val reason = choice["finish_reason"]?.jsonPrimitive?.contentOrNull
+                        checkFinishReason(reason)
+                        val message = choice["message"]?.jsonObject ?: throw ModelException("响应缺少 message")
+                        val text = message["content"]?.jsonPrimitive?.contentOrNull
+                        if (!text.isNullOrEmpty()) emit(ModelChunk.Text(text))
+                        val calls = message["tool_calls"]?.jsonArray?.map { element ->
+                            val call = element.jsonObject
+                            val function = call.getValue("function").jsonObject
+                            ToolCall(call.getValue("id").jsonPrimitive.content, function.getValue("name").jsonPrimitive.content,
+                                function.getValue("arguments").jsonPrimitive.content)
+                        }.orEmpty()
+                        finishCalls(calls, reason)?.let { emit(it) }
                         emit(ModelChunk.Done)
                     } else {
                         val source = body.source()
                         val data = StringBuilder()
                         var done = false
                         var finished = false
+                        var finishReason: String? = null
+                        val calls = sortedMapOf<Int, PendingToolCall>()
                         suspend fun dispatch() {
                             if (data.isEmpty()) return
                             val event = data.toString().trim()
@@ -72,11 +95,19 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                             if (result["error"] != null) throw ModelException("模型流返回错误")
                             val choice = result["choices"]?.jsonArray?.firstOrNull()?.jsonObject ?: return
                             val reason = choice["finish_reason"]?.jsonPrimitive?.contentOrNull
-                            if (reason == "length") throw ModelException("回复超过模型输出限制，请缩短上下文")
-                            if (reason == "tool_calls") throw ModelException("第一版暂不执行模型工具调用")
-                            if (reason != null) finished = true
-                            val content = choice["delta"]?.jsonObject?.get("content")?.jsonPrimitive?.contentOrNull
+                            checkFinishReason(reason)
+                            val delta = choice["delta"]?.jsonObject
+                            if (finished && delta?.isNotEmpty() == true) throw ModelException("模型在结束后继续发送数据")
+                            delta?.get("tool_calls")?.jsonArray?.forEach { element ->
+                                val part = element.jsonObject
+                                val index = part.getValue("index").jsonPrimitive.int
+                                if (index !in 0..15) throw ModelException("单轮工具调用过多")
+                                val pending = calls.getOrPut(index) { PendingToolCall() }
+                                pending.add(part)
+                            }
+                            val content = delta?.get("content")?.jsonPrimitive?.contentOrNull
                             if (!content.isNullOrEmpty()) emit(ModelChunk.Text(content))
+                            if (reason != null) { finished = true; finishReason = reason }
                         }
                         while (!done) {
                             currentCoroutineContext().ensureActive()
@@ -89,12 +120,58 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                         }
                         dispatch()
                         if (!done && !finished) throw ModelException("连接提前中断，请重试")
+                        finishCalls(calls.values.map { it.complete() }, finishReason)?.let { emit(it) }
                         emit(ModelChunk.Done)
                     }
                 }
             } finally { cancellation.cancelAndJoin(); call.cancel() }
         }
     }.flowOn(Dispatchers.IO)
+
+    private fun callJson(call: ToolCall): JsonObject = buildJsonObject {
+        put("id", call.id); put("type", "function")
+        putJsonObject("function") { put("name", call.name); put("arguments", call.argumentsJson) }
+    }
+
+    private fun checkFinishReason(reason: String?) {
+        if (reason == "length") throw ModelException("回复超过模型输出限制，请缩短上下文")
+        if (reason == "content_filter") throw ModelException("模型服务拒绝生成此回复")
+        if (reason != null && reason !in setOf("stop", "tool_calls")) throw ModelException("模型返回了不支持的结束原因")
+    }
+
+    private fun finishCalls(calls: List<ToolCall>, reason: String?): ModelChunk.ToolCalls? {
+        if (calls.isEmpty()) {
+            if (reason == "tool_calls") throw ModelException("模型未返回完整工具调用")
+            return null
+        }
+        if (reason != "tool_calls" || calls.size > 16 || calls.map { it.id }.toSet().size != calls.size)
+            throw ModelException("模型工具调用未完整结束")
+        calls.forEach { call ->
+            if (call.id.isBlank() || call.id.length > 128 || call.name.length !in 1..64 ||
+                !call.name.matches(Regex("[a-zA-Z0-9_-]+")) || call.argumentsJson.length > 65_536)
+                throw ModelException("工具调用格式无效")
+            try { json.parseToJsonElement(call.argumentsJson).jsonObject }
+            catch (e: Exception) { throw ModelException("工具参数必须为完整 JSON 对象") }
+        }
+        return ModelChunk.ToolCalls(calls)
+    }
+
+    private class PendingToolCall {
+        private val id = StringBuilder()
+        private val name = StringBuilder()
+        private val arguments = StringBuilder()
+        fun add(part: JsonObject) {
+            val type = part["type"]?.jsonPrimitive?.contentOrNull
+            if (type != null && type != "function") throw ModelException("不支持的工具类型")
+            part["id"]?.jsonPrimitive?.contentOrNull?.let(id::append)
+            val function = part["function"]?.jsonObject
+            function?.get("name")?.jsonPrimitive?.contentOrNull?.let(name::append)
+            function?.get("arguments")?.jsonPrimitive?.contentOrNull?.let(arguments::append)
+            if (id.length > 128 || name.length > 64 || arguments.length > 65_536)
+                throw ModelException("工具调用数据超出限制")
+        }
+        fun complete() = ToolCall(id.toString(), name.toString(), arguments.toString())
+    }
 
     private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
         continuation.invokeOnCancellation { cancel() }
