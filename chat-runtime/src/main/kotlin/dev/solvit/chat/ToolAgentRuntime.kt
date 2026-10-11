@@ -17,8 +17,8 @@ class ToolAgentRuntime(
     init { require(maxRounds > 0 && maxCalls > 0) }
     override fun run(request: ModelRequest): Flow<ModelChunk> = flow {
         val execution = AgentExecutionContext()
-        val followUpConfig = modelProfiles?.resolve(ModelTask.TOOL_FOLLOW_UP, request.config) ?: request.config
         try {
+        val followUpConfig = modelProfiles?.resolve(ModelTask.TOOL_FOLLOW_UP, request.config) ?: request.config
         val advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false &&
             (request.conversation != null || it.capabilities.none { permission -> permission in setOf("workspace","shell","plugins") }) }.take(64)
         val allowed = advertised.map { it.name }.toSet()
