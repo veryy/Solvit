@@ -14,6 +14,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     testImplementation(kotlin("test-junit"))
     testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
 }
 
 configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
