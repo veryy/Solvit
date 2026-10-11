@@ -13,7 +13,7 @@ fun toolPolicyKey(tool: ToolDescriptor): String {
 }
 fun scopedToolPolicyKey(tool: ToolDescriptor, role: AgentRole?): String = toolPolicyKey(tool) + ":" +
     MessageDigest.getInstance("SHA-256").digest((role?.let {
-        listOf(it.id, it.prompt, it.pluginIds.sorted().joinToString(","), it.skillIds.sorted().joinToString(",")).joinToString("\u0000")
+        listOf(it.id, it.name, it.prompt, it.pluginIds.sorted().joinToString(","), it.skillIds.sorted().joinToString(",")).joinToString("\u0000")
     } ?: "default").toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 255) }
 
 interface ToolPolicyService {
