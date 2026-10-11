@@ -168,7 +168,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
         ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.75f).testTag("chat_drawer")) {
             Text("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
             FilledTonalButton(onClick = { vm.newChat(); scope.launch { drawer.close() } }, enabled = ready && !busy,
-                modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
+                modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().testTag("new_chat")) {
                 Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("新对话")
             }
             Spacer(Modifier.height(12.dp))

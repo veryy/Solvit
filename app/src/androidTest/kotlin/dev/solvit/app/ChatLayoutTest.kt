@@ -69,7 +69,7 @@ class ChatLayoutTest {
             rule.activityRule.scenario.recreate()
             ready()
             rule.onNodeWithContentDescription("对话历史").performClick()
-            rule.onNodeWithText("新对话").performClick()
+            rule.onNodeWithTag("new_chat").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("配置你的模型").assertDoesNotExist()
             rule.onNode(hasText("工作区：", substring = true)).assertDoesNotExist()
@@ -214,11 +214,18 @@ class ChatLayoutTest {
         openWorkspace()
         rule.onNodeWithText("交互终端").performClick()
         rule.onNodeWithTag("shell_command").performTextInput("stty -echo; export UI_PTY_STATE=retained; printf '__UI_%s__\\n' READY")
-        rule.onNodeWithText("发送输入").performClick()
+        rule.onNodeWithText("发送输入").assertIsEnabled().performClick()
         rule.waitUntil(8000) { rule.onAllNodes(hasText("__UI_READY__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithTag("shell_command").performTextInput("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
-        rule.onNodeWithText("发送输入").performClick()
-        rule.waitUntil(8000) { rule.onAllNodes(hasText("ui-result:retained", substring=true)).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag("shell_command").performClick().performTextInput("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
+        rule.waitUntil(8000) { rule.onAllNodes(hasText("发送输入") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText("发送输入").assertIsDisplayed().performClick()
+        try {
+            rule.waitUntil(8000) { rule.onAllNodes(hasText("ui-result:retained", substring=true)).fetchSemanticsNodes().isNotEmpty() }
+        } catch (e: Exception) {
+            screenshot("workspace-interactive-failure")
+            throw AssertionError("PTY UI state=" + app.terminals.sessions.value.filter { it.owner == TERMINAL_OWNER } +
+                "\n" + rule.onRoot().printToString(), e)
+        }
         rule.onNodeWithTag("terminal_output").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Ctrl-C").assertIsDisplayed()
         screenshot("workspace-interactive-pty")
