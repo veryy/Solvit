@@ -12,6 +12,8 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +40,8 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
     val shells = state.shells.filter { it.workspaceId == id }
     val activeShell = shellId ?: shells.firstOrNull()?.id
     FullScreenPage(onDismissRequest = onDismiss) {
+        val keyboard = LocalSoftwareKeyboardController.current
+        val focus = LocalFocusManager.current
         Scaffold(topBar = { TopAppBar(title = { Text("工作区") }, navigationIcon = {
             IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, "关闭工作区") }
         }) }) { padding ->
@@ -76,7 +80,10 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                     }
                     Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedTextField(command, { command = it }, placeholder = { Text("输入命令") }, maxLines = 4, modifier = Modifier.weight(1f).testTag("shell_command"))
-                        Button(onClick = { activeShell?.let { vm.run(it, command); command = "" } }, enabled = !busy && activeShell != null && command.isNotBlank()) { Text("运行") }
+                        Button(onClick = { activeShell?.let {
+                            keyboard?.hide(); focus.clearFocus()
+                            vm.run(it, command); command = ""
+                        } }, enabled = !busy && activeShell != null && command.isNotBlank()) { Text("运行") }
                     }
                 } else if (tab == 1) {
                     LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

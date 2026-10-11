@@ -68,7 +68,7 @@ class ChatLayoutTest {
         rule.onNodeWithTag("shell_command").performClick().performTextInput("printf hello-solvit")
         rule.onNodeWithText("运行").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("hello-solvit").fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithText("hello-solvit").assertIsDisplayed()
+        rule.onNodeWithText("hello-solvit").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("＋ Shell").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("Shell 2").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("Shell 2").assertIsDisplayed()

@@ -29,7 +29,7 @@ class UpgradePersistenceTest {
         val marker = context.getSharedPreferences("upgrade_fixture", 0)
         assertEquals("0.7.0", marker.getString("seededVersion", null))
         @Suppress("DEPRECATION")
-        assertEquals("0.8.0", context.packageManager.getPackageInfo(context.packageName, 0).versionName)
+        assertEquals(BuildConfig.VERSION_NAME, context.packageManager.getPackageInfo(context.packageName, 0).versionName)
         val config = EncryptedSettingsStore(context).load()
         assertEquals("https://fixture.example/v1", config.baseUrl)
         assertEquals("upgrade-fixture-model", config.model)
