@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const endpoint = process.env.SOLVIT_MCP_ENDPOINT;
 if (!endpoint?.startsWith('https://')) throw new Error('Set SOLVIT_MCP_ENDPOINT to the HTTPS demo endpoint');
-const pkg = JSON.parse(await readFile('../market-server/packages/dev.solvit.mcp.solvit.json', 'utf8'));
+const pkg = JSON.parse(await readFile(process.env.SOLVIT_MCP_PACKAGE ?? '../market-server/packages/dev.solvit.mcp.solvit.json', 'utf8'));
 const sandbox = vm.createContext({}); vm.runInContext(pkg.source, sandbox, { timeout: 1000 });
 const ctx = {
   settings: { async get(key) { return key === 'url' ? endpoint : ''; } },

@@ -10,6 +10,7 @@ export async function handleMcpDemo(request, response) {
     response.end(value === undefined ? undefined : JSON.stringify(value));
   };
   if (request.headers.origin && request.headers.origin !== 'https://solvit.207.57.126.73.sslip.io') { send(403, { error: 'Invalid origin' }); return; }
+  if (request.headers['mcp-protocol-version'] && !versions.includes(request.headers['mcp-protocol-version'])) { send(400, { error: 'Unsupported protocol version' }); return; }
   if (request.method !== 'POST') { send(405, { error: 'Only POST is supported' }); return; }
   let rpc;
   try {
