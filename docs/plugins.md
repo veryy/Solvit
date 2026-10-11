@@ -1,4 +1,4 @@
-# Solvit JS/TS 插件 API v1 / v2
+# Solvit JS/TS 插件 API 1–5
 
 插件宿主使用 QuickJS，执行 JavaScript。[TS SDK](../plugin-sdk/README.md) 提供工具、生命周期、存储与网络接口类型；TypeScript 在发布前编译并打包为 JS；没有 Node.js 或 npm 模块运行时。
 
@@ -8,8 +8,8 @@ UTF-8 `.solvit.json` 包含 `manifest` 与 `source`。市场示例：[当前时�
 
 - `id`：稳定 ID，最长 40 字符，使用小写域名形式。
 - `version`：三段数字版本。
-- `apiVersion`：整数 `1`、`2` 或 `3`；v2 增加声明式私有配置和 HTTP 请求扩展，v3 增加只读 beforeModel Hook、角色上下文和 management 工具。
-- `permissions`：`storage`、`network`，无权限插件填写空数组。
+- `apiVersion`：整数 `1`–`5`；API 2 增加配置，API 3 增加 Hook 和角色，API 4 增加工作区与插件草稿，API 5 增加交互 PTY。
+- `permissions`：`storage`、`network`；API 4 起还支持 `workspace`、`shell`、`plugins`。无权限插件填写空数组。
 - `dependencies`：先启用的插件 ID 集合。
 - `tools`：工具名、描述、JSON 对象输入 schema；工具名最长 20 字符。
 - `source`：打包后的 JS，导出 `globalThis.solvitPlugin`。
@@ -45,3 +45,15 @@ globalThis.solvitPlugin = {
 ## MCP 与配置
 
 [MCP 插件](mcp.md) 使用 API v2 的 `settings` 配置声明，原生配置页渲染字段，并使用加密存储。`ctx.settings.get` 仅读取本插件声明的配置。MCP 通信和会话逻辑由 TS 插件实现，HTTPS 与取消由宿主提供。
+
+## API 5：交互式 PTY
+
+声明 `apiVersion: 5` 和 `shell` 权限，通过 `ctx.terminal.call(operation,args)` 请求持久终端。与 API 4 的工作区工具一样，必须绑定当前聊天，参数与本次确认的工具 JSON 完全一致。宿主隔离终端所属插件与角色；JS 不接收 native handle。
+
+- `open` `{shellId}`：打开当前工作区的命名 Shell，返回 `id`；同一插件和角色再次打开会恢复活动会话。
+- `input` `{id,text}`：发送原始终端文本，执行命令/回答提示时自行在末尾添加 `\n`；返回会话快照。
+- `status` `{id}`：读取 `active/output/revision/truncated/exitCode/failure`；输出累计保存最近 65536 个字符，模型应按 revision 避免重复处理。
+- `interrupt` `{id}`：Ctrl-C 中断前台命令，保留交互 Shell。
+- `close` `{id}`：关闭终端。停用插件、切换执行身份或停止使用该终端的 Agent 回合也会清理会话。
+
+`input` 不保证命令已经完成，之后需读取 `status`。支持同一进程的 `cd`、环境变量和交互提示；原有 `workspace.start` 是每次独立运行的有限作业。当前 PTY 使用普通应用身份，Root 模式明确拒绝，不降级。示例：[终端插件](../builtin-plugins/terminal/index.ts)；完整边界见 [工作区与 Shell](workspaces.md)。

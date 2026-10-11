@@ -83,3 +83,7 @@ Solvit 0.7.0 为 API 3 提供可选 `ctx.clock.now()`，返回 `utc`、`localTim
 - `plugins.draft({manifestJson,source})`：启动校验并写入草稿，无法安装或启用。
 
 `beforeModel` Hook 仍不能调用这些能力，插件 `activate` 也没有用户授权的工作区上下文。Shell 除工作目录外没有操作系统隔离，可访问应用 UID 的文件与网络。实现示例在 `builtin-plugins/workspace`、`builtin-plugins/authoring`，使用边界见 [工作区](../docs/workspaces.md) 与 [插件开发](../docs/plugin-authoring.md)。
+
+## API 5：交互终端
+
+新增 `ctx.terminal.call('open' | 'status' | 'input' | 'interrupt' | 'close', args)`，由独立宿主插件提供 Android PTY。JS 工具示例见 [terminal](../builtin-plugins/terminal/index.ts)，参数、授权与运行边界见 [API 5 文档](../docs/plugins.md#api-5交互式-pty)。TS 在 CI 打包为 JS，手机不直接运行 TS 编译器。
