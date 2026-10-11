@@ -10,6 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 import okhttp3.*
+import okio.Buffer
 import java.io.File
 import java.io.IOException
 import java.net.URI
@@ -114,7 +115,13 @@ class AndroidMarketplace(
         if (manager.states.value[id] in setOf(PluginState.LOADED, PluginState.INITIALIZED, PluginState.DISABLED)) manager.unload(id)
         prefs.edit().putStringSet("grants.$id", grants.toSet()).commit()
         manager.load(ScriptToolPlugin(pkg, ScriptHost { manifest, operation, arguments -> hostCall(manifest, operation, arguments) }))
-        manager.enableAll()
+        try { manager.enableAll() }
+        catch (e: Throwable) {
+            withContext(NonCancellable) {
+                try { manager.unload(id) } catch (cleanup: Throwable) { e.addSuppressed(cleanup) }
+            }
+            throw e
+        }
         prefs.edit().putBoolean("enabled.$id", true).commit()
     }
 
@@ -142,8 +149,9 @@ class AndroidMarketplace(
         mutableInstalled.value = packages.values.map { pkg ->
             val enabled = manager.states.value[pkg.manifest.id] == PluginState.ENABLED
             val prefix = pkg.manifest.id.replace('.', '_').replace('-', '_') + "_"
+            val names = pkg.manifest.tools.map { prefix + it.name }.toSet()
             InstalledExtension(pkg.manifest.id, pkg.manifest.name, pkg.manifest.version, pkg.manifest.permissions,
-                enabled, if (enabled) tools.descriptors().filter { it.name.startsWith(prefix) } else emptyList(), failures[pkg.manifest.id])
+                enabled, if (enabled) tools.descriptors().filter { it.name in names } else emptyList(), failures[pkg.manifest.id])
         }
     }
 
@@ -176,13 +184,27 @@ class AndroidMarketplace(
 
     private suspend fun getBytes(url: String, maxBytes: Int): ByteArray {
         val call = client.newCall(Request.Builder().url(url).build())
-        return call.await().use { response ->
+        return coroutineScope {
+            val cancellation = launch(start = CoroutineStart.UNDISPATCHED) {
+                try { awaitCancellation() } finally { call.cancel() }
+            }
+            try { call.await().use { response ->
             if (!response.isSuccessful) throw IOException("请求失败（HTTP ${response.code}）")
             val body = response.body ?: throw IOException("服务返回空响应")
             if (body.contentLength() > maxBytes) throw IOException("服务返回内容过大")
-            val bytes = withContext(Dispatchers.IO) { body.source().readByteArray(maxBytes.toLong() + 1) }
-            check(bytes.size <= maxBytes) { "服务返回内容过大" }
+            val bytes = withContext(Dispatchers.IO) {
+                val buffer = Buffer()
+                val source = body.source()
+                while (true) {
+                    currentCoroutineContext().ensureActive()
+                    val read = source.read(buffer, minOf(8192L, maxBytes.toLong() + 1 - buffer.size))
+                    if (read == -1L) break
+                    check(buffer.size <= maxBytes) { "服务返回内容过大" }
+                }
+                buffer.readByteArray()
+            }
             bytes
+            } } finally { cancellation.cancelAndJoin(); call.cancel() }
         }
     }
 

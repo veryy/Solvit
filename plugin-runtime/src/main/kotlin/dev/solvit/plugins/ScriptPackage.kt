@@ -29,6 +29,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
+            require(!id.startsWith("builtin.")) { "插件不能使用宿主保留 ID" }
             require(id.length <= 40 && id.matches(Regex("[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+"))) { "插件 ID 无效" }
             val version = string("version")
             require(version.matches(Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"))) { "插件版本无效" }

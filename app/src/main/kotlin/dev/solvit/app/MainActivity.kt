@@ -61,7 +61,12 @@ class MainActivity : ComponentActivity() {
                                 override fun <T : ViewModel> create(modelClass: Class<T>): T = UpdateViewModel(app.updates) as T
                             } }
                             val updateVm: UpdateViewModel = viewModel(factory = updateFactory)
-                            ChatScreen(vm, updateVm)
+                            val marketFactory = remember(app.marketplace) { object : ViewModelProvider.Factory {
+                                @Suppress("UNCHECKED_CAST")
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = MarketplaceViewModel(app.marketplace) as T
+                            } }
+                            val marketVm: MarketplaceViewModel = viewModel(factory = marketFactory)
+                            ChatScreen(vm, updateVm, marketVm)
                         }
                     }
                 }
@@ -85,7 +90,7 @@ private fun SolvitTheme(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel) {
+private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace: MarketplaceViewModel) {
     val updateState by updates.state.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
     val messages by vm.messages.collectAsStateWithLifecycle()
@@ -98,6 +103,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel) {
     val saving by vm.saving.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var pluginsOpen by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<ChatSession?>(null) }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -142,6 +148,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel) {
                     } },
                     navigationIcon = { IconButton(onClick = { scope.launch { drawer.open() } }) { Icon(Icons.Default.Menu, "对话历史") } },
                     actions = {
+                        IconButton(onClick = { pluginsOpen = true }) { Icon(Icons.Default.Extension, "插件市场") }
                         IconButton(onClick = { updates.check() }, enabled = updateState != UpdateUiState.Checking) {
                             Icon(Icons.Default.SystemUpdate, "检查更新")
                         }
@@ -205,6 +212,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel) {
     }
     if (settingsOpen) ModelSettings(config, saving, error, onDismiss = { if (!saving) settingsOpen = false },
         onSave = { vm.saveConfig(it) { settingsOpen = false } })
+    if (pluginsOpen) PluginMarketplaceDialog(marketplace, onDismiss = { pluginsOpen = false })
     deleteTarget?.let { session ->
         AlertDialog(onDismissRequest = { deleteTarget = null }, title = { Text("删除对话？") },
             text = { Text("“${session.title}” 的记录将从本机删除。") },
