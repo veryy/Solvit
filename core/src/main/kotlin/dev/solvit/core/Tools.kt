@@ -16,6 +16,7 @@ data class ToolDescriptor(
     val pluginVersion: String = "",
     val capabilities: Set<String> = emptySet(),
     val executionMode: ExecutionMode? = null,
+    val pluginDigest: String = "",
 )
 interface SolvitTool {
     val descriptor: ToolDescriptor
@@ -52,7 +53,8 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
     suspend fun execute(name: String, argumentsJson: String, authorization: ToolAuthorization): String {
         return executeCall(ToolCall("manual", name, argumentsJson), authorization)
     }
-    suspend fun executeCall(call: ToolCall, authorization: ToolAuthorization, role: AgentRole? = null, onAuthorized: suspend () -> Unit = {}): String {
+    suspend fun executeCall(call: ToolCall, authorization: ToolAuthorization, role: AgentRole? = null,
+        execution: AgentExecutionContext? = null, onAuthorized: suspend () -> Unit = {}): String {
         val name = call.name
         val argumentsJson = call.argumentsJson
         val tool = synchronized(this) { tools[name] } ?: error("Unknown tool: $name")
@@ -65,7 +67,8 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         check(snapshot(tool).executionMode == descriptor.executionMode) { "执行模式已变化，请重新确认" }
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
         onAuthorized()
-        return withTimeout(60_000) { withContext(AgentRoleContext(role) + ToolInvocationContext(descriptor, call)) { tool.execute(argumentsJson) } }
+        val context = AgentRoleContext(role) + ToolInvocationContext(descriptor, call)
+        return withTimeout(60_000) { withContext(if (execution == null) context else context + execution) { tool.execute(argumentsJson) } }
     }
 }
 

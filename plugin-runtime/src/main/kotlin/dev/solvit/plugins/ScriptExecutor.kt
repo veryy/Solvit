@@ -202,6 +202,7 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
                     chatVisible = tool.chatVisible,
                     pluginVersion = pkg.manifest.version,
                     capabilities = pkg.manifest.permissions,
+                    pluginDigest = java.security.MessageDigest.getInstance("SHA-256").digest(pkg.payload).joinToString("") { "%02x".format(it) },
                 )
                 override suspend fun execute(argumentsJson: String): String = executor.execute(tool.name, argumentsJson)
             })

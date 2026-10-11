@@ -15,6 +15,8 @@ class ToolAgentRuntime(
 ) : AgentRuntime {
     init { require(maxRounds > 0 && maxCalls > 0) }
     override fun run(request: ModelRequest): Flow<ModelChunk> = flow {
+        val execution = AgentExecutionContext()
+        try {
         val advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false }.take(64)
         val allowed = advertised.map { it.name }.toSet()
         val messages = request.messages.toMutableList()
@@ -61,7 +63,7 @@ class ToolAgentRuntime(
                     }
                 }
                 val outcome = try {
-                    val result = tools.executeCall(call, gate, request.agentRole) { emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING)) }
+                    val result = tools.executeCall(call, gate, request.agentRole, execution) { emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING)) }
                     check(result.toByteArray(Charsets.UTF_8).size <= 256 * 1024) { "工具返回结果超出限制" }
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {
@@ -77,5 +79,7 @@ class ToolAgentRuntime(
                 emit(ModelChunk.Transcript(result))
             }
         }
+        } catch (e: Throwable) { execution.cancel(); throw e }
+        finally { execution.release() }
     }
 }
