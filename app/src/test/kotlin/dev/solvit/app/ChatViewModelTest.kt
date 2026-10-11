@@ -63,9 +63,11 @@ class ChatViewModelTest {
                 override suspend fun load() = ModelConfig(apiKey = "fixture")
                 override suspend fun save(value: ModelConfig) = Unit
             }
-            val vm = ChatViewModel(chat, settings)
+            val vm = ChatViewModel(chat, settings, nowMillis = { testScheduler.currentTime })
             runCurrent(); assertTrue(vm.send("hello")); runCurrent()
             assertTrue(received.isCompleted)
+            assertEquals(0L, vm.replyTiming.value!!.receivedEndMs)
+            assertEquals(0L, vm.replyTiming.value!!.firstVisibleMs)
             assertTrue(vm.busy.value, "Playback is still active even after model completion")
             assertEquals("b", vm.draft.value)
             advanceTimeBy(100); runCurrent()
@@ -76,6 +78,8 @@ class ChatViewModelTest {
             assertTrue(vm.draft.value.length in 1 until 5_000)
             advanceTimeBy(5_000); runCurrent()
             assertFalse(vm.busy.value, "A large delta must not impose 20 seconds of artificial latency")
+            assertEquals("complete", vm.replyTiming.value!!.outcome)
+            assertTrue(vm.replyTiming.value!!.displayEndMs!! > vm.replyTiming.value!!.receivedEndMs!!)
             vm.viewModelScope.cancel()
         } finally { Dispatchers.resetMain() }
     }

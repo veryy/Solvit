@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import androidx.lifecycle.viewModelScope
 import dev.solvit.chat.DefaultChatService
+import dev.solvit.chat.ToolAgentRuntime
 import org.json.JSONObject
 
 
@@ -87,8 +88,9 @@ class ChatLayoutTest {
             override suspend fun appendBatch(messages: List<ChatMessage>) { stored.value += messages }
             override suspend fun deleteSession(sessionId: String) { stored.value = stored.value.filterNot { it.sessionId == sessionId } }
         }
-        val agent = object : AgentRuntime {
-            override fun run(request: ModelRequest) = flow {
+        val provider = object : ModelProvider {
+            override val id = "fixture"
+            override fun stream(request: ModelRequest) = flow {
                 emit(ModelChunk.Text("live-first-token"))
                 advance.await()
                 emit(ModelChunk.Text("\n" + (1..45).joinToString("\n") { "stream line $it" } + "\nlive-last-token"))
@@ -96,6 +98,7 @@ class ChatLayoutTest {
                 emit(ModelChunk.Done)
             }
         }
+        val agent = ToolAgentRuntime(provider, ToolRegistry(EventBus()), inspection = app.requestInspection)
         lateinit var vm: ChatViewModel
         lateinit var agents: AgentLibraryViewModel
         lateinit var workspaces: WorkspaceViewModel
@@ -133,6 +136,15 @@ class ChatLayoutTest {
             finish.complete(Unit)
             rule.waitUntil(8000) { !vm.busy.value }
             rule.onNodeWithTag("streaming_body").assertDoesNotExist()
+            rule.onNodeWithContentDescription("设置").performClick()
+            rule.onNodeWithTag("settings_list").performScrollToIndex(6)
+            rule.onNodeWithText("最近请求诊断").performClick()
+            rule.onNodeWithText("实际角色：Solvit").assertIsDisplayed()
+            rule.onNodeWithTag("request_diagnostics").performScrollToIndex(9)
+            rule.onNodeWithText("提供的工具数：0").assertExists()
+            rule.onNodeWithTag("request_diagnostics").performScrollToIndex(12)
+            rule.onNode(hasText("首段文字显示：", substring = true)).assertExists()
+            screenshot("request-diagnostics")
         } catch (e: Exception) {
             screenshot("chat-live-stream-failure")
             throw AssertionError(rule.onRoot().printToString(), e)

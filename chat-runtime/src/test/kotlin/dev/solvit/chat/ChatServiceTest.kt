@@ -49,6 +49,9 @@ class ChatServiceTest {
         assertTrue(instructions.contains("不需要搜索"))
         assertTrue(instructions.indexOf("角色名称") < instructions.indexOf("Be brief"))
         assertEquals(1, Regex("角色名称是“Solvit”").findAll(instructions).count(), "Identity must have one authoritative contribution")
+        assertEquals("session", observed!!.sessionId)
+        assertEquals(listOf("identity", "user-rules", "role-instructions"), observed!!.promptSources.map { it.name })
+        assertTrue(observed!!.promptSources.none { "Be brief" in it.toString() })
     }
     @Test fun changingRoleAffectsNextRequestAndDoesNotEraseTranscript() = runTest {
         var role: AgentRole? = AgentRole("first", "First", "Speak briefly")

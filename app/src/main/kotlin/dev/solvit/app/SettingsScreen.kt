@@ -18,7 +18,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: () -> Unit,
-    onRoles: () -> Unit, onPlugins: () -> Unit, onBackup: () -> Unit, appearance: AppearanceStore, onPermissions: () -> Unit) {
+    onRoles: () -> Unit, onPlugins: () -> Unit, onBackup: () -> Unit, appearance: AppearanceStore, onPermissions: () -> Unit,
+    onDiagnostics: () -> Unit = {}) {
     val languageStore = (LocalContext.current.applicationContext as SolvitApplication).language
     val language by languageStore.language.collectAsStateWithLifecycle()
     val update by updates.state.collectAsStateWithLifecycle()
@@ -55,6 +56,9 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
                     item { SettingsGroup("应用更新") {
                         SettingsRow("检查更新", "当前版本 ${BuildConfig.VERSION_NAME} · 启动时自动检查", { updates.check() }, update != UpdateUiState.Checking)
                         AppUpdateCard(update, download, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)
+                    } }
+                    item { SettingsGroup("诊断") {
+                        SettingsRow("最近请求诊断", "角色、上下文来源、工具与回复耗时", onDiagnostics)
                     } }
                     item { SettingsGroup("语言") {
                         Row(Modifier.fillMaxWidth().testTag("language_settings").clickable { languageOpen = true }.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {

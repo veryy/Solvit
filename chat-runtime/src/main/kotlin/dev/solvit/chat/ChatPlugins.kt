@@ -8,11 +8,11 @@ import java.util.UUID
 
 class ChatAgentPlugin : SolvitPlugin {
     override val id = "builtin.agent.chat"
-    override val requires = setOf(Services.Model, Services.Tools, ContextHookServiceKey, ModelProfilesServiceKey)
+    override val requires = setOf(Services.Model, Services.Tools, ContextHookServiceKey, ModelProfilesServiceKey, RequestInspectionServiceKey)
     override val provides = setOf(Services.Agent)
     override suspend fun enable(context: PluginContext) {
         val provider = context.require(Services.Model)
-        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools), hooks = context.require(ContextHookServiceKey), modelProfiles = context.require(ModelProfilesServiceKey)))
+        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools), hooks = context.require(ContextHookServiceKey), modelProfiles = context.require(ModelProfilesServiceKey), inspection = context.require(RequestInspectionServiceKey)))
     }
 }
 
@@ -63,13 +63,15 @@ class DefaultChatService(
             persist(ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim()))
             admitted = true
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
+            val sections = ChatContextComposer.sections(role, config.systemPrompt)
             val messages = buildList {
-                val instructions = ChatContextComposer.render(ChatContextComposer.sections(role, config.systemPrompt))
+                val instructions = ChatContextComposer.render(sections)
                 if (instructions.isNotBlank()) add(ModelMessage(Role.SYSTEM, instructions))
                 addAll(completeContext(history))
             }
             var done = false
-            agent.run(ModelRequest(config, messages, authorization = authorization, agentRole = role, conversation = conversation)).collect { chunk ->
+            agent.run(ModelRequest(config, messages, authorization = authorization, agentRole = role, conversation = conversation,
+                sessionId = sessionId, promptSources = sections.map { PromptSourceInfo(it.name, it.source, it.text.length) })).collect { chunk ->
                 check(!done) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { answer.append(chunk.value); emit(chunk) }

@@ -7,6 +7,26 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class ToolAgentRuntimeTest {
+    @Test fun inspectionTracksActualFilteredToolsAndEveryPreparedRound() = runTest {
+        val inspection = RequestInspectionService()
+        var round = 0
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                val info = inspection.latest.value!!
+                assertEquals(request.tools.map { it.name }, info.tools)
+                assertEquals(request.messages.size, info.messageCount)
+                assertEquals("session", info.sessionId)
+                return if (round++ == 0) flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
+                    else flowOf(ModelChunk.Text("answer"), ModelChunk.Done)
+            }
+        }
+        ToolAgentRuntime(provider, registry { "result" }, inspection = inspection)
+            .run(ModelRequest(ModelConfig(apiKey = "PRIVATE"), listOf(ModelMessage(Role.USER, "time")),
+                authorization = allow, sessionId = "session")).toList()
+        assertEquals(2, round)
+        assertFalse(inspection.latest.value.toString().contains("PRIVATE"))
+    }
     private val call = ToolCall("call_1", "clock", "{}")
     private val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
     private fun registry(execute: suspend () -> String): ToolRegistry = ToolRegistry(EventBus()).apply {

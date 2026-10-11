@@ -9,7 +9,8 @@ import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null,
-    private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null, private val approvals: ToolPolicyService? = null, private val profiles: ModelProfilesService? = null) : ViewModel() {
+    private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null, private val approvals: ToolPolicyService? = null, private val profiles: ModelProfilesService? = null,
+    private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 }) : ViewModel() {
     suspend fun discoverModels(candidate: ModelConfig): List<AvailableModel> =
         (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
@@ -39,6 +40,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     val saving = MutableStateFlow(false)
     val toolActivity = MutableStateFlow<List<ModelChunk.ToolActivity>>(emptyList())
     val toolApproval = MutableStateFlow<ToolApproval?>(null)
+    val replyTiming = MutableStateFlow<ReplyTiming?>(null)
     data class ToolApproval(val descriptor: ToolDescriptor, val call: ToolCall, val role: AgentRole?, val decision: CompletableDeferred<Boolean>)
     fun approveTool(allow: Boolean, remember: Boolean = false) {
         val pending = toolApproval.value ?: return
@@ -143,6 +145,9 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         toolActivity.value = emptyList()
         busy.value = true
         val snapshot = config.value
+        val started = nowMillis()
+        replyTiming.value = ReplyTiming(id)
+        fun elapsed() = (nowMillis() - started).coerceAtLeast(0)
         generation = viewModelScope.launch {
             try {
                 val gate = object : ToolAuthorization {
@@ -156,7 +161,10 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                 }
                 coroutineScope {
                 val playback = ReplyPlayback(this) { chunk -> when (chunk) {
-                    is ModelChunk.Text -> draft.value += chunk.value
+                    is ModelChunk.Text -> {
+                        draft.value += chunk.value
+                        replyTiming.update { it?.copy(firstVisibleMs = it.firstVisibleMs ?: elapsed()) }
+                    }
                     is ModelChunk.Reasoning -> reasoning.value += chunk.value
                     is ModelChunk.Transcript -> {
                         liveTranscript.value += chunk.message
@@ -167,21 +175,29 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                 try {
                 chat.send(id, text, snapshot, gate).collect { chunk -> when (chunk) {
                     is ModelChunk.NativeTranscript -> Unit
-                    is ModelChunk.Text -> playback.enqueue(chunk)
-                    is ModelChunk.Reasoning -> playback.enqueue(chunk)
+                    is ModelChunk.Text -> {
+                        if (chunk.value.isNotEmpty()) replyTiming.update { it?.copy(firstTextMs = it.firstTextMs ?: elapsed(),
+                            receivedCharacters = it.receivedCharacters + chunk.value.codePointCount(0, chunk.value.length)) }
+                        playback.enqueue(chunk)
+                    }
+                    is ModelChunk.Reasoning -> {
+                        if (chunk.value.isNotEmpty()) replyTiming.update { it?.copy(firstReasoningMs = it.firstReasoningMs ?: elapsed()) }
+                        playback.enqueue(chunk)
+                    }
                     is ModelChunk.ToolCalls -> error("Agent 暴露了未处理工具调用")
                     is ModelChunk.Transcript -> playback.enqueue(chunk)
                     is ModelChunk.ToolActivity -> toolActivity.value =
                         toolActivity.value.filterNot { it.call.id == chunk.call.id } + chunk
-                    ModelChunk.Done -> Unit
+                    ModelChunk.Done -> replyTiming.update { it?.copy(receivedEndMs = elapsed()) }
                 } }
                 playback.finish()
+                replyTiming.update { it?.copy(displayEndMs = elapsed(), outcome = "complete") }
                 } finally { playback.cancel() }
                 }
-            } catch (e: CancellationException) { throw e }
-            catch (e: ModelException) { error.value = e.message; errorDetails.value = e.details }
-            catch (e: IOException) { error.value = "网络连接失败，请检查 API 地址和网络" }
-            catch (e: Exception) { error.value = "发送失败，请检查模型配置或缩短对话后重试" }
+            } catch (e: CancellationException) { replyTiming.update { it?.copy(outcome = "cancelled") }; throw e }
+            catch (e: ModelException) { replyTiming.update { it?.copy(outcome = "failed") }; error.value = e.message; errorDetails.value = e.details }
+            catch (e: IOException) { replyTiming.update { it?.copy(outcome = "failed") }; error.value = "网络连接失败，请检查 API 地址和网络" }
+            catch (e: Exception) { replyTiming.update { it?.copy(outcome = "failed") }; error.value = "发送失败，请检查模型配置或缩短对话后重试" }
             finally { busy.value = false; draft.value = ""; reasoning.value = ""; liveTranscript.value = emptyList(); toolApproval.value = null }
         }
         return true
