@@ -9,6 +9,7 @@ export async function buildPlugin(entry, manifestFile, output) {
   const result = await build({
     entryPoints: [entry], bundle: true, write: false, format: 'iife', globalName: '__solvitBundle',
     platform: 'neutral', target: 'es2020', legalComments: 'inline', minify: false,
+    mainFields: ['module', 'main'],
     footer: { js: 'globalThis.solvitPlugin = __solvitBundle.default;' },
   });
   const payload = JSON.stringify({ manifest, source: result.outputFiles[0].text }, null, 2) + '\n';
