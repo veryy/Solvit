@@ -317,7 +317,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true })
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace, app.toolApprovals) { permissionsOpen = false }
-    if (modelsOpen) ModelProfilesScreen(app.modelProfiles, busy, onDismiss = { modelsOpen = false }, onFetchModels = vm::discoverModels)
+    if (modelsOpen) ModelProfilesScreen(app.modelProfiles, busy, onDismiss = { modelsOpen = false }, onFetchModels = vm::discoverModels, providers = app.modelProviders)
     if (backupOpen) ConfigurationBackupDialog(vm, app.roles, app.appearance, onDismiss = { backupOpen = false })
     if (pluginsOpen) PluginMarketplaceDialog(marketplace, onDismiss = { pluginsOpen = false })
     if (agentsOpen) AgentLibraryDialog(agents, onDismiss = { agentsOpen = false })
@@ -332,8 +332,13 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, onDismiss: () -> Unit, onSave: (ModelConfig) -> Unit,
-    onFetchModels: suspend (ModelConfig) -> List<AvailableModel>, profileName: String? = null, onProfileNameChanged: (String) -> Unit = {}) {
+    onFetchModels: suspend (ModelConfig) -> List<AvailableModel>, profileName: String? = null, onProfileNameChanged: (String) -> Unit = {}, providers: ModelProviderRegistry) {
     // API keys deliberately do not use rememberSaveable / saved-instance state.
+    val availableProviders by providers.available.collectAsStateWithLifecycle()
+    var protocol by remember { mutableStateOf(config.providerId) }
+    var options by remember { mutableStateOf(config.providerOptions) }
+    var protocolPicker by remember { mutableStateOf(false) }
+    val descriptor = availableProviders.firstOrNull { it.id == protocol }
     var base by remember { mutableStateOf(config.baseUrl) }
     var model by remember { mutableStateOf(config.model) }
     var key by remember { mutableStateOf(config.apiKey) }
@@ -351,11 +356,11 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
     var fetchJob by remember { mutableStateOf<Job?>(null) }
     var fetchRevision by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
-    LaunchedEffect(base, key, listUrl, listAuth) {
+    LaunchedEffect(protocol, base, key, listUrl, listAuth) {
         fetchRevision++; fetchJob?.cancel(); fetching = false; models = emptyList(); fetchError = null; fetchDetails = null; showFetchDetails = false; picker = false
     }
-    val candidate = ModelConfig(base.trim(), model.trim(), key.trim(), prompt, listUrl.trim(), listAuth)
-    val invalid = candidate.validate()
+    val candidate = ModelConfig(base.trim(), model.trim(), key.trim(), prompt, listUrl.trim(), listAuth, protocol, options)
+    val invalid = providers.validate(candidate)
     FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Scaffold(topBar = { TopAppBar(title = { UiText("模型设置") }, navigationIcon = {
@@ -369,9 +374,23 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
                 LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     if (profileName != null) item { OutlinedTextField(profileName,onProfileNameChanged,label={ UiText("配置名称") },singleLine=true,enabled=!saving,modifier=Modifier.fillMaxWidth().testTag("model_profile_name")) }
                     item { UiText("连接你选择的模型", style = MaterialTheme.typography.headlineSmall) }
-                    item { UiText("支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    item { Box {
+                        OutlinedButton(onClick={ protocolPicker=true },enabled=!saving,modifier=Modifier.testTag("model_protocol")) {
+                            UiText("模型协议"); Spacer(Modifier.width(8.dp));Text(descriptor?.name ?: protocol)
+                        }
+                        DropdownMenu(expanded=protocolPicker,onDismissRequest={ protocolPicker=false }) {
+                            availableProviders.forEach { entry -> DropdownMenuItem(text={ Text(entry.name) },modifier=Modifier.testTag("model_protocol_${entry.id}"),onClick={
+                                if(protocol!=entry.id) {
+                                    protocol=entry.id;base=entry.defaultBaseUrl;model="";key="";listUrl="";listAuth=false
+                                    options=entry.options.associate { it.key to it.defaultValue }
+                                }
+                                protocolPicker=false
+                            }) }
+                        }
+                    } }
+                    item { UiText("切换协议后请填写对应服务的模型和密钥；保存后才生效。",color=MaterialTheme.colorScheme.onSurfaceVariant) }
                     item { OutlinedTextField(base, { base = it }, label = { UiText("API 基础地址") },
-                        supportingText = { UiText("例如 https://api.deepseek.com/v1；无需填写 /chat/completions") },
+                        supportingText = { descriptor?.let { UiText(it.endpointHint) } },
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
                     item { OutlinedTextField(key, { key = it }, label = { UiText("API Key") }, modifier = Modifier.fillMaxWidth(),
                         singleLine = true, enabled = !saving, visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -407,7 +426,25 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
                         if (fetchDetails != null) TextButton(onClick = { showFetchDetails = true }) { UiText("查看详细信息") }
                     }
                     item { OutlinedTextField(model, { model = it }, label = { UiText("模型名称") },
-                        modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
+                        modifier = Modifier.fillMaxWidth().testTag("model_name"), singleLine = true, enabled = !saving) }
+                    descriptor?.options?.forEach { option -> item {
+                        val current = options[option.key] ?: option.defaultValue
+                        if(option.choices.isEmpty()) OutlinedTextField(current,{ options=options+(option.key to it) },label={ UiText(option.label) },singleLine=true,enabled=!saving,modifier=Modifier.fillMaxWidth().testTag("provider_option_${option.key}"))
+                        else {
+                            var expanded by remember { mutableStateOf(false) }
+                            Box {
+                                OutlinedButton(onClick={ expanded=true },enabled=!saving,modifier=Modifier.testTag("provider_option_${option.key}")) {
+                                    UiText(option.label); Spacer(Modifier.width(8.dp)); UiText(option.choices.firstOrNull { it.first==current }?.second ?: current)
+                                }
+                                DropdownMenu(expanded=expanded,onDismissRequest={ expanded=false }) {
+                                    option.choices.forEach { (value,label) -> DropdownMenuItem(text={ UiText(label) },onClick={ options=options+(option.key to value);expanded=false }) }
+                                }
+                            }
+                        }
+                    } }
+                    if(descriptor?.options?.any { it.key=="thinking_mode" }==true) item {
+                        UiText("模型默认由服务端决定；自适应、手动预算和关闭模式的支持因模型而异。若服务拒绝，可查看返回详情。工具执行期间沿用发起轮次的思考参数。")
+                    }
                     item { OutlinedTextField(prompt, { prompt = it }, label = { UiText("系统提示词") },
                         minLines = 3, maxLines = 8, enabled = !saving, modifier = Modifier.fillMaxWidth()) }
                     if (invalid != null) item { UiText(invalid, color = MaterialTheme.colorScheme.error) }

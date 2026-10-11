@@ -1,10 +1,10 @@
 # 原生模型协议的下一步
 
-当前多配置与任务选择使用 `ModelProfilesService`；已实现的请求协议仍为 OpenAI 兼容 Chat Completions。下面是尚未实现的工作，不能作为原生 Claude/Gemini 接入已完成的证据。
+多配置与任务选择使用 `ModelProfilesService`。OpenAI 兼容协议已经发布；Provider 注册/路由、原生转录与 Claude Messages 插件已提交实现，正在远程验证，详见 [Claude 插件](anthropic-provider.md)。Gemini 与本地推理仍待实现，不因原生基础接口已有而视为完成。
 
 ## 服务组合
 
-下一步增加 Provider 注册服务与协议路由插件。连接配置保存协议，旧配置默认 OpenAI 兼容；每个 Provider 独立注册并负责请求、流解析、诊断与取消。聊天 UI 与 Agent 只消费统一接口。模型目录查询也随协议选择；遇到未加载协议时明确失败。
+已增加 Provider 注册服务与协议路由插件。连接配置保存协议，旧配置默认 OpenAI 兼容；每个 Provider 独立注册并负责请求、流解析、诊断与取消。聊天 UI 与 Agent 只消费统一接口。模型目录查询也随协议选择；遇到未加载协议时明确失败。
 
 ## 必须保留的数据
 

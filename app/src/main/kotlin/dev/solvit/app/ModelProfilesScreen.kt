@@ -19,7 +19,7 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModelProfilesScreen(service: ModelProfilesService, generating: Boolean, onDismiss: () -> Unit,
-    onFetchModels: suspend (ModelConfig) -> List<AvailableModel>) {
+    onFetchModels: suspend (ModelConfig) -> List<AvailableModel>, providers: ModelProviderRegistry) {
     val state by service.state.collectAsStateWithLifecycle()
     val loadError by service.loadError.collectAsStateWithLifecycle()
     var editing by remember { mutableStateOf<ModelProfile?>(null) }
@@ -81,7 +81,7 @@ fun ModelProfilesScreen(service: ModelProfilesService, generating: Boolean, onDi
     editing?.let { profile -> key(profile.id) {
         ModelSettings(profile.config,busy,error,onDismiss={ if(!busy) editing=null },
             onSave={ config -> operation { service.save(profile.copy(name=name.trim(),config=config)); editing=null } },
-            onFetchModels=onFetchModels,profileName=name,onProfileNameChanged={ name=it })
+            onFetchModels=onFetchModels,profileName=name,onProfileNameChanged={ name=it },providers=providers)
     } }
     task?.let { selectedTask -> AlertDialog(onDismissRequest={ if(!busy) task=null },title={ UiText("选择任务模型") },text={
         LazyColumn(Modifier.heightIn(max=360.dp)) {

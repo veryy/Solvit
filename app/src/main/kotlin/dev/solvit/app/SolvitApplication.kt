@@ -4,6 +4,7 @@ import android.app.Application
 import dev.solvit.chat.*
 import dev.solvit.core.*
 import dev.solvit.provider.OpenAiPlugin
+import dev.solvit.anthropic.AnthropicPlugin
 import dev.solvit.storage.SqliteStoragePlugin
 import dev.solvit.updates.ReleaseUpdatesPlugin
 import dev.solvit.market.MarketplacePlugin
@@ -69,7 +70,7 @@ class SolvitApplication : Application() {
             try {
                 // Deliberately unordered: dependency declarations control activation.
                 listOf(ModelProvidersPlugin(), ModelRoutingPlugin(), ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
-                    OpenAiPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
+                    OpenAiPlugin(), AnthropicPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 branches = manager.registry.require(ChatBranchServiceKey)
                 updates = manager.registry.require(UpdateServiceKey)

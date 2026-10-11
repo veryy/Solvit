@@ -401,6 +401,35 @@ class ChatLayoutTest {
             }
         }
     }
+    @Test fun nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations() {
+        ready()
+        val app=rule.activity.application as SolvitApplication
+        val previous=app.modelProfiles.state.value
+        try {
+            rule.onNodeWithContentDescription("设置").performClick()
+            rule.onNodeWithText("模型与连接").performClick()
+            rule.onNodeWithTag("new_model_profile").performScrollTo().performClick()
+            rule.onNodeWithTag("model_profile_name").performTextInput("Native UI model")
+            rule.onNodeWithTag("model_protocol").performScrollTo().performClick()
+            rule.onNodeWithTag("model_protocol_anthropic").performClick()
+            rule.onNodeWithTag("save_model_profile").assertIsNotEnabled()
+            rule.onNodeWithTag("model_name").performScrollTo().performTextInput("native-test-model")
+            rule.onNodeWithTag("provider_option_max_tokens").performScrollTo().performTextReplacement("16384")
+            rule.onNodeWithTag("provider_option_thinking_mode").performScrollTo().performClick()
+            rule.onNodeWithText("自适应思考").performClick()
+            rule.onNodeWithTag("save_model_profile").assertIsEnabled().performClick()
+            rule.waitUntil(8000) { app.modelProfiles.state.value.profiles.any { it.name=="Native UI model" } }
+            val profile=app.modelProfiles.state.value.profiles.single { it.name=="Native UI model" }
+            val stored=runBlocking { app.settings.loadProfiles() }.profiles.single { it.id==profile.id }.config
+            assertEquals("anthropic",stored.providerId)
+            assertEquals("adaptive",stored.providerOptions["thinking_mode"])
+            assertEquals("16384",stored.providerOptions["max_tokens"])
+            rule.onNodeWithTag("model_profiles_list").performScrollToNode(hasTestTag("edit_model_${profile.id}"))
+            rule.onNodeWithTag("edit_model_${profile.id}").performClick()
+            rule.onNodeWithTag("model_protocol").assertTextContains("Claude / Anthropic")
+            rule.onNodeWithTag("provider_option_max_tokens").performScrollTo().assertTextContains("16384")
+        } finally { runBlocking { app.modelProfiles.replace(previous) } }
+    }
     @Test fun modelProfilesUiSavesAndAssignsASeparateToolModel() {
         ready()
         val app=rule.activity.application as SolvitApplication

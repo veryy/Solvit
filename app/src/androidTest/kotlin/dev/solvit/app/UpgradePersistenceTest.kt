@@ -14,8 +14,13 @@ class SeedUpgradeConfigurationTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         @Suppress("DEPRECATION")
         assertEquals("0.7.0", context.packageManager.getPackageInfo(context.packageName, 0).versionName)
-        EncryptedSettingsStore(context).save(ModelConfig("https://fixture.example/v1", "upgrade-fixture-model",
-            "solvit-upgrade-fixture-key", "升级保留提示词", "https://fixture.example/models?token=fixture-token"))
+        // This runs inside the actual old APK. New protocol fields change Kotlin's
+        // generated constructor signature; use the old release's six-argument API.
+        val oldConfig = ModelConfig::class.java.getConstructor(String::class.java, String::class.java,
+            String::class.java, String::class.java, String::class.java, Boolean::class.javaPrimitiveType!!)
+            .newInstance("https://fixture.example/v1", "upgrade-fixture-model", "solvit-upgrade-fixture-key",
+                "升级保留提示词", "https://fixture.example/models?token=fixture-token", false)
+        EncryptedSettingsStore(context).save(oldConfig)
         val app = context.applicationContext as SolvitApplication
         val chat = withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }
         val session = chat.createSession()

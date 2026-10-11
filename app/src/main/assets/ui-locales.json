@@ -143,6 +143,110 @@
     "es": "Permisos de aplicaciones de Android",
     "fr": "Autorisations de l'application Android"
   },
+  "Claude 协议参数无效": {
+    "zh": "Claude 协议参数无效",
+    "en": "Claude protocol parameter is invalid",
+    "ja": "クロードプロトコルパラメータが無効です",
+    "ko": "Claude 프로토콜 매개변수가 잘못되었습니다.",
+    "es": "El parámetro del protocolo Claude no es válido",
+    "fr": "Le paramètre du protocole Claude n'est pas valide"
+  },
+  "Claude 响应格式异常，请查看详细信息": {
+    "zh": "Claude 响应格式异常，请查看详细信息",
+    "en": "Claude response format is abnormal, please view details",
+    "ja": "クロードの応答形式が異常です。詳細を表示してください",
+    "ko": "클로드 응답 형식이 비정상적입니다. 자세한 내용을 확인하세요.",
+    "es": "El formato de respuesta de Claude es anormal, consulte los detalles.",
+    "fr": "Le format de réponse de Claude est anormal, veuillez consulter les détails"
+  },
+  "Claude 未正常完成回复，请查看结束原因": {
+    "zh": "Claude 未正常完成回复，请查看结束原因",
+    "en": "Claude did not complete the reply normally, please check the reason for the end.",
+    "ja": "クロードは正常に返信を完了できませんでした。終了理由を確認してください。",
+    "ko": "클로드가 답변을 정상적으로 완료하지 못했습니다. 종료된 이유를 확인해주세요.",
+    "es": "Claude no completó la respuesta normalmente, verifique el motivo del final.",
+    "fr": "Claude n'a pas complété la réponse normalement, merci de vérifier la raison de la fin."
+  },
+  "Claude 模型列表格式异常，请查看详细信息": {
+    "zh": "Claude 模型列表格式异常，请查看详细信息",
+    "en": "Claude model list format is abnormal, please view details",
+    "ja": "クロード モデル リストの形式が異常です。詳細を表示してください。",
+    "ko": "클로드 모델 목록 형식이 비정상입니다. 세부정보를 확인하세요.",
+    "es": "El formato de la lista de modelos de Claude es anormal, consulte los detalles",
+    "fr": "Le format de la liste des modèles Claude est anormal, veuillez consulter les détails"
+  },
+  "Claude 流式响应返回错误，请查看详细信息": {
+    "zh": "Claude 流式响应返回错误，请查看详细信息",
+    "en": "Claude streaming response returned error, please see details",
+    "ja": "クロード ストリーミング応答でエラーが返されました。詳細を参照してください。",
+    "ko": "Claude 스트리밍 응답에서 오류가 반환되었습니다. 세부정보를 참조하세요.",
+    "es": "La respuesta de transmisión de Claude devolvió un error; consulte los detalles",
+    "fr": "La réponse de Claude en streaming a renvoyé une erreur, veuillez consulter les détails"
+  },
+  "Claude 请求失败": {
+    "zh": "Claude 请求失败",
+    "en": "Claude's request failed",
+    "ja": "クロードの要求は失敗しました",
+    "ko": "클로드의 요청이 실패했습니다",
+    "es": "La solicitud de Claude falló.",
+    "fr": "La demande de Claude a échoué"
+  },
+  "Claude 请求失败（HTTP {0}）": {
+    "zh": "Claude 请求失败（HTTP {0}）",
+    "en": "Claude request failed (HTTP {0})",
+    "ja": "クロードリクエストが失敗しました（HTTP {0}）",
+    "ko": "클로드 요청 실패(HTTP {0})",
+    "es": "La solicitud de Claude falló (HTTP {0})",
+    "fr": "Échec de la requête Claude (HTTP {0})"
+  },
+  "Claude 返回尚未支持的内容增量，请查看详细信息": {
+    "zh": "Claude 返回尚未支持的内容增量，请查看详细信息",
+    "en": "Claude returns content increments that are not yet supported, see details",
+    "ja": "クロードはまだサポートされていないコンテンツ増分を返します。詳細を参照してください",
+    "ko": "Claude는 아직 지원되지 않는 콘텐츠 증분을 반환합니다. 세부정보를 참조하세요.",
+    "es": "Claude devuelve incrementos de contenido que aún no son compatibles, ver detalles",
+    "fr": "Claude renvoie des incréments de contenu qui ne sont pas encore pris en charge, voir les détails"
+  },
+  "Claude 返回尚未支持的内容类型，请查看详细信息": {
+    "zh": "Claude 返回尚未支持的内容类型，请查看详细信息",
+    "en": "Claude returns a content type that is not yet supported, see details",
+    "ja": "クロードはまだサポートされていないコンテンツ タイプを返します。詳細を参照してください",
+    "ko": "Claude가 아직 지원되지 않는 콘텐츠 유형을 반환합니다. 세부정보를 참조하세요.",
+    "es": "Claude devuelve un tipo de contenido que aún no es compatible, ver detalles",
+    "fr": "Claude renvoie un type de contenu qui n'est pas encore supporté, voir détails"
+  },
+  "Claude 返回空内容，请查看详细信息": {
+    "zh": "Claude 返回空内容，请查看详细信息",
+    "en": "Claude returns empty content, please see details",
+    "ja": "クロードは空のコンテンツを返します。詳細を参照してください",
+    "ko": "Claude가 빈 콘텐츠를 반환합니다. 세부정보를 참조하세요.",
+    "es": "Claude devuelve contenido vacío, consulte los detalles",
+    "fr": "Claude renvoie le contenu vide, veuillez voir les détails"
+  },
+  "Claude 返回错误，请查看详细信息": {
+    "zh": "Claude 返回错误，请查看详细信息",
+    "en": "Claude returned an error, please see details",
+    "ja": "クロードがエラーを返しました。詳細を確認してください",
+    "ko": "Claude가 오류를 반환했습니다. 세부정보를 확인하세요.",
+    "es": "Claude devolvió un error, consulte los detalles.",
+    "fr": "Claude a renvoyé une erreur, veuillez voir les détails"
+  },
+  "Claude 连接失败，请查看详细信息": {
+    "zh": "Claude 连接失败，请查看详细信息",
+    "en": "Claude connection failed, please see details",
+    "ja": "クロード接続に失敗しました。詳細を確認してください",
+    "ko": "Claude 연결에 실패했습니다. 세부정보를 확인하세요.",
+    "es": "La conexión de Claude falló, consulte los detalles",
+    "fr": "La connexion de Claude a échoué, veuillez consulter les détails"
+  },
+  "Claude 连接提前中断，请重试": {
+    "zh": "Claude 连接提前中断，请重试",
+    "en": "Claude connection was terminated early, please try again",
+    "ja": "クロード接続が早期に終了しました。もう一度お試しください。",
+    "ko": "클로드 접속이 일찍 종료되었습니다. 다시 시도해 주세요.",
+    "es": "La conexión de Claude se finalizó antes de tiempo, inténtalo de nuevo.",
+    "fr": "La connexion de Claude a été interrompue prématurément, veuillez réessayer"
+  },
   "Root · 每次执行前核验 UID 0": {
     "zh": "Root · 每次执行前核验 UID 0",
     "en": "Root · Verify UID 0 before each execution",
@@ -441,11 +545,11 @@
   },
   "任务模型": {
     "zh": "任务模型",
-    "en": "task model",
+    "en": "Task model",
     "ja": "タスクモデル",
     "ko": "작업 모델",
-    "es": "modelo de tarea",
-    "fr": "modèle de tâche"
+    "es": "Modelo de tarea",
+    "fr": "Modèle de tâche"
   },
   "任务绑定的模型配置不存在": {
     "zh": "任务绑定的模型配置不存在",
@@ -479,13 +583,13 @@
     "es": "Usar rol predeterminado",
     "fr": "Utiliser le rôle par défaut"
   },
-  "例如 https://api.deepseek.com/v1；无需填写 /chat/completions": {
-    "zh": "例如 https://api.deepseek.com/v1；无需填写 /chat/completions",
-    "en": "For example https://api.deepseek.com/v1; no need to fill in /chat/completions",
-    "ja": "たとえば、https://api.deepseek.com/v1; /chat/complements に記入する必要はありません",
-    "ko": "예를 들어 https://api.deepseek.com/v1; /chat/completions를 작성할 필요가 없습니다.",
-    "es": "Por ejemplo https://api.deepseek.com/v1; no es necesario completar /chat/completions",
-    "fr": "For example https://api.deepseek.com/v1; no need to fill in /chat/completions"
+  "例如 https://api.anthropic.com/v1；无需填写 /messages": {
+    "zh": "例如 https://api.anthropic.com/v1；无需填写 /messages",
+    "en": "For example https://api.anthropic.com/v1; no need to fill in /messages",
+    "ja": "たとえば、https://api.anthropic.com/v1; /messages に記入する必要はありません",
+    "ko": "예를 들어 https://api.anthropic.com/v1; /messages를 입력할 필요가 없습니다.",
+    "es": "Por ejemplo https://api.anthropic.com/v1; no es necesario completar /mensajes",
+    "fr": "Par exemple https://api.anthropic.com/v1 ; pas besoin de remplir /messages"
   },
   "依赖：{0}": {
     "zh": "依赖：{0}",
@@ -687,6 +791,14 @@
     "es": "Cerrar configuración",
     "fr": "Fermer les paramètres"
   },
+  "切换协议后请填写对应服务的模型和密钥；保存后才生效。": {
+    "zh": "切换协议后请填写对应服务的模型和密钥；保存后才生效。",
+    "en": "After switching protocols, please fill in the model and key of the corresponding service; it will take effect after saving.",
+    "ja": "プロトコルを切り替えた後、対応するサービスのモデルとキーを入力してください。保存後に有効になります。",
+    "ko": "프로토콜을 전환한 후 해당 서비스의 모델과 키를 입력하세요. 저장한 후에 적용됩니다.",
+    "es": "Después de cambiar de protocolo, complete el modelo y clave del servicio correspondiente; entrará en vigor después de guardar.",
+    "fr": "Après avoir changé de protocole, veuillez remplir le modèle et la clé du service correspondant ; cela prendra effet après la sauvegarde."
+  },
   "创建中…": {
     "zh": "创建中…",
     "en": "Creating…",
@@ -879,6 +991,14 @@
     "es": "¿Desinstalar {0}?",
     "fr": "Désinstaller {0} ?"
   },
+  "历史转录包含尚未支持的 Claude 内容类型": {
+    "zh": "历史转录包含尚未支持的 Claude 内容类型",
+    "en": "Historical transcripts contain Claude content types that are not yet supported",
+    "ja": "履歴トランスクリプトには、まだサポートされていないクロード コンテンツ タイプが含まれています",
+    "ko": "기록 기록에 아직 지원되지 않는 Claude 콘텐츠 유형이 포함되어 있습니다.",
+    "es": "Las transcripciones históricas contienen tipos de contenido de Claude que aún no son compatibles",
+    "fr": "Les transcriptions historiques contiennent des types de contenu Claude qui ne sont pas encore pris en charge"
+  },
   "原对话保持完整。已有工作区会共享同一目录和 Shell；没有工作区时不会自动创建。": {
     "zh": "原对话保持完整。已有工作区会共享同一目录和 Shell；没有工作区时不会自动创建。",
     "en": "The original dialogue remains intact. Existing workspaces will share the same directory and shell; if there is no workspace, it will not be automatically created.",
@@ -1015,6 +1135,22 @@
     "es": "Comando o entrada interactiva",
     "fr": "Commande ou saisie interactive"
   },
+  "响应中未解析出可用模型名称，请查看详细信息": {
+    "zh": "响应中未解析出可用模型名称，请查看详细信息",
+    "en": "No available model names were parsed in the response, please see details",
+    "ja": "応答で利用可能なモデル名が解析されませんでした。詳細を参照してください。",
+    "ko": "응답에서 사용 가능한 모델 이름이 구문 분석되지 않았습니다. 세부정보를 확인하세요.",
+    "es": "No se analizaron nombres de modelos disponibles en la respuesta; consulte los detalles",
+    "fr": "Aucun nom de modèle disponible n'a été analysé dans la réponse, veuillez consulter les détails"
+  },
+  "响应没有 data 或 models 模型数组": {
+    "zh": "响应没有 data 或 models 模型数组",
+    "en": "Response has no data or models arrays",
+    "ja": "応答にはデータまたはモデル配列がありません",
+    "ko": "응답에 데이터 또는 모델 배열이 없습니다.",
+    "es": "La respuesta no tiene datos ni matrices de modelos.",
+    "fr": "La réponse ne contient aucun tableau de données ou de modèles"
+  },
   "回复失败 · 此回复不参与后续上下文": {
     "zh": "回复失败 · 此回复不参与后续上下文",
     "en": "Reply failed · This reply does not participate in subsequent context",
@@ -1022,6 +1158,14 @@
     "ko": "답변 실패 · 이 답변은 후속 컨텍스트에 참여하지 않습니다.",
     "es": "Respuesta fallida · Esta respuesta no participa en el contexto posterior",
     "fr": "Échec de la réponse · Cette réponse ne participe pas au contexte ultérieur"
+  },
+  "回复超过模型输出限制，请调整最大输出令牌": {
+    "zh": "回复超过模型输出限制，请调整最大输出令牌",
+    "en": "Reply exceeds model output limit, please adjust the maximum output token",
+    "ja": "応答がモデルの出力制限を超えています。最大出力トークンを調整してください",
+    "ko": "답장이 모델 출력 한도를 초과했습니다. 최대 출력 토큰을 조정하세요.",
+    "es": "La respuesta excede el límite de salida del modelo; ajuste el token de salida máximo",
+    "fr": "La réponse dépasse la limite de sortie du modèle, veuillez ajuster le jeton de sortie maximum"
   },
   "地址：": {
     "zh": "地址：",
@@ -1271,6 +1415,14 @@
     "es": "Autorización sin herramientas",
     "fr": "Autorisation sans outil"
   },
+  "工具参数超过限制": {
+    "zh": "工具参数超过限制",
+    "en": "Tool parameter exceeds limit",
+    "ja": "ツールパラメータが制限を超えています",
+    "ko": "공구 매개변수가 한계를 초과했습니다.",
+    "es": "El parámetro de herramienta excede el límite",
+    "fr": "Le paramètre de l'outil dépasse la limite"
+  },
   "工具后续模型": {
     "zh": "工具后续模型",
     "en": "Tool follow-up model",
@@ -1294,6 +1446,22 @@
     "ko": "도구 결과",
     "es": "Resultados de la herramienta",
     "fr": "Résultats de l'outil"
+  },
+  "工具结果缺少调用 ID": {
+    "zh": "工具结果缺少调用 ID",
+    "en": "Tool results are missing call ID",
+    "ja": "ツールの結果にコール ID がありません",
+    "ko": "도구 결과에 통화 ID가 누락되었습니다.",
+    "es": "A los resultados de la herramienta les falta el ID de llamada",
+    "fr": "Les résultats de l'outil ne contiennent pas d'identifiant d'appel"
+  },
+  "工具调用格式无效": {
+    "zh": "工具调用格式无效",
+    "en": "Tool call format is invalid",
+    "ja": "ツール呼び出し形式が無効です",
+    "ko": "도구 호출 형식이 잘못되었습니다.",
+    "es": "El formato de llamada de herramienta no es válido",
+    "fr": "Le format d'appel d'outil n'est pas valide"
   },
   "已保存的配置": {
     "zh": "已保存的配置",
@@ -1479,6 +1647,30 @@
     "es": "Versión actual {0} · Descargar e instalar dentro de la aplicación",
     "fr": "Version actuelle {0} · Téléchargez et installez dans l'application"
   },
+  "思考模式": {
+    "zh": "思考模式",
+    "en": "Thinking mode",
+    "ja": "思考モード",
+    "ko": "사고 모드",
+    "es": "Modo de razonamiento",
+    "fr": "Mode de raisonnement"
+  },
+  "思考模式无效": {
+    "zh": "思考模式无效",
+    "en": "Invalid thinking mode",
+    "ja": "無効な思考モード",
+    "ko": "잘못된 사고 모드",
+    "es": "Modo de pensamiento no válido",
+    "fr": "Mode de réflexion invalide"
+  },
+  "思考转录的上下文已改变，请保持系统提示词和工具不变后重试": {
+    "zh": "思考转录的上下文已改变，请保持系统提示词和工具不变后重试",
+    "en": "The context of thinking transcription has changed. Please keep the system prompt words and tools unchanged and try again.",
+    "ja": "思考転写の文脈が変わりました。システムのプロンプトの単語とツールを変更せずに再試行してください。",
+    "ko": "전사를 생각하는 맥락이 바뀌었습니다. 시스템 프롬프트 단어와 도구를 변경하지 않고 다시 시도하십시오.",
+    "es": "El contexto de la transcripción del pensamiento ha cambiado. Mantenga las palabras y herramientas de los mensajes del sistema sin cambios y vuelva a intentarlo.",
+    "fr": "Le contexte de la transcription de la pensée a changé. Veuillez conserver les mots d'invite et les outils du système inchangés et réessayer."
+  },
   "思考过程": {
     "zh": "思考过程",
     "en": "Thought process",
@@ -1486,6 +1678,22 @@
     "ko": "사고 과정",
     "es": "Proceso de pensamiento",
     "fr": "Processus de réflexion"
+  },
+  "思考预算令牌": {
+    "zh": "思考预算令牌",
+    "en": "Thinking budget tokens",
+    "ja": "思考予算のトークン数",
+    "ko": "사고 예산 토큰 수",
+    "es": "Tokens del presupuesto de razonamiento",
+    "fr": "Tokens du budget de raisonnement"
+  },
+  "思考预算至少为 1024，且必须小于最大输出令牌": {
+    "zh": "思考预算至少为 1024，且必须小于最大输出令牌",
+    "en": "Think budget is at least 1024 and must be less than the maximum output tokens",
+    "ja": "バジェットは少なくとも 1024 で、最大出力トークン未満である必要があると考えてください。",
+    "ko": "생각 예산은 1024 이상이며 최대 출력 토큰보다 작아야 합니다.",
+    "es": "Piense que el presupuesto es al menos 1024 y debe ser menor que los tokens de salida máximos.",
+    "fr": "Je pense que le budget est d'au moins 1 024 et doit être inférieur au nombre maximal de jetons de sortie."
   },
   "恢复失败，已有配置未修改或已恢复，请检查本机存储后重试。": {
     "zh": "恢复失败，已有配置未修改或已恢复，请检查本机存储后重试。",
@@ -1542,6 +1750,14 @@
     "ko": "수동 쉘",
     "es": "Carcasa manual",
     "fr": "Coque manuelle"
+  },
+  "手动思考预算": {
+    "zh": "手动思考预算",
+    "en": "Manual thinking budget",
+    "ja": "手動の思考予算",
+    "ko": "수동 사고 예산",
+    "es": "Presupuesto de razonamiento manual",
+    "fr": "Budget de raisonnement manuel"
   },
   "手动终端": {
     "zh": "手动终端",
@@ -1710,14 +1926,6 @@
     "ko": "작업 실패",
     "es": "Operación fallida",
     "fr": "L'opération a échoué"
-  },
-  "支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。": {
-    "zh": "支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。",
-    "en": "Supports OpenAI, DeepSeek and other services compatible with Chat Completions API.",
-    "ja": "OpenAI、DeepSeek、およびChat Completions APIと互換性のあるその他のサービスをサポートします。",
-    "ko": "OpenAI, DeepSeek 및 Chat Completions API와 호환되는 기타 서비스를 지원합니다.",
-    "es": "Admite OpenAI, DeepSeek y otros servicios compatibles con Chat Completions API.",
-    "fr": "Prend en charge OpenAI, DeepSeek et d'autres services compatibles avec l'API Chat Completions."
   },
   "数据与备份": {
     "zh": "数据与备份",
@@ -1895,6 +2103,14 @@
     "es": "No se requieren permisos adicionales",
     "fr": "Aucune autorisation supplémentaire requise"
   },
+  "明确关闭思考": {
+    "zh": "明确关闭思考",
+    "en": "Explicitly disable thinking",
+    "ja": "思考を明示的に無効化",
+    "ko": "사고를 명시적으로 끄기",
+    "es": "Desactivar explícitamente el razonamiento",
+    "fr": "Désactiver explicitement le raisonnement"
+  },
   "显示密钥": {
     "zh": "显示密钥",
     "en": "Show key",
@@ -1990,6 +2206,22 @@
     "ko": "업데이트 확인이 완료되지 않았습니다.",
     "es": "Comprobación de actualización no completada",
     "fr": "Vérification de la mise à jour non terminée"
+  },
+  "最大输出令牌": {
+    "zh": "最大输出令牌",
+    "en": "Maximum output tokens",
+    "ja": "最大出力トークン数",
+    "ko": "최대 출력 토큰 수",
+    "es": "Máximo de tokens de salida",
+    "fr": "Nombre maximal de tokens de sortie"
+  },
+  "最大输出令牌需为 1 到 1000000 的整数": {
+    "zh": "最大输出令牌需为 1 到 1000000 的整数",
+    "en": "Maximum output token needs to be an integer from 1 to 1000000",
+    "ja": "最大出力トークンは 1 ～ 1000000 の整数である必要があります",
+    "ko": "최대 출력 토큰은 1에서 1000000 사이의 정수여야 합니다.",
+    "es": "El token de salida máximo debe ser un número entero del 1 al 1000000",
+    "fr": "Le jeton de sortie maximum doit être un nombre entier compris entre 1 et 1 000 000."
   },
   "服务未返回响应正文": {
     "zh": "服务未返回响应正文",
@@ -2103,6 +2335,46 @@
     "es": "Modelos y conexiones",
     "fr": "Modèles et connexions"
   },
+  "模型内容块尚未开始或已经结束": {
+    "zh": "模型内容块尚未开始或已经结束",
+    "en": "The model content block has not yet started or has ended",
+    "ja": "モデル コンテンツ ブロックがまだ開始していないか、終了しています",
+    "ko": "모델 콘텐츠 블록이 아직 시작되지 않았거나 종료되었습니다.",
+    "es": "El bloque de contenido del modelo aún no ha comenzado o ha finalizado",
+    "fr": "Le bloc de contenu du modèle n'a pas encore démarré ou est terminé"
+  },
+  "模型内容块未完整结束": {
+    "zh": "模型内容块未完整结束",
+    "en": "Model content block incompletely ended",
+    "ja": "モデルコンテンツブロックが不完全に終了しました",
+    "ko": "모델 콘텐츠 블록이 불완전하게 종료되었습니다.",
+    "es": "Bloque de contenido del modelo finalizado de forma incompleta",
+    "fr": "Le bloc de contenu du modèle n'est pas complètement terminé"
+  },
+  "模型内容块索引无效": {
+    "zh": "模型内容块索引无效",
+    "en": "Model content block index is invalid",
+    "ja": "モデルコンテンツブロックインデックスが無効です",
+    "ko": "모델 콘텐츠 블록 색인이 잘못되었습니다.",
+    "es": "El índice del bloque de contenido del modelo no es válido",
+    "fr": "L'index du bloc de contenu du modèle n'est pas valide"
+  },
+  "模型内容块结束事件无效": {
+    "zh": "模型内容块结束事件无效",
+    "en": "Model content block end event is invalid",
+    "ja": "モデル コンテンツ ブロックの終了イベントが無効です",
+    "ko": "모델 콘텐츠 차단 종료 이벤트가 잘못되었습니다.",
+    "es": "El evento de finalización del bloque de contenido del modelo no es válido",
+    "fr": "L'événement de fin de bloc de contenu du modèle n'est pas valide"
+  },
+  "模型内容增量类型不匹配": {
+    "zh": "模型内容增量类型不匹配",
+    "en": "Model content increment type mismatch",
+    "ja": "モデルコンテンツの増分タイプの不一致",
+    "ko": "모델 콘텐츠 증분 유형 불일치",
+    "es": "El tipo de incremento del contenido del modelo no coincide",
+    "fr": "Incohérence du type d'incrément de contenu du modèle"
+  },
   "模型列表 / 订阅地址（可选）": {
     "zh": "模型列表 / 订阅地址（可选）",
     "en": "Model list/subscription address (optional)",
@@ -2110,6 +2382,46 @@
     "ko": "모델 목록/구독 주소(선택 사항)",
     "es": "Lista de modelos/dirección de suscripción (opcional)",
     "fr": "Liste de modèles/adresse d'abonnement (facultatif)"
+  },
+  "模型列表为空": {
+    "zh": "模型列表为空",
+    "en": "Model list is empty",
+    "ja": "モデルリストが空です",
+    "ko": "모델 목록이 비어 있습니다.",
+    "es": "La lista de modelos está vacía",
+    "fr": "La liste des modèles est vide"
+  },
+  "模型列表分页信息不完整": {
+    "zh": "模型列表分页信息不完整",
+    "en": "Model list paging information is incomplete",
+    "ja": "モデルリストのページング情報が不完全です",
+    "ko": "모델 목록 페이징 정보가 불완전합니다.",
+    "es": "La información de paginación de la lista de modelos está incompleta",
+    "fr": "Les informations de pagination de la liste de modèles sont incomplètes"
+  },
+  "模型列表分页超过限制": {
+    "zh": "模型列表分页超过限制",
+    "en": "Model list pagination exceeds limit",
+    "ja": "モデルリストのページネーションが制限を超えています",
+    "ko": "모델 목록 페이지 매김이 한도를 초과했습니다.",
+    "es": "La paginación de la lista de modelos excede el límite",
+    "fr": "La pagination de la liste de modèles dépasse la limite"
+  },
+  "模型列表分页重复，请检查服务端": {
+    "zh": "模型列表分页重复，请检查服务端",
+    "en": "The model list is repeated in pages, please check the server.",
+    "ja": "モデルのリストは複数のページに繰り返し表示されます。サーバーを確認してください。",
+    "ko": "모델 목록은 페이지 단위로 반복됩니다. 서버를 확인하세요.",
+    "es": "La lista de modelos se repite en páginas, consulte el servidor.",
+    "fr": "La liste des modèles est répétée en pages, veuillez vérifier le serveur."
+  },
+  "模型列表响应过大": {
+    "zh": "模型列表响应过大",
+    "en": "Model list response is too large",
+    "ja": "モデルリストの応答が大きすぎます",
+    "ko": "모델 목록 응답이 너무 큽니다.",
+    "es": "La respuesta de la lista de modelos es demasiado grande",
+    "fr": "La réponse de la liste de modèles est trop longue"
   },
   "模型列表地址格式不正确": {
     "zh": "模型列表地址格式不正确",
@@ -2127,6 +2439,14 @@
     "es": "La dirección de la lista de modelos debe ser HTTPS; Los servicios locales pueden usar HTTP.",
     "fr": "L'adresse de la liste de modèles doit être HTTPS ; les services locaux peuvent utiliser HTTP"
   },
+  "模型列表数量过多": {
+    "zh": "模型列表数量过多",
+    "en": "Too many model lists",
+    "ja": "モデルリストが多すぎます",
+    "ko": "모델 목록이 너무 많습니다.",
+    "es": "Demasiadas listas de modelos",
+    "fr": "Trop de listes de modèles"
+  },
   "模型列表服务不可用": {
     "zh": "模型列表服务不可用",
     "en": "Model list service is unavailable",
@@ -2135,6 +2455,70 @@
     "es": "El servicio de lista de modelos no está disponible",
     "fr": "Le service de liste de modèles n'est pas disponible"
   },
+  "模型协议": {
+    "zh": "模型协议",
+    "en": "Model protocol",
+    "ja": "モデルプロトコル",
+    "ko": "모델 프로토콜",
+    "es": "Protocolo del modelo",
+    "fr": "Protocole du modèle"
+  },
+  "模型协议 ID 无效": {
+    "zh": "模型协议 ID 无效",
+    "en": "Invalid model protocol ID",
+    "ja": "無効なモデル プロトコル ID",
+    "ko": "잘못된 모델 프로토콜 ID",
+    "es": "ID de protocolo de modelo no válido",
+    "fr": "ID de protocole de modèle non valide"
+  },
+  "模型协议不可用": {
+    "zh": "模型协议不可用",
+    "en": "Model protocol is not available",
+    "ja": "モデルプロトコルは利用できません",
+    "ko": "모델 프로토콜을 사용할 수 없습니다.",
+    "es": "El protocolo modelo no está disponible",
+    "fr": "Le protocole modèle n'est pas disponible"
+  },
+  "模型协议参数超过限制": {
+    "zh": "模型协议参数超过限制",
+    "en": "Model protocol parameter exceeds limit",
+    "ja": "モデルプロトコルパラメータが制限を超えています",
+    "ko": "모델 프로토콜 매개변수가 한도를 초과했습니다.",
+    "es": "El parámetro del protocolo del modelo excede el límite",
+    "fr": "Le paramètre du protocole du modèle dépasse la limite"
+  },
+  "模型协议已经注册": {
+    "zh": "模型协议已经注册",
+    "en": "The model agreement has been registered",
+    "ja": "モデル契約が登録されました",
+    "ko": "모델계약이 등록되었습니다",
+    "es": "El modelo de acuerdo ha sido registrado.",
+    "fr": "Le modèle d'accord a été enregistré"
+  },
+  "模型协议插件未启用，请选择已加载的协议": {
+    "zh": "模型协议插件未启用，请选择已加载的协议",
+    "en": "Model protocol plugin is not enabled, please select a loaded protocol",
+    "ja": "モデル プロトコル プラグインが有効になっていません。ロードされたプロトコルを選択してください",
+    "ko": "모델 프로토콜 플러그인이 활성화되지 않았습니다. 로드된 프로토콜을 선택하십시오.",
+    "es": "El complemento de protocolo del modelo no está habilitado; seleccione un protocolo cargado",
+    "fr": "Le plugin de protocole de modèle n'est pas activé, veuillez sélectionner un protocole chargé"
+  },
+  "模型原始转录与聊天记录不一致": {
+    "zh": "模型原始转录与聊天记录不一致",
+    "en": "The original transcription of the model is inconsistent with the chat history",
+    "ja": "モデルの元の文字起こしはチャット履歴と一致しません",
+    "ko": "모델의 원래 기록이 채팅 기록과 일치하지 않습니다.",
+    "es": "La transcripción original del modelo no coincide con el historial de chat.",
+    "fr": "La transcription originale du modèle n'est pas cohérente avec l'historique des discussions"
+  },
+  "模型原始转录超过限制": {
+    "zh": "模型原始转录超过限制",
+    "en": "Model raw transcript exceeds limit",
+    "ja": "モデルの生のトランスクリプトが制限を超えています",
+    "ko": "모델 원본 성적표가 한도를 초과했습니다.",
+    "es": "La transcripción sin formato del modelo supera el límite",
+    "fr": "La transcription brute du modèle dépasse la limite"
+  },
   "模型名称": {
     "zh": "模型名称",
     "en": "Model name",
@@ -2142,6 +2526,70 @@
     "ko": "모델명",
     "es": "Nombre del modelo",
     "fr": "Nom du modèle"
+  },
+  "模型名称无效": {
+    "zh": "模型名称无效",
+    "en": "Invalid model name",
+    "ja": "無効なモデル名です",
+    "ko": "잘못된 모델 이름",
+    "es": "Nombre de modelo no válido",
+    "fr": "Nom de modèle invalide"
+  },
+  "模型响应缺少助手消息": {
+    "zh": "模型响应缺少助手消息",
+    "en": "Model response is missing helper message",
+    "ja": "モデル応答にヘルパー メッセージがありません",
+    "ko": "모델 응답에 도우미 메시지가 누락되었습니다.",
+    "es": "A la respuesta del modelo le falta un mensaje de ayuda",
+    "fr": "La réponse du modèle ne contient pas de message d'assistance"
+  },
+  "模型响应超过限制": {
+    "zh": "模型响应超过限制",
+    "en": "Model response exceeds limit",
+    "ja": "モデルの応答が制限を超えています",
+    "ko": "모델 응답이 한도를 초과했습니다.",
+    "es": "La respuesta del modelo excede el límite",
+    "fr": "La réponse du modèle dépasse la limite"
+  },
+  "模型工具调用未完整结束": {
+    "zh": "模型工具调用未完整结束",
+    "en": "Model tool call is not completed completely",
+    "ja": "モデルツールの呼び出しが完全に完了していません",
+    "ko": "모델 도구 호출이 완전히 완료되지 않았습니다.",
+    "es": "La llamada a la herramienta modelo no se completa por completo",
+    "fr": "L'appel de l'outil de modèle n'est pas complètement terminé"
+  },
+  "模型思考缺少签名，无法安全回传": {
+    "zh": "模型思考缺少签名，无法安全回传",
+    "en": "Model thinking lacks a signature and cannot be safely returned",
+    "ja": "モデル思考には署名がないため、安全に返却することはできません",
+    "ko": "모델적 사고에는 서명이 부족하여 안전하게 반환될 수 없습니다.",
+    "es": "El pensamiento modelo carece de firma y no se puede devolver de forma segura",
+    "fr": "La pensée modèle n'a pas de signature et ne peut pas être renvoyée en toute sécurité"
+  },
+  "模型服务返回空响应": {
+    "zh": "模型服务返回空响应",
+    "en": "Model service returns empty response",
+    "ja": "モデルサービスが空の応答を返す",
+    "ko": "모델 서비스가 빈 응답을 반환합니다.",
+    "es": "El servicio modelo devuelve una respuesta vacía",
+    "fr": "Le service de modèle renvoie une réponse vide"
+  },
+  "模型流开始事件无效": {
+    "zh": "模型流开始事件无效",
+    "en": "Model flow start event is invalid",
+    "ja": "モデル フロー開始イベントが無効です",
+    "ko": "모델 흐름 시작 이벤트가 잘못되었습니다.",
+    "es": "El evento de inicio del flujo del modelo no es válido",
+    "fr": "L'événement de démarrage du flux de modèle n'est pas valide"
+  },
+  "模型流缺少开始事件": {
+    "zh": "模型流缺少开始事件",
+    "en": "Model flow missing start event",
+    "ja": "モデル フローに開始イベントがありません",
+    "ko": "모델 흐름 누락 시작 이벤트",
+    "es": "Falta el evento de inicio del flujo del modelo",
+    "fr": "Événement de démarrage manquant du flux de modèle"
   },
   "模型设置": {
     "zh": "模型设置",
@@ -2215,6 +2663,38 @@
     "es": "No se pudo leer la configuración del modelo; los datos existentes no han sido modificados. Importe la copia de seguridad de la configuración y restáurela.",
     "fr": "La configuration du modèle n'a pas pu être lue ; les données existantes n'ont pas été modifiées. Veuillez importer la sauvegarde de la configuration et la restaurer."
   },
+  "模型重复开始响应": {
+    "zh": "模型重复开始响应",
+    "en": "Model repeatedly starts responding",
+    "ja": "モデルが繰り返し応答を開始します",
+    "ko": "모델이 반복적으로 응답하기 시작합니다.",
+    "es": "El modelo comienza a responder repetidamente",
+    "fr": "Le modèle commence à répondre à plusieurs reprises"
+  },
+  "模型隐去思考的数据不完整": {
+    "zh": "模型隐去思考的数据不完整",
+    "en": "The model hides and thinks about incomplete data",
+    "ja": "モデルは不完全なデータを隠して考慮します",
+    "ko": "모델은 불완전한 데이터를 숨기고 생각합니다.",
+    "es": "El modelo esconde y piensa en datos incompletos.",
+    "fr": "Le modèle se cache et réfléchit aux données incomplètes"
+  },
+  "模型默认": {
+    "zh": "模型默认",
+    "en": "Model default",
+    "ja": "モデルの既定値",
+    "ko": "모델 기본값",
+    "es": "Predeterminado del modelo",
+    "fr": "Valeur par défaut du modèle"
+  },
+  "模型默认由服务端决定；自适应、手动预算和关闭模式的支持因模型而异。若服务拒绝，可查看返回详情。工具执行期间沿用发起轮次的思考参数。": {
+    "zh": "模型默认由服务端决定；自适应、手动预算和关闭模式的支持因模型而异。若服务拒绝，可查看返回详情。工具执行期间沿用发起轮次的思考参数。",
+    "en": "The model is determined by the server by default; support for adaptive, manual budgeting, and off modes varies by model. If the service is refused, you can view the return details. The think parameters of the initiating round are inherited during tool execution.",
+    "ja": "モデルはデフォルトではサーバーによって決定されます。適応モード、手動予算設定モード、およびオフ モードのサポートはモデルによって異なります。サービスが拒否された場合は、返品の詳細を確認できます。開始ラウンドの思考パラメーターは、ツールの実行中に継承されます。",
+    "ko": "모델은 기본적으로 서버에 의해 결정됩니다. 적응형, 수동 예산 책정 및 꺼짐 모드에 대한 지원은 모델에 따라 다릅니다. 서비스가 거부된 경우 반품 세부정보를 확인할 수 있습니다. 시작 라운드의 사고 매개변수는 도구 실행 중에 상속됩니다.",
+    "es": "El modelo lo determina el servidor de forma predeterminada; La compatibilidad con los modos adaptativo, de presupuesto manual y desactivado varía según el modelo. Si se rechaza el servicio, puede ver los detalles de la devolución. Los parámetros de pensamiento de la ronda inicial se heredan durante la ejecución de la herramienta.",
+    "fr": "Le modèle est déterminé par le serveur par défaut ; la prise en charge des modes adaptatif, de budgétisation manuelle et d'arrêt varie selon le modèle. Si le service est refusé, vous pouvez consulter les détails du retour. Les paramètres de réflexion du cycle de lancement sont hérités lors de l'exécution de l'outil."
+  },
   "模型：{0}\n角色：{1} 个\n\n将替换全部模型配置、任务绑定和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。": {
     "zh": "模型：{0}\n角色：{1} 个\n\n将替换全部模型配置、任务绑定和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。",
     "en": "Models: {0}\nCharacters: {1}\n\nwill replace all model configurations, mission bindings, and appearance configurations, and merge characters (same IDs will be overwritten). Plugins still need to be reinstalled and authorized.",
@@ -2262,6 +2742,14 @@
     "ko": "점점…",
     "es": "Conseguir…",
     "fr": "Obtenir…"
+  },
+  "此协议插件没有提供模型列表，请手动填写模型名称": {
+    "zh": "此协议插件没有提供模型列表，请手动填写模型名称",
+    "en": "This protocol plug-in does not provide a model list, please fill in the model name manually",
+    "ja": "このプロトコル プラグインにはモデル リストがありません。モデル名を手動で入力してください。",
+    "ko": "이 프로토콜 플러그인은 모델 목록을 제공하지 않습니다. 모델 이름을 수동으로 입력하십시오.",
+    "es": "Este complemento de protocolo no proporciona una lista de modelos; complete el nombre del modelo manualmente",
+    "fr": "Ce plug-in de protocole ne fournit pas de liste de modèles, veuillez remplir le nom du modèle manuellement"
   },
   "此对话尚未绑定工作区": {
     "zh": "此对话尚未绑定工作区",
@@ -2569,11 +3057,11 @@
   },
   "聊天模型": {
     "zh": "聊天模型",
-    "en": "chat model",
+    "en": "Chat model",
     "ja": "チャットモデル",
     "ko": "채팅 모델",
-    "es": "modelo de chat",
-    "fr": "modèle de discussion"
+    "es": "Modelo de chat",
+    "fr": "Modèle de discussion"
   },
   "聊天记录、插件包、插件密钥和插件记忆暂不包含；Skills 可在技能库单独导出。卸载前请先备份，已删除且未备份的数据无法恢复。": {
     "zh": "聊天记录、插件包、插件密钥和插件记忆暂不包含；Skills 可在技能库单独导出。卸载前请先备份，已删除且未备份的数据无法恢复。",
@@ -2583,6 +3071,22 @@
     "es": "Los registros de chat, los paquetes de complementos, las claves de complementos y las memorias de complementos aún no están incluidos; Las habilidades se pueden exportar por separado en la biblioteca de habilidades. Haga una copia de seguridad antes de desinstalar. Los datos eliminados y sin respaldo no se pueden recuperar.",
     "fr": "Les enregistrements de discussion, les packages de plug-ins, les clés de plug-in et les mémoires de plug-in ne sont pas encore inclus ; Les compétences peuvent être exportées séparément dans la bibliothèque de compétences. Veuillez sauvegarder avant de désinstaller. Les données supprimées et non sauvegardées ne peuvent pas être récupérées."
   },
+  "自适应思考": {
+    "zh": "自适应思考",
+    "en": "Adaptive thinking",
+    "ja": "適応型思考",
+    "ko": "적응형 사고",
+    "es": "Razonamiento adaptativo",
+    "fr": "Raisonnement adaptatif"
+  },
+  "获取 Claude 模型失败（HTTP {0}）": {
+    "zh": "获取 Claude 模型失败（HTTP {0}）",
+    "en": "Failed to get Claude model (HTTP {0})",
+    "ja": "クロード モデルの取得に失敗しました (HTTP {0})",
+    "ko": "Claude 모델을 가져오지 못했습니다(HTTP {0}).",
+    "es": "No se pudo obtener el modelo de Claude (HTTP {0})",
+    "fr": "Échec de l'obtention du modèle Claude (HTTP {0})"
+  },
   "获取模型": {
     "zh": "获取模型",
     "en": "Get model",
@@ -2591,6 +3095,14 @@
     "es": "Obtener modelo",
     "fr": "Obtenir le modèle"
   },
+  "获取模型失败": {
+    "zh": "获取模型失败",
+    "en": "Failed to get model",
+    "ja": "モデルの取得に失敗しました",
+    "ko": "모델을 가져오지 못했습니다.",
+    "es": "No se pudo obtener el modelo",
+    "fr": "Impossible d'obtenir le modèle"
+  },
   "获取模型失败，请检查地址、密钥和网络": {
     "zh": "获取模型失败，请检查地址、密钥和网络",
     "en": "Failed to get model, please check address, key and network",
@@ -2598,6 +3110,14 @@
     "ko": "모델을 가져오지 못했습니다. 주소, 키, 네트워크를 확인하세요.",
     "es": "No se pudo obtener el modelo. Verifique la dirección, la clave y la red.",
     "fr": "Échec de l'obtention du modèle, veuillez vérifier l'adresse, la clé et le réseau"
+  },
+  "获取模型连接失败，请查看详细信息": {
+    "zh": "获取模型连接失败，请查看详细信息",
+    "en": "Failed to obtain model connection, please view details",
+    "ja": "モデル接続の取得に失敗しました。詳細を表示してください",
+    "ko": "모델 연결을 가져오지 못했습니다. 세부정보를 확인하세요.",
+    "es": "No se pudo obtener la conexión del modelo; consulte los detalles",
+    "fr": "Échec de l'obtention de la connexion du modèle, veuillez consulter les détails"
   },
   "覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。": {
     "zh": "覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。",
@@ -3062,6 +3582,22 @@
     "ko": "기본 구성",
     "es": "Configuración predeterminada",
     "fr": "Configuration par défaut"
+  },
+  "例如 https://api.deepseek.com/v1；无需填写 /chat/completions": {
+    "zh": "例如 https://api.deepseek.com/v1；无需填写 /chat/completions",
+    "en": "For example https://api.deepseek.com/v1; no need to fill in /chat/completions",
+    "ja": "たとえば、https://api.deepseek.com/v1; /chat/complements に記入する必要はありません",
+    "ko": "예를 들어 https://api.deepseek.com/v1; /chat/completions를 작성할 필요가 없습니다.",
+    "es": "Por ejemplo https://api.deepseek.com/v1; no es necesario completar /chat/completions",
+    "fr": "For example https://api.deepseek.com/v1; no need to fill in /chat/completions"
+  },
+  "支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。": {
+    "zh": "支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。",
+    "en": "Supports OpenAI, DeepSeek and other services compatible with Chat Completions API.",
+    "ja": "OpenAI、DeepSeek、およびChat Completions APIと互換性のあるその他のサービスをサポートします。",
+    "ko": "OpenAI, DeepSeek 및 Chat Completions API와 호환되는 기타 서비스를 지원합니다.",
+    "es": "Admite OpenAI, DeepSeek y otros servicios compatibles con Chat Completions API.",
+    "fr": "Prend en charge OpenAI, DeepSeek et d'autres services compatibles avec l'API Chat Completions."
   },
   "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。": {
     "zh": "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。",

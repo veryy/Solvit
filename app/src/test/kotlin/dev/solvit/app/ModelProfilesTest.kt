@@ -16,6 +16,22 @@ import kotlin.test.*
 class ModelProfilesTest {
     private val context get()=RuntimeEnvironment.getApplication()
     @Before fun clear() { context.getSharedPreferences("model",0).edit().clear().commit() }
+    @Test fun nativeProtocolOptionsSurviveEncryptedSettingsAndBackupWithLegacyDefault()=runBlocking {
+        val key=KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+        val config=ModelConfig("https://api.anthropic.com/v1","native-model","PRIVATE_KEY",providerId="anthropic",
+            providerOptions=mapOf("thinking_mode" to "adaptive","max_tokens" to "16384"))
+        val settings=EncryptedSettingsStore(context) { key }
+        settings.save(config)
+        val loaded=settings.load()
+        assertEquals("anthropic",loaded.providerId);assertEquals(config.providerOptions,loaded.providerOptions)
+        val backup=encodeModelProfiles(settings.loadProfiles())
+        val restored=decodeModelProfiles(backup).selected(ModelTask.CHAT)!!.config
+        assertEquals(config.providerOptions,restored.providerOptions);assertEquals("anthropic",restored.providerId)
+        val legacy=backup.getJSONArray("profiles").getJSONObject(0).getJSONObject("config")
+        legacy.remove("provider");legacy.remove("options")
+        assertEquals("openai-compatible",decodeModelProfiles(backup).selected(ModelTask.CHAT)!!.config.providerId)
+        assertFalse(context.getSharedPreferences("model",0).all.values.any { it.toString().contains("PRIVATE_KEY") })
+    }
     @Test fun legacyConfigurationMigratesAndTwoTaskRoutesSurviveRecreationWithoutPlaintextSecrets()=runBlocking {
         val key=KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
         val settings=EncryptedSettingsStore(context) { key }
