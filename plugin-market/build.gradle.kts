@@ -16,6 +16,7 @@ dependencies {
     testImplementation("org.robolectric:robolectric:4.16.1")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("com.squareup.okhttp3:okhttp-tls:4.12.0")
+    testImplementation(project(":workspace-android"))
     testImplementation(project(":chat-runtime"))
     testImplementation(project(":storage-sqlite"))
 }
