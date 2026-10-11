@@ -31,6 +31,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     init {
         viewModelScope.launch {
             try { config.value = settings.load() }
+            catch (e: SettingsDecryptionException) { config.value = e.partial; error.value = "API Key 无法解密；模型地址和提示词已保留，请恢复备份或重新填写密钥" }
             catch (e: Exception) { error.value = "模型配置无法解密，请在设置中重新保存 API Key" }
             try {
                 selected.value = chat.sessions().first().firstOrNull()?.id ?: chat.createSession().id

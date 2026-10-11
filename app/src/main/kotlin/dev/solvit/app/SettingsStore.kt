@@ -17,12 +17,15 @@ interface SettingsStore {
     suspend fun load(): ModelConfig
     suspend fun save(config: ModelConfig)
 }
+class SettingsDecryptionException(val partial: ModelConfig, cause: Exception) :
+    Exception("API Key 无法解密，其他模型配置已保留", cause)
 
 /** Keys stay in Android Keystore; no plaintext API key or cloud backup. */
-class EncryptedSettingsStore(context: Context) : SettingsStore {
+class EncryptedSettingsStore(context: Context, private val keyProvider: (() -> SecretKey)? = null) : SettingsStore {
     private val prefs = context.applicationContext.getSharedPreferences("model", Context.MODE_PRIVATE)
     private val alias = "solvit.model-key.v1"
-    private fun key(): SecretKey {
+    @Synchronized private fun key(): SecretKey {
+        keyProvider?.let { return it() }
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         (store.getKey(alias, null) as? SecretKey)?.let { return it }
         return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
@@ -32,18 +35,21 @@ class EncryptedSettingsStore(context: Context) : SettingsStore {
         }.generateKey()
     }
     override suspend fun load(): ModelConfig = withContext(Dispatchers.IO) {
-        val encoded = prefs.getString("key", null)
-        val apiKey = if (encoded == null) "" else {
-            val iv = Base64.decode(prefs.getString("iv", null) ?: error("Missing encryption IV"), Base64.NO_WRAP)
-            val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv)) }
-            String(cipher.doFinal(Base64.decode(encoded, Base64.NO_WRAP)), Charsets.UTF_8)
-        }
-        ModelConfig(
+        fun configuration(apiKey: String) = ModelConfig(
             prefs.getString("base", "https://api.openai.com/v1")!!,
             prefs.getString("model", "gpt-4o-mini")!!,
             apiKey,
             prefs.getString("prompt", "你是 Solvit，一个认真、可靠的 AI 助手。")!!,
         )
+        val encoded = prefs.getString("key", null)
+        val apiKey = if (encoded == null) "" else try {
+            val iv = Base64.decode(prefs.getString("iv", null) ?: error("Missing encryption IV"), Base64.NO_WRAP)
+            val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv)) }
+            String(cipher.doFinal(Base64.decode(encoded, Base64.NO_WRAP)), Charsets.UTF_8)
+        } catch (e: Exception) {
+            throw SettingsDecryptionException(configuration(""), e)
+        }
+        configuration(apiKey)
     }
     override suspend fun save(config: ModelConfig) = withContext(Dispatchers.IO) {
         config.validate()?.let { error(it) }
