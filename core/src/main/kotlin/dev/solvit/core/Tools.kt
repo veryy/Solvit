@@ -67,8 +67,12 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         check(snapshot(tool).executionMode == descriptor.executionMode) { "执行模式已变化，请重新确认" }
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
         onAuthorized()
-        val context = AgentRoleContext(role) + ToolInvocationContext(descriptor, call)
-        return withTimeout(60_000) { withContext(if (execution == null) context else context + execution) { tool.execute(argumentsJson) } }
+        val invocation = ToolInvocationContext(descriptor, call)
+        val context = AgentRoleContext(role) + invocation
+        try {
+            return withTimeout(60_000) { withContext(if (execution == null) context else context + execution) { tool.execute(argumentsJson) } }
+        } catch (e: Throwable) { invocation.cancelResources(); throw e }
+        finally { invocation.releaseResources() }
     }
 }
 

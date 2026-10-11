@@ -23,6 +23,10 @@ class ToolInvocationContext(val descriptor: ToolDescriptor, val call: ToolCall) 
     companion object Key : CoroutineContext.Key<ToolInvocationContext>
     private val operations = mutableSetOf<String>()
     @Synchronized fun claim(operation: String) { check(operations.add(operation)) { "此授权已经执行过该操作" } }
+    private val resources = AgentExecutionContext()
+    fun own(id: String, cancel: suspend () -> Unit) = resources.own(id, cancel)
+    suspend fun cancelResources() = resources.cancel()
+    fun releaseResources() = resources.release()
 }
 
 enum class ExecutionMode { APP, ROOT }
