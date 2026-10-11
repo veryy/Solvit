@@ -26,13 +26,18 @@ const ctx = {settings:{get:async()=>null},http:{request:async options=>{
   } finally {await page.close();}
 }}};
 try {
+  const releaseResponse=await fetch('https://api.github.com/repos/JetBrains/kotlin/releases/latest',{signal:AbortSignal.timeout(10000)});
+  if (!releaseResponse.ok) throw new Error('Official latest-release metadata unavailable');
+  const release=await releaseResponse.json();
+  const latestVersion=release.tag_name?.replace(/^v/,'');
+  if (!/^\d+\.\d+\.\d+$/.test(latestVersion)||release.prerelease||release.draft) throw new Error('Expected official stable release');
   for (const item of [
     {query:'Kotlin programming language official documentation',host:'kotlinlang.org',term:/kotlin/i},
     {query:'Python 官方文档 编程语言',host:'python.org',term:/python/i},
-    {query:'Kotlin latest stable release version',host:'kotlinlang.org',term:/kotlin/i},
+    {query:'Kotlin latest stable release '+latestVersion,host:'kotlinlang.org',term:/kotlin/i,expectedVersion:latestVersion},
   ]) {
     const result=await sandbox.solvitPlugin.tools.search({query:item.query,limit:5},ctx);
-    const record={query:item.query,provider:result.provider,results:result.results??[],error:result.error}; checks.push(record);
+    const record={query:item.query,provider:result.provider,results:result.results??[],error:result.error,expectedVersion:item.expectedVersion}; checks.push(record);
     if (result.error) throw new Error('Search unavailable: '+item.query);
     const relevant=result.results.find(source=>{
       const host=new URL(source.url).hostname;
@@ -42,6 +47,7 @@ try {
     const page=await sandbox.solvitPlugin.tools.read_page({url:relevant.url},ctx);
     record.page={url:page.url,title:page.title,characters:page.text?.length??0,truncated:page.truncated,error:page.error};
     if (page.error||page.text?.length<100||!item.term.test(page.text)) throw new Error('Official source body unavailable: '+relevant.url);
+    if (item.expectedVersion && !page.text.includes(item.expectedVersion)) throw new Error('Source does not contain the verified current stable version: '+item.expectedVersion);
   }
   console.log('Public search quality: bilingual/release queries return relevant official sources and readable bodies. Model answer attribution remains unverified.');
 } finally {
