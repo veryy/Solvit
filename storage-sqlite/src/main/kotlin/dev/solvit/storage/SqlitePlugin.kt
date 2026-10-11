@@ -11,17 +11,22 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import org.json.JSONArray
+import org.json.JSONObject
 
 class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
-    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 1) {
+    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 2) {
         override fun onConfigure(db: SQLiteDatabase) { db.setForeignKeyConstraintsEnabled(true) }
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT NOT NULL, updated_at INTEGER NOT NULL)")
-            db.execSQL("CREATE TABLE messages (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, role TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL)")
+            db.execSQL("CREATE TABLE messages (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, role TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL, tool_calls TEXT NOT NULL DEFAULT '[]', tool_call_id TEXT)")
             db.execSQL("CREATE INDEX messages_session ON messages(session_id, sequence)")
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-            error("Unsupported database migration: $oldVersion -> $newVersion")
+            if (oldVersion < 2) {
+                db.execSQL("ALTER TABLE messages ADD COLUMN tool_calls TEXT NOT NULL DEFAULT '[]'")
+                db.execSQL("ALTER TABLE messages ADD COLUMN tool_call_id TEXT")
+            }
         }
     }
     private val lock = Mutex()
@@ -45,8 +50,8 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     }.distinctUntilChanged()
     override fun messages(sessionId: String): Flow<List<ChatMessage>> = revision.map { history(sessionId) }.distinctUntilChanged()
     override suspend fun history(sessionId: String): List<ChatMessage> = read { db ->
-        db.rawQuery("SELECT id,role,content,status FROM messages WHERE session_id=? ORDER BY sequence", arrayOf(sessionId)).use { c ->
-            buildList { while (c.moveToNext()) add(ChatMessage(c.getString(0), sessionId, Role.valueOf(c.getString(1)), c.getString(2), MessageStatus.valueOf(c.getString(3)))) }
+        db.rawQuery("SELECT id,role,content,status,tool_calls,tool_call_id FROM messages WHERE session_id=? ORDER BY sequence", arrayOf(sessionId)).use { c ->
+            buildList { while (c.moveToNext()) add(ChatMessage(c.getString(0), sessionId, Role.valueOf(c.getString(1)), c.getString(2), MessageStatus.valueOf(c.getString(3)), decodeCalls(c.getString(4)), if (c.isNull(5)) null else c.getString(5))) }
         }
     }
     override suspend fun createSession(): ChatSession {
@@ -62,6 +67,10 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
             db.insertOrThrow("messages", null, ContentValues().apply {
                 put("id", message.id); put("session_id", message.sessionId)
                 put("role", message.role.name); put("content", message.content); put("status", message.status.name)
+                put("tool_calls", JSONArray(message.toolCalls.map { call -> JSONObject().apply {
+                    put("id", call.id); put("name", call.name); put("arguments", call.argumentsJson)
+                } }).toString())
+                put("tool_call_id", message.toolCallId)
             })
             check(db.update("sessions", ContentValues().apply {
                 put("updated_at", System.currentTimeMillis())
@@ -70,6 +79,13 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         }
     }
     override suspend fun deleteSession(sessionId: String) { write { it.delete("sessions", "id=?", arrayOf(sessionId)) } }
+    private fun decodeCalls(value: String): List<ToolCall> {
+        val array = JSONArray(value)
+        return (0 until array.length()).map { index ->
+            val call = array.getJSONObject(index)
+            ToolCall(call.getString("id"), call.getString("name"), call.getString("arguments"))
+        }
+    }
     override fun close() { helper.close() }
 }
 

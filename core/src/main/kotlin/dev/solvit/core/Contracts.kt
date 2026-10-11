@@ -12,6 +12,8 @@ data class ChatMessage(
     val role: Role,
     val content: String,
     val status: MessageStatus = MessageStatus.COMPLETE,
+    val toolCalls: List<ToolCall> = emptyList(),
+    val toolCallId: String? = null,
 )
 data class ChatSession(val id: String, val title: String, val updatedAt: Long)
 data class ToolCall(val id: String, val name: String, val argumentsJson: String)
@@ -46,10 +48,13 @@ data class ModelRequest(
     val config: ModelConfig,
     val messages: List<ModelMessage>,
     val tools: List<ToolDescriptor> = emptyList(),
+    val authorization: ToolAuthorization = DenyTools,
 )
 sealed interface ModelChunk {
     data class Text(val value: String) : ModelChunk
     data class ToolCalls(val calls: List<ToolCall>) : ModelChunk
+    data class ToolActivity(val call: ToolCall, val stage: ToolStage, val result: String? = null) : ModelChunk
+    data class Transcript(val message: ModelMessage) : ModelChunk
     data object Done : ModelChunk
 }
 interface ModelProvider {
@@ -65,8 +70,9 @@ interface ChatStore {
     suspend fun append(message: ChatMessage)
     suspend fun deleteSession(sessionId: String)
 }
+enum class ToolStage { CONFIRMING, RUNNING, SUCCEEDED, FAILED, DENIED }
+
 interface AgentRuntime {
-    /** V1 is a single model turn; tool execution is deliberately absent. */
     fun run(request: ModelRequest): Flow<ModelChunk>
 }
 interface ChatService {
@@ -74,7 +80,7 @@ interface ChatService {
     fun messages(sessionId: String): Flow<List<ChatMessage>>
     suspend fun createSession(): ChatSession
     suspend fun deleteSession(sessionId: String)
-    fun send(sessionId: String, text: String, config: ModelConfig): Flow<ModelChunk>
+    fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization = DenyTools): Flow<ModelChunk>
 }
 
 object Services {

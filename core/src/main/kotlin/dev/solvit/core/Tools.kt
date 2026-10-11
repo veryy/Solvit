@@ -17,7 +17,14 @@ interface SolvitTool {
 interface ToolAuthorization {
     /** Recheck OS permissions and user approval at execution time; deny by default. */
     suspend fun authorize(descriptor: ToolDescriptor): Boolean
+    suspend fun authorizeCall(descriptor: ToolDescriptor, call: ToolCall): Boolean = authorize(descriptor)
 }
+object DenyTools : ToolAuthorization {
+    override suspend fun authorize(descriptor: ToolDescriptor) = false
+}
+
+class ToolDeniedException : IllegalStateException("Tool authorization denied")
+
 class ToolRegistry(private val events: EventBus) {
     private val tools = linkedMapOf<String, SolvitTool>()
     @Synchronized fun descriptors(): List<ToolDescriptor> = tools.values.map { it.descriptor }
@@ -33,8 +40,13 @@ class ToolRegistry(private val events: EventBus) {
         } }
     }
     suspend fun execute(name: String, argumentsJson: String, authorization: ToolAuthorization): String {
+        return executeCall(ToolCall("manual", name, argumentsJson), authorization)
+    }
+    suspend fun executeCall(call: ToolCall, authorization: ToolAuthorization): String {
+        val name = call.name
+        val argumentsJson = call.argumentsJson
         val tool = synchronized(this) { tools[name] } ?: error("Unknown tool: $name")
-        check(authorization.authorize(tool.descriptor)) { "Tool authorization denied" }
+        if (!authorization.authorizeCall(tool.descriptor, call)) throw ToolDeniedException()
         currentCoroutineContext().ensureActive()
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
         return tool.execute(argumentsJson)

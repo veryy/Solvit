@@ -8,13 +8,11 @@ import java.util.UUID
 
 class ChatAgentPlugin : SolvitPlugin {
     override val id = "builtin.agent.chat"
-    override val requires = setOf(Services.Model)
+    override val requires = setOf(Services.Model, Services.Tools)
     override val provides = setOf(Services.Agent)
     override suspend fun enable(context: PluginContext) {
         val provider = context.require(Services.Model)
-        context.register(Services.Agent, object : AgentRuntime {
-            override fun run(request: ModelRequest) = provider.stream(request)
-        })
+        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools)))
     }
 }
 
@@ -33,11 +31,12 @@ class DefaultChatService(
         try { store.deleteSession(sessionId) } finally { turn.unlock() }
     }
 
-    override fun send(sessionId: String, text: String, config: ModelConfig): Flow<ModelChunk> = flow {
+    override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization): Flow<ModelChunk> = flow {
         require(text.isNotBlank())
         config.validate()?.let { error(it) }
         check(turn.tryLock()) { "已有回复正在生成" }
         val answer = StringBuilder()
+        val transcript = mutableListOf<ModelMessage>()
         var settled = false
         var admitted = false
         suspend fun persist(message: ChatMessage) {
@@ -54,16 +53,25 @@ class DefaultChatService(
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
             val messages = buildList {
                 if (config.systemPrompt.isNotBlank()) add(ModelMessage(Role.SYSTEM, config.systemPrompt))
-                addAll(history.map { ModelMessage(it.role, it.content) })
+                addAll(completeContext(history))
             }
             var done = false
-            agent.run(ModelRequest(config, messages)).collect { chunk ->
+            agent.run(ModelRequest(config, messages, authorization = authorization)).collect { chunk ->
                 check(!done) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { answer.append(chunk.value); emit(chunk) }
-                    is ModelChunk.ToolCalls -> error("工具调用运行器尚未接入")
+                    is ModelChunk.ToolCalls -> error("Agent 暴露了未处理的工具调用")
+                    is ModelChunk.Transcript -> {
+                        transcript += chunk.message
+                        if (chunk.message.role == Role.ASSISTANT) answer.setLength(0)
+                    }
+                    is ModelChunk.ToolActivity -> emit(chunk)
                     ModelChunk.Done -> {
                         check(answer.isNotBlank()) { "模型没有返回文本回复" }
+                        transcript.forEach { message -> persist(ChatMessage(
+                            UUID.randomUUID().toString(), sessionId, message.role, message.content,
+                            toolCalls = message.toolCalls, toolCallId = message.toolCallId,
+                        )) }
                         settle(MessageStatus.COMPLETE)
                         done = true
                         emit(chunk)
@@ -82,6 +90,24 @@ class DefaultChatService(
             throw e
         } finally { turn.unlock() }
     }
+}
+
+/** Drop orphaned call groups from interrupted writes; never send unmatched tool IDs. */
+internal fun completeContext(history: List<ChatMessage>): List<ModelMessage> {
+    val result = mutableListOf<ModelMessage>()
+    var index = 0
+    while (index < history.size) {
+        val message = history[index++]
+        if (message.role == Role.TOOL) continue
+        if (message.toolCalls.isEmpty()) { result += ModelMessage(message.role, message.content); continue }
+        val batch = history.drop(index).takeWhile { it.role == Role.TOOL }
+        index += batch.size
+        val ids = message.toolCalls.map { it.id }
+        if (ids.toSet().size != ids.size || batch.size != ids.size || batch.map { it.toolCallId }.toSet() != ids.toSet()) continue
+        result += ModelMessage(message.role, message.content, message.toolCalls)
+        result += batch.map { ModelMessage(Role.TOOL, it.content, toolCallId = it.toolCallId) }
+    }
+    return result
 }
 
 class ChatServicePlugin : SolvitPlugin {

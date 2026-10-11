@@ -101,6 +101,8 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val draft by vm.draft.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
     val saving by vm.saving.collectAsStateWithLifecycle()
+    val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
+    val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     var pluginsOpen by rememberSaveable { mutableStateOf(false) }
@@ -201,6 +203,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                 LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(messages, key = { it.id }) { MessageCard(it) }
+                    items(toolActivity, key = { "tool-${it.call.id}" }) { ToolActivityCard(it) }
                     if (busy) item(key = "live") {
                         MessageCard(ChatMessage("live", selected.orEmpty(), Role.ASSISTANT,
                             if (draft.isEmpty()) "正在思考…" else draft))
@@ -209,6 +212,16 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             }
             }
         }
+    }
+    toolApproval?.let { pending ->
+        AlertDialog(onDismissRequest = { vm.approveTool(false) }, title = { Text("允许调用工具？") },
+            text = { Column {
+                Text(pending.descriptor.description)
+                Text(pending.descriptor.name, style = MaterialTheme.typography.labelSmall)
+                SelectionContainer { Text(pending.call.argumentsJson.take(8192)) }
+            } },
+            confirmButton = { TextButton(onClick = { vm.approveTool(true) }) { Text("允许这一次") } },
+            dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { Text("拒绝") } })
     }
     if (settingsOpen) ModelSettings(config, saving, error, onDismiss = { if (!saving) settingsOpen = false },
         onSave = { vm.saveConfig(it) { settingsOpen = false } })
@@ -225,12 +238,12 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
 private fun MessageCard(message: ChatMessage) {
     val user = message.role == Role.USER
     Column(Modifier.fillMaxWidth(), horizontalAlignment = if (user) Alignment.End else Alignment.Start) {
-        Text(if (user) "你" else "Solvit", style = MaterialTheme.typography.labelMedium,
+        Text(if (user) "你" else if (message.role == Role.TOOL) "工具结果" else "Solvit", style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
         Surface(shape = RoundedCornerShape(20.dp),
             color = if (user) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow) {
             Column(Modifier.padding(16.dp)) {
-                SelectionContainer { Text(message.content.ifEmpty { if (message.status == MessageStatus.INTERRUPTED) "已停止生成" else "未收到回复" }, style = MaterialTheme.typography.bodyLarge) }
+                SelectionContainer { Text(message.content.ifEmpty { if (message.toolCalls.isNotEmpty()) "调用工具：" + message.toolCalls.joinToString { it.name } else if (message.status == MessageStatus.INTERRUPTED) "已停止生成" else "未收到回复" }, style = MaterialTheme.typography.bodyLarge) }
                 if (message.status != MessageStatus.COMPLETE) Text(
                     if (message.status == MessageStatus.INTERRUPTED) "已停止 · 此回复不参与后续上下文" else "回复失败 · 此回复不参与后续上下文",
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -281,4 +294,21 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
             }
         }
     }
+}
+
+@Composable
+private fun ToolActivityCard(activity: ModelChunk.ToolActivity) {
+    var expanded by remember(activity.call.id) { mutableStateOf(false) }
+    Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
+        Text(activity.call.name, style = MaterialTheme.typography.titleSmall)
+        Text(when (activity.stage) {
+            ToolStage.CONFIRMING -> "等待确认"
+            ToolStage.RUNNING -> "执行中…"
+            ToolStage.SUCCEEDED -> "已完成"
+            ToolStage.FAILED -> "执行失败"
+            ToolStage.DENIED -> "已拒绝"
+        })
+        TextButton(onClick = { expanded = !expanded }) { Text(if (expanded) "收起详情" else "查看参数与结果") }
+        if (expanded) SelectionContainer { Text(activity.call.argumentsJson + "\n" + activity.result.orEmpty()) }
+    } }
 }

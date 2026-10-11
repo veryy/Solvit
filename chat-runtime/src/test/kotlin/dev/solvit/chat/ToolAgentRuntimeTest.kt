@@ -1,0 +1,92 @@
+package dev.solvit.chat
+
+import dev.solvit.core.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.test.runTest
+import kotlin.test.*
+
+class ToolAgentRuntimeTest {
+    private val call = ToolCall("call_1", "clock", "{}")
+    private val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
+    private fun registry(execute: suspend () -> String): ToolRegistry = ToolRegistry(EventBus()).apply {
+        register(object : SolvitTool {
+            override val descriptor = ToolDescriptor("clock", "Clock", "{}", requiresConfirmation = true)
+            override suspend fun execute(argumentsJson: String) = execute()
+        })
+    }
+    @Test fun feedsToolResultBackAndOnlyFinishesAfterFinalModelReply() = runTest {
+        var requests = 0
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                requests++
+                assertEquals("clock", request.tools.single().name)
+                return if (requests == 1) flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
+                else {
+                    assertEquals(listOf(Role.USER, Role.ASSISTANT, Role.TOOL), request.messages.map { it.role })
+                    assertEquals("UTC", request.messages.last().content)
+                    assertEquals(call.id, request.messages.last().toolCallId)
+                    flowOf(ModelChunk.Text("现在是 UTC"), ModelChunk.Done)
+                }
+            }
+        }
+        val chunks = ToolAgentRuntime(provider, registry { "UTC" }).run(
+            ModelRequest(ModelConfig(), listOf(ModelMessage(Role.USER, "时间")), authorization = allow),
+        ).toList()
+        assertEquals(2, requests)
+        assertEquals(1, chunks.count { it == ModelChunk.Done })
+        assertEquals(listOf(ToolStage.CONFIRMING, ToolStage.RUNNING, ToolStage.SUCCEEDED), chunks.filterIsInstance<ModelChunk.ToolActivity>().map { it.stage })
+        assertEquals(2, chunks.filterIsInstance<ModelChunk.Transcript>().size)
+    }
+    @Test fun deniedToolNeverExecutesButModelReceivesDenial() = runTest {
+        var round = 0
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun stream(request: ModelRequest): Flow<ModelChunk> = if (round++ == 0)
+                flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
+            else {
+                assertTrue(request.messages.last().content.contains("拒绝"))
+                flowOf(ModelChunk.Text("取消了"), ModelChunk.Done)
+            }
+        }
+        val result = ToolAgentRuntime(provider, registry { fail("Denied tool must not execute") }).run(ModelRequest(ModelConfig(), emptyList())).toList()
+        assertTrue(result.filterIsInstance<ModelChunk.ToolActivity>().any { it.stage == ToolStage.DENIED })
+    }
+    @Test fun cancellationWhileWaitingForApprovalNeverExecutesOrContinuesModel() = runTest {
+        val waiting = CompletableDeferred<Unit>()
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun stream(request: ModelRequest) = flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
+        }
+        val gate = object : ToolAuthorization {
+            override suspend fun authorize(descriptor: ToolDescriptor): Boolean { waiting.complete(Unit); awaitCancellation() }
+        }
+        val job = launch {
+            ToolAgentRuntime(provider, registry { fail("Cancelled tool must not execute") }).run(
+                ModelRequest(ModelConfig(), emptyList(), authorization = gate),
+            ).collect()
+        }
+        waiting.await(); job.cancelAndJoin()
+        assertTrue(job.isCancelled)
+    }
+    @Test fun unknownToolsAndRoundLimitNeverExecute() = runTest {
+        for (name in listOf("unknown", "clock")) {
+            val provider = object : ModelProvider {
+                override val id = "test"
+                override fun stream(request: ModelRequest) = flowOf(ModelChunk.ToolCalls(listOf(call.copy(name = name))), ModelChunk.Done)
+            }
+            assertFailsWith<ModelException> {
+                ToolAgentRuntime(provider, registry { fail("Must not execute") }, maxRounds = if (name == "clock") 1 else 8)
+                    .run(ModelRequest(ModelConfig(), emptyList(), authorization = allow)).toList()
+            }
+        }
+    }
+    @Test fun orphanedToolGroupsAreExcludedFromFutureContext() {
+        val user = ChatMessage("u", "s", Role.USER, "hello")
+        val assistant = ChatMessage("a", "s", Role.ASSISTANT, "", toolCalls = listOf(call))
+        val tool = ChatMessage("t", "s", Role.TOOL, "UTC", toolCallId = call.id)
+        assertEquals(listOf(ModelMessage(Role.USER, "hello")), completeContext(listOf(user, assistant)))
+        assertEquals(listOf(Role.USER, Role.ASSISTANT, Role.TOOL), completeContext(listOf(user, assistant, tool)).map { it.role })
+    }
+}
