@@ -1959,13 +1959,13 @@
     "es": "El modo normal utiliza la identidad de la aplicación; Root utiliza los permisos más altos del dispositivo. Cada complemento se selecciona individualmente y las llamadas de IA siguen la configuración de autorización de la herramienta. El cambio de modo detiene los comandos que está ejecutando el complemento.",
     "fr": "Le mode normal utilise l'identité de l'application ; Root utilise les autorisations les plus élevées de l'appareil. Chaque plugin est sélectionné individuellement et les appels AI suivent les paramètres d'autorisation de l'outil. Le changement de mode arrête les commandes exécutées par le plugin."
   },
-  "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。": {
-    "zh": "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。",
-    "en": "Normal chat uses the chat model; after a model initiates a tool call, subsequent rounds can use another model, which receives the full conversation and tool results. Inherit the chat model when not selected separately.",
-    "ja": "通常のチャットはチャット モデルを使用します。モデルがツール呼び出しを開始すると、後続のラウンドでは別のモデルを使用でき、完全な会話とツールの結果を受け取ります。別途選択しない場合はチャットモデルを継承します。",
-    "ko": "일반 채팅은 채팅 모델을 사용합니다. 모델이 도구 호출을 시작한 후 후속 라운드에서는 전체 대화 및 도구 결과를 수신하는 다른 모델을 사용할 수 있습니다. 별도로 선택하지 않으면 채팅 모델을 상속받습니다.",
-    "es": "El chat normal utiliza el modelo de chat; Después de que un modelo inicia una llamada a la herramienta, las rondas posteriores pueden usar otro modelo, que recibe la conversación completa y los resultados de la herramienta. Hereda el modelo de chat cuando no se selecciona por separado.",
-    "fr": "Le chat normal utilise le modèle de chat ; une fois qu'un modèle a lancé un appel d'outil, les cycles suivants peuvent utiliser un autre modèle, qui reçoit la conversation complète et les résultats de l'outil. Héritez du modèle de chat lorsqu'il n'est pas sélectionné séparément."
+  "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。工具后续只切换连接和模型，系统提示词仍采用聊天配置与角色。": {
+    "zh": "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。工具后续只切换连接和模型，系统提示词仍采用聊天配置与角色。",
+    "en": "Normal chat uses the chat model; after a model initiates a tool call, subsequent rounds can use another model, which receives the full conversation and tool results. Inherit the chat model when not selected separately. The tool will only switch the connection and model in the future, and the system prompt words will still use the chat configuration and role.",
+    "ja": "通常のチャットはチャット モデルを使用します。モデルがツール呼び出しを開始すると、後続のラウンドでは別のモデルを使用でき、完全な会話とツールの結果を受け取ります。別途選択しない場合はチャットモデルを継承します。今後、このツールは接続とモデルを切り替えるだけであり、システム プロンプト ワードは引き続きチャットの構成と役割を使用します。",
+    "ko": "일반 채팅은 채팅 모델을 사용합니다. 모델이 도구 호출을 시작한 후 후속 라운드에서는 전체 대화 및 도구 결과를 수신하는 다른 모델을 사용할 수 있습니다. 별도로 선택하지 않으면 채팅 모델을 상속받습니다. 이 도구는 향후 연결과 모델만 전환하며 시스템 프롬프트 단어는 여전히 채팅 구성과 역할을 사용합니다.",
+    "es": "El chat normal utiliza el modelo de chat; Después de que un modelo inicia una llamada a la herramienta, las rondas posteriores pueden usar otro modelo, que recibe la conversación completa y los resultados de la herramienta. Hereda el modelo de chat cuando no se selecciona por separado. La herramienta solo cambiará la conexión y el modelo en el futuro, y las palabras de aviso del sistema seguirán usando la configuración y el rol del chat.",
+    "fr": "Le chat normal utilise le modèle de chat ; une fois qu'un modèle a lancé un appel d'outil, les cycles suivants peuvent utiliser un autre modèle, qui reçoit la conversation complète et les résultats de l'outil. Héritez du modèle de chat lorsqu'il n'est pas sélectionné séparément. L'outil ne changera que la connexion et le modèle à l'avenir, et les mots d'invite du système utiliseront toujours la configuration et le rôle du chat."
   },
   "暂无插件，点击右上角刷新市场。": {
     "zh": "暂无插件，点击右上角刷新市场。",
@@ -2199,6 +2199,22 @@
     "es": "La configuración del modelo no se puede descifrar. Guarde la clave API nuevamente en la configuración.",
     "fr": "La configuration du modèle ne peut pas être déchiffrée, veuillez enregistrer à nouveau la clé API dans les paramètres"
   },
+  "模型配置无法解密；已有数据未修改，请导入配置备份恢复。": {
+    "zh": "模型配置无法解密；已有数据未修改，请导入配置备份恢复。",
+    "en": "The model configuration cannot be decrypted; the existing data has not been modified, please import the configuration backup and restore it.",
+    "ja": "モデル構成を復号化することはできません。既存のデータは変更されていないため、構成のバックアップをインポートして復元してください。",
+    "ko": "모델 구성은 해독될 수 없습니다. 기존 데이터가 수정되지 않았습니다. 구성 백업을 가져와서 복원하세요.",
+    "es": "La configuración del modelo no se puede descifrar; los datos existentes no se han modificado, importe la copia de seguridad de la configuración y restáurela.",
+    "fr": "La configuration du modèle ne peut pas être déchiffrée ; les données existantes n'ont pas été modifiées, veuillez importer la sauvegarde de configuration et la restaurer."
+  },
+  "模型配置读取失败；已有数据未修改，请导入配置备份恢复。": {
+    "zh": "模型配置读取失败；已有数据未修改，请导入配置备份恢复。",
+    "en": "The model configuration failed to be read; the existing data has not been modified. Please import the configuration backup and restore it.",
+    "ja": "モデル構成の読み取りに失敗しました。既存のデータは変更されていません。構成のバックアップをインポートして復元してください。",
+    "ko": "모델 구성을 읽지 못했습니다. 기존 데이터는 수정되지 않았습니다. 구성 백업을 가져와서 복원하세요.",
+    "es": "No se pudo leer la configuración del modelo; los datos existentes no han sido modificados. Importe la copia de seguridad de la configuración y restáurela.",
+    "fr": "La configuration du modèle n'a pas pu être lue ; les données existantes n'ont pas été modifiées. Veuillez importer la sauvegarde de la configuration et la restaurer."
+  },
   "模型：{0}\n角色：{1} 个\n\n将替换全部模型配置、任务绑定和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。": {
     "zh": "模型：{0}\n角色：{1} 个\n\n将替换全部模型配置、任务绑定和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。",
     "en": "Models: {0}\nCharacters: {1}\n\nwill replace all model configurations, mission bindings, and appearance configurations, and merge characters (same IDs will be overwritten). Plugins still need to be reinstalled and authorized.",
@@ -2286,6 +2302,14 @@
     "ko": "이 릴리스에는 업데이트 정보가 포함되어 있지 않습니다.",
     "es": "No se incluyen notas de actualización con esta versión.",
     "fr": "Aucune note de mise à jour n'est incluse avec cette version."
+  },
+  "此配置仍用于任务，请先切换任务模型": {
+    "zh": "此配置仍用于任务，请先切换任务模型",
+    "en": "This configuration is still used for tasks, please switch the task model first",
+    "ja": "この構成は引き続きタスクに使用されます。最初にタスク モデルを切り替えてください。",
+    "ko": "이 구성은 여전히 작업에 사용됩니다. 먼저 작업 모델을 전환하세요.",
+    "es": "Esta configuración todavía se usa para tareas; primero cambie el modelo de tarea",
+    "fr": "Cette configuration est toujours utilisée pour les tâches, veuillez d'abord changer de modèle de tâche"
   },
   "沿用聊天模型": {
     "zh": "沿用聊天模型",
@@ -2534,6 +2558,14 @@
     "ko": "네트워크 연결에 실패했습니다. API 주소와 네트워크를 확인하세요.",
     "es": "La conexión de red falló, verifique la dirección API y la red",
     "fr": "La connexion réseau a échoué, veuillez vérifier l'adresse API et le réseau"
+  },
+  "聊天任务必须选择模型": {
+    "zh": "聊天任务必须选择模型",
+    "en": "Chat tasks must select a model",
+    "ja": "チャットタスクはモデルを選択する必要があります",
+    "ko": "채팅 작업에서는 모델을 선택해야 합니다.",
+    "es": "Las tareas de chat deben seleccionar un modelo.",
+    "fr": "Les tâches de chat doivent sélectionner un modèle"
   },
   "聊天模型": {
     "zh": "聊天模型",
@@ -3030,6 +3062,14 @@
     "ko": "기본 구성",
     "es": "Configuración predeterminada",
     "fr": "Configuration par défaut"
+  },
+  "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。": {
+    "zh": "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。",
+    "en": "Normal chat uses the chat model; after a model initiates a tool call, subsequent rounds can use another model, which receives the full conversation and tool results. Inherit the chat model when not selected separately.",
+    "ja": "通常のチャットはチャット モデルを使用します。モデルがツール呼び出しを開始すると、後続のラウンドでは別のモデルを使用でき、完全な会話とツールの結果を受け取ります。別途選択しない場合はチャットモデルを継承します。",
+    "ko": "일반 채팅은 채팅 모델을 사용합니다. 모델이 도구 호출을 시작한 후 후속 라운드에서는 전체 대화 및 도구 결과를 수신하는 다른 모델을 사용할 수 있습니다. 별도로 선택하지 않으면 채팅 모델을 상속받습니다.",
+    "es": "El chat normal utiliza el modelo de chat; Después de que un modelo inicia una llamada a la herramienta, las rondas posteriores pueden usar otro modelo, que recibe la conversación completa y los resultados de la herramienta. Hereda el modelo de chat cuando no se selecciona por separado.",
+    "fr": "Le chat normal utilise le modèle de chat ; une fois qu'un modèle a lancé un appel d'outil, les cycles suivants peuvent utiliser un autre modèle, qui reçoit la conversation complète et les résultats de l'outil. Héritez du modèle de chat lorsqu'il n'est pas sélectionné séparément."
   },
   "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。": {
     "zh": "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。",

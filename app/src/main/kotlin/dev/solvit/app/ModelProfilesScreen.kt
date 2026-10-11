@@ -47,7 +47,7 @@ fun ModelProfilesScreen(service: ModelProfilesService, generating: Boolean, onDi
             }) }) { padding ->
                 LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding).testTag("model_profiles_list"),contentPadding=PaddingValues(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
                     item { UiText("任务模型",style=MaterialTheme.typography.titleLarge) }
-                    item { UiText("普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。") }
+                    item { UiText("普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。工具后续只切换连接和模型，系统提示词仍采用聊天配置与角色。") }
                     items(ModelTask.entries) { item ->
                         Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
                             UiText(if(item==ModelTask.CHAT) "聊天模型" else "工具后续模型",style=MaterialTheme.typography.titleMedium)
