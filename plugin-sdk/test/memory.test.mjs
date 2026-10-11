@@ -124,3 +124,17 @@ test('disabled recall does not read even a malformed database',async () => {
   assert.equal(await plugin.recall('question',{autoRecall:'false'}),'');
   await assert.rejects(()=>plugin.recall('question'),/invalid/);
 });
+
+test('automatic recall handles a populated bounded corpus within its hook budget',async () => {
+  const text=Array.from({length:100},(_,i)=>String.fromCharCode(0x4e00+i)).join('');
+  const db={format:1,sequence:256,facts:Array.from({length:256},(_,i)=>({id:'m'+i,text:'记录 '+i+' '+text.slice(0,50),category:'fact',tags:[],createdAt:'2026-10-12',updatedAt:'2026-10-12'})),edges:[],
+    chunks:Array.from({length:256},(_,i)=>({id:'doc:'+i,document:'doc',title:'资料',index:i,text:text.slice(50)})),profile:{}};
+  assert.ok(Buffer.byteLength(JSON.stringify(db))<220*1024);
+  const plugin=runtime(new Map([['memory.v1',db]]));
+  const started=performance.now();
+  const context=await plugin.recall(text);
+  const elapsed=performance.now()-started;
+  assert.match(context,/dev.solvit.memory/);assert.ok(context.length<6500);
+  assert.ok(elapsed<4000,'Recall exceeded 4s of the 10s host Hook budget: '+elapsed);
+  console.log('Populated memory corpus recall (Node verifier): '+elapsed.toFixed(1)+'ms; Android timing remains separate.');
+});

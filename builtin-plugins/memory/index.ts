@@ -88,13 +88,24 @@ function search(db: Database, query: string, count: number): JsonValue[] {
   if (!queryTokens.length) return [];
   const tokenSets = documents.map(document => tokenize(`${document.title} ${document.text} ${document.metadata}`));
   const average = tokenSets.reduce((sum, tokens) => sum + tokens.length, 0) / Math.max(1, tokenSets.length);
+  // Document frequency is invariant across candidates; compute it once per query.
+  const wanted = new Set(queryTokens);
+  const frequencies = tokenSets.map(tokens => {
+    const counts = new Map<string, number>();
+    for (const token of tokens) counts.set(token, (counts.get(token) ?? 0) + 1);
+    return counts;
+  });
+  const documentFrequency = new Map<string, number>();
+  for (const counts of frequencies) for (const token of counts.keys()) {
+    if (wanted.has(token)) documentFrequency.set(token, (documentFrequency.get(token) ?? 0) + 1);
+  }
   const ranked = documents.map((document, index) => {
     const tokens = tokenSets[index];
     let score = 0;
     for (const token of queryTokens) {
-      const tf = tokens.filter(item => item === token).length;
+      const tf = frequencies[index].get(token) ?? 0;
       if (!tf) continue;
-      const df = tokenSets.filter(items => items.includes(token)).length;
+      const df = documentFrequency.get(token) ?? 0;
       const idf = Math.log(1 + (documents.length - df + 0.5) / (df + 0.5));
       score += idf * tf * 2.2 / (tf + 1.2 * (0.25 + 0.75 * tokens.length / Math.max(1, average)));
     }
