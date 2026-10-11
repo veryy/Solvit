@@ -357,6 +357,8 @@ class AndroidMarketplace(
     private suspend fun request(request: Request, maxBytes: Int, allowHttpError: Boolean = false, onCancelled: (suspend () -> Unit)? = null): HttpResult {
         val call = client.newCall(request)
         return coroutineScope {
+            val requestJob = currentCoroutineContext().job
+            var completed = false
             val cancellation = launch(start = CoroutineStart.UNDISPATCHED) {
                 try { awaitCancellation() } finally { call.cancel() }
             }
@@ -377,13 +379,18 @@ class AndroidMarketplace(
             }
             HttpResult(bytes, response.code, listOf("content-type", "mcp-session-id", "mcp-protocol-version")
                 .mapNotNull { name -> response.header(name)?.let { name to it } }.toMap())
-            } } catch (e: CancellationException) {
-                call.cancel()
-                if (onCancelled != null) withContext(NonCancellable) {
-                    try { withTimeout(1_000) { onCancelled() } } catch (_: Exception) { /* Cleanup must not prevent stopping. */ }
+                .also { completed = true }
+            } } finally {
+                // OkHttp's socket failure can race coroutine cancellation, so an
+                // IOException may arrive instead of CancellationException. Use
+                // the invocation's job state and finish cleanup before returning.
+                withContext(NonCancellable) {
+                    cancellation.cancelAndJoin(); call.cancel()
+                    if (!completed && !requestJob.isActive && onCancelled != null) {
+                        try { withTimeout(1_000) { onCancelled() } } catch (_: Exception) { /* Cleanup must not prevent stopping. */ }
+                    }
                 }
-                throw e
-            } finally { cancellation.cancelAndJoin(); call.cancel() }
+            }
         }
     }
 
