@@ -89,4 +89,28 @@ class ToolAgentRuntimeTest {
         assertEquals(listOf(ModelMessage(Role.USER, "hello")), completeContext(listOf(user, assistant)))
         assertEquals(listOf(Role.USER, Role.ASSISTANT, Role.TOOL), completeContext(listOf(user, assistant, tool)).map { it.role })
     }
+
+    @Test fun roleLimitsAdvertisedToolsAndContextAndRejectsUnboundCalls() = runTest {
+        val hooks = ContextHookRegistry().apply {
+            register("test.skills", ContextHook { "selected skill directory" })
+            register("test.private", ContextHook { fail("Unbound hook must not run") })
+        }
+        val role = AgentRole("review", "Review", pluginIds = setOf("test.skills"))
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                assertTrue(request.tools.isEmpty())
+                assertTrue(request.messages.first().content.contains("selected skill directory"))
+                return flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
+            }
+        }
+        val tools = registry { fail("Unbound tool must not execute") }
+        val gate = object : ToolAuthorization {
+            override suspend fun authorize(descriptor: ToolDescriptor): Boolean = fail("Role check must precede approval")
+        }
+        assertFailsWith<ModelException> {
+            ToolAgentRuntime(provider, tools, hooks = hooks).run(ModelRequest(ModelConfig(), emptyList(), authorization = gate, agentRole = role)).toList()
+        }
+        assertFailsWith<ToolDeniedException> { tools.executeCall(call, gate, role) }
+    }
 }

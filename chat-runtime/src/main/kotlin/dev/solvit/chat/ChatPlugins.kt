@@ -8,11 +8,11 @@ import java.util.UUID
 
 class ChatAgentPlugin : SolvitPlugin {
     override val id = "builtin.agent.chat"
-    override val requires = setOf(Services.Model, Services.Tools)
+    override val requires = setOf(Services.Model, Services.Tools, ContextHookServiceKey)
     override val provides = setOf(Services.Agent)
     override suspend fun enable(context: PluginContext) {
         val provider = context.require(Services.Model)
-        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools)))
+        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools), hooks = context.require(ContextHookServiceKey)))
     }
 }
 
@@ -20,6 +20,7 @@ class DefaultChatService(
     private val store: ChatStore,
     private val agent: AgentRuntime,
     private val events: EventBus,
+    private val roles: RoleService? = null,
 ) : ChatService {
     // V1 permits one active turn. Deletion cannot race with a stream settlement.
     private val turn = Mutex()
@@ -28,7 +29,7 @@ class DefaultChatService(
     override suspend fun createSession() = store.createSession()
     override suspend fun deleteSession(sessionId: String) {
         check(turn.tryLock()) { "请先停止生成" }
-        try { store.deleteSession(sessionId) } finally { turn.unlock() }
+        try { store.deleteSession(sessionId); roles?.select(sessionId, null) } finally { turn.unlock() }
     }
 
     override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization): Flow<ModelChunk> = flow {
@@ -56,12 +57,14 @@ class DefaultChatService(
             persist(ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim()))
             admitted = true
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
+            val role = roles?.selected(sessionId)
             val messages = buildList {
                 if (config.systemPrompt.isNotBlank()) add(ModelMessage(Role.SYSTEM, config.systemPrompt))
+                if (!role?.prompt.isNullOrBlank()) add(ModelMessage(Role.SYSTEM, role!!.prompt))
                 addAll(completeContext(history))
             }
             var done = false
-            agent.run(ModelRequest(config, messages, authorization = authorization)).collect { chunk ->
+            agent.run(ModelRequest(config, messages, authorization = authorization, agentRole = role)).collect { chunk ->
                 check(!done) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { answer.append(chunk.value); emit(chunk) }
@@ -113,11 +116,11 @@ internal fun completeContext(history: List<ChatMessage>): List<ModelMessage> {
 
 class ChatServicePlugin : SolvitPlugin {
     override val id = "builtin.chat"
-    override val requires = setOf(Services.Storage, Services.Agent)
+    override val requires = setOf(Services.Storage, Services.Agent, RoleServiceKey)
     override val provides = setOf(Services.Chat)
     override suspend fun enable(context: PluginContext) {
         context.register(Services.Chat, DefaultChatService(
-            context.require(Services.Storage), context.require(Services.Agent), context.events,
+            context.require(Services.Storage), context.require(Services.Agent), context.events, context.require(RoleServiceKey),
         ))
     }
 }

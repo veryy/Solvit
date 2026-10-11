@@ -7,6 +7,7 @@ import dev.solvit.provider.OpenAiPlugin
 import dev.solvit.storage.SqliteStoragePlugin
 import dev.solvit.updates.ReleaseUpdatesPlugin
 import dev.solvit.market.MarketplacePlugin
+import dev.solvit.market.RolesPlugin
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +22,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var marketplace: MarketplaceService
         private set
+    lateinit var roles: RoleService
+        private set
     override fun onCreate() {
         super.onCreate()
         settings = EncryptedSettingsStore(this)
@@ -29,11 +32,12 @@ class SolvitApplication : Application() {
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager)
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(ChatServicePlugin(), ChatAgentPlugin(), ToolsPlugin(),
+                listOf(ChatServicePlugin(), ChatAgentPlugin(), ToolsPlugin(), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication),
                     OpenAiPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 updates = manager.registry.require(UpdateServiceKey)
                 marketplace = manager.registry.require(MarketplaceServiceKey)
+                roles = manager.registry.require(RoleServiceKey)
                 marketPlugin.service.restore()
                 mutableReady.value = Result.success(manager.registry.require(Services.Chat))
             } catch (e: Exception) {

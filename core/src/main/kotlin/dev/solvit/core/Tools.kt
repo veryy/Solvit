@@ -10,6 +10,7 @@ data class ToolDescriptor(
     val inputSchema: String,
     val androidPermissions: Set<String> = emptySet(),
     val requiresConfirmation: Boolean = false,
+    val pluginId: String = "builtin.tools",
 )
 interface SolvitTool {
     val descriptor: ToolDescriptor
@@ -43,10 +44,11 @@ class ToolRegistry(private val events: EventBus) {
     suspend fun execute(name: String, argumentsJson: String, authorization: ToolAuthorization): String {
         return executeCall(ToolCall("manual", name, argumentsJson), authorization)
     }
-    suspend fun executeCall(call: ToolCall, authorization: ToolAuthorization): String {
+    suspend fun executeCall(call: ToolCall, authorization: ToolAuthorization, role: AgentRole? = null): String {
         val name = call.name
         val argumentsJson = call.argumentsJson
         val tool = synchronized(this) { tools[name] } ?: error("Unknown tool: $name")
+        if (role != null && !role.allows(tool.descriptor.pluginId)) throw ToolDeniedException()
         if (!authorization.authorizeCall(tool.descriptor, call)) throw ToolDeniedException()
         currentCoroutineContext().ensureActive()
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }

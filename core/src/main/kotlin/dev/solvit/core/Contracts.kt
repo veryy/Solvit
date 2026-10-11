@@ -49,6 +49,7 @@ data class ModelRequest(
     val messages: List<ModelMessage>,
     val tools: List<ToolDescriptor> = emptyList(),
     val authorization: ToolAuthorization = DenyTools,
+    val agentRole: AgentRole? = null,
 )
 sealed interface ModelChunk {
     data class Text(val value: String) : ModelChunk

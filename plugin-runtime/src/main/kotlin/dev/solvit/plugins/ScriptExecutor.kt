@@ -144,6 +144,7 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
                     description = tool.description,
                     inputSchema = tool.inputSchema.toString(),
                     requiresConfirmation = true,
+                    pluginId = id,
                 )
                 override suspend fun execute(argumentsJson: String): String = executor.execute(tool.name, argumentsJson)
             })

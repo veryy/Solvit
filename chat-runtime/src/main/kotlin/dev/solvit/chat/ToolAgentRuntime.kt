@@ -11,12 +11,18 @@ class ToolAgentRuntime(
     private val tools: ToolRegistry,
     private val maxRounds: Int = 8,
     private val maxCalls: Int = 16,
+    private val hooks: ContextHookRegistry? = null,
 ) : AgentRuntime {
     init { require(maxRounds > 0 && maxCalls > 0) }
     override fun run(request: ModelRequest): Flow<ModelChunk> = flow {
-        val advertised = tools.descriptors().take(64)
+        val advertised = tools.descriptors().filter { request.agentRole?.allows(it.pluginId) != false }.take(64)
         val allowed = advertised.map { it.name }.toSet()
         val messages = request.messages.toMutableList()
+        val context = hooks?.prepare(ContextInput(request.agentRole, messages.lastOrNull { it.role == Role.USER }?.content.orEmpty())).orEmpty()
+        if (context.isNotEmpty()) {
+            // System context belongs before the transcript and persists through tool rounds.
+            messages.add(0, ModelMessage(Role.SYSTEM, context.joinToString("\n\n")))
+        }
         val seen = mutableSetOf<String>()
         var executions = 0
         for (round in 0 until maxRounds) {
@@ -54,7 +60,7 @@ class ToolAgentRuntime(
                     }
                 }
                 val outcome = try {
-                    val result = tools.executeCall(call, gate)
+                    val result = tools.executeCall(call, gate, request.agentRole)
                     check(result.toByteArray(Charsets.UTF_8).size <= 256 * 1024) { "工具返回结果超出限制" }
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {
