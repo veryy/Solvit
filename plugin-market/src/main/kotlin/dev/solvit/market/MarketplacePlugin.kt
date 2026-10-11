@@ -263,8 +263,18 @@ class AndroidMarketplace(
             "plugins.draft" -> "plugins"
             else -> error("未开放的宿主操作")
         }
-        check(permission in manifest.permissions && permission in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty()) { "插件权限未授予" }
         val background = currentCoroutineContext()[PostTurnExecutionContext]
+        fun verifyGrants() {
+            val grants = prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty()
+            val allowed = permission in manifest.permissions && permission in grants &&
+                (background == null || grants.containsAll(manifest.permissions))
+            if (!allowed && background != null) {
+                background.recordFailure(PostTurnFailure.PERMISSION)
+                throw PostTurnWorkException(PostTurnFailure.PERMISSION)
+            }
+            check(allowed) { "插件权限未授予" }
+        }
+        verifyGrants()
         if (background != null) {
             check(manifest.apiVersion >= 8 && background.target.pluginId == manifest.id && background.target.version == manifest.version)
             background.ensureAuthorized()
@@ -344,7 +354,7 @@ class AndroidMarketplace(
                 val key = arguments.getValue("key").jsonPrimitive.content
                 suspend fun verifyWrite() {
                     currentCoroutineContext().ensureActive()
-                    check("storage" in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty()) { "插件权限未授予" }
+                    verifyGrants()
                     background?.ensureAuthorized()
                 }
                 try {
