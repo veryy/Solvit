@@ -215,10 +215,10 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     }
     toolApproval?.let { pending ->
         AlertDialog(onDismissRequest = { vm.approveTool(false) }, title = { Text("允许调用工具？") },
-            text = { Column {
-                Text(pending.descriptor.description)
-                Text(pending.descriptor.name, style = MaterialTheme.typography.labelSmall)
-                SelectionContainer { Text(pending.call.argumentsJson.take(8192)) }
+            text = { LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                item { Text(pending.descriptor.description) }
+                item { Text(pending.descriptor.name, style = MaterialTheme.typography.labelSmall) }
+                item { SelectionContainer { Text(pending.call.argumentsJson) } }
             } },
             confirmButton = { TextButton(onClick = { vm.approveTool(true) }) { Text("允许这一次") } },
             dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { Text("拒绝") } })

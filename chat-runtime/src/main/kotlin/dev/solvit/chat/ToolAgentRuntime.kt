@@ -4,7 +4,6 @@ import dev.solvit.core.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.withTimeout
 
 /** Bounded orchestration; native and JS tools share the same authorization gate. */
 class ToolAgentRuntime(
@@ -55,7 +54,7 @@ class ToolAgentRuntime(
                     }
                 }
                 val outcome = try {
-                    val result = withTimeout(60_000) { tools.executeCall(call, gate) }
+                    val result = tools.executeCall(call, gate)
                     check(result.toByteArray(Charsets.UTF_8).size <= 256 * 1024) { "工具返回结果超出限制" }
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {

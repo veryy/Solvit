@@ -2,6 +2,7 @@ package dev.solvit.core
 
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withTimeout
 
 data class ToolDescriptor(
     val name: String,
@@ -49,7 +50,7 @@ class ToolRegistry(private val events: EventBus) {
         if (!authorization.authorizeCall(tool.descriptor, call)) throw ToolDeniedException()
         currentCoroutineContext().ensureActive()
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
-        return tool.execute(argumentsJson)
+        return withTimeout(60_000) { tool.execute(argumentsJson) }
     }
 }
 
