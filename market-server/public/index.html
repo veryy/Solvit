@@ -8,11 +8,11 @@ body{font:16px system-ui,sans-serif;background:#f6f8f2;color:#24351e;max-width:8
 </style>
 <header><h1>Solvit 插件市场</h1><p>用 JavaScript 和 TypeScript 扩展你的 Android AI 助手。</p><a href="https://github.com/veryy/Solvit/releases/latest">下载 Solvit</a></header>
 <p id="status">正在加载插件…</p><main id="plugins"></main>
-<footer>下载的插件包需要支持插件安装的 Solvit 版本。记忆、MCP、Skills 和系统执行能力正在开发。</footer>
+<footer>下载的插件包需要相应版本的 Solvit。记忆、MCP 与 Skills 已提供内置插件；系统执行能力继续开发。</footer>
 <script type="module">
 const status=document.querySelector('#status');
 try {
- const response=await fetch('/api/v1/plugins?hostApi=2');
+ const response=await fetch('/api/v1/plugins?hostApi=3');
  if(!response.ok)throw new Error('HTTP '+response.status);
  const catalog=await response.json();
  status.textContent=`${catalog.plugins.length} 个插件`;
@@ -20,7 +20,7 @@ try {
   const article=document.createElement('article');
   const heading=document.createElement('h2');heading.textContent=plugin.name;
   const description=document.createElement('p');description.textContent=plugin.description;
-  const details=document.createElement('p');details.textContent=`版本 ${plugin.version}${plugin.apiVersion === 2 ? ' · 需要 Solvit 0.5.0+' : ''} · ${plugin.permissions.length ? '权限：'+plugin.permissions.join('、') : '无需额外权限'}`;
+  const details=document.createElement('p');details.textContent=`版本 ${plugin.version}${plugin.apiVersion === 3 ? ' · 需要 Solvit 0.6.0+' : plugin.apiVersion === 2 ? ' · 需要 Solvit 0.5.1+' : ''} · ${plugin.permissions.length ? '权限：'+plugin.permissions.join('、') : '无需额外权限'}`;
   const download=document.createElement('a');download.className='download';download.textContent='下载插件';download.href=plugin.downloadPath;
   article.append(heading,description,details,download);document.querySelector('#plugins').append(article);
  }
