@@ -13,6 +13,10 @@
 
 ## 开始使用
 
+从 [GitHub Releases 下载最新 APK](https://github.com/veryy/Solvit/releases/latest)。展开发布页的 **Assets**，下载 `solvit-debug.apk` 并在 Android 手机上安装。
+
+完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装、真实模型连接和交互体验尚未验证。
+
 安装 debug APK 后，点击右上角模型设置：
 
 | 服务 | API 基础地址 | 模型示例 |
