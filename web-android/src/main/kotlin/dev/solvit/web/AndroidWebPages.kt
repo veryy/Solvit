@@ -15,7 +15,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /** Serial, bounded anonymous browser observations, separate from TS search policies. */
-class AndroidWebPages(context: Context, private val timeoutMs: Long = 25_000) : WebPageService {
+class AndroidWebPages(context: Context, private val timeoutMs: Long = 7_000) : WebPageService {
     private val application = context.applicationContext
     private val lock = Mutex()
     override suspend fun visit(url: String): WebPage = observe(PageObservation.validateUrl(url), null)

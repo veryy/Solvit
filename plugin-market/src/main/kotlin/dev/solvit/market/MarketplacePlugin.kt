@@ -66,7 +66,7 @@ class AndroidMarketplace(
                     if (base.isFile && base.length() <= ScriptPackage.MAX_BYTES) {
                         val original = AtomicFile(base).readFully()
                         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(original).joinToString("") { "%02x".format(it) }
-                        val originals = if (name == "dev.solvit.web-search.solvit.json") setOf("91dc9957e6c259626dbeba07d8ceb19799f36d000688e2532b322e0f860a409f") else setOf("511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445",
+                        val originals = if (name == "dev.solvit.web-search.solvit.json") setOf("91dc9957e6c259626dbeba07d8ceb19799f36d000688e2532b322e0f860a409f", "914771c881ee879d0abecaecca48bb5627f9c6509afdf9ff06efe5af90b218bd") else setOf("511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445",
                                 "0f32b5b2e5e684b1d95b275b71d72864f9463cbd55eb549f150e2196a6e80ed7")
                         if (digest in originals) {
                             val payload = context.assets.open("builtin-plugins/$name").use { it.readBytes() }
@@ -363,7 +363,9 @@ class AndroidMarketplace(
                             client.newCall(cancellationRequest).await().use { }
                     }
                 }
-                val response = request(outgoing, 1024 * 1024, allowHttpError = true, onCancelled = onCancelled)
+                val timeout = arguments["timeoutMs"]?.jsonPrimitive?.long
+                if (timeout != null) require(manifest.apiVersion >= 6 && timeout in 200..20_000) { "网络超时需要 API 6，范围为 200..20000 毫秒" }
+                val response = request(outgoing, 1024 * 1024, allowHttpError = true, onCancelled = onCancelled, timeoutMs = timeout)
                 buildJsonObject {
                     put("body", response.bytes.toString(Charsets.UTF_8)); put("status", response.status)
                     putJsonObject("headers") { response.headers.forEach { (name, value) -> put(name, value) } }
@@ -386,8 +388,9 @@ class AndroidMarketplace(
 
     private data class HttpResult(val bytes: ByteArray, val status: Int, val headers: Map<String, String>)
 
-    private suspend fun request(request: Request, maxBytes: Int, allowHttpError: Boolean = false, onCancelled: (suspend () -> Unit)? = null): HttpResult {
+    private suspend fun request(request: Request, maxBytes: Int, allowHttpError: Boolean = false, onCancelled: (suspend () -> Unit)? = null, timeoutMs: Long? = null): HttpResult {
         val call = client.newCall(request)
+        if (timeoutMs != null) call.timeout().timeout(timeoutMs, TimeUnit.MILLISECONDS)
         return coroutineScope {
             val requestJob = currentCoroutineContext().job
             var completed = false
