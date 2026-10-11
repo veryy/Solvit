@@ -60,6 +60,7 @@ jobs:
   verify-ui:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -79,16 +80,34 @@ jobs:
             echo 'Missing stable APK signing key'
             exit 1
           fi
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Prepare UI APKs outside emulator
+        timeout-minutes: 15
+        run: |
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebug :terminal-android:assembleDebugAndroidTest --stacktrace
+      - name: Download previous signed release
+        if: github.event_name != 'pull_request'
+        timeout-minutes: 4
+        run: |
+          mkdir -p ui-screenshots
+          curl --fail --location --silent --show-error --connect-timeout 15 --max-time 180 https://github.com/veryy/Solvit/releases/download/v0.7.0/solvit-debug.apk --output ui-screenshots/previous.apk
+          printf '%s\n' '88684ed71af4c390217d4ee6f58e3a169d513e812744eb97af34318d71d5d631  ui-screenshots/previous.apk' | sha256sum --check
       - name: Enable emulator hardware acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
+        timeout-minutes: 18
         with:
           api-level: 35
           arch: x86_64
           profile: pixel_2
+          emulator-boot-timeout: 180
           disable-animations: true
           script: bash scripts/verify-android-ui.sh
       - uses: actions/upload-artifact@v4
