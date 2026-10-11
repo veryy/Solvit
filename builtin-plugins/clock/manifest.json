@@ -1,0 +1,15 @@
+{
+  "id": "dev.solvit.clock",
+  "name": "当前时间",
+  "description": "每轮聊天提供设备当前时间和真实时区，也可由 AI 调用时间工具。",
+  "version": "1.1.0",
+  "apiVersion": 3,
+  "hooks": ["beforeModel"],
+  "permissions": [],
+  "dependencies": [],
+  "tools": [{
+    "name": "current_time",
+    "description": "读取设备当前日期、时间、IANA 时区和 UTC 时间；询问现在几点或今天日期时使用。",
+    "inputSchema": {"type": "object", "properties": {}, "additionalProperties": false}
+  }]
+}

@@ -18,6 +18,9 @@ class ToolAgentRuntime(
         val advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false }.take(64)
         val allowed = advertised.map { it.name }.toSet()
         val messages = request.messages.toMutableList()
+        if (advertised.isNotEmpty()) messages.add(0, ModelMessage(Role.SYSTEM,
+            "你可以调用本轮提供的插件工具。涉及实时信息或需要外部数据时，请使用相应工具或插件上下文；不要仅凭训练知识猜测。" +
+                "工具调用会由用户确认，结果返回后再回答。如果没有可用工具，请说明限制。"))
         val context = hooks?.prepare(ContextInput(request.agentRole, messages.lastOrNull { it.role == Role.USER }?.content.orEmpty())).orEmpty()
         if (context.isNotEmpty()) {
             // System context belongs before the transcript and persists through tool rounds.

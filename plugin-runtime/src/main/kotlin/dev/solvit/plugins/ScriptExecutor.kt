@@ -13,6 +13,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 import kotlin.coroutines.CoroutineContext
+import java.time.ZonedDateTime
+import java.util.TimeZone
 
 fun interface ScriptHost {
     suspend fun call(plugin: ScriptManifest, operation: String, arguments: JsonObject): JsonElement
@@ -36,19 +38,30 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                 js.evaluationTimeoutMillis = timeoutMs
                 js.asyncFunction("__solvitHostCall") { args ->
                     val operation = args[0] as String
-                    check(!readOnlyHost || operation == "storage.get") { "上下文 Hook 只允许读取插件存储" }
+                    check(!readOnlyHost || operation in setOf("storage.get", "clock.now")) { "上下文 Hook 只允许读取插件存储和当前时间" }
                     val arguments = Json.parseToJsonElement(args[1] as String).jsonObject
                     val permission = when (operation) {
                         "storage.get", "storage.set" -> "storage"
                         "http.request" -> "network"
-                        "settings.get" -> null
+                        "settings.get", "clock.now" -> null
                         else -> error("宿主未开放此操作")
                     }
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
+                    check(operation != "clock.now" || pkg.manifest.apiVersion >= 3) { "当前时间服务需要 API 3" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
-                    withContext(parent) { host.call(pkg.manifest, operation, arguments).toString() }
+                    withContext(parent) {
+                        if (operation == "clock.now") {
+                            val now = ZonedDateTime.now(TimeZone.getDefault().toZoneId())
+                            buildJsonObject {
+                                put("utc", now.toInstant().toString())
+                                put("localTime", now.toOffsetDateTime().toString())
+                                put("timezone", now.zone.id)
+                                put("timezoneOffsetMinutes", -now.offset.totalSeconds / 60)
+                            }.toString()
+                        } else host.call(pkg.manifest, operation, arguments).toString()
+                    }
                 }
                 withTimeout(timeoutMs) {
                     executionJob = currentCoroutineContext().job
@@ -56,6 +69,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     try {
                     js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
+                          clock: Object.freeze({ now: async () => JSON.parse(await __solvitHostCall('clock.now', '{}')) }),
                           settings: Object.freeze({ get: async key => JSON.parse(await __solvitHostCall('settings.get', JSON.stringify({key}))) }),
                           storage: Object.freeze({
                             get: async key => JSON.parse(await __solvitHostCall('storage.get', JSON.stringify({key}))),

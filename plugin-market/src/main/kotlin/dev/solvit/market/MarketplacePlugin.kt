@@ -55,6 +55,22 @@ class AndroidMarketplace(
                     }
                     check(prefs.edit().putBoolean("seeded.$name", true).commit()) { "内置插件配置保存失败" }
                 }
+                // Upgrade only the byte-identical original bundled clock. Keep
+                // enabled state and never replace a modified/user-installed package.
+                if (name == "dev.solvit.clock.solvit.json") {
+                    val base = File(directory, name)
+                    if (base.isFile && base.length() <= ScriptPackage.MAX_BYTES) {
+                        val original = AtomicFile(base).readFully()
+                        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(original).joinToString("") { "%02x".format(it) }
+                        if (digest == "511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445") {
+                            val payload = context.assets.open("builtin-plugins/$name").use { it.readBytes() }
+                            ScriptPackage.parse(payload)
+                            val atomic = AtomicFile(base); val stream = atomic.startWrite()
+                            try { stream.write(payload); atomic.finishWrite(stream) }
+                            catch (e: Throwable) { atomic.failWrite(stream); throw e }
+                        }
+                    }
+                }
             }
             directory.listFiles()?.filter { it.name.endsWith(".solvit.json") }?.forEach { file ->
                 try {
