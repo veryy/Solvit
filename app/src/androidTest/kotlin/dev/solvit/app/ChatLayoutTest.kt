@@ -62,6 +62,52 @@ class ChatLayoutTest {
         }
     }
 
+    @Test fun memoryTaskRetryRequiresConfirmationAndDisplaysSource() {
+        ready()
+        val target = PostTurnTarget("dev.solvit.memory", "1.2.0", "a".repeat(64))
+        val turn = CompletedChatTurn("fixture-answer", "fixture-session", "fixture-user", "fixture-answer",
+            "coder", "Coder", setOf(target.pluginId), null, "fixture", "fixture-model", 1, listOf(target))
+        var record = PostTurnJob("fixture-job", turn, target, PostTurnJobStatus.FAILED, 1, 2, PostTurnFailure.MODEL)
+        var retries = 0
+        val store = object : ChatStore {
+            override fun sessions() = kotlinx.coroutines.flow.flowOf(emptyList<ChatSession>())
+            override fun messages(sessionId: String) = kotlinx.coroutines.flow.flowOf(emptyList<ChatMessage>())
+            override suspend fun createSession(): ChatSession = error("Not a chat operation")
+            override suspend fun history(sessionId: String) = emptyList<ChatMessage>()
+            override suspend fun append(message: ChatMessage) = error("Not a chat operation")
+            override suspend fun deleteSession(sessionId: String) = error("Not a chat operation")
+            override suspend fun recentPostTurnJobs(before: PostTurnJobCursor?, limit: Int) = listOf(record)
+            override suspend fun retryPostTurnJob(id: String, expectedAttempt: Int, now: Long): Boolean {
+                assertEquals(record.id, id); assertEquals(1, expectedAttempt)
+                retries++; record = record.copy(status = PostTurnJobStatus.WAITING, failure = null)
+                return true
+            }
+        }
+        val taskScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+        val provider = object : ModelProvider {
+            override val id = "fixture"
+            override fun stream(request: ModelRequest): Flow<ModelChunk> = error("UI must not invoke model")
+        }
+        val worker = dev.solvit.chat.PostTurnWorker(store, PostTurnHookRegistry(), provider, { null }, { null }, taskScope)
+        try {
+            rule.runOnUiThread { rule.activity.setContent { MaterialTheme { MemoryTasksScreen(worker) {} } } }
+            rule.waitUntil(10_000) { rule.onAllNodesWithText("处理失败").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithText("模型请求失败。").assertIsDisplayed()
+            rule.onNodeWithText("查看详情").performClick()
+            rule.onNodeWithTag("memory_tasks").performScrollToNode(hasText("来源消息：fixture-user"))
+            rule.onNodeWithText("来源消息：fixture-user").assertIsDisplayed()
+            rule.onNodeWithText("重试").performClick()
+            assertEquals(0, retries)
+            rule.onNodeWithText("取消").performClick()
+            assertEquals(0, retries)
+            rule.onNodeWithText("重试").performClick()
+            rule.onNodeWithText("确认重试").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithText("等待处理").fetchSemanticsNodes().isNotEmpty() }
+            assertEquals(1, retries)
+            screenshot("memory-task-confirmed-retry")
+        } finally { taskScope.cancel() }
+    }
+
     @Test fun contextBudgetDialogValidatesAndReturnsSavedValues() {
         ready()
         var saved: ContextBudgetPolicy? = null
