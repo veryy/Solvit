@@ -46,6 +46,7 @@ class SqliteChatStoreTest {
             assertTrue(store.supportsCompletedTurns)
             val saved = store.recordedTurns(0, 1).single()
             assertEquals(record, saved.turn)
+            assertEquals(listOf("user", "answer"), store.postTurnMessages(record).map { it.id })
             assertEquals(record.targets.single(), store.postTurnJobs(setOf(PostTurnJobStatus.WAITING)).single().target)
             assertTrue(store.recordedTurns(saved.sequence).isEmpty())
             assertFailsWith<IllegalArgumentException> { store.recordedTurns(-1) }
@@ -83,7 +84,9 @@ class SqliteChatStoreTest {
             val turn = CompletedChatTurn("a", session.id, "u", "a", null, null, null, null, "fixture", "model", 1, listOf(target))
             store.appendCompletedTurn(listOf(ChatMessage("a", session.id, Role.ASSISTANT, "Understood")), turn)
             job = store.postTurnJobs(setOf(PostTurnJobStatus.WAITING)).single()
+            assertEquals(job, store.postTurnJob(job.id))
             assertTrue(store.claimPostTurnJob(job.id, 0, 2))
+            assertEquals(PostTurnJobStatus.RUNNING, store.postTurnJob(job.id)!!.status)
             assertFalse(store.claimPostTurnJob(job.id, 0, 2))
             assertFalse(store.finishPostTurnJob(job.id, 2, PostTurnJobStatus.SUCCEEDED, null, 3))
         }

@@ -58,6 +58,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var contextPreparation: ContextPreparationService
         private set
+    lateinit var postTurnWorker: PostTurnWorker
+        private set
     lateinit var requestInspection: RequestInspectionService
         private set
     override fun onCreate() {
@@ -74,11 +76,12 @@ class SolvitApplication : Application() {
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts }, useWebPages = true)
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(PostTurnHooksPlugin(), ContextBudgetPlugin(), ContextPreparationPlugin(), WebPagesPlugin(this@SolvitApplication), RequestInspectionPlugin(), ModelProvidersPlugin(), ModelRoutingPlugin(), ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
+                listOf(PostTurnWorkerPlugin(), PostTurnHooksPlugin(), ContextBudgetPlugin(), ContextPreparationPlugin(), WebPagesPlugin(this@SolvitApplication), RequestInspectionPlugin(), ModelProvidersPlugin(), ModelRoutingPlugin(), ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
                     OpenAiPlugin(), AnthropicPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 branches = manager.registry.require(ChatBranchServiceKey)
                 contextPreparation = manager.registry.require(ContextPreparationServiceKey)
+                postTurnWorker = manager.registry.require(PostTurnWorkerServiceKey)
                 requestInspection = manager.registry.require(RequestInspectionServiceKey)
                 updates = manager.registry.require(UpdateServiceKey)
                 marketplace = manager.registry.require(MarketplaceServiceKey)
@@ -91,6 +94,7 @@ class SolvitApplication : Application() {
                 terminals = manager.registry.require(TerminalServiceKey)
                 pluginDrafts = manager.registry.require(PluginDraftServiceKey)
                 marketPlugin.service.restore()
+                postTurnWorker.start()
                 mutableReady.value = Result.success(manager.registry.require(Services.Chat))
             } catch (e: Exception) {
                 try { manager.shutdown() } catch (cleanup: Exception) { e.addSuppressed(cleanup) }

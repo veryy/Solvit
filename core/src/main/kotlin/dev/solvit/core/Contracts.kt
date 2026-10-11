@@ -138,6 +138,9 @@ interface ChatStore {
     }
     suspend fun recordedTurns(afterSequence: Long, limit: Int = 20): List<RecordedChatTurn> = emptyList()
     suspend fun postTurnJobs(statuses: Set<PostTurnJobStatus>, limit: Int = 20): List<PostTurnJob> = emptyList()
+    suspend fun postTurnJob(id: String): PostTurnJob? = null
+    suspend fun postTurnMessages(turn: CompletedChatTurn): List<ChatMessage> = history(turn.sessionId)
+        .filter { it.id == turn.userMessageId || it.id == turn.assistantMessageId }
     suspend fun claimPostTurnJob(id: String, expectedAttempt: Int, now: Long): Boolean = false
     suspend fun finishPostTurnJob(id: String, attempt: Int, status: PostTurnJobStatus, failure: PostTurnFailure?, now: Long): Boolean = false
     /** Failed jobs retry only through an explicit action, with at most three claims. */

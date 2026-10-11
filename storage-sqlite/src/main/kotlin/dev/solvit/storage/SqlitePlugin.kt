@@ -98,14 +98,17 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     private fun createSummaryTable(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE context_summaries (session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE, payload TEXT NOT NULL)")
     }
-    private fun history(db: SQLiteDatabase, sessionId: String): List<ChatMessage> =
+    override suspend fun postTurnMessages(turn: CompletedChatTurn): List<ChatMessage> = read {
+        history(it, turn.sessionId, listOf(turn.userMessageId, turn.assistantMessageId))
+    }
+    private fun history(db: SQLiteDatabase, sessionId: String, ids: List<String>? = null): List<ChatMessage> =
         db.rawQuery("""SELECT id,role,substr(CAST(content AS BLOB),1,$READ_CHUNK),status,
             substr(CAST(tool_calls AS BLOB),1,$READ_CHUNK),tool_call_id,
             substr(CAST(reasoning AS BLOB),1,$READ_CHUNK),tool_stage,
             substr(CAST(provider_transcript AS BLOB),1,$READ_CHUNK),
             length(CAST(content AS BLOB)),length(CAST(tool_calls AS BLOB)),
             length(CAST(reasoning AS BLOB)),length(CAST(provider_transcript AS BLOB))
-            FROM messages WHERE session_id=? ORDER BY sequence""", arrayOf(sessionId)).use { c ->
+            FROM messages WHERE session_id=? ${if (ids == null) "" else "AND id IN (${ids.joinToString(",") { "?" }})"} ORDER BY sequence""", (listOf(sessionId) + ids.orEmpty()).toTypedArray()).use { c ->
             buildList { while (c.moveToNext()) {
                 val id=c.getString(0)
                 add(ChatMessage(id,sessionId,Role.valueOf(c.getString(1)),readText(db,c,id,"content",2,9),
@@ -214,15 +217,16 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         require(limit in 1..100)
         if (statuses.isEmpty()) return emptyList()
         val ordered = statuses.sortedBy { it.name }
-        return read { db ->
-            db.rawQuery("SELECT j.id,t.payload,j.plugin_id,j.version,j.digest,j.status,j.attempt,j.updated_at,j.failure FROM post_turn_jobs j JOIN completed_turns t ON t.id=j.turn_id WHERE j.status IN (${ordered.joinToString(",") { "?" }}) ORDER BY j.updated_at,j.id LIMIT ?",
-                (ordered.map { it.name } + limit.toString()).toTypedArray()).use { c ->
+        return read { db -> loadJobs(db, "j.status IN (${ordered.joinToString(",") { "?" }})", ordered.map { it.name }, limit) }
+    }
+    override suspend fun postTurnJob(id: String): PostTurnJob? = read { loadJobs(it, "j.id=?", listOf(id), 1).singleOrNull() }
+    private fun loadJobs(db: SQLiteDatabase, condition: String, arguments: List<String>, limit: Int): List<PostTurnJob> =
+            db.rawQuery("SELECT j.id,t.payload,j.plugin_id,j.version,j.digest,j.status,j.attempt,j.updated_at,j.failure FROM post_turn_jobs j JOIN completed_turns t ON t.id=j.turn_id WHERE $condition ORDER BY j.updated_at,j.id LIMIT ?",
+                (arguments + limit.toString()).toTypedArray()).use { c ->
                 buildList { while (c.moveToNext()) add(PostTurnJob(c.getString(0), decodeTurn(JSONObject(c.getString(1))),
                     PostTurnTarget(c.getString(2), c.getString(3), c.getString(4)), PostTurnJobStatus.valueOf(c.getString(5)),
                     c.getInt(6), c.getLong(7), if (c.isNull(8)) null else PostTurnFailure.valueOf(c.getString(8)))) }
             }
-        }
-    }
     override suspend fun claimPostTurnJob(id: String, expectedAttempt: Int, now: Long): Boolean {
         require(expectedAttempt in 0..2 && now >= 0)
         return write { db -> db.update("post_turn_jobs", ContentValues().apply {

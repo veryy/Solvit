@@ -11,7 +11,7 @@ data class PostTurnTarget(val pluginId: String, val version: String, val digest:
 
 enum class PostTurnJobStatus { WAITING, RUNNING, SUCCEEDED, FAILED, SKIPPED }
 /** Persist only safe classifications, never arbitrary exception messages or model output. */
-enum class PostTurnFailure { INTERRUPTED, MODEL, INVALID_OUTPUT, STORAGE, PERMISSION, PLUGIN_CHANGED, CONFIGURATION }
+enum class PostTurnFailure { INTERRUPTED, DEADLINE, INPUT_TOO_LARGE, MODEL, INVALID_OUTPUT, STORAGE, PERMISSION, PLUGIN_CHANGED, CONFIGURATION }
 data class PostTurnJob(
     val id: String,
     val turn: CompletedChatTurn,

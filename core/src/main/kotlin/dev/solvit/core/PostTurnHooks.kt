@@ -1,10 +1,19 @@
 package dev.solvit.core
 
 import kotlinx.coroutines.withTimeout
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
 
 data class PostTurnInput(val turn: CompletedChatTurn, val userText: String, val assistantText: String)
 /** Host-owned bounded inference. No provider configuration or credentials cross into a plugin. */
 fun interface PostTurnModel { suspend fun complete(instructions: String, input: String): String }
+class PostTurnWorkException(val failure: PostTurnFailure) : IllegalStateException("Post-turn work failed: ${failure.name}")
+class PostTurnRevokedException : IllegalStateException("Post-turn authorization no longer applies")
+/** Native bindings must recheck this before inference or storage writes. */
+class PostTurnExecutionContext(private val verify: suspend () -> Unit) : AbstractCoroutineContextElement(Key) {
+    companion object Key : CoroutineContext.Key<PostTurnExecutionContext>
+    suspend fun ensureAuthorized() = verify()
+}
 interface PostTurnHook {
     val target: PostTurnTarget
     /** Reads the current explicit opt-in, both before admission and before execution. */
