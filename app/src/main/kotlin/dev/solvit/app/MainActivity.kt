@@ -375,7 +375,7 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
                     item { OutlinedTextField(key, { key = it }, label = { UiText("API Key") }, modifier = Modifier.fillMaxWidth(),
                         singleLine = true, enabled = !saving, visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = { IconButton(onClick = { visible = !visible }) { Icon(if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (visible) "隐藏密钥" else "显示密钥") } },
+                        trailingIcon = { IconButton(onClick = { visible = !visible }) { UiIcon(if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (visible) "隐藏密钥" else "显示密钥") } },
                         supportingText = { UiText("密钥加密保存在本机；无需认证的本地模型可留空。") }) }
                     item { OutlinedTextField(listUrl, { listUrl = it }, label = { UiText("模型列表 / 订阅地址（可选）") },
                         supportingText = { UiText("留空时从 API 基础地址下的 /models 获取；也支持独立 JSON 模型列表地址。") },

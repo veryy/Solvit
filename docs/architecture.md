@@ -14,7 +14,7 @@
 | [DSH Cordis Primer](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/cordis-primer.md) | inject 声明依赖，Context 查服务，注册是可撤销 effect | requires / provides、PluginContext、逆序 disposer 与 SupervisorJob |
 | [DSH Tools](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/tools.md) | 发现与执行用同一注册表，执行前权限门禁，模型 schema 与 host 回调分离 | ToolRegistry.descriptors / execute；ToolDescriptor 不暴露执行函数 |
 
-DSH 的完整配置覆盖、作用域树、waterfall 中间件和持久事件日志值得长期研究，但不属于第一版需要的最小机制。Solvit 暂用单 Provider 的显式服务键和简单观察事件；不模拟整个 Cordis。
+DSH 的完整配置覆盖、作用域树、waterfall 中间件和持久事件日志值得长期研究，但不属于第一版需要的最小机制。Solvit 通过 ModelProfilesService 管理多配置和任务选择，当前 Provider 支持 OpenAI 兼容协议。其他协议和本地推理仍待实现；事件用于进程内观察。
 
 ## 模块关系
 
@@ -44,7 +44,7 @@ Context 只允许消费已声明依赖及注册已声明服务。注册、监听
 
 状态为 LOADED → INITIALIZED → ENABLED → DISABLED → UNLOADED，停用后可以 enableAll 重新激活。仍被启用插件依赖的服务不能停用；shutdown 自动先关闭消费者再关闭提供者。资源不要在 initialize 中获取，否则无法由激活 Context 管理。
 
-启动只组合内置的可信 Kotlin 实现，所有代码运行在同一进程中。这是模块化和生命周期管理，不是第三方安全沙箱。第三方动态加载与插件市场延期。
+启动组合内置 Kotlin 服务插件以及已安装并启用的 JS 插件。第三方 JS 通过 QuickJS、受限宿主接口和权限门禁执行；HTTPS 插件市场、安装/启停与配置已实现，见插件 SDK。原生服务和凭据留在宿主，不能将 Kotlin 模块化视为第三方代码的隔离边界。
 
 ## 最小扩展示例
 
@@ -74,7 +74,7 @@ SQLite 将消息插入与会话标题/时间更新放进同一事务；参数绑
 
 ## 工具与权限
 
-ToolRegistry 提供描述、JSON 输入 schema、权限集合与确认要求。执行前必须通过 ToolAuthorization，再检查取消与注册有效性。授权拒绝不调用工具实现；卸载 disposer 撤销能力。第一版生产环境没有任何实际工具，也没有模型驱动的调用循环，所以不请求敏感 Android 权限。
+ToolRegistry 提供描述、JSON 输入 schema、权限集合与确认要求。执行前必须通过 ToolAuthorization，再检查取消与注册有效性。授权拒绝不调用工具实现；卸载 disposer 撤销能力。当前聊天使用有界工具循环；时间、记忆、MCP、Skills、工作区、终端、插件开发和联网搜索可由独立 JS/TS 插件提供。工具执行同时受角色白名单、确认/持久策略、宿主能力权限及实际 App/Root 身份检查限制。
 
 后续 Android 授权适配器要同时检查运行时权限、无障碍/调试等特殊授权、每次敏感动作确认和作用域策略。用户确认不能替代系统权限，也不能仅凭声明就认为能力已经授权。同进程插件仍可绕过接口访问 Android API；真正第三方隔离需独立进程或受限协议。
 
@@ -86,4 +86,4 @@ ToolRegistry 提供描述、JSON 输入 schema、权限集合与确认要求。�
 4. 注册 UI 设置卡片和能力展示，逐步增加 scoped registration。
 5. 需要重放和恢复时引入版本化持久事件日志，区分事实与瞬态流。
 
-当前设置只组合一个兼容模型、系统提示词与内置聊天 Agent；高级组合页面延期。长期扩展仍沿着契约/提供者/消费者分离，不把工具逻辑塞回 UI 或 Core。
+模型设置通过独立 ModelProfilesService 保存多组 OpenAI 兼容连接和任务绑定。聊天首轮使用聊天配置，模型提出工具调用后，后续轮次可使用另外的模型配置并接收完整上下文。工具后续配置在每次 Agent 执行开始时取快照。配置与任务绑定加密后一次提交，旧单模型配置可读取迁移；完整备份包含所有配置。其他协议、摘要模型、嵌入模型和本地推理继续沿着服务接口扩展，避免将 Provider 逻辑放入聊天 UI。

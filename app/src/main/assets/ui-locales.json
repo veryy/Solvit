@@ -439,6 +439,22 @@
     "es": "Ejecute comandos no interactivos como esta aplicación para acceder a los archivos y la red de la aplicación. Cada comando se inicia desde el directorio del espacio de trabajo.",
     "fr": "Exécutez des commandes non interactives en tant qu'application pour accéder aux fichiers et au réseau de l'application. Chaque commande est lancée depuis le répertoire de l'espace de travail."
   },
+  "任务模型": {
+    "zh": "任务模型",
+    "en": "task model",
+    "ja": "タスクモデル",
+    "ko": "작업 모델",
+    "es": "modelo de tarea",
+    "fr": "modèle de tâche"
+  },
+  "任务绑定的模型配置不存在": {
+    "zh": "任务绑定的模型配置不存在",
+    "en": "The model configuration for task binding does not exist",
+    "ja": "タスクバインディングのモデル構成が存在しません",
+    "ko": "작업 바인딩에 대한 모델 구성이 존재하지 않습니다.",
+    "es": "La configuración del modelo para el enlace de tareas no existe",
+    "fr": "La configuration du modèle pour la liaison de tâches n'existe pas"
+  },
   "你": {
     "zh": "你",
     "en": "You",
@@ -751,6 +767,14 @@
     "es": "Después de eliminar \"{0}\", el diálogo que lo utiliza requiere volver a seleccionar el carácter. Se conservará el historial de chat.",
     "fr": "Après avoir supprimé \"{0}\", le dialogue l'utilisant nécessite de resélectionner le caractère. L'historique des discussions sera conservé."
   },
+  "删除“{0}”的连接和密钥。聊天记录会保留。": {
+    "zh": "删除“{0}”的连接和密钥。聊天记录会保留。",
+    "en": "Delete connection and key for '{0}'. Chat history will be retained.",
+    "ja": "'{0}' の接続とキーを削除します。チャット履歴は残ります。",
+    "ko": "'{0}'에 대한 연결 및 키를 삭제합니다. 채팅 기록은 유지됩니다.",
+    "es": "Elimine la conexión y la clave para '{0}'. Se conservará el historial de chat.",
+    "fr": "Supprimez la connexion et la clé pour « {0} ». L'historique des discussions sera conservé."
+  },
   "删除下载": {
     "zh": "删除下载",
     "en": "Delete download",
@@ -782,6 +806,14 @@
     "ko": "스킬을 삭제하시겠습니까?",
     "es": "¿Eliminar habilidades?",
     "fr": "Supprimer des compétences ?"
+  },
+  "删除模型配置？": {
+    "zh": "删除模型配置？",
+    "en": "Delete model configuration?",
+    "ja": "モデル構成を削除しますか?",
+    "ko": "모델 구성을 삭제하시겠어요?",
+    "es": "¿Eliminar la configuración del modelo?",
+    "fr": "Supprimer la configuration du modèle ?"
   },
   "删除角色？": {
     "zh": "删除角色？",
@@ -999,13 +1031,13 @@
     "es": "Dirección:",
     "fr": "Adresse :"
   },
-  "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。": {
-    "zh": "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。",
-    "en": "The backup contains model address, API Key, prompt words, role, language and appearance settings. Files are encrypted with a password and can be restored after reinstalling or changing machines.",
-    "ja": "バックアップには、モデルのアドレス、API キー、プロンプトの単語、役割、言語、外観の設定が含まれています。ファイルはパスワードで暗号化されており、マシンを再インストールまたは変更した後に復元できます。",
-    "ko": "백업에는 모델 주소, API 키, 프롬프트 단어, 역할, 언어 및 모양 설정이 포함됩니다. 파일은 비밀번호로 암호화되며 기기를 재설치하거나 변경한 후에 복원할 수 있습니다.",
-    "es": "La copia de seguridad contiene la dirección del modelo, la clave API, las palabras clave, la función, el idioma y la configuración de apariencia. Los archivos se cifran con una contraseña y se pueden restaurar después de reinstalar o cambiar de máquina.",
-    "fr": "La sauvegarde contient l'adresse du modèle, la clé API, les mots d'invite, les paramètres de rôle, de langue et d'apparence. Les fichiers sont cryptés avec un mot de passe et peuvent être restaurés après réinstallation ou changement de machine."
+  "备份包含全部模型配置、API Key、提示词、任务模型绑定、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。": {
+    "zh": "备份包含全部模型配置、API Key、提示词、任务模型绑定、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。",
+    "en": "The backup contains all model configurations, API keys, prompt words, task model bindings, roles, languages ​​and appearance settings. Files are encrypted with a password and can be restored after reinstalling or changing machines.",
+    "ja": "バックアップには、すべてのモデル構成、API キー、プロンプトワード、タスクモデルバインディング、役割、言語、外観設定が含まれています。ファイルはパスワードで暗号化されており、マシンを再インストールまたは変更した後に復元できます。",
+    "ko": "백업에는 모든 모델 구성, API 키, 프롬프트 단어, 작업 모델 바인딩, 역할, 언어 및 모양 설정이 포함됩니다. 파일은 비밀번호로 암호화되며 기기를 재설치하거나 변경한 후에 복원할 수 있습니다.",
+    "es": "La copia de seguridad contiene todas las configuraciones del modelo, claves API, palabras de aviso, enlaces de modelos de tareas, roles, idiomas y configuraciones de apariencia. Los archivos se cifran con una contraseña y se pueden restaurar después de reinstalar o cambiar de máquina.",
+    "fr": "La sauvegarde contient toutes les configurations du modèle, les clés API, les mots d'invite, les liaisons du modèle de tâche, les rôles, les langues et les paramètres d'apparence. Les fichiers sont cryptés avec un mot de passe et peuvent être restaurés après réinstallation ou changement de machine."
   },
   "备份密码（至少 8 位）": {
     "zh": "备份密码（至少 8 位）",
@@ -1022,6 +1054,14 @@
     "ko": "백업 파일을 저장하지 못했습니다. 다시 시도해 주세요.",
     "es": "No se pudo guardar el archivo de respaldo, inténtelo nuevamente",
     "fr": "Échec de l'enregistrement du fichier de sauvegarde, veuillez réessayer"
+  },
+  "复制": {
+    "zh": "复制",
+    "en": "Copy",
+    "ja": "コピー",
+    "ko": "복사",
+    "es": "Copiar",
+    "fr": "Copier"
   },
   "复制到这轮回复为止的完整记录，包含工具结果和思考过程。": {
     "zh": "复制到这轮回复为止的完整记录，包含工具结果和思考过程。",
@@ -1231,6 +1271,14 @@
     "es": "Autorización sin herramientas",
     "fr": "Autorisation sans outil"
   },
+  "工具后续模型": {
+    "zh": "工具后续模型",
+    "en": "Tool follow-up model",
+    "ja": "ツールフォローアップモデル",
+    "ko": "도구 후속 모델",
+    "es": "Modelo de seguimiento de herramientas.",
+    "fr": "Modèle de suivi des outils"
+  },
   "工具授权服务不可用": {
     "zh": "工具授权服务不可用",
     "en": "Tool licensing service is unavailable",
@@ -1246,6 +1294,14 @@
     "ko": "도구 결과",
     "es": "Resultados de la herramienta",
     "fr": "Résultats de l'outil"
+  },
+  "已保存的配置": {
+    "zh": "已保存的配置",
+    "en": "Saved configuration",
+    "ja": "保存された設定",
+    "ko": "저장된 구성",
+    "es": "Configuración guardada",
+    "fr": "Configuration enregistrée"
   },
   "已停止": {
     "zh": "已停止",
@@ -1903,6 +1959,14 @@
     "es": "El modo normal utiliza la identidad de la aplicación; Root utiliza los permisos más altos del dispositivo. Cada complemento se selecciona individualmente y las llamadas de IA siguen la configuración de autorización de la herramienta. El cambio de modo detiene los comandos que está ejecutando el complemento.",
     "fr": "Le mode normal utilise l'identité de l'application ; Root utilise les autorisations les plus élevées de l'appareil. Chaque plugin est sélectionné individuellement et les appels AI suivent les paramètres d'autorisation de l'outil. Le changement de mode arrête les commandes exécutées par le plugin."
   },
+  "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。": {
+    "zh": "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。",
+    "en": "Normal chat uses the chat model; after a model initiates a tool call, subsequent rounds can use another model, which receives the full conversation and tool results. Inherit the chat model when not selected separately.",
+    "ja": "通常のチャットはチャット モデルを使用します。モデルがツール呼び出しを開始すると、後続のラウンドでは別のモデルを使用でき、完全な会話とツールの結果を受け取ります。別途選択しない場合はチャットモデルを継承します。",
+    "ko": "일반 채팅은 채팅 모델을 사용합니다. 모델이 도구 호출을 시작한 후 후속 라운드에서는 전체 대화 및 도구 결과를 수신하는 다른 모델을 사용할 수 있습니다. 별도로 선택하지 않으면 채팅 모델을 상속받습니다.",
+    "es": "El chat normal utiliza el modelo de chat; Después de que un modelo inicia una llamada a la herramienta, las rondas posteriores pueden usar otro modelo, que recibe la conversación completa y los resultados de la herramienta. Hereda el modelo de chat cuando no se selecciona por separado.",
+    "fr": "Le chat normal utilise le modèle de chat ; une fois qu'un modèle a lancé un appel d'outil, les cycles suivants peuvent utiliser un autre modèle, qui reçoit la conversation complète et les résultats de l'outil. Héritez du modèle de chat lorsqu'il n'est pas sélectionné séparément."
+  },
   "暂无插件，点击右上角刷新市场。": {
     "zh": "暂无插件，点击右上角刷新市场。",
     "en": "There is no plug-in yet, click on the upper right corner to refresh the market.",
@@ -2095,6 +2159,38 @@
     "es": "Configuración del modelo",
     "fr": "Configuration du modèle"
   },
+  "模型配置 ID 无效": {
+    "zh": "模型配置 ID 无效",
+    "en": "Invalid model configuration ID",
+    "ja": "無効なモデル構成 ID",
+    "ko": "잘못된 모델 구성 ID",
+    "es": "ID de configuración de modelo no válido",
+    "fr": "ID de configuration de modèle non valide"
+  },
+  "模型配置 ID 重复": {
+    "zh": "模型配置 ID 重复",
+    "en": "Duplicate model configuration ID",
+    "ja": "モデル構成 ID が重複しています",
+    "ko": "중복된 모델 구성 ID",
+    "es": "ID de configuración de modelo duplicado",
+    "fr": "ID de configuration du modèle en double"
+  },
+  "模型配置名称不能为空且不超过 80 字": {
+    "zh": "模型配置名称不能为空且不超过 80 字",
+    "en": "Model configuration name cannot be empty and cannot exceed 80 characters",
+    "ja": "モデル構成名は空にすることはできず、80 文字を超えることはできません",
+    "ko": "모델 구성 이름은 비워둘 수 없으며 80자를 초과할 수 없습니다.",
+    "es": "El nombre de la configuración del modelo no puede estar vacío y no puede exceder los 80 caracteres.",
+    "fr": "Le nom de la configuration du modèle ne peut pas être vide et ne peut pas dépasser 80 caractères"
+  },
+  "模型配置操作失败，请重试": {
+    "zh": "模型配置操作失败，请重试",
+    "en": "Model configuration operation failed, please try again",
+    "ja": "モデル構成操作が失敗しました。もう一度お試しください。",
+    "ko": "모델 구성 작업이 실패했습니다. 다시 시도해 주세요.",
+    "es": "La operación de configuración del modelo falló, inténtelo de nuevo",
+    "fr": "L'opération de configuration du modèle a échoué, veuillez réessayer"
+  },
   "模型配置无法解密，请在设置中重新保存 API Key": {
     "zh": "模型配置无法解密，请在设置中重新保存 API Key",
     "en": "The model configuration cannot be decrypted, please save the API Key again in the settings",
@@ -2103,13 +2199,13 @@
     "es": "La configuración del modelo no se puede descifrar. Guarde la clave API nuevamente en la configuración.",
     "fr": "La configuration du modèle ne peut pas être déchiffrée, veuillez enregistrer à nouveau la clé API dans les paramètres"
   },
-  "模型：{0}\n角色：{1} 个\n\n将替换当前模型和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。": {
-    "zh": "模型：{0}\n角色：{1} 个\n\n将替换当前模型和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。",
-    "en": "Models: {0}\nCharacters: {1}\n\nwill replace the current model and appearance configuration, and merge characters (same IDs will be overwritten). Plugins still need to be reinstalled and authorized.",
-    "ja": "モデル: {0}\nキャラクター: {1}\n\nは現在のモデルと外観構成を置き換え、キャラクターをマージします (同じ ID は上書きされます)。プラグインを再インストールして認証する必要があります。",
-    "ko": "모델: {0}\n문자: {1}\n\n는 현재 모델 및 모양 구성을 대체하고 문자를 병합합니다(동일한 ID는 덮어쓰게 됩니다). 플러그인을 다시 설치하고 승인해야 합니다.",
-    "es": "Modelos: {0}\nCaracteres: {1}\n\nreemplazará el modelo actual y la configuración de apariencia, y fusionará caracteres (se sobrescribirán los mismos ID). Aún es necesario reinstalar y autorizar los complementos.",
-    "fr": "Modèles : {0}\nCaractères : {1}\n\nremplacera le modèle et la configuration d'apparence actuels, et fusionnera les caractères (les mêmes identifiants seront écrasés). Les plugins doivent encore être réinstallés et autorisés."
+  "模型：{0}\n角色：{1} 个\n\n将替换全部模型配置、任务绑定和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。": {
+    "zh": "模型：{0}\n角色：{1} 个\n\n将替换全部模型配置、任务绑定和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。",
+    "en": "Models: {0}\nCharacters: {1}\n\nwill replace all model configurations, mission bindings, and appearance configurations, and merge characters (same IDs will be overwritten). Plugins still need to be reinstalled and authorized.",
+    "ja": "モデル: {0}\nキャラクター: {1}\n\nは、すべてのモデル構成、ミッション バインディング、および外観構成を置き換え、キャラクターをマージします (同じ ID は上書きされます)。プラグインを再インストールして認証する必要があります。",
+    "ko": "모델: {0}\n문자: {1}\n\n는 모든 모델 구성, 미션 바인딩, 외형 구성을 대체하고 문자를 병합합니다(동일한 ID는 덮어쓰게 됩니다). 플러그인을 다시 설치하고 승인해야 합니다.",
+    "es": "Modelos: {0}\nPersonajes: {1}\n\nreemplazará todas las configuraciones de modelo, enlaces de misión y configuraciones de apariencia, y fusionará personajes (se sobrescribirán las mismas ID). Aún es necesario reinstalar y autorizar los complementos.",
+    "fr": "Modèles : {0}\nCaractères : {1}\n\nremplacera toutes les configurations de modèle, les liaisons de mission et les configurations d'apparence, et fusionnera les caractères (les mêmes identifiants seront écrasés). Les plugins doivent encore être réinstallés et autorisés."
   },
   "正在回复…": {
     "zh": "正在回复…",
@@ -2134,6 +2230,14 @@
     "ko": "업데이트 확인 중…",
     "es": "Buscando actualizaciones...",
     "fr": "Vérification des mises à jour…"
+  },
+  "正在用于任务；删除前请先切换任务模型": {
+    "zh": "正在用于任务；删除前请先切换任务模型",
+    "en": "Currently being used for tasks; please switch task models before deleting.",
+    "ja": "現在タスクに使用されています。削除する前にタスク モデルを切り替えてください。",
+    "ko": "현재 작업에 사용되고 있습니다. 삭제하기 전에 작업 모델을 전환하세요.",
+    "es": "Actualmente se utiliza para tareas; cambie los modelos de tareas antes de eliminarlas.",
+    "fr": "Actuellement utilisé pour des tâches ; veuillez changer de modèle de tâche avant de supprimer."
   },
   "正在获取…": {
     "zh": "正在获取…",
@@ -2183,6 +2287,14 @@
     "es": "No se incluyen notas de actualización con esta versión.",
     "fr": "Aucune note de mise à jour n'est incluse avec cette version."
   },
+  "沿用聊天模型": {
+    "zh": "沿用聊天模型",
+    "en": "Follow the chat model",
+    "ja": "チャットモデルに従ってください",
+    "ko": "채팅 모델을 따르세요",
+    "es": "Sigue el modelo de chat",
+    "fr": "Suivez le modèle de chat"
+  },
   "浅色": {
     "zh": "浅色",
     "en": "Light",
@@ -2206,6 +2318,14 @@
     "ko": "다크",
     "es": "Oscuro",
     "fr": "Sombre"
+  },
+  "添加模型配置": {
+    "zh": "添加模型配置",
+    "en": "Add model configuration",
+    "ja": "モデル構成の追加",
+    "ko": "모델 구성 추가",
+    "es": "Agregar configuración de modelo",
+    "fr": "Ajouter une configuration de modèle"
   },
   "清除任务": {
     "zh": "清除任务",
@@ -2415,6 +2535,14 @@
     "es": "La conexión de red falló, verifique la dirección API y la red",
     "fr": "La connexion réseau a échoué, veuillez vérifier l'adresse API et le réseau"
   },
+  "聊天模型": {
+    "zh": "聊天模型",
+    "en": "chat model",
+    "ja": "チャットモデル",
+    "ko": "채팅 모델",
+    "es": "modelo de chat",
+    "fr": "modèle de discussion"
+  },
   "聊天记录、插件包、插件密钥和插件记忆暂不包含；Skills 可在技能库单独导出。卸载前请先备份，已删除且未备份的数据无法恢复。": {
     "zh": "聊天记录、插件包、插件密钥和插件记忆暂不包含；Skills 可在技能库单独导出。卸载前请先备份，已删除且未备份的数据无法恢复。",
     "en": "Chat records, plug-in packages, plug-in keys and plug-in memories are not included yet; Skills can be exported separately in the skill library. Please back up before uninstalling. Deleted and unbacked data cannot be recovered.",
@@ -2543,6 +2671,22 @@
     "es": "Utilice HTTPS; Los modelos locales pueden usar HTTP.",
     "fr": "Veuillez utiliser HTTPS ; les modèles locaux peuvent utiliser HTTP"
   },
+  "请保留 1 到 32 个模型配置": {
+    "zh": "请保留 1 到 32 个模型配置",
+    "en": "Please reserve 1 to 32 model configurations",
+    "ja": "1 ～ 32 のモデル構成を予約してください",
+    "ko": "1~32개의 모델 구성을 예약하세요.",
+    "es": "Reserve de 1 a 32 configuraciones de modelo",
+    "fr": "Veuillez réserver 1 à 32 configurations de modèles"
+  },
+  "请先停止生成，再修改模型配置": {
+    "zh": "请先停止生成，再修改模型配置",
+    "en": "Please stop generation first and then modify the model configuration.",
+    "ja": "生成を停止してからモデル構成を変更してください。",
+    "ko": "먼저 생성을 중지한 후 모델 구성을 수정하세요.",
+    "es": "Primero detenga la generación y luego modifique la configuración del modelo.",
+    "fr": "Veuillez d'abord arrêter la génération, puis modifier la configuration du modèle."
+  },
   "请先创建对话": {
     "zh": "请先创建对话",
     "en": "Please create a conversation first",
@@ -2558,6 +2702,14 @@
     "ko": "먼저 플러그인 페이지에서 Skills 스킬 라이브러리를 활성화하세요. SKILL.md, 단일 스킬의 텍스트 ZIP 또는 내보낸 JSON 패키지를 가져옵니다. 본문은 요청 시 로드되며 스크립트는 텍스트로만 저장됩니다.",
     "es": "Primero habilite la biblioteca de habilidades en la página del complemento. Importe SKILL.md, un ZIP de texto de una sola habilidad o un paquete JSON exportado; el cuerpo se carga a pedido y el guión se guarda solo como texto.",
     "fr": "Veuillez d'abord activer la bibliothèque de compétences Skills sur la page du plug-in. Importez SKILL.md, un texte ZIP d'une seule compétence ou un package JSON exporté ; le corps est chargé à la demande et le script est enregistré uniquement sous forme de texte."
+  },
+  "请先恢复模型配置备份": {
+    "zh": "请先恢复模型配置备份",
+    "en": "Please restore the model configuration backup first",
+    "ja": "まずモデル構成のバックアップを復元してください",
+    "ko": "먼저 모델 구성 백업을 복원하십시오.",
+    "es": "Primero restaure la copia de seguridad de la configuración del modelo.",
+    "fr": "Veuillez d'abord restaurer la sauvegarde de la configuration du modèle"
   },
   "请启用 Skills 插件，在技能库导入或刷新后选择。": {
     "zh": "请启用 Skills 插件，在技能库导入或刷新后选择。",
@@ -2598,6 +2750,14 @@
     "ko": "모델명을 입력하거나 모델 목록을 받아 선택하세요.",
     "es": "Ingrese el nombre del modelo u obtenga la lista de modelos y seleccione",
     "fr": "Veuillez entrer le nom du modèle ou obtenir la liste des modèles et sélectionner"
+  },
+  "请选择聊天模型": {
+    "zh": "请选择聊天模型",
+    "en": "Please select a chat model",
+    "ja": "チャットモデルを選択してください",
+    "ko": "채팅 모델을 선택하세요",
+    "es": "Por favor seleccione un modelo de chat",
+    "fr": "Veuillez sélectionner un modèle de chat"
   },
   "读取": {
     "zh": "读取",
@@ -2727,6 +2887,14 @@
     "es": "Conecta el modelo de tu preferencia",
     "fr": "Connectez le modèle de votre choix"
   },
+  "选择任务模型": {
+    "zh": "选择任务模型",
+    "en": "Select task model",
+    "ja": "タスクモデルの選択",
+    "ko": "작업 모델 선택",
+    "es": "Seleccionar modelo de tarea",
+    "fr": "Sélectionner un modèle de tâche"
+  },
   "选择模型": {
     "zh": "选择模型",
     "en": "Select model",
@@ -2742,6 +2910,14 @@
     "ko": "모델 선택({0})",
     "es": "Seleccionar modelo ({0})",
     "fr": "Sélectionnez le modèle ({0})"
+  },
+  "选择配置": {
+    "zh": "选择配置",
+    "en": "Select configuration",
+    "ja": "構成の選択",
+    "ko": "구성 선택",
+    "es": "Seleccionar configuración",
+    "fr": "Sélectionnez la configuration"
   },
   "配置 {0}": {
     "zh": "配置 {0}",
@@ -2766,6 +2942,14 @@
     "ko": "구성은 이 플러그인에만 제공되며 키 암호화는 로컬에 저장됩니다.",
     "es": "La configuración solo se proporciona a este complemento y el cifrado de clave se guarda localmente.",
     "fr": "La configuration est uniquement fournie à ce plugin et le cryptage de la clé est enregistré localement."
+  },
+  "配置名称": {
+    "zh": "配置名称",
+    "en": "Configuration name",
+    "ja": "構成名",
+    "ko": "구성 이름",
+    "es": "Nombre de configuración",
+    "fr": "Nom de la configuration"
   },
   "配置备份与恢复": {
     "zh": "配置备份与恢复",
@@ -2838,5 +3022,29 @@
     "ko": "기본 언어는 중국어이며 변경 즉시 적용됩니다",
     "es": "Chino por defecto; los cambios se aplican al instante",
     "fr": "Chinois par défaut ; les changements sont immédiats"
+  },
+  "默认配置": {
+    "zh": "默认配置",
+    "en": "Default configuration",
+    "ja": "デフォルト構成",
+    "ko": "기본 구성",
+    "es": "Configuración predeterminada",
+    "fr": "Configuration par défaut"
+  },
+  "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。": {
+    "zh": "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。",
+    "en": "The backup contains model address, API Key, prompt words, role, language and appearance settings. Files are encrypted with a password and can be restored after reinstalling or changing machines.",
+    "ja": "バックアップには、モデルのアドレス、API キー、プロンプトの単語、役割、言語、外観の設定が含まれています。ファイルはパスワードで暗号化されており、マシンを再インストールまたは変更した後に復元できます。",
+    "ko": "백업에는 모델 주소, API 키, 프롬프트 단어, 역할, 언어 및 모양 설정이 포함됩니다. 파일은 비밀번호로 암호화되며 기기를 재설치하거나 변경한 후에 복원할 수 있습니다.",
+    "es": "La copia de seguridad contiene la dirección del modelo, la clave API, las palabras clave, la función, el idioma y la configuración de apariencia. Los archivos se cifran con una contraseña y se pueden restaurar después de reinstalar o cambiar de máquina.",
+    "fr": "La sauvegarde contient l'adresse du modèle, la clé API, les mots d'invite, les paramètres de rôle, de langue et d'apparence. Les fichiers sont cryptés avec un mot de passe et peuvent être restaurés après réinstallation ou changement de machine."
+  },
+  "模型：{0}\n角色：{1} 个\n\n将替换当前模型和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。": {
+    "zh": "模型：{0}\n角色：{1} 个\n\n将替换当前模型和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。",
+    "en": "Models: {0}\nCharacters: {1}\n\nwill replace the current model and appearance configuration, and merge characters (same IDs will be overwritten). Plugins still need to be reinstalled and authorized.",
+    "ja": "モデル: {0}\nキャラクター: {1}\n\nは現在のモデルと外観構成を置き換え、キャラクターをマージします (同じ ID は上書きされます)。プラグインを再インストールして認証する必要があります。",
+    "ko": "모델: {0}\n문자: {1}\n\n는 현재 모델 및 모양 구성을 대체하고 문자를 병합합니다(동일한 ID는 덮어쓰게 됩니다). 플러그인을 다시 설치하고 승인해야 합니다.",
+    "es": "Modelos: {0}\nCaracteres: {1}\n\nreemplazará el modelo actual y la configuración de apariencia, y fusionará caracteres (se sobrescribirán los mismos ID). Aún es necesario reinstalar y autorizar los complementos.",
+    "fr": "Modèles : {0}\nCaractères : {1}\n\nremplacera le modèle et la configuration d'apparence actuels, et fusionnera les caractères (les mêmes identifiants seront écrasés). Les plugins doivent encore être réinstallés et autorisés."
   }
 }

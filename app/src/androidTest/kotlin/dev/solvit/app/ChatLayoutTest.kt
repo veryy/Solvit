@@ -401,6 +401,28 @@ class ChatLayoutTest {
             }
         }
     }
+    @Test fun modelProfilesUiSavesAndAssignsASeparateToolModel() {
+        ready()
+        val app=rule.activity.application as SolvitApplication
+        val previous=app.modelProfiles.state.value
+        try {
+            rule.onNodeWithContentDescription("设置").performClick()
+            rule.onNodeWithText("模型与连接").performClick()
+            rule.onNodeWithTag("new_model_profile").performScrollTo().performClick()
+            rule.onNodeWithTag("model_profile_name").performTextInput("UI task model")
+            rule.onNodeWithTag("save_model_profile").assertIsEnabled().performClick()
+            rule.waitUntil(8000) { app.modelProfiles.state.value.profiles.any { it.name=="UI task model" } }
+            val profile=app.modelProfiles.state.value.profiles.single { it.name=="UI task model" }
+            rule.onNodeWithTag("model_task_TOOL_FOLLOW_UP").performScrollTo().performClick()
+            rule.onNodeWithTag("choose_model_${profile.id}").performClick()
+            rule.waitUntil(8000) { app.modelProfiles.state.value.routes[ModelTask.TOOL_FOLLOW_UP]==profile.id }
+            val stored=runBlocking { app.settings.loadProfiles() }
+            assertEquals(profile.id,stored.routes[ModelTask.TOOL_FOLLOW_UP])
+            rule.onNodeWithTag("model_profiles_list").performScrollToNode(hasTestTag("edit_model_${profile.id}"))
+            rule.onNodeWithTag("edit_model_${profile.id}").performClick()
+            rule.onNodeWithTag("model_profile_name").assertTextContains("UI task model")
+        } finally { runBlocking { app.modelProfiles.replace(previous) } }
+    }
     @Test fun languageSwitchesImmediatelyAndSurvivesRecreation() {
         ready()
         val app = rule.activity.application as SolvitApplication
