@@ -14,6 +14,11 @@ class AgentExecutionContext : AbstractCoroutineContextElement(Key) {
         check(!closed) { "Agent 执行已经结束" }
         check(id !in resources); resources[id] = cancel
     }
+    /** Persistent resources can be reused by several tools in the same turn. */
+    @Synchronized fun ownIfAbsent(id: String, cancel: suspend () -> Unit) {
+        check(!closed) { "Agent 执行已经结束" }
+        if (id !in resources) resources[id] = cancel
+    }
     @Synchronized fun release() { closed = true; resources.clear() }
     suspend fun cancel() = withContext(NonCancellable) {
         val actions = synchronized(this@AgentExecutionContext) {

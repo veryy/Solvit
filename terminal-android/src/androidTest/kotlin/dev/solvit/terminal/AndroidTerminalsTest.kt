@@ -76,4 +76,17 @@ class AndroidTerminalsTest {
             assertTrue(service.open(workspace.id, shell.id).active)
         }
     }
+    @Test fun stoppingAgentTurnClosesARepeatedlyUsedTerminal() = runBlocking {
+        fixture { _, service, workspace, shell ->
+            val turn = AgentExecutionContext()
+            val session = withContext(turn) {
+                val terminal = service.open(workspace.id, shell.id)
+                service.input(workspace.id, terminal.id, "export AGENT_PTY=retained\n")
+                service.input(workspace.id, terminal.id, "sleep 30\n")
+                terminal
+            }
+            turn.cancel()
+            assertFalse(service.status(workspace.id, session.id).active)
+        }
+    }
 }

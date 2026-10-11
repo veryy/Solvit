@@ -77,7 +77,7 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
     private fun own(context: kotlin.coroutines.CoroutineContext, id: String) {
         val cleanup: suspend () -> Unit = { lock.withLock { synchronized(snapshots) { entries[id] }?.let { stop(it) } } }
         context[ToolInvocationContext]?.own("pty:$id", cleanup)
-        context[AgentExecutionContext]?.own("pty:$id", cleanup)
+        context[AgentExecutionContext]?.ownIfAbsent("pty:$id", cleanup)
     }
     private suspend fun collect(entry: Entry) {
         try {

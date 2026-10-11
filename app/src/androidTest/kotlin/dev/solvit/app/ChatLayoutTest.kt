@@ -134,7 +134,7 @@ class ChatLayoutTest {
                         assertEquals(ExecutionMode.APP, descriptor.executionMode); return true
                     }
                 }
-                withContext(ConversationContext("javascript-pty-emulator-test", workspace.id)) {
+                withContext(ConversationContext("javascript-pty-emulator-test", workspace.id) + AgentExecutionContext()) {
                     suspend fun invoke(name: String, args: JSONObject) = JSONObject(app.marketplace.runTool("dev_solvit_terminal_$name", args.toString(), authorization))
                     val id = invoke("terminal_open", JSONObject().put("shellId", shell.id)).getString("id")
                     assertEquals(id, invoke("terminal_open", JSONObject().put("shellId", shell.id)).getString("id"))
