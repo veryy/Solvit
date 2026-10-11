@@ -1,0 +1,56 @@
+package dev.solvit.provider
+
+import dev.solvit.core.*
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.runTest
+import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import kotlin.test.*
+
+class OpenAiProviderTest {
+    private suspend fun withServer(body: String, status: Int = 200, block: suspend (OpenAiProvider, ModelRequest, MockWebServer) -> Unit) {
+        val server = MockWebServer()
+        val client = OkHttpClient()
+        server.start()
+        server.enqueue(MockResponse().setResponseCode(status).setHeader("Content-Type", "text/event-stream").setBody(body))
+        try {
+            block(OpenAiProvider(client), ModelRequest(ModelConfig(server.url("/v1").toString(), "test-model", "private-key"), listOf(ModelMessage(Role.USER, "hello"))), server)
+        } finally { server.shutdown(); client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown() }
+    }
+
+    @Test fun streamsUnicodeIgnoresHeartbeatsAndSendsCorrectRequest() = runTest {
+        withServer(": heartbeat\n\ndata: {\"choices\":[{\"delta\":{\"content\":\"你好\"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"content\":\"！\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n") { provider, request, server ->
+            assertEquals(listOf(ModelChunk.Text("你好"), ModelChunk.Text("！"), ModelChunk.Done), provider.stream(request).toList())
+            val sent = server.takeRequest()
+            assertEquals("/v1/chat/completions", sent.path)
+            assertEquals("Bearer private-key", sent.getHeader("Authorization"))
+            assertTrue(sent.body.readUtf8().contains("test-model"))
+        }
+    }
+
+    @Test fun prematureDisconnectIsNotSuccessfulCompletion() = runTest {
+        withServer("data: {\"choices\":[{\"delta\":{\"content\":\"partial\"}}]}\n\n") { provider, request, _ ->
+            assertFailsWith<ModelException> { provider.stream(request).toList() }
+        }
+    }
+
+    @Test fun httpErrorsDoNotExposeRemoteBodyOrCredentials() = runTest {
+        withServer("private-key server debug details", 401) { provider, request, _ ->
+            val failure = assertFailsWith<ModelException> { provider.stream(request).toList() }
+            assertFalse(failure.message.orEmpty().contains("private-key"))
+        }
+    }
+
+    @Test fun dispatchesFinalEventWithoutTrailingBlankLine() = runTest {
+        withServer("data: {\"choices\":[{\"delta\":{\"content\":\"ok\"},\"finish_reason\":\"stop\"}]}") { provider, request, _ ->
+            assertEquals(listOf(ModelChunk.Text("ok"), ModelChunk.Done), provider.stream(request).toList())
+        }
+    }
+
+    @Test fun outputLimitFailsRatherThanSavingATruncatedReplyAsComplete() = runTest {
+        withServer("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"length\"}]}\n\n") { provider, request, _ ->
+            assertFailsWith<ModelException> { provider.stream(request).toList() }
+        }
+    }
+}

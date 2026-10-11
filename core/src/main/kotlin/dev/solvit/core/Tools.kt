@@ -1,0 +1,50 @@
+package dev.solvit.core
+
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+
+data class ToolDescriptor(
+    val name: String,
+    val description: String,
+    val inputSchema: String,
+    val androidPermissions: Set<String> = emptySet(),
+    val requiresConfirmation: Boolean = false,
+)
+interface SolvitTool {
+    val descriptor: ToolDescriptor
+    suspend fun execute(argumentsJson: String): String
+}
+interface ToolAuthorization {
+    /** Recheck OS permissions and user approval at execution time; deny by default. */
+    suspend fun authorize(descriptor: ToolDescriptor): Boolean
+}
+class ToolRegistry(private val events: EventBus) {
+    private val tools = linkedMapOf<String, SolvitTool>()
+    @Synchronized fun descriptors(): List<ToolDescriptor> = tools.values.map { it.descriptor }
+    @Synchronized fun register(tool: SolvitTool): () -> Unit {
+        val name = tool.descriptor.name
+        require(name.matches(Regex("[a-zA-Z0-9_-]{1,64}")))
+        check(name !in tools) { "Duplicate tool: $name" }
+        tools[name] = tool
+        events.publish(CoreEvent.ToolsChanged(tools.keys.toList()))
+        return { synchronized(this) {
+            if (tools[name] === tool) tools.remove(name)
+            events.publish(CoreEvent.ToolsChanged(tools.keys.toList()))
+        } }
+    }
+    suspend fun execute(name: String, argumentsJson: String, authorization: ToolAuthorization): String {
+        val tool = synchronized(this) { tools[name] } ?: error("Unknown tool: $name")
+        check(authorization.authorize(tool.descriptor)) { "Tool authorization denied" }
+        currentCoroutineContext().ensureActive()
+        check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
+        return tool.execute(argumentsJson)
+    }
+}
+
+class ToolsPlugin : SolvitPlugin {
+    override val id = "builtin.tools"
+    override val provides = setOf(Services.Tools)
+    override suspend fun enable(context: PluginContext) {
+        context.register(Services.Tools, ToolRegistry(context.events))
+    }
+}

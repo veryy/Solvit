@@ -1,0 +1,52 @@
+# Solvit
+
+轻量 Android AI 聊天 App，也是可组合 Agent 平台的第一步。Kotlin + Jetpack Compose + Material 3，Android 8.0+；Android 12+ 使用 Material You 动态配色，支持系统深色模式。
+
+## 第一版功能
+
+- OpenAI 兼容 Chat Completions：可配置基础地址、模型、API Key、系统提示词。
+- SSE 流式回复，停止生成，网络与认证错误提示。
+- 本机多会话历史、新建与删除、文字选择复制；SQLite 持久化。
+- API Key 使用 Android Keystore AES-GCM 加密保存，禁用应用备份。
+- 简单插件生命周期、类型化服务注册、声明式依赖、失败回滚、Coroutine 资源回收。
+- 可替换 Provider、存储、单次聊天 Agent 与 ChatService；工具注册与授权接口已预留。
+
+## 开始使用
+
+安装 debug APK 后，点击右上角模型设置：
+
+| 服务 | API 基础地址 | 模型示例 |
+| --- | --- | --- |
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
+| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
+| 本机兼容服务 | `http://127.0.0.1:8080/v1` | 服务提供的模型名 |
+
+不要在基础地址末尾填写 `/chat/completions`。HTTPS 远程服务可使用自定义路径；HTTP 仅允许 localhost、127.0.0.1、::1、模拟器宿主地址 10.0.2.2。无需认证的本地模型可以留空 API Key。模型名称和账户额度以实际服务为准。
+
+## 构建
+
+需要 JDK 17、Android SDK Platform 35、Build Tools 35.0.0。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
+
+```sh
+./gradlew :core:test :provider-openai:test :chat-runtime:test :app:lintDebug :app:assembleDebug
+```
+
+APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同命令并上传 APK 和测试报告。Gradle Wrapper 固定为 8.9。
+
+## 架构
+
+| 模块 | 职责 |
+| --- | --- |
+| `core` | 服务契约、插件管理、类型化事件、工具发现和授权接口，无 Android 依赖 |
+| `provider-openai` | OkHttp 网络与 SSE，独立注册 ModelProvider |
+| `storage-sqlite` | ChatStore 的 Android SQLite 实现 |
+| `chat-runtime` | 单次模型 Agent、消息结算、上下文和 ChatService 插件 |
+| `app` | 启动组合、加密设置、ViewModel、原生 UI |
+
+详细设计、参考源码、生命周期规则、扩展方式见 [架构说明](docs/architecture.md)。测试中的 Greeting 插件与 MemoryStore 演示服务扩展与存储替换。
+
+## 当前边界
+
+第一版仅聊天，不执行 Shell、文件操作或手机控制。没有插件市场、动态加载、完整工具调用循环、MCP、向量记忆、附件、Markdown 排版或后台持续执行。第三方代码与内置插件目前没有进程级隔离；权限声明仅是未来工具执行的门禁契约。聊天记录在应用私有 SQLite 中，未做数据库加密。
+
+停止或失败后的助手回复保留并标记，但不进入后续模型上下文；用户输入仍保留。进程被系统杀死时，未结算的流式片段可能丢失，已写入的用户消息和完整回复保留。完整上下文发送给配置的模型服务，较长对话目前需要新建对话。
