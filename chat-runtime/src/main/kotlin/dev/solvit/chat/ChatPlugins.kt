@@ -44,11 +44,12 @@ class DefaultChatService(
             events.publish(CoreEvent.MessageStored(sessionId, message.id))
         }
         suspend fun settle(status: MessageStatus) {
-            transcript.forEach { message -> persist(ChatMessage(
+            val batch = transcript.map { message -> ChatMessage(
                 UUID.randomUUID().toString(), sessionId, message.role, message.content, status,
                 toolCalls = message.toolCalls, toolCallId = message.toolCallId,
-            )) }
-            persist(ChatMessage(UUID.randomUUID().toString(), sessionId, Role.ASSISTANT, answer.toString(), status))
+            ) } + ChatMessage(UUID.randomUUID().toString(), sessionId, Role.ASSISTANT, answer.toString(), status)
+            store.appendBatch(batch)
+            batch.forEach { events.publish(CoreEvent.MessageStored(sessionId, it.id)) }
             settled = true
         }
         try {

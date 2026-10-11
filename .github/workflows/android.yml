@@ -37,7 +37,7 @@ jobs:
             exit 1
           fi
       - name: Tests, lint and APK
-        run: ./gradlew :core:test :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :app:lintDebug :app:assembleDebug --stacktrace
+        run: ./gradlew :core:test :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :app:lintDebug :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: solvit-debug-apk

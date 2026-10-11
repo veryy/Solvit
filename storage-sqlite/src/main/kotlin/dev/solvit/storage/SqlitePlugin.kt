@@ -61,8 +61,9 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         }) }
         return session
     }
-    override suspend fun append(message: ChatMessage) {
-        write { db ->
+    override suspend fun append(message: ChatMessage) { appendBatch(listOf(message)) }
+    override suspend fun appendBatch(messages: List<ChatMessage>) {
+        write { db -> messages.forEach { message ->
             val first = db.rawQuery("SELECT COUNT(*) FROM messages WHERE session_id=?", arrayOf(message.sessionId)).use { it.moveToFirst(); it.getLong(0) == 0L }
             db.insertOrThrow("messages", null, ContentValues().apply {
                 put("id", message.id); put("session_id", message.sessionId)
@@ -76,7 +77,7 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
                 put("updated_at", System.currentTimeMillis())
                 if (first && message.role == Role.USER) put("title", message.content.replace('\n', ' ').take(40))
             }, "id=?", arrayOf(message.sessionId)) == 1) { "Conversation no longer exists" }
-        }
+        } }
     }
     override suspend fun deleteSession(sessionId: String) { write { it.delete("sessions", "id=?", arrayOf(sessionId)) } }
     private fun decodeCalls(value: String): List<ToolCall> {

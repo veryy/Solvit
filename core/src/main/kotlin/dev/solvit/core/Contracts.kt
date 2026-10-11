@@ -68,6 +68,7 @@ interface ChatStore {
     suspend fun createSession(): ChatSession
     suspend fun history(sessionId: String): List<ChatMessage>
     suspend fun append(message: ChatMessage)
+    suspend fun appendBatch(messages: List<ChatMessage>) { messages.forEach { append(it) } }
     suspend fun deleteSession(sessionId: String)
 }
 enum class ToolStage { CONFIRMING, RUNNING, SUCCEEDED, FAILED, DENIED }

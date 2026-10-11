@@ -36,7 +36,7 @@
 需要 JDK 17、Android SDK Platform 36、Build Tools 36.0.0。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
 
 ```sh
-./gradlew :core:test :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :app:lintDebug :app:assembleDebug
+./gradlew :core:test :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同命令并上传 APK 和测试报告。Gradle Wrapper 固定为 9.3.1，AGP 9.1.1 使用内置 Kotlin，项目 Kotlin 版本 2.4.10，以接入具有超时与取消能力的 QuickJS 插件引擎。
