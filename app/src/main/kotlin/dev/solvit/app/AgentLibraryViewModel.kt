@@ -74,7 +74,7 @@ class AgentLibraryViewModel(
     }
     fun confirmImport(replace: Boolean) = operation {
         val bundle = pendingImport.value ?: return@operation
-        library.import(bundle, replace); pendingImport.value = null; skills.value = library.list()
+        library.importSkill(bundle, replace); pendingImport.value = null; skills.value = library.list()
     }
     fun removeSkill(name: String) = operation { library.remove(name); skills.value = library.list(); content.value = null }
     fun exportSkill(name: String, onReady: (String) -> Unit) = operation { onReady(library.export(name)) }

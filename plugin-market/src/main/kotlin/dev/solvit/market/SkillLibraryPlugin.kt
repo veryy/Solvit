@@ -82,7 +82,7 @@ class NativeSkillLibrary(private val market: MarketplaceService) : SkillLibraryS
         val result = call("skills_load", buildJsonObject { put("name", name) })
         return SkillContent(summary(result), result.getValue("instructions").jsonPrimitive.content)
     }
-    override suspend fun import(bundle: SkillBundle, replace: Boolean) {
+    override suspend fun importSkill(bundle: SkillBundle, replace: Boolean) {
         call("skills_import", buildJsonObject {
             putJsonObject("files") { bundle.files.forEach { (path, content) -> put(path, content) } }
             bundle.directory?.let { put("directory", it) }; put("replace", replace)

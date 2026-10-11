@@ -41,10 +41,10 @@ fun AgentLibraryDialog(vm: AgentLibraryViewModel, onDismiss: () -> Unit) {
     var replace by remember(pending) { mutableStateOf(false) }
     var exportText by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
-    val import = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val importPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) vm.prepareImport {
             withContext(Dispatchers.IO) {
-                context.contentResolver.openInputStream(uri)?.use(AgentLibraryViewModel::readImport) ?: error("无法读取技能文件")
+                context.contentResolver.openInputStream(uri)?.use { AgentLibraryViewModel.readImport(it) } ?: error("无法读取技能文件")
             }
         }
     }
@@ -92,7 +92,7 @@ fun AgentLibraryDialog(vm: AgentLibraryViewModel, onDismiss: () -> Unit) {
                         } else {
                             item { Text("请先在插件页启用 Skills 技能库。导入 SKILL.md、单个技能的文本 ZIP 或导出的 JSON 包；正文按需加载，脚本仅作为文本保存。") }
                             item { Row {
-                                Button(onClick = { import.launch(arrayOf("*/*")) }, enabled = !busy && installed.any { it.id == "dev.solvit.skills" && it.enabled }) { Text("导入技能") }
+                                Button(onClick = { importPicker.launch(arrayOf("*/*")) }, enabled = !busy && installed.any { it.id == "dev.solvit.skills" && it.enabled }) { Text("导入技能") }
                                 TextButton(onClick = vm::refreshSkills, enabled = !busy) { Text("刷新") }
                             } }
                             items(skills, key = { it.name }) { skill ->

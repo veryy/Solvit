@@ -7,7 +7,7 @@ interface SkillLibraryService {
     fun preview(bytes: ByteArray): SkillBundle
     suspend fun list(): List<SkillSummary>
     suspend fun load(name: String): SkillContent
-    suspend fun import(bundle: SkillBundle, replace: Boolean)
+    suspend fun importSkill(bundle: SkillBundle, replace: Boolean)
     suspend fun remove(name: String)
     suspend fun export(name: String): String
 }
