@@ -4,6 +4,7 @@ import dev.solvit.core.*
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -67,6 +68,9 @@ class DefaultContextPreparation(
         val prefix = history.take(boundary + 1)
         val text = try {
             withTimeout(60_000) { summarize(request.config, selected, policy, sessionId) }
+        } catch (e: TimeoutCancellationException) {
+            currentCoroutineContext().ensureActive()
+            throw ModelException("历史摘要超过 60 秒期限，原聊天记录和已有摘要已保留，请重试或调整上下文窗口")
         } finally { mutableProgress.value = null }
         currentCoroutineContext().ensureActive()
         val replacementMessages = messages.take(region.start) + ModelMessage(Role.USER, frame(text)) + messages.drop(region.endExclusive)

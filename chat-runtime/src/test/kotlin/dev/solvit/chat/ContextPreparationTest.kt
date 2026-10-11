@@ -110,4 +110,17 @@ class ContextPreparationTest {
         assertEquals(result, input.messages.last().content)
         assertFailsWith<ModelException> { service.prepare(request(rows).copy(tools = listOf(ToolDescriptor("huge", "x".repeat(10_000), "{}")))) }
     }
+    @Test fun summaryDeadlineProducesVisibleFailureInsteadOfLookingLikeUserCancellation() = runTest {
+        val rows = history(); val original = rows.toList(); val store = Store(rows)
+        val provider = object : ModelProvider {
+            override val id = "fixture"
+            override fun stream(request: ModelRequest) = flow<ModelChunk> { awaitCancellation() }
+        }
+        val service = DefaultContextPreparation(provider, store, BalancedContextBudgetPlanner())
+        var failure: ModelException? = null
+        val job = launch { try { service.prepare(request(rows)) } catch (e: ModelException) { failure = e } }
+        runCurrent(); advanceTimeBy(60_001); job.join()
+        assertTrue(assertNotNull(failure).message!!.contains("60 秒"))
+        assertNull(store.saved); assertEquals(original, rows); assertNull(service.progress.value)
+    }
 }

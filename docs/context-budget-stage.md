@@ -4,6 +4,8 @@
 
 参考锁定版本 DSH `packages/compaction/compaction-basic/src/config.ts` 的输出预留与 headroom，`src/region.ts` 的配对边界和摘要事务，以及 `tests/compaction-basic.spec.ts` 的完整工具组、失败与取消回归。参考其 `packages/core/agent-loop/src/agent.ts`，在每个模型请求之前准备上下文。继续遵守 Operit `MemoryAutoSaveScheduler.kt` 的任务数量及资源限制思路，将历史摘要与后台长期记忆抽取分开。采用职责与行为约束，未直接复制上游代码。
 
+另核对 DSH `packages/llm/token-meter/src/estimate.ts`（固定字符密度、消息结构和工具定义计价）、`route-pricing.ts`（按实际路由的投影定价）及 `turn-usage.ts`（Provider 实测 usage 单独核验）。Solvit 暂采用更保守的 UTF-8 估计，保留 `ContextTokenMeter` 的替换接口，并由 Provider 返回输出预留；不复制 DSH 的固定每四字符一 Token 去宣称中文或自定义模型的精确用量。
+
 ## 当前实现
 
 - `ContextBudgetPlanner` 是独立注册服务，可替换计量与区域规划。当前是保守 UTF-8 字节估计，计入身份/规则、Hook 资料、历史、原始转录、工具定义和消息开销；不是 Provider 实测 usage 或特定模型分词器。默认 65536 是本机预算，不能据此推断模型真实容量。按服务容量在模型配置的折叠“上下文管理”中设置窗口、输出预留、余量和自动摘要。
