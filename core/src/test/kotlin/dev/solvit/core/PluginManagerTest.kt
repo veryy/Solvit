@@ -71,6 +71,50 @@ class PluginManagerTest {
         assertFailsWith<IllegalStateException> { manager.enableAll() }
     }
 
+    @Test fun pluginIdDependenciesOrderActivationAndProtectUnloading() = runTest {
+        val manager = PluginManager(scope = backgroundScope)
+        val calls = mutableListOf<String>()
+        fun plugin(name: String, dependencies: Set<String>) = object : SolvitPlugin {
+            override val id = name
+            override val dependencies = dependencies
+            override suspend fun enable(context: PluginContext) {
+                calls += "enable:$id"
+                context.own { calls += "release:$id" }
+            }
+        }
+        manager.load(plugin("consumer", setOf("provider")))
+        manager.load(plugin("provider", emptySet()))
+        manager.enableAll()
+        assertEquals(listOf("enable:provider", "enable:consumer"), calls)
+        assertFailsWith<IllegalStateException> { manager.disable("provider") }
+        assertFailsWith<IllegalStateException> { manager.unload("provider") }
+        manager.shutdown()
+        assertEquals(listOf("enable:provider", "enable:consumer", "release:consumer", "release:provider"), calls)
+    }
+
+    @Test fun cyclicPluginIdsNeverActivateAndRollbackIndependentPlugins() = runTest {
+        val manager = PluginManager(scope = backgroundScope)
+        var released = false
+        manager.load(object : SolvitPlugin {
+            override val id = "independent"
+            override suspend fun enable(context: PluginContext) {
+                context.own { released = true }
+            }
+        })
+        for ((id, dependency) in listOf("a" to "b", "b" to "a")) {
+            manager.load(object : SolvitPlugin {
+                override val id = id
+                override val dependencies = setOf(dependency)
+                override suspend fun enable(context: PluginContext) { fail("Cyclic plugins must not activate") }
+            })
+        }
+        assertFailsWith<IllegalStateException> { manager.enableAll() }
+        assertTrue(released)
+        assertEquals(PluginState.DISABLED, manager.states.value["independent"])
+        assertEquals(PluginState.LOADED, manager.states.value["a"])
+        manager.shutdown()
+    }
+
     @Test fun reEnableCreatesFreshRegistrationAndCancelsOwnedWork() = runTest {
         val manager = PluginManager(scope = backgroundScope)
         var cancelled = 0
