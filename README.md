@@ -15,9 +15,9 @@
 
 [直接下载最新 APK](https://github.com/veryy/Solvit/releases/latest/download/solvit-debug.apk)，在 Android 手机上安装。版本说明见 [最新 Release](https://github.com/veryy/Solvit/releases/latest)。
 
-完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装、真实模型连接和交互体验尚未验证。
+完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.11.0 版本下载](https://github.com/veryy/Solvit/releases/tag/v0.11.0)，[102 个单元测试、Android 模拟器、Lint、APK 和固定签名验证通过](https://github.com/veryy/Solvit/actions/runs/38128106191)。工具调用与最终回复合并为同一聊天气泡，默认折叠工具及思考详情，并使用原生 Markdown 富文本渲染。新对话默认没有工作区，按需创建；配置模型后隐藏空白页的配置按钮。顶部提供设置入口；工作区 Shell 的输入框保持在键盘上方。原生 Android PTY 支持 JS/TS 插件调用。设置包含模型、角色与 Skills、插件、外观、备份、更新和关于；更新说明、下载进度均在应用内显示。
+[0.12.0 版本下载](https://github.com/veryy/Solvit/releases/tag/v0.12.0)，[109 个单元测试、Android 模拟器、Lint、APK 和固定签名验证通过](https://github.com/veryy/Solvit/actions/runs/38130101183)。消息菜单新增“从这里分支”和“编辑并分支”，原对话保持完整，完整工具轮次复制到独立记录；角色与已有工作区绑定继承。编辑问题会预填到新分支输入框，由用户发送。继续支持同一回复内折叠工具及思考、Markdown、按需工作区、键盘上方的输入区和 JS/TS 可调用的真实 PTY。设置包含模型、角色与 Skills、插件、外观、备份、更新和关于，更新说明与下载进度均在应用内显示。分支详情见 [聊天分支](docs/chat-branches.md)。
 
 **签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
 
@@ -102,6 +102,6 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 当前源码提供流式聊天、多会话、JS/TS 插件、[插件市场](https://solvit.207.57.126.73.sslip.io/)、有界工具循环、MCP/Skills、角色、模型列表获取、配置备份和应用内更新。测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
 
-当前 MCP 支持 HTTPS 工具发现、调用和按插件绑定角色；多服务器、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。工作区与 Shell 已接入 Android 宿主和终端 UI，支持普通命令、真实 PTY 和同一进程的持久环境；Shizuku、Linux 发行版和 SSH/SFTP 仍待实现。Markdown 富文本和折叠思考已发布，聊天分支正在接入；手机控制、向量记忆、附件、摘要、上下文管理和后台 Agent 持续执行仍待实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
+当前 MCP 支持 HTTPS 工具发现、调用和按插件绑定角色；多服务器、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。工作区与 Shell 已接入 Android 宿主和终端 UI，支持普通命令、真实 PTY 和同一进程的持久环境；Shizuku、Linux 发行版和 SSH/SFTP 仍待实现。Markdown 富文本和折叠思考已发布，聊天分支已接入；手机控制、向量记忆、附件、摘要、上下文管理和后台 Agent 持续执行仍待实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
 
 停止或失败后的助手回复保留并标记，但不进入后续模型上下文；用户输入仍保留。进程被系统杀死时，未结算的流式片段可能丢失，已写入的用户消息和完整回复保留。完整上下文发送给配置的模型服务，较长对话目前需要新建对话。
