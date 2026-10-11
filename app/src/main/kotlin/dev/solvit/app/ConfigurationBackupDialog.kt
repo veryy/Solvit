@@ -119,21 +119,27 @@ fun ConfigurationBackupDialog(vm: ChatViewModel, roles: RoleService, appearance:
             busy = true
             scope.launch {
                 val previousConfig = vm.config.value
-                val previousRoles = roles.roles().first()
+                var previousRoles = emptyList<AgentRole>()
+                var started = false
                 val previousTheme = appearance.theme.value; val previousDynamic = appearance.dynamicColors.value
                 try {
+                    previousRoles = roles.roles().first()
+                    check(!vm.busy.value && !vm.saving.value) { "请等待当前操作结束" }
                     require((previousRoles.map { it.id } + incoming.roles.map { it.id }).toSet().size <= 64)
+                    started = true
                     incoming.roles.forEach { roles.save(it) }
                     vm.restoreConfig(incoming.model)
                     appearance.setTheme(incoming.theme); appearance.setDynamicColors(incoming.dynamic)
                     preview = null; message = "配置已恢复，API Key 已重新加密保存在本机。"
                 } catch (e: Exception) {
-                    withContext(NonCancellable) { runCatching {
+                    val rolledBack = !started || withContext(NonCancellable) { runCatching {
                         incoming.roles.filter { r -> previousRoles.none { it.id == r.id } }.forEach { roles.delete(it.id) }
                         previousRoles.forEach { roles.save(it) }; vm.restoreConfig(previousConfig)
                         appearance.setTheme(previousTheme); appearance.setDynamicColors(previousDynamic)
-                    } }
-                    message = "恢复失败，请检查本机存储；已有配置已尝试恢复。"
+                    }.isSuccess }
+                    if (e is CancellationException) throw e
+                    message = if (rolledBack) "恢复失败，已有配置未修改或已恢复，请检查本机存储后重试。"
+                        else "恢复未完成且回滚失败，请保留备份文件并检查本机存储。"
                 } finally { busy = false }
             }
         }) { Text("确认恢复") } }, dismissButton = { TextButton(onClick = { preview = null }, enabled = !busy) { Text("取消") } }) }
