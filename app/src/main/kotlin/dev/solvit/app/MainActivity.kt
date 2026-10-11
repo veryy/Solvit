@@ -21,6 +21,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -135,6 +138,15 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     var deleteTarget by remember { mutableStateOf<ChatSession?>(null) }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val inputFocus = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(ready) {
+        if (ready && !settingsOpen && !modelsOpen && !pluginsOpen && !agentsOpen && !workspaceOpen) {
+            withFrameNanos { }
+            inputFocus.requestFocus()
+            keyboard?.show()
+        }
+    }
     val list = rememberLazyListState()
     LaunchedEffect(selected) { agents.setSession(selected); workspaces.selectChat(selected) }
     LaunchedEffect(messages.size, draft) {
@@ -186,8 +198,10 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                 )
             },
             bottomBar = {
-                Surface(tonalElevation = 2.dp) {
-                    Column(Modifier.navigationBarsPadding().imePadding().padding(12.dp)) {
+                Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    Surface(shape = RoundedCornerShape(28.dp), tonalElevation = 4.dp, shadowElevation = 4.dp) {
+                    Column(Modifier.padding(8.dp)) {
                         if (error != null) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Text(error!!, color = MaterialTheme.colorScheme.error,
@@ -197,16 +211,21 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                             if (errorDetails != null) TextButton(onClick = { showErrorDetails = true }) { Text("查看详细信息") }
                         }
                         Row(verticalAlignment = Alignment.Bottom) {
-                            OutlinedTextField(value = input, onValueChange = { input = it },
+                            TextField(value = input, onValueChange = { input = it },
                                 placeholder = { Text("问点什么，或描述你的想法…") },
-                                modifier = Modifier.weight(1f), maxLines = 5, enabled = ready,
-                                shape = RoundedCornerShape(24.dp))
+                                modifier = Modifier.weight(1f).focusRequester(inputFocus), maxLines = 5, enabled = ready,
+                                shape = RoundedCornerShape(24.dp),
+                                colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent,
+                                    focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
+                                    disabledIndicatorColor = Color.Transparent))
                             Spacer(Modifier.width(8.dp))
                             FilledIconButton(
                                 onClick = { if (busy) vm.stop() else if (vm.send(input)) input = "" },
                                 enabled = busy || (ready && input.isNotBlank() && !missingRole && !agentBusy), modifier = Modifier.size(52.dp),
                             ) { Icon(if (busy) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send, if (busy) "停止生成" else "发送") }
                         }
+                    }
                     }
                 }
             },
