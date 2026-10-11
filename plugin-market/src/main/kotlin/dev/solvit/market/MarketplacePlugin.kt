@@ -65,7 +65,8 @@ class AndroidMarketplace(
                     if (base.isFile && base.length() <= ScriptPackage.MAX_BYTES) {
                         val original = AtomicFile(base).readFully()
                         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(original).joinToString("") { "%02x".format(it) }
-                        if (digest == "511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445") {
+                        if (digest in setOf("511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445",
+                                "0f32b5b2e5e684b1d95b275b71d72864f9463cbd55eb549f150e2196a6e80ed7")) {
                             val payload = context.assets.open("builtin-plugins/$name").use { it.readBytes() }
                             ScriptPackage.parse(payload)
                             val atomic = AtomicFile(base); val stream = atomic.startWrite()

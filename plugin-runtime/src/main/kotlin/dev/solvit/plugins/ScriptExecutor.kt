@@ -61,13 +61,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     // parent native work to this invocation, including cleanup.
                     withContext(parent) {
                         if (operation == "clock.now") {
-                            val now = ZonedDateTime.now(TimeZone.getDefault().toZoneId())
-                            buildJsonObject {
-                                put("utc", now.toInstant().toString())
-                                put("localTime", now.toOffsetDateTime().toString())
-                                put("timezone", now.zone.id)
-                                put("timezoneOffsetMinutes", -now.offset.totalSeconds / 60)
-                            }.toString()
+                            clockSnapshot().toString()
                         } else host.call(pkg.manifest, operation, arguments).toString()
                     }
                 }

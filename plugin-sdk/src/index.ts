@@ -8,7 +8,8 @@ export interface PluginContext {
   /** API 4; operations are bound to the active chat and the exact approved tool arguments. */
   readonly workspace?: { call(operation: 'info' | 'read' | 'write' | 'createShell' | 'start' | 'status' | 'cancel', args?: JsonObject): Promise<JsonValue> };
   readonly plugins?: { draft(args: { manifestJson: string; source: string }): Promise<JsonValue> };
-  readonly clock?: { now(): Promise<{ utc: string; localTime: string; timezone: string; timezoneOffsetMinutes: number }> };
+  readonly clock?: { now(): Promise<{ utc: string; localTime: string; timezone: string; timezoneOffsetMinutes: number;
+    utcOffset?: string; weekday?: number; displayLocal?: string; displayUtc?: string }> };
   readonly role?: { readonly id: string; readonly name: string; readonly skillIds: readonly string[] } | null;
   readonly settings: { get(key: string): Promise<string | null> };
   readonly storage: {
