@@ -56,4 +56,13 @@ class ContextBudgetTest {
         assertTrue(region.endExclusive >= 6)
         assertEquals(Role.USER, messages[region.endExclusive].role)
     }
+    @Test fun pendingNativePrefixIsProtectedWhileClosedNativeTurnsCanBeSummarized() {
+        val native = ProviderTranscript("anthropic", "test", "[]", prefixHash = "a".repeat(64))
+        val messages = listOf(ModelMessage(Role.SYSTEM, "identity"), ModelMessage(Role.USER, "old"),
+            ModelMessage(Role.ASSISTANT, "x".repeat(4_000)), ModelMessage(Role.USER, "current"),
+            ModelMessage(Role.ASSISTANT, "", listOf(ToolCall("c", "run", "{}")), providerTranscript = native),
+            ModelMessage(Role.TOOL, "done", toolCallId = "c"))
+        assertNull(planner.plan(ModelRequest(ModelConfig(), messages), policy).region)
+        assertNotNull(planner.plan(ModelRequest(ModelConfig(), messages + ModelMessage(Role.USER, "next user turn")), policy).region)
+    }
 }

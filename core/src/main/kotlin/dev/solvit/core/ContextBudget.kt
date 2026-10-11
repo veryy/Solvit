@@ -76,6 +76,9 @@ class BalancedContextBudgetPlanner(private val meter: ContextTokenMeter = Utf8Co
         // Keep the complete current user turn (including all of its tool groups) verbatim.
         val lastUser = messages.indexOfLast { it.role == Role.USER }
         if (lastUser <= 0) return ContextBudgetPlan(measurement, null)
+        // Pending signed/native tool turns must retain the exact prefix used by their adapter.
+        if (messages.drop(lastUser + 1).any { it.toolCalls.isNotEmpty() && it.providerTranscript?.prefixHash?.isNotEmpty() == true })
+            return ContextBudgetPlan(measurement, null)
         val start = messages.indexOfFirst { it.role != Role.SYSTEM }
         if (start < 0 || start >= lastUser) return ContextBudgetPlan(measurement, null)
         if (messages.drop(start).any { it.role == Role.SYSTEM })

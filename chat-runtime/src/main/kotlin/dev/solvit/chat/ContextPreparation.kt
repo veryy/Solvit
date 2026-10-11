@@ -51,8 +51,11 @@ class DefaultContextPreparation(
         var plan = planner.plan(projected, policy)
         if (plan.measurement.fits) return projected.copy(contextMeasurement = plan.measurement)
         // Keep complete tool output whenever it fits; pruning is a response to actual pressure.
-        messages = messages.map { message ->
-            if (message.role == Role.TOOL) message.copy(content = clipToolResult(message.content, minOf(8_192, policy.inputTokens / 8))) else message
+        val lastUser = messages.indexOfLast { it.role == Role.USER }
+        val protectedThrough = messages.indices.lastOrNull { index -> index > lastUser && messages[index].toolCalls.isNotEmpty() &&
+            messages[index].providerTranscript?.prefixHash?.isNotEmpty() == true } ?: -1
+        messages = messages.mapIndexed { index, message ->
+            if (message.role == Role.TOOL && index > protectedThrough) message.copy(content = clipToolResult(message.content, minOf(8_192, policy.inputTokens / 8))) else message
         }
         projected = projected.copy(messages = messages)
         plan = planner.plan(projected, policy)
