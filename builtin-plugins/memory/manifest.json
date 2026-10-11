@@ -1,0 +1,238 @@
+{
+  "id": "dev.solvit.memory",
+  "name": "本地记忆",
+  "description": "纯 TypeScript 插件：记忆保存与合并、用户画像、关系图、文本分块和关键词检索。仅本机保存，所有工具调用逐次确认。",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "permissions": [
+    "storage"
+  ],
+  "dependencies": [],
+  "tools": [
+    {
+      "name": "memory_put",
+      "description": "保存明确的用户事实或偏好；同内容同类别会合并。传入 id 可修改已有记忆。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_extract",
+      "description": "把从对话中抽取的 1–20 条事实/偏好合并保存。只保存用户明确表达的内容，不猜测。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "facts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "text"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "facts"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_search",
+      "description": "按关键词搜索本地记忆、画像和文档分块，返回匹配来源。用于回答前查找用户之前提供的信息。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_list",
+      "description": "列出最近记忆、用户画像和文档 ID，可按类别过滤。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_delete",
+      "description": "按 ID 删除记忆及相关图关系。删除前确认用户意图。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_profile",
+      "description": "保存用户明确的画像属性，value 为 null 时删除。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_link",
+      "description": "连接两个已有记忆，描述关系；remove 为 true 时解除关系。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "relation": {
+            "type": "string"
+          },
+          "remove": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "relation"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_graph",
+      "description": "查询一个记忆及其直接关联的记忆和关系。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_document",
+      "description": "保存或更新文本资料并分块索引；remove 为 true 时删除。最多 30000 字符，按关键词检索。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "remove": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "memory_export",
+      "description": "导出本地记忆数据库供用户查看或备份，包含画像、关系和文档分块。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

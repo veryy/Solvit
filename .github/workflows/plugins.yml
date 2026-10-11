@@ -18,5 +18,11 @@ jobs:
           cache-dependency-path: plugin-sdk/package-lock.json
       - run: npm ci
         working-directory: plugin-sdk
+      - run: npm run build:builtins
+        working-directory: plugin-sdk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solvit-builtin-plugins
+          path: market-server/packages/*.solvit.json
       - run: npm run typecheck && npm test
         working-directory: plugin-sdk
