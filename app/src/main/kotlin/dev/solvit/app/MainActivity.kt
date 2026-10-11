@@ -56,7 +56,12 @@ class MainActivity : ComponentActivity() {
                                 override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings) as T
                             } }
                             val vm: ChatViewModel = viewModel(factory = factory)
-                            ChatScreen(vm)
+                            val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {
+                                @Suppress("UNCHECKED_CAST")
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = UpdateViewModel(app.updates) as T
+                            } }
+                            val updateVm: UpdateViewModel = viewModel(factory = updateFactory)
+                            ChatScreen(vm, updateVm)
                         }
                     }
                 }
@@ -80,7 +85,8 @@ private fun SolvitTheme(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChatScreen(vm: ChatViewModel) {
+private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel) {
+    val updateState by updates.state.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
     val messages by vm.messages.collectAsStateWithLifecycle()
     val selected by vm.sessionId.collectAsStateWithLifecycle()
@@ -136,6 +142,9 @@ private fun ChatScreen(vm: ChatViewModel) {
                     } },
                     navigationIcon = { IconButton(onClick = { scope.launch { drawer.open() } }) { Icon(Icons.Default.Menu, "对话历史") } },
                     actions = {
+                        IconButton(onClick = { updates.check() }, enabled = updateState != UpdateUiState.Checking) {
+                            Icon(Icons.Default.SystemUpdate, "检查更新")
+                        }
                         IconButton(onClick = vm::newChat, enabled = ready && !busy) { Icon(Icons.Default.Add, "新对话") }
                         IconButton(onClick = { settingsOpen = true }) { Icon(Icons.Default.Settings, "模型设置") }
                     },
@@ -168,8 +177,10 @@ private fun ChatScreen(vm: ChatViewModel) {
                 }
             },
         ) { padding ->
+            Column(Modifier.fillMaxSize().padding(padding)) {
+                AppUpdateCard(updateState, onDismiss = updates::dismiss, onRetry = { updates.check() })
             if (messages.isEmpty() && !busy) {
-                Column(Modifier.fillMaxSize().padding(padding).padding(32.dp), verticalArrangement = Arrangement.Center) {
+                Column(Modifier.weight(1f).fillMaxWidth().padding(32.dp), verticalArrangement = Arrangement.Center) {
                     Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
                     Spacer(Modifier.height(20.dp))
                     Text("从一个想法开始", style = MaterialTheme.typography.headlineLarge)
@@ -180,7 +191,7 @@ private fun ChatScreen(vm: ChatViewModel) {
                     OutlinedButton(onClick = { settingsOpen = true }) { Text("配置你的模型") }
                 }
             } else {
-                LazyColumn(state = list, modifier = Modifier.fillMaxSize().padding(padding),
+                LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(messages, key = { it.id }) { MessageCard(it) }
                     if (busy) item(key = "live") {
@@ -188,6 +199,7 @@ private fun ChatScreen(vm: ChatViewModel) {
                             if (draft.isEmpty()) "正在思考…" else draft))
                     }
                 }
+            }
             }
         }
     }

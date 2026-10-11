@@ -21,8 +21,20 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Android SDK
         run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Restore stable APK signing key
+        env:
+          SOLVIT_KEYSTORE: ${{ secrets.SOLVIT_DEBUG_KEYSTORE }}
+        run: |
+          if [ -n "$SOLVIT_KEYSTORE" ]; then
+            mkdir -p "$HOME/.android"
+            printf '%s' "$SOLVIT_KEYSTORE" | base64 --decode > "$HOME/.android/debug.keystore"
+            chmod 600 "$HOME/.android/debug.keystore"
+          elif [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo 'Missing stable APK signing key'
+            exit 1
+          fi
       - name: Tests, lint and APK
-        run: ./gradlew :core:test :provider-openai:test :chat-runtime:test :app:lintDebug :app:assembleDebug --stacktrace
+        run: ./gradlew :core:test :provider-openai:test :chat-runtime:test :release-updates:test :app:lintDebug :app:assembleDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: solvit-debug-apk
@@ -33,4 +45,5 @@ jobs:
           name: test-and-lint-reports
           path: |
             **/build/reports/tests/
+            **/build/test-results/test/
             app/build/reports/lint-results-debug.html
