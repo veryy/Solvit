@@ -44,11 +44,12 @@ fun RequestDiagnosticsDialog(inspection: RequestInspectionService, vm: ChatViewM
                     UiText("上下文估计：${measurement.estimatedTokens} / ${measurement.inputBudget}")
                     UiText("估计包含消息与工具定义，不是服务商实际 Token 用量。")
                 } }
-                if (summaries != null && request.sessionId != null) item {
+                val summarySessionId = request.sessionId
+                if (summaries != null && summarySessionId != null) item {
                     TextButton(onClick = {
                         showingSummary = true; summaryLoading = true; summaryError = false; summary = null
                         scope.launch {
-                            try { summary = summaries.summary(request.sessionId) }
+                            try { summary = summaries.summary(summarySessionId) }
                             catch (e: CancellationException) { throw e }
                             catch (e: Exception) { summaryError = true }
                             finally { summaryLoading = false }

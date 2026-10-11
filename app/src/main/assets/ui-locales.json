@@ -3814,5 +3814,109 @@
     "ko": "플러그인은 대화 맥락을 제공할 수 있으며 비활성화하면 제공이 중단됩니다.",
     "es": "El complemento puede aportar contexto al chat; al desactivarlo deja de hacerlo.",
     "fr": "Le plugin peut fournir du contexte au chat ; sa désactivation arrête ces contributions."
+  },
+  "上下文管理": {
+    "zh": "上下文管理",
+    "en": "Context management",
+    "ja": "コンテキスト管理",
+    "ko": "컨텍스트 관리",
+    "es": "Gestión del contexto",
+    "fr": "Gestion du contexte"
+  },
+  "上下文窗口": {
+    "zh": "上下文窗口",
+    "en": "Context window",
+    "ja": "コンテキストウィンドウ",
+    "ko": "컨텍스트 창",
+    "es": "Ventana de contexto",
+    "fr": "Fenêtre de contexte"
+  },
+  "输出预留": {
+    "zh": "输出预留",
+    "en": "Output reservation",
+    "ja": "出力用の予約枠",
+    "ko": "출력 예약량",
+    "es": "Reserva para salida",
+    "fr": "Réserve de sortie"
+  },
+  "压缩余量": {
+    "zh": "压缩余量",
+    "en": "Compaction headroom",
+    "ja": "圧縮の余裕",
+    "ko": "압축 여유",
+    "es": "Margen de compactación",
+    "fr": "Marge de compression"
+  },
+  "自动摘要旧回合": {
+    "zh": "自动摘要旧回合",
+    "en": "Automatically summarize older turns",
+    "ja": "古い会話を自動要約",
+    "ko": "이전 대화 자동 요약",
+    "es": "Resumir turnos anteriores automáticamente",
+    "fr": "Résumer automatiquement les anciens échanges"
+  },
+  "查看历史摘要": {
+    "zh": "查看历史摘要",
+    "en": "View history summary",
+    "ja": "履歴の要約を表示",
+    "ko": "대화 요약 보기",
+    "es": "Ver resumen del historial",
+    "fr": "Voir le résumé de l’historique"
+  },
+  "历史摘要": {
+    "zh": "历史摘要",
+    "en": "History summary",
+    "ja": "履歴の要約",
+    "ko": "대화 요약",
+    "es": "Resumen del historial",
+    "fr": "Résumé de l’historique"
+  },
+  "这个对话尚未生成摘要": {
+    "zh": "这个对话尚未生成摘要",
+    "en": "This chat has no summary yet",
+    "ja": "この会話にはまだ要約がありません",
+    "ko": "이 대화에는 아직 요약이 없습니다",
+    "es": "Este chat aún no tiene resumen",
+    "fr": "Cette conversation n’a pas encore de résumé"
+  },
+  "无法读取摘要，原聊天记录仍保留": {
+    "zh": "无法读取摘要，原聊天记录仍保留",
+    "en": "Could not read the summary. Original messages remain saved.",
+    "ja": "要約を読み込めません。元の会話は保存されています。",
+    "ko": "요약을 읽을 수 없습니다. 원본 대화는 보존됩니다.",
+    "es": "No se pudo leer el resumen. Se conservan los mensajes originales.",
+    "fr": "Impossible de lire le résumé. Les messages originaux sont conservés."
+  },
+  "原聊天记录保留；摘要只用于后续模型上下文。": {
+    "zh": "原聊天记录保留；摘要只用于后续模型上下文。",
+    "en": "Original messages remain saved; the summary is only used in later model context.",
+    "ja": "元の会話は保存されます。要約は以後のモデルコンテキストにのみ使われます。",
+    "ko": "원본 대화는 보존되며 요약은 이후 모델 컨텍스트에만 사용됩니다.",
+    "es": "Se conservan los mensajes originales; el resumen solo se usa en el contexto posterior del modelo.",
+    "fr": "Les messages originaux sont conservés ; le résumé sert uniquement au contexte ultérieur du modèle."
+  },
+  "上下文估计：{0} / {1}": {
+    "zh": "上下文估计：{0} / {1}",
+    "en": "Context estimate: {0} / {1}",
+    "ja": "コンテキスト推定：{0} / {1}",
+    "ko": "컨텍스트 추정: {0} / {1}",
+    "es": "Estimación del contexto: {0} / {1}",
+    "fr": "Estimation du contexte : {0} / {1}"
+  },
+  "估计包含消息与工具定义，不是服务商实际 Token 用量。": {
+    "zh": "估计包含消息与工具定义，不是服务商实际 Token 用量。",
+    "en": "The estimate includes messages and tool definitions, not actual provider token usage.",
+    "ja": "メッセージとツール定義を含む推定値であり、プロバイダーの実際のトークン使用量ではありません。",
+    "ko": "메시지와 도구 정의를 포함한 추정값이며 제공자의 실제 토큰 사용량이 아닙니다.",
+    "es": "La estimación incluye mensajes y herramientas, no el uso real de tokens del proveedor.",
+    "fr": "L’estimation comprend les messages et les outils, et non l’utilisation réelle des tokens du fournisseur."
+  },
+  "按服务实际容量设置窗口。使用保守 UTF-8 字节估计，并非模型实际 Token 用量；默认窗口是本机预算，不代表模型容量。摘要会额外调用当前模型，原聊天记录保留。": {
+    "zh": "按服务实际容量设置窗口。使用保守 UTF-8 字节估计，并非模型实际 Token 用量；默认窗口是本机预算，不代表模型容量。摘要会额外调用当前模型，原聊天记录保留。",
+    "en": "Set the window to your service capacity. The conservative UTF-8 byte estimate is not actual model token usage; the default is a local budget, not model capacity. Summaries make additional calls to the current model. Original messages remain saved.",
+    "ja": "サービスの容量に合わせて設定してください。保守的な UTF-8 バイト推定であり、実際のトークン使用量ではありません。既定値は端末の予算で、モデル容量ではありません。要約には追加のモデル呼び出しが必要です。元の会話は保存されます。",
+    "ko": "서비스 용량에 맞게 설정하세요. 보수적인 UTF-8 바이트 추정값으로 실제 토큰 사용량이 아닙니다. 기본값은 로컬 예산이며 모델 용량이 아닙니다. 요약에는 추가 모델 호출이 필요합니다. 원본 대화는 보존됩니다.",
+    "es": "Ajusta la ventana a la capacidad del servicio. La estimación conservadora de bytes UTF-8 no es el uso real de tokens. El valor predeterminado es un presupuesto local, no la capacidad del modelo. Los resúmenes requieren llamadas adicionales. Se conservan los mensajes originales.",
+    "fr": "Réglez la fenêtre selon la capacité du service. L’estimation prudente en octets UTF-8 n’est pas l’usage réel des tokens. La valeur par défaut est un budget local, pas la capacité du modèle. Les résumés nécessitent des appels supplémentaires. Les messages originaux sont conservés."
   }
 }

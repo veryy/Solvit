@@ -27,6 +27,52 @@ import org.json.JSONObject
 
 /** Runs against the actual app and OS keyboard, not a mock inset value. */
 class ChatLayoutTest {
+    @Test fun actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        runBlocking {
+            val chat = app.ready.value!!.getOrThrow(); val session = chat.createSession()
+            val role = AgentRole("context-" + java.util.UUID.randomUUID(), "Context fixture")
+            var summaryCalls = 0; var mainCalls = 0
+            val provider = object : ModelProvider {
+                override val id = "android-context-fixture"
+                override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                    if (request.config.systemPrompt.contains("旧对话压缩")) {
+                        summaryCalls++; assertTrue(request.tools.isEmpty())
+                        return kotlinx.coroutines.flow.flowOf(ModelChunk.Text("Previous tasks completed. Preserve remaining task."), ModelChunk.Done)
+                    }
+                    mainCalls++
+                    assertTrue(request.contextMeasurement!!.fits)
+                    if (mainCalls == 4) assertTrue(request.messages.any { it.content.contains("旧聊天历史摘要") })
+                    return kotlinx.coroutines.flow.flowOf(ModelChunk.Text(if (mainCalls < 4) "answer" + "x".repeat(2_300) else "final answer"), ModelChunk.Done)
+                }
+            }
+            val unregister = app.modelProviders.register(ModelProviderInfo(provider.id, "Context fixture", "https://example.com", "fixture"), provider)
+            try {
+                app.roles.save(role); app.roles.select(session.id, role.id)
+                val config = ModelConfig(providerId = provider.id, contextBudget = ContextBudgetPolicy(8_192, 1_024, 512))
+                repeat(4) { chat.send(session.id, "task $it", config).toList() }
+                assertEquals(4, mainCalls); assertTrue(summaryCalls > 0)
+                val summary = app.contextPreparation.summary(session.id)
+                assertNotNull(summary)
+                assertEquals(8, chat.messages(session.id).first().size)
+                assertTrue(chat.messages(session.id).first().any { it.content.length > 2_300 })
+                assertFalse(app.requestInspection.latest.value.toString().contains("Previous tasks"))
+            } finally { unregister(); chat.deleteSession(session.id); app.roles.delete(role.id) }
+        }
+    }
+
+    @Test fun contextBudgetDialogValidatesAndReturnsSavedValues() {
+        ready()
+        var saved: ContextBudgetPolicy? = null
+        rule.runOnUiThread { rule.activity.setContent { MaterialTheme { ContextBudgetDialog(ContextBudgetPolicy(), {}) { saved = it } } } }
+        rule.onNodeWithTag("context_window").performTextReplacement("4096")
+        rule.onNodeWithTag("save_context_budget").assertIsNotEnabled()
+        rule.onNodeWithTag("context_output").performTextReplacement("512")
+        rule.onNodeWithTag("context_automatic").performClick()
+        rule.onNodeWithTag("save_context_budget").performClick()
+        assertEquals(ContextBudgetPolicy(4_096, 512, 2_048, false), saved)
+    }
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
     private fun ready() {
         rule.waitUntil(30_000) { rule.onAllNodes(hasSetTextAction() and isFocused()).fetchSemanticsNodes().isNotEmpty() }

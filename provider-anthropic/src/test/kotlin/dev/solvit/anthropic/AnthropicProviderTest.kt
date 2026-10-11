@@ -28,6 +28,15 @@ private fun thinkingAndTool() = start()+
     delta(2,buildJsonObject { put("type","input_json_delta");put("partial_json","\"UTC\"}") }.toString())+stop(2)+end("tool_use")
 
 class AnthropicProviderTest {
+    @Test fun outputReservationIncludesNativeDefaultAndPendingToolTurnOptions() {
+        val provider = AnthropicProvider(OkHttpClient())
+        val config = ModelConfig(providerId = "anthropic", providerOptions = mapOf("max_tokens" to "2048"))
+        assertEquals(8_192, provider.reservedOutputTokens(ModelRequest(ModelConfig(providerId = "anthropic"), emptyList())))
+        val native = ProviderTranscript("anthropic", "test", "[]", mapOf("max_tokens" to "16384"))
+        val request = ModelRequest(config, listOf(ModelMessage(Role.USER, "task"),
+            ModelMessage(Role.ASSISTANT, "", listOf(ToolCall("c", "tool", "{}")), providerTranscript = native)))
+        assertEquals(16_384, provider.reservedOutputTokens(request))
+    }
     private suspend fun server(block:suspend (MockWebServer,OkHttpClient,ModelConfig)->Unit) {
         val server=MockWebServer();server.start()
         val client=OkHttpClient.Builder().followRedirects(false).readTimeout(5,TimeUnit.SECONDS).build()

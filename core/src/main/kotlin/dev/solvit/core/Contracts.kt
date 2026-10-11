@@ -102,6 +102,9 @@ sealed interface ModelChunk {
 interface ModelProvider {
     val id: String
     fun validate(config: ModelConfig): String? = config.validate()
+    /** Adapter-owned output reservation, including parameters retained by a pending native tool turn. */
+    fun reservedOutputTokens(request: ModelRequest): Int = maxOf(request.config.contextBudget.outputTokens,
+        request.config.providerOptions["max_tokens"]?.toIntOrNull() ?: 0)
     fun stream(request: ModelRequest): Flow<ModelChunk>
 }
 /** Diagnostics are already redacted by the provider; never include request prompts. */

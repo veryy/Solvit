@@ -14,6 +14,13 @@ import java.util.concurrent.TimeUnit
 class AnthropicProvider(private val client: OkHttpClient) : ModelProvider {
     override val id = ANTHROPIC_ID
     override fun validate(config:ModelConfig):String? = config.validate() ?: optionError(config.providerOptions)
+    override fun reservedOutputTokens(request: ModelRequest): Int {
+        val lastUser = request.messages.indexOfLast { it.role == Role.USER }
+        val pending = request.messages.drop(lastUser + 1).lastOrNull { it.toolCalls.isNotEmpty() && it.providerTranscript?.providerId == "anthropic" }
+        val value = if (pending != null) pending.providerTranscript!!.options["max_tokens"] ?: "8192"
+            else request.config.providerOptions["max_tokens"] ?: "8192"
+        return value.toInt()
+    }
     override fun stream(request:ModelRequest):Flow<ModelChunk> = flow {
         validate(request.config)?.let { throw ModelException(it) }
         val native = nativeRequest(request)

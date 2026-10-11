@@ -16,6 +16,17 @@ import kotlin.test.*
 class ModelProfilesTest {
     private val context get()=RuntimeEnvironment.getApplication()
     @Before fun clear() { context.getSharedPreferences("model",0).edit().clear().commit() }
+    @Test fun contextBudgetSurvivesEncryptedProfilesBackupAndLegacyDefaults() = runBlocking {
+        val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+        val budget = ContextBudgetPolicy(32_768, 4_096, 1_024, false)
+        val settings = EncryptedSettingsStore(context) { key }
+        settings.save(ModelConfig(contextBudget = budget))
+        assertEquals(budget, EncryptedSettingsStore(context) { key }.load().contextBudget)
+        val backup = encodeModelProfiles(settings.loadProfiles())
+        assertEquals(budget, decodeModelProfiles(backup).selected(ModelTask.CHAT)!!.config.contextBudget)
+        backup.getJSONArray("profiles").getJSONObject(0).getJSONObject("config").remove("context")
+        assertEquals(ContextBudgetPolicy(), decodeModelProfiles(backup).selected(ModelTask.CHAT)!!.config.contextBudget)
+    }
     @Test fun nativeProtocolOptionsSurviveEncryptedSettingsAndBackupWithLegacyDefault()=runBlocking {
         val key=KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
         val config=ModelConfig("https://api.anthropic.com/v1","native-model","PRIVATE_KEY",providerId="anthropic",

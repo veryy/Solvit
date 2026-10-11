@@ -38,6 +38,7 @@ class ModelRoutingPlugin : SolvitPlugin {
         val registry=context.require(ModelProvidersServiceKey)
         context.register(Services.Model,object:ModelProvider {
             override val id="model-router"
+            override fun reservedOutputTokens(request: ModelRequest) = registry.provider(request.config.providerId).reservedOutputTokens(request)
             override fun stream(request:ModelRequest)=flow { emitAll(registry.provider(request.config.providerId).stream(request)) }
         })
         context.register(ModelCatalogServiceKey,object:ModelCatalogService {

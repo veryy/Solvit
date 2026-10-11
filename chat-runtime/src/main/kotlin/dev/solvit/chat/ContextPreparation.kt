@@ -22,8 +22,7 @@ class DefaultContextPreparation(
 ) : ContextPreparationService {
     override suspend fun summary(sessionId: String) = store.contextSummary(sessionId)
     override suspend fun prepare(request: ModelRequest): ModelRequest {
-        val policy = request.config.contextBudget.copy(outputTokens = maxOf(request.config.contextBudget.outputTokens,
-            request.config.providerOptions["max_tokens"]?.toIntOrNull() ?: 0))
+        val policy = request.config.contextBudget.copy(outputTokens = maxOf(request.config.contextBudget.outputTokens, provider.reservedOutputTokens(request)))
         policy.validate()
         val sessionId = request.sessionId
         val history = if (sessionId == null) emptyList() else store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
