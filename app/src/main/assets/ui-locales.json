@@ -4182,5 +4182,93 @@
     "ko": "응답 메시지: {0}",
     "es": "Mensaje de respuesta: {0}",
     "fr": "Message de réponse : {0}"
+  },
+  "记忆管理": {
+    "zh": "记忆管理",
+    "en": "Memory management",
+    "ja": "メモリ管理",
+    "ko": "메모리 관리",
+    "es": "Gestión de memoria",
+    "fr": "Gestion de la mémoire"
+  },
+  "查看来源、修改与删除已保存事实": {
+    "zh": "查看来源、修改与删除已保存事实",
+    "en": "View sources, edit and delete saved facts",
+    "ja": "保存済みの事実の出典確認・編集・削除",
+    "ko": "저장된 사실의 출처 보기, 수정 및 삭제",
+    "es": "Ver fuentes, editar y borrar hechos guardados",
+    "fr": "Voir les sources, modifier et supprimer les faits"
+  },
+  "查看所有角色的已保存事实；停用插件后仍可修改或删除。": {
+    "zh": "查看所有角色的已保存事实；停用插件后仍可修改或删除。",
+    "en": "View saved facts for all roles. Editing and deletion remain available with the plugin disabled.",
+    "ja": "すべての役割の保存済み事実を表示します。プラグイン無効時も編集・削除できます。",
+    "ko": "모든 역할의 저장된 사실을 봅니다. 플러그인이 꺼져 있어도 수정 및 삭제할 수 있습니다.",
+    "es": "Ver hechos de todos los roles. Se pueden editar y borrar con el complemento desactivado.",
+    "fr": "Voir les faits de tous les rôles. Modification et suppression restent possibles si le plugin est désactivé."
+  },
+  "记忆操作未完成，请刷新核对数据。": {
+    "zh": "记忆操作未完成，请刷新核对数据。",
+    "en": "Memory operation did not complete. Refresh to check the data.",
+    "ja": "メモリ操作が完了しませんでした。更新してデータを確認してください。",
+    "ko": "메모리 작업이 완료되지 않았습니다. 새로고침하여 데이터를 확인하세요.",
+    "es": "La operación no se completó. Actualiza para comprobar los datos.",
+    "fr": "Opération inachevée. Actualisez pour vérifier les données."
+  },
+  "暂无已保存记忆": {
+    "zh": "暂无已保存记忆",
+    "en": "No saved memories",
+    "ja": "保存済みメモリはありません",
+    "ko": "저장된 메모리가 없습니다",
+    "es": "No hay recuerdos guardados",
+    "fr": "Aucune mémoire enregistrée"
+  },
+  "来自对话中的用户原文": {
+    "zh": "来自对话中的用户原文",
+    "en": "From the original user message",
+    "ja": "ユーザーの元の発言から",
+    "ko": "사용자 원문에서 가져옴",
+    "es": "Del mensaje original del usuario",
+    "fr": "Issu du message original de l’utilisateur"
+  },
+  "已人工修改": {
+    "zh": "已人工修改",
+    "en": "Edited manually",
+    "ja": "手動で編集済み",
+    "ko": "수동 수정됨",
+    "es": "Editado manualmente",
+    "fr": "Modifié manuellement"
+  },
+  "修改记忆": {
+    "zh": "修改记忆",
+    "en": "Edit memory",
+    "ja": "メモリを編集",
+    "ko": "메모리 수정",
+    "es": "Editar recuerdo",
+    "fr": "Modifier la mémoire"
+  },
+  "记忆内容": {
+    "zh": "记忆内容",
+    "en": "Memory content",
+    "ja": "メモリの内容",
+    "ko": "메모리 내용",
+    "es": "Contenido del recuerdo",
+    "fr": "Contenu de la mémoire"
+  },
+  "删除记忆": {
+    "zh": "删除记忆",
+    "en": "Delete memory",
+    "ja": "メモリを削除",
+    "ko": "메모리 삭제",
+    "es": "Borrar recuerdo",
+    "fr": "Supprimer la mémoire"
+  },
+  "删除此事实。保留来源去重记录，避免任务重试重新生成。": {
+    "zh": "删除此事实。保留来源去重记录，避免任务重试重新生成。",
+    "en": "Delete this fact. Retain source deduplication records to prevent retries from recreating it.",
+    "ja": "この事実を削除します。再試行による再生成を防ぐため、出典の重複防止記録は保持します。",
+    "ko": "이 사실을 삭제합니다. 재시도로 다시 생성되지 않도록 출처 중복 방지 기록은 유지합니다.",
+    "es": "Borrar este hecho. Se conserva el registro de origen para impedir que un reintento lo recree.",
+    "fr": "Supprimer ce fait. Conserver le registre des sources pour empêcher sa recréation lors d’une relance."
   }
 }
