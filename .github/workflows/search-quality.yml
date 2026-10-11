@@ -1,7 +1,9 @@
 name: Public search quality
 on:
   workflow_dispatch:
+  workflow_call:
   push:
+    branches: ['**']
     paths: ['builtin-plugins/web-search/**', 'plugin-sdk/scripts/check-browser-search-quality.mjs', 'market-server/packages/dev.solvit.web-search.solvit.json', 'web-android/**', '.github/workflows/search-quality.yml']
 permissions:
   contents: read

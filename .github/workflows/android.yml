@@ -125,9 +125,12 @@ jobs:
   verify-plugins:
     if: startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/plugins.yml
+  verify-search:
+    if: startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/search-quality.yml
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, verify-ui, verify-plugins]
+    needs: [build, verify-ui, verify-plugins, verify-search]
     runs-on: ubuntu-latest
     permissions:
       contents: write
