@@ -1,11 +1,12 @@
 {
   "id": "dev.solvit.memory",
   "name": "本地记忆",
-  "description": "TS 本地记忆：启用后自动将相关已保存记录和用户画像提供给当前模型，可在插件配置中关闭。保存、更新和删除仍需工具授权。",
-  "version": "1.1.0",
-  "apiVersion": 7,
+  "description": "TS 本地记忆：自动检索已保存资料；可明确开启后台抽取，按角色关联原消息保存。支持查看来源、手动修改与删除。后台调用模型可能产生费用。",
+  "version": "1.2.0",
+  "apiVersion": 8,
   "permissions": [
-    "storage"
+    "storage",
+    "model"
   ],
   "dependencies": [],
   "tools": [
@@ -236,7 +237,8 @@
     }
   ],
   "hooks": [
-    "beforeModel"
+    "beforeModel",
+    "afterTurn"
   ],
   "settings": [
     {
@@ -244,6 +246,13 @@
       "label": "自动将相关记忆用于聊天",
       "kind": "boolean",
       "defaultValue": "true"
+    },
+    {
+      "key": "autoSave",
+      "label": "回复完成后自动保存明确的用户事实（额外模型调用）",
+      "kind": "boolean",
+      "defaultValue": "false"
     }
-  ]
+  ],
+  "afterTurnEnabledSetting": "autoSave"
 }

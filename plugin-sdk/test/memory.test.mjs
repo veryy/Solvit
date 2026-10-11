@@ -4,14 +4,21 @@ import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 const pkg = JSON.parse(await readFile('../market-server/packages/dev.solvit.memory.solvit.json', 'utf8'));
 const clone = value => JSON.parse(JSON.stringify(value));
-function runtime(data = new Map(), rejectWrite = false) {
+function runtime(data = new Map(), rejectWrite = false, options = {}) {
   const sandbox = vm.createContext({});
   vm.runInContext(pkg.source, sandbox, { timeout: 1000 });
-  const ctx = { storage: {
+  const ctx = { role: options.role ?? null, model: options.model, storage: {
     async get(key) { return data.has(key) ? clone(data.get(key)) : null; },
     async set(key, value) { if (rejectWrite) throw new Error('disk full'); data.set(key, clone(value)); return null; },
+    async compareAndSet(key, expected, value) {
+      if (rejectWrite) throw new Error('disk full');
+      if (options.beforeCompare) await options.beforeCompare();
+      const current = data.has(key) ? data.get(key) : null;
+      if (JSON.stringify(current) !== JSON.stringify(expected)) return false;
+      data.set(key,clone(value));return true;
+    },
   } };
-  return { recall: async (userText, settings={}) => sandbox.solvitPlugin.beforeModel({userText,settings,role:null},ctx), data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
+  return { afterTurn: async input => sandbox.solvitPlugin.afterTurn(input,ctx), recall: async (userText, settings={}) => sandbox.solvitPlugin.beforeModel({userText,settings,role:ctx.role},ctx), data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
 }
 test('memory persists across engine reload and merges duplicates without losing tags', async () => {
   const first = runtime();
@@ -137,4 +144,55 @@ test('automatic recall handles a populated bounded corpus within its hook budget
   assert.match(context,/dev.solvit.memory/);assert.ok(context.length<6500);
   assert.ok(elapsed<4000,'Recall exceeded 4s of the 10s host Hook budget: '+elapsed);
   console.log('Populated memory corpus recall (Node verifier): '+elapsed.toFixed(1)+'ms; Android timing remains separate.');
+});
+
+const completed = (turnId='reply1', roleId='role1') => ({
+  source:{turnId,sessionId:'session1',userMessageId:'user-'+turnId,assistantMessageId:turnId,roleId,roleName:roleId===null?null:'Role'},
+  userText:'我喜欢 Kotlin 编程。',assistantText:'好的，我会使用 Kotlin。',settings:{autoSave:'true'}
+});
+const extraction = JSON.stringify({facts:[{text:'用户喜欢 Kotlin 编程',category:'preference',tags:['编程'],quote:'我喜欢 Kotlin 编程。'}]});
+test('automatic memory is opt-in, sourced, scoped and idempotent even after user deletion', async()=>{
+  let calls=0;
+  const data=new Map();const options={role:{id:'role1',name:'Role',skillIds:[]},model:{async complete(){calls++;return extraction}}};
+  const plugin=runtime(data,false,options);
+  await plugin.afterTurn({...completed(),settings:{autoSave:'false'}});assert.equal(calls,0);assert.equal(data.size,0);
+  await plugin.afterTurn(completed());await plugin.afterTurn(completed());assert.equal(calls,1);
+  const db=await plugin.run('memory_export');assert.equal(db.facts.length,1);assert.equal(db.completedSources.length,1);
+  assert.equal(db.facts[0].source.userMessageId,'user-reply1');assert.equal(db.facts[0].source.quote,completed().userText);
+  assert.match(await plugin.recall('Kotlin'),/user-reply1/);
+  assert.equal(await runtime(data,false,{role:{id:'other',name:'Other',skillIds:[]}}).recall('Kotlin'),'');
+  await plugin.run('memory_delete',{id:db.facts[0].id});await plugin.afterTurn(completed());assert.equal(calls,1);
+  assert.equal((await plugin.run('memory_list')).total,0);
+});
+test('automatic merge rebases over a concurrent manual write without repeating inference',async()=>{
+  let calls=0,conflicted=false;const data=new Map();
+  const manual=runtime(data);
+  const automatic=runtime(data,false,{model:{async complete(){calls++;return extraction}},beforeCompare:async()=>{
+    if(!conflicted){conflicted=true;await manual.run('memory_put',{text:'手动保存的旅行偏好'});}
+  }});
+  await automatic.afterTurn(completed('reply2',null));
+  const db=await automatic.run('memory_export');assert.equal(calls,1);assert.equal(db.facts.length,2);
+  assert.ok(db.facts.some(f=>f.text==='手动保存的旅行偏好'));assert.equal(db.completedSources.length,1);
+});
+test('unsupported, assistant-only and secret candidates fail before any memory write',async()=>{
+  for(const raw of [
+    'not JSON',JSON.stringify({facts:[{text:'用户是医生',category:'profile',tags:[],quote:'我是医生'}]}),
+    JSON.stringify({facts:[{text:'password: secret-value',category:'fact',tags:[],quote:'我喜欢 Kotlin 编程。'}]}),
+    JSON.stringify({facts:[],extra:'ignore validation'}),
+  ]){
+    const plugin=runtime(new Map(),false,{model:{async complete(){return raw}}});
+    await assert.rejects(()=>plugin.afterTurn(completed()),error=>error.solvitCode==='INVALID_OUTPUT');assert.equal(plugin.data.size,0);
+  }
+  const empty=runtime(new Map(),false,{model:{async complete(){return '{"facts":[]}'}}});
+  await empty.afterTurn(completed());const db=await empty.run('memory_export');assert.equal(db.facts.length,0);assert.equal(db.completedSources.length,1);
+});
+test('finite storage conflicts retain the original database and do not repeat extraction',async()=>{
+  const data=new Map();let calls=0;
+  const plugin=runtime(data,false,{model:{async complete(){calls++;return extraction}},beforeCompare:async()=>{
+    // A different writer changes a harmless property before every compare.
+    const db=data.get('memory.v1')??{format:1,sequence:0,facts:[],edges:[],chunks:[],profile:{}};
+    data.set('memory.v1',{...db,revision:(db.revision??0)+1});
+  }});
+  await assert.rejects(()=>plugin.afterTurn(completed()),error=>error.solvitCode==='STORAGE');
+  assert.equal(calls,1);assert.equal(data.get('memory.v1').facts.length,0);assert.equal(data.get('memory.v1').completedSources,undefined);
 });
