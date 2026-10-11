@@ -69,17 +69,26 @@ class ScriptRuntimeTest {
     @Test fun cancellingEvaluationCancelsPendingNativeHostWorkBeforeReturning() = runBlocking<Unit> {
         val started = CompletableDeferred<Unit>()
         val cancelled = CompletableDeferred<Unit>()
-        val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo:async args=>await ctx.storage.get('wait')}};", listOf("storage")),
-            ScriptHost { _, _, _ ->
-                started.complete(Unit)
-                try { awaitCancellation() } finally { cancelled.complete(Unit) }
+        var calls = 0
+        var deactivated = false
+        val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo:async args=>await ctx.storage.get('wait')},deactivate:async()=>await ctx.storage.get('stopped')};", listOf("storage")),
+            ScriptHost { _, _, arguments ->
+                if (arguments["key"]?.jsonPrimitive?.content == "stopped") {
+                    deactivated = true
+                    JsonNull
+                } else if (++calls == 1) {
+                    started.complete(Unit)
+                    try { awaitCancellation() } finally { cancelled.complete(Unit) }
+                } else JsonPrimitive("reused")
             })
         executor.start()
         try {
             val job = launch { executor.execute("echo", "{}") }
             withTimeout(5_000) { started.await(); job.cancelAndJoin() }
             assertTrue(cancelled.isCompleted)
+            assertEquals("\"reused\"", executor.execute("echo", "{}"))
         } finally { executor.stop() }
+        assertTrue(deactivated)
     }
 
     @Test fun toolRegistrationsDisappearWhenPluginUnloads() = runBlocking<Unit> {

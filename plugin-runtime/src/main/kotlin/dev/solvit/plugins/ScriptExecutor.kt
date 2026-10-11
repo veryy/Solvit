@@ -86,7 +86,24 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
             withTimeout(timeoutMs + 1_000) {
                 executionJob = currentCoroutineContext().job
                 try {
-                    js.evaluate<String>("JSON.stringify(await solvitPlugin.tools[${JsonPrimitive(tool)}](JSON.parse(${JsonPrimitive(input.toString())}), ctx))")
+                    // Resolve the JS evaluation with an explicit result envelope.
+                    // After Kotlin cancels an evaluation, a native binding may
+                    // still reject its JS promise. Catch that rejection inside
+                    // JS so it cannot poison the next invocation or deactivate.
+                    val outcome = Json.parseToJsonElement(js.evaluate<String>("""
+                        await (async () => {
+                          try {
+                            const value = await solvitPlugin.tools[${JsonPrimitive(tool)}](JSON.parse(${JsonPrimitive(input.toString())}), ctx);
+                            return JSON.stringify({ok: true, result: JSON.stringify(value) ?? 'null'});
+                          } catch (error) {
+                            return JSON.stringify({ok: false, error: String(error?.message ?? error)});
+                          }
+                        })()
+                    """.trimIndent())).jsonObject
+                    check(outcome.getValue("ok").jsonPrimitive.boolean) {
+                        outcome.getValue("error").jsonPrimitive.content
+                    }
+                    outcome.getValue("result").jsonPrimitive.content
                 } finally { executionJob = null }
             }
         }
