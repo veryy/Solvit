@@ -1,0 +1,22 @@
+name: TypeScript plugins
+on:
+  push:
+    paths: ['plugin-sdk/**', 'plugin-examples/**', 'builtin-plugins/**', 'market-server/packages/**', '.github/workflows/plugins.yml']
+  pull_request:
+    paths: ['plugin-sdk/**', 'plugin-examples/**', 'builtin-plugins/**', 'market-server/packages/**', '.github/workflows/plugins.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: plugin-sdk/package-lock.json
+      - run: npm ci
+        working-directory: plugin-sdk
+      - run: npm run typecheck && npm test
+        working-directory: plugin-sdk

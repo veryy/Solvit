@@ -1,0 +1,5 @@
+{
+  "id": "example.echo", "name": "TS 示例", "description": "使用 TS SDK 打包的示例工具",
+  "version": "1.0.0", "apiVersion": 1, "permissions": [], "dependencies": [],
+  "tools": [{"name":"echo","description":"重复输入文本","inputSchema":{"type":"object","properties":{"text":{"type":"string"}},"required":["text"],"additionalProperties":false}}]
+}
