@@ -17,14 +17,16 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 
 class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
-    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 5) {
+    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 6) {
         override fun onConfigure(db: SQLiteDatabase) { db.setForeignKeyConstraintsEnabled(true) }
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT NOT NULL, updated_at INTEGER NOT NULL, origin_session_id TEXT, origin_message_id TEXT)")
             db.execSQL("CREATE TABLE messages (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, role TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL, tool_calls TEXT NOT NULL DEFAULT '[]', tool_call_id TEXT, reasoning TEXT NOT NULL DEFAULT '', tool_stage TEXT, provider_transcript TEXT)")
             db.execSQL("CREATE INDEX messages_session ON messages(session_id, sequence)")
+            createSummaryTable(db)
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+            if (oldVersion < 6) createSummaryTable(db)
             if (oldVersion < 5) db.execSQL("ALTER TABLE messages ADD COLUMN provider_transcript TEXT")
             if (oldVersion < 2) {
                 db.execSQL("ALTER TABLE messages ADD COLUMN tool_calls TEXT NOT NULL DEFAULT '[]'")
@@ -66,6 +68,34 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     }.distinctUntilChanged()
     override fun messages(sessionId: String): Flow<List<ChatMessage>> = revision.map { history(sessionId) }.distinctUntilChanged()
     override suspend fun history(sessionId: String): List<ChatMessage> = read { history(it, sessionId) }
+    override suspend fun contextSummary(sessionId: String): ContextSummary? = read { loadSummary(it, sessionId) }
+    override suspend fun saveContextSummary(sessionId: String, expected: ContextSummary?, replacement: ContextSummary): Boolean {
+        replacement.validate()
+        return write { db ->
+            if (loadSummary(db, sessionId) != expected) return@write false
+            val history = history(db, sessionId).filter { it.status == MessageStatus.COMPLETE }
+            val boundary = history.indexOfFirst { it.id == replacement.throughMessageId }
+            if (boundary < 0 || boundary + 1 != replacement.messageCount) return@write false
+            if (contextPrefixDigest(history.take(boundary + 1)) != replacement.prefixDigest) return@write false
+            if (expected != null && replacement.messageCount <= expected.messageCount) return@write false
+            db.insertWithOnConflict("context_summaries", null, ContentValues().apply {
+                put("session_id", sessionId); put("payload", encodeSummary(replacement).toString())
+            }, SQLiteDatabase.CONFLICT_REPLACE) != -1L
+        }
+    }
+    private fun loadSummary(db: SQLiteDatabase, sessionId: String): ContextSummary? =
+        db.rawQuery("SELECT payload FROM context_summaries WHERE session_id=?", arrayOf(sessionId)).use { c ->
+            if (!c.moveToFirst()) null else decodeSummary(JSONObject(c.getString(0)))
+        }
+    private fun encodeSummary(s: ContextSummary) = JSONObject().put("id", s.id).put("through", s.throughMessageId)
+        .put("digest", s.prefixDigest).put("count", s.messageCount).put("text", s.text).put("provider", s.providerId)
+        .put("model", s.model).put("before", s.estimatedBefore).put("after", s.estimatedAfter).put("created", s.createdAt)
+    private fun decodeSummary(j: JSONObject) = ContextSummary(j.getString("id"), j.getString("through"), j.getString("digest"),
+        j.getInt("count"), j.getString("text"), j.getString("provider"), j.getString("model"), j.getLong("before"),
+        j.getLong("after"), j.getLong("created")).also { it.validate() }
+    private fun createSummaryTable(db: SQLiteDatabase) {
+        db.execSQL("CREATE TABLE context_summaries (session_id TEXT PRIMARY KEY REFERENCES sessions(id) ON DELETE CASCADE, payload TEXT NOT NULL)")
+    }
     private fun history(db: SQLiteDatabase, sessionId: String): List<ChatMessage> =
         db.rawQuery("""SELECT id,role,substr(CAST(content AS BLOB),1,$READ_CHUNK),status,
             substr(CAST(tool_calls AS BLOB),1,$READ_CHUNK),tool_call_id,

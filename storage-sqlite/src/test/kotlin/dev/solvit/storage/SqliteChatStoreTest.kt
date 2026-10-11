@@ -20,6 +20,31 @@ class SqliteChatStoreTest {
     @Before fun before() { context.deleteDatabase("solvit.db") }
     @After fun after() { context.deleteDatabase("solvit.db") }
 
+    @Test fun summaryCommitsAgainstExactPrefixSurvivesRestartAndLeavesOriginalHistory() = runBlocking<Unit> {
+        lateinit var session: ChatSession
+        lateinit var summary: ContextSummary
+        SqliteChatStore(context).use { store ->
+            session = store.createSession()
+            val history = listOf(ChatMessage("u", session.id, Role.USER, "old task"), ChatMessage("a", session.id, Role.ASSISTANT, "old answer"))
+            store.appendBatch(history)
+            summary = ContextSummary("s1", "a", contextPrefixDigest(history), 2, "Task completed; keep preference", "test", "model", 1_000, 100, 1)
+            assertFalse(store.saveContextSummary(session.id, null, summary.copy(prefixDigest = "0".repeat(64))))
+            assertTrue(store.saveContextSummary(session.id, null, summary))
+            assertFalse(store.saveContextSummary(session.id, null, summary.copy(id = "stale")))
+            assertEquals(history, store.history(session.id))
+            store.append(ChatMessage("next", session.id, Role.USER, "new task"))
+            assertEquals(summary, store.contextSummary(session.id))
+            val branch = store.forkSession(session.id, BranchPoint("a", BranchMode.AFTER_REPLY))
+            assertNull(store.contextSummary(branch.id))
+        }
+        SqliteChatStore(context).use { store ->
+            assertEquals(summary, store.contextSummary(session.id))
+            assertEquals(3, store.history(session.id).size)
+            store.deleteSession(session.id)
+            assertNull(store.contextSummary(session.id))
+        }
+    }
+
     @Test fun chunkedHistoryPreservesUnicodeAcrossByteBoundariesAndEmbeddedNuls() = runBlocking<Unit> {
         val text="a".repeat(16*1024-1)+"🚀中文\u0000"+"尾".repeat(30_000)
         val native=ProviderTranscript("anthropic","test",org.json.JSONArray().put(org.json.JSONObject().put("type","text").put("text",text)).toString())

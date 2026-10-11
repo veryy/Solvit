@@ -115,6 +115,9 @@ interface ChatStore {
     /** Implementations must copy a stable prefix atomically, with fresh message IDs. */
     suspend fun forkSession(sessionId: String, point: BranchPoint): ChatSession = error("当前存储不支持聊天分支")
     suspend fun history(sessionId: String): List<ChatMessage>
+    suspend fun contextSummary(sessionId: String): ContextSummary? = null
+    /** Compare-and-swap plus prefix validation in one transaction. Unsupported stores return false. */
+    suspend fun saveContextSummary(sessionId: String, expected: ContextSummary?, replacement: ContextSummary): Boolean = false
     suspend fun append(message: ChatMessage)
     suspend fun appendBatch(messages: List<ChatMessage>) { messages.forEach { append(it) } }
     suspend fun deleteSession(sessionId: String)
