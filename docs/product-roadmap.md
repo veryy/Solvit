@@ -26,6 +26,7 @@
 - 0.14.0：多组加密模型配置和聊天/工具后续轮次分别选择模型已提交，[123 个单元测试、24 个模拟器测试、Lint、APK 和签名通过](https://github.com/veryy/Solvit/actions/runs/38138273585)，覆盖配置迁移、备份序列化、双 HTTP 服务路由与原生设置操作。多协议、本地推理及其余清单继续推进。
 
 - 0.15.0：Claude 原生协议、Provider 注册/路由、原始签名转录、独立模型目录和声明式协议设置已实现；[145 个单元测试、26 个模拟器测试、Lint、APK 和签名通过](https://github.com/veryy/Solvit/actions/runs/38144065045)，包括连续工具回传、跨协议任务路由、长记录重开/分支、协议参数持久化与旧 APK 覆盖更新。真实 Claude 账户和真机仍待验。
+- 0.15.1：按用户优先级暂停 Gemini，先补齐默认/自定义角色身份、逐字显示、语言弹窗、插件网格与免配置公开搜索；[Android 测试、Lint、模拟器、覆盖升级和签名验证通过](https://github.com/veryy/Solvit/actions/runs/38152202018)，[TS 与公网搜索验证通过](https://github.com/veryy/Solvit/actions/runs/38149487718)。实际模型身份回答和真机联动仍需验证。
 
 ## 工作清单
 

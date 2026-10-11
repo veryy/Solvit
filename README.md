@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.15.0 版本下载](https://github.com/veryy/Solvit/releases/tag/v0.15.0)，[145 个单元测试、26 个 Android 模拟器测试、Lint、APK 和固定签名验证通过](https://github.com/veryy/Solvit/actions/runs/38144065045)。新增 Claude 原生协议、独立 Provider 注册与路由、带签名思考和工具结果回传；实际 HTTP 验证连续工具轮次及跨协议任务切换。原生转录贯穿历史与分支，长记录按字节分块读取。协议与参数纳入加密配置和备份。继续支持六种界面语言、联网搜索、实时流式回复和 ANSI 终端。详情见 [版本说明](docs/release-0.15.0.md)、[Claude 插件](docs/anthropic-provider.md)、[界面语言](docs/localization.md) 和 [完整产品进度](docs/product-roadmap.md)。
+[0.15.1 修复版下载](https://github.com/veryy/Solvit/releases/tag/v0.15.1)。补齐默认与自定义角色身份，收到整块文本时也逐字显示；语言移到设置底部的弹窗入口，插件改成紧凑网格与详情弹窗，去掉试运行。联网搜索启用即可使用公开 Bing，无需配置密钥。包含 0.15.0 的全部功能；验证状态见 [版本说明](docs/release-0.15.1.md)，设计与未完成范围见 [完整产品进度](docs/product-roadmap.md)。
 
 **签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
 
@@ -35,7 +35,7 @@
 
 点击“获取模型”可从上述地址的 `/models` 拉取名称，搜索并选择后保存；供应商提供单独 JSON 订阅链接时，可填写“模型列表 / 订阅地址”。不提供列表接口的服务仍可手动填写模型名。支持格式、凭据规则及验证边界见 [获取模型列表](docs/model-discovery.md)。
 
-联网搜索见 [配置说明](docs/web-search.md)：独立 TS 插件支持 Tavily、SearXNG 与智谱，搜索结果和静态网页正文直接返回模型并包含来源链接。
+联网搜索见 [使用说明](docs/web-search.md)：独立 TS 插件默认访问公开 Bing，启用后无需配置；可选 Tavily、SearXNG 与智谱。搜索结果和静态网页正文直接返回模型并包含来源链接。
 
 ## 在聊天中使用插件工具
 
