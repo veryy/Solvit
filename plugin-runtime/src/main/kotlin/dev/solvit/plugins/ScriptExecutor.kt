@@ -17,7 +17,7 @@ fun interface ScriptHost {
 /** One engine per enabled plugin; no Java reflection or implicit OS access. */
 class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHost, private val timeoutMs: Long = 30_000) {
     private val mutex = Mutex()
-    private var engine: QuickJs? = null
+    @Volatile private var engine: QuickJs? = null
 
     suspend fun start() = mutex.withLock {
         check(engine == null) { "插件已启用" }
@@ -30,6 +30,12 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                 js.asyncFunction("__solvitHostCall") { args ->
                     val operation = args[0] as String
                     val arguments = Json.parseToJsonElement(args[1] as String).jsonObject
+                    val permission = when (operation) {
+                        "storage.get", "storage.set" -> "storage"
+                        "http.request" -> "network"
+                        else -> error("宿主未开放此操作")
+                    }
+                    check(permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
                     host.call(pkg.manifest, operation, arguments).toString()
                 }
                 withTimeout(timeoutMs) {
