@@ -115,4 +115,51 @@ class PostTurnScriptTest {
             } finally { cold.stop() }
         }
     }
+    @Test fun unloadingPluginCancelsItsBackgroundModelAndPreventsLateWrites() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val manager = PluginManager(scope = scope)
+        val entered = CompletableDeferred<Unit>(); val cancelled = CompletableDeferred<Unit>()
+        var writes = 0
+        val model = PostTurnModel { _, _ ->
+            entered.complete(Unit)
+            try { awaitCancellation() } finally { cancelled.complete(Unit) }
+        }
+        val host = ScriptHost { _, operation, args -> when (operation) {
+            "settings.get" -> JsonPrimitive("true")
+            "model.complete" -> JsonPrimitive(currentCoroutineContext()[PostTurnExecutionContext]!!.complete(
+                args.getValue("instructions").jsonPrimitive.content, args.getValue("input").jsonPrimitive.content))
+            "storage.set" -> { writes++; JsonNull }
+            else -> error("Unexpected operation")
+        } }
+        val source = """globalThis.solvitPlugin={tools:{echo:args=>args},beforeModel:()=>'',
+          afterTurn:async(input,ctx)=>{await ctx.model.complete({instructions:'extract',input:'text'});await ctx.storage.set('late',true)}};"""
+        try {
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin())
+            manager.load(ScriptToolPlugin(pkg(source), host)); manager.enableAll()
+            val registry = manager.registry.require(PostTurnHookServiceKey)
+            val target = registry.admit(null).single()
+            val task = launch(PostTurnExecutionContext(target, model) {}) { registry.resolve(target)!!.process(input(target), model) }
+            withTimeout(5_000) { entered.await(); manager.unload(target.pluginId); task.join(); cancelled.await() }
+            assertEquals(0, writes); assertNull(registry.resolve(target))
+        } finally { manager.shutdown(); scope.cancel() }
+    }
+
+    @Test fun safeFailureCodesSurviveJavaScriptPromiseRejection() = runBlocking<Unit> {
+        val source = """globalThis.solvitPlugin={tools:{echo:args=>args},beforeModel:()=>'',
+          afterTurn:async()=>{const error=new Error('untrusted detail');error.solvitCode='INVALID_OUTPUT';throw error}};"""
+        val packageValue = pkg(source)
+        val target = PostTurnTarget(packageValue.manifest.id, "1.0.0", "0".repeat(64))
+        val execution = PostTurnExecutionContext(target, PostTurnModel { _, _ -> error("No inference") }) {}
+        withContext(execution) {
+            val cold = ScriptExecutor(packageValue, ScriptHost { _, operation, _ ->
+                assertEquals("settings.get", operation); JsonPrimitive("true")
+            }, background = true)
+            cold.start()
+            try {
+                assertFailsWith<IllegalStateException> { cold.afterTurn(input(target)) }
+                assertEquals(PostTurnFailure.INVALID_OUTPUT, execution.nativeFailure)
+            } finally { cold.stop() }
+        }
+    }
+
 }

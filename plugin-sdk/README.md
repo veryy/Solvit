@@ -87,3 +87,24 @@ Solvit 0.7.0 为 API 3 提供可选 `ctx.clock.now()`，返回 `utc`、`localTim
 ## API 5：交互终端
 
 新增 `ctx.terminal.call('open' | 'status' | 'input' | 'interrupt' | 'close', args)`，由独立宿主插件提供 Android PTY。JS 工具示例见 [terminal](../builtin-plugins/terminal/index.ts)，参数、授权与运行边界见 [API 5 文档](../docs/plugins.md#api-5交互式-pty)。TS 在 CI 打包为 JS，手机不直接运行 TS 编译器。
+
+### API 8 candidate: background completed-turn hooks
+
+Declare `hooks: ["afterTurn"]`, `afterTurnEnabledSetting: "autoSave"`, and a
+boolean setting `autoSave` with `defaultValue: "false"`. Request `model`
+permission to use `ctx.model.complete({ instructions, input })`. The host owns
+credentials, input/output budgets, the deadline and the one-call limit.
+This candidate is not yet a published automatic-memory feature.
+
+`afterTurn(input, ctx)` receives the completed user/assistant text, source message
+IDs and role ID/name, plus schema-declared public settings. It runs in a fresh
+engine without `activate`/`deactivate`; share data through persistent storage.
+It may read/write its own storage, read the clock and request bounded inference.
+Network, Shell and arbitrary tools are unavailable. Foreground tools and
+`beforeModel` cannot call this model interface.
+
+Use `ctx.storage.compareAndSet(key, expected, value)` to commit a merge only if
+the last-read value is unchanged. Clone the expected snapshot before editing it,
+then reread and merge on conflict. Do not repeat inference for storage conflicts.
+Existing `storage.set` participates in the same host lock. Commit source deduplication
+and facts together, so an interrupted task can be retried without duplicate facts.

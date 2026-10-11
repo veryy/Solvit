@@ -45,3 +45,27 @@ test('includes pure JavaScript package dependencies without runtime module loadi
     assert.equal(sandbox.solvitPlugin.tools.echo({ text: 'dependency' }).text, 'formatted:dependency');
   } finally { await rm(dir, { recursive: true }); }
 });
+
+test('API 8 background hooks require an explicit default-off declaration', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'solvit-background-'));
+  try {
+    const entry = join(dir, 'entry.ts'), manifestFile = join(dir, 'manifest.json'), output = join(dir, 'output.json');
+    await writeFile(entry, "export default {tools:{},afterTurn:async()=>{}};");
+    const manifest = { id: 'test.background', name: 'Background', version: '1.0.0', apiVersion: 8,
+      permissions: ['storage','model'], tools: [], hooks: ['afterTurn'], afterTurnEnabledSetting: 'autoSave',
+      settings: [{key:'autoSave',kind:'boolean',defaultValue:'false'}] };
+    for (const invalid of [
+      {...manifest,apiVersion:7}, {...manifest,settings:[]}, {...manifest,afterTurnEnabledSetting:'missing'},
+      {...manifest,settings:[{key:'autoSave',kind:'boolean',defaultValue:'true'}]},
+      {...manifest,settings:[{key:'autoSave',kind:'boolean',defaultValue:true}]},
+      {...manifest,settings:[{key:'autoSave',kind:'secret'}]},
+      {...manifest,hooks:[],afterTurnEnabledSetting:undefined}
+    ]) {
+      await writeFile(manifestFile,JSON.stringify(invalid));
+      await assert.rejects(()=>buildPlugin(entry,manifestFile,output));
+    }
+    await writeFile(manifestFile,JSON.stringify(manifest));
+    await buildPlugin(entry,manifestFile,output);
+    assert.equal(JSON.parse(await readFile(output,'utf8')).manifest.apiVersion,8);
+  } finally { await rm(dir,{recursive:true}); }
+});

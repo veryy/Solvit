@@ -11,7 +11,7 @@ export async function buildPlugin(entry, manifestFile, output) {
       hooks.includes('beforeModel') && manifest.apiVersion < 3 || hooks.includes('afterTurn') && manifest.apiVersion < 8) throw new Error('Invalid hooks');
   if (hooks.includes('afterTurn')) {
     const field = (manifest.settings ?? []).find(field => field.key === manifest.afterTurnEnabledSetting);
-    if (!field || field.kind !== 'boolean' || field.defaultValue === 'true') throw new Error('afterTurn requires a default-off setting');
+    if (!field || field.kind !== 'boolean' || field.defaultValue !== undefined && field.defaultValue !== 'false' && field.defaultValue !== false) throw new Error('afterTurn requires a default-off setting');
   } else if (manifest.afterTurnEnabledSetting !== undefined || (manifest.permissions ?? []).includes('model')) throw new Error('Model permission requires afterTurn');
   const result = await build({
     entryPoints: [entry], bundle: true, write: false, format: 'iife', globalName: '__solvitBundle',
