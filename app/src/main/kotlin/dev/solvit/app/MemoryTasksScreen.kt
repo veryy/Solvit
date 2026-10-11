@@ -27,6 +27,7 @@ fun MemoryTasksScreen(worker: PostTurnWorker, onDismiss: () -> Unit) {
     var more by remember { mutableStateOf(false) }
     var paged by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
+    var retiring by remember { mutableStateOf<PostTurnJob?>(null) }
     var retry by remember { mutableStateOf<PostTurnJob?>(null) }
     var expanded by remember { mutableStateOf(emptySet<String>()) }
     suspend fun refresh(append: Boolean = false) {
@@ -68,6 +69,9 @@ fun MemoryTasksScreen(worker: PostTurnWorker, onDismiss: () -> Unit) {
                                 if (job.status == PostTurnJobStatus.FAILED && job.attempt < 3) {
                                     TextButton(onClick = { retry = job }, enabled = !busy) { UiText("重试") }
                                 }
+                                if (job.status != PostTurnJobStatus.RUNNING) {
+                                    TextButton(onClick = { retiring = job }, enabled = !busy) { UiText("删除任务") }
+                                }
                                 if (workerState.activeJobId == job.id) {
                                     TextButton(onClick = worker::cancelCurrent) { UiText("停止") }
                                 }
@@ -85,6 +89,22 @@ fun MemoryTasksScreen(worker: PostTurnWorker, onDismiss: () -> Unit) {
                 if (more) item { TextButton(onClick = { scope.launch { refresh(append = true) } }, enabled = !busy) { UiText("加载更多") } }
             }
         }
+    }
+    retiring?.let { job ->
+        AlertDialog(onDismissRequest = { retiring = null }, title = { UiText("删除任务") },
+            text = { UiText("取消此任务的后续处理和重试，保留已保存记忆。") },
+            dismissButton = { TextButton(onClick = { retiring = null }) { UiText("取消") } },
+            confirmButton = { TextButton(onClick = {
+                retiring = null
+                scope.launch {
+                    try {
+                        val removed = worker.delete(job)
+                        refresh()
+                        if (!removed) error = "任务状态已变化，请刷新查看。"
+                    } catch (e: CancellationException) { throw e }
+                    catch (_: Exception) { error = "任务操作未完成，请刷新核对。" }
+                }
+            }) { UiText("确认删除") } })
     }
     retry?.let { job ->
         AlertDialog(onDismissRequest = { retry = null }, title = { UiText("重试自动记忆") },

@@ -324,7 +324,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution, createOnOpen=workspaceCreateRequested) { workspaceOpen = false }
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true }, { diagnosticsOpen = true }, { memoryTasksOpen = true }, { memoryOpen = true })
-    if (memoryOpen) MemoryManagementScreen(memoryManager) { memoryOpen = false }
+    if (memoryOpen) MemoryManagementScreen(memoryManager, app.postTurnWorker) { memoryOpen = false }
     if (memoryTasksOpen) MemoryTasksScreen(app.postTurnWorker) { memoryTasksOpen = false }
     if (diagnosticsOpen) RequestDiagnosticsDialog(app.requestInspection, vm, app.contextPreparation) { diagnosticsOpen = false }
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace, app.toolApprovals) { permissionsOpen = false }

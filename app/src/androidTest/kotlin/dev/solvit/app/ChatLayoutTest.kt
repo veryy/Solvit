@@ -75,7 +75,7 @@ class ChatLayoutTest {
             }
         }
         try {
-            rule.runOnUiThread { rule.activity.setContent { MaterialTheme { MemoryManagementScreen(manager) {} } } }
+            rule.runOnUiThread { rule.activity.setContent { MaterialTheme { MemoryManagementScreen(manager, app.postTurnWorker) {} } } }
             rule.waitUntil(10_000) { rule.onAllNodesWithText("memory-ui-original").fetchSemanticsNodes().isNotEmpty() }
             rule.onNode(hasText("修改") and hasAnyAncestor(hasTestTag("memory_fact_$id"))).performClick()
             rule.onNodeWithTag("memory_edit_text").performTextReplacement("memory-ui-edited")
@@ -88,6 +88,12 @@ class ChatLayoutTest {
             rule.onNode(hasText("删除") and hasAnyAncestor(hasTestTag("memory_fact_$id"))).performClick()
             rule.onNodeWithText("确认删除").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("memory_fact_$id").fetchSemanticsNodes().isEmpty() }
+            rule.onNodeWithTag("memory_cleanup").performClick()
+            rule.onNodeWithText("取消").performClick()
+            rule.onNodeWithTag("memory_cleanup").performClick()
+            rule.onNodeWithText("确认清理").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("memory_cleanup") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+            assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
             screenshot("memory-management-disabled-plugin")
         } finally {
             runBlocking { runCatching { manager.delete(id) } }
@@ -101,6 +107,7 @@ class ChatLayoutTest {
             "coder", "Coder", setOf(target.pluginId), null, "fixture", "fixture-model", 1, listOf(target))
         var record = PostTurnJob("fixture-job", turn, target, PostTurnJobStatus.FAILED, 1, 2, PostTurnFailure.MODEL)
         var retries = 0
+        var retired = false
         val store = object : ChatStore {
             override fun sessions() = kotlinx.coroutines.flow.flowOf(emptyList<ChatSession>())
             override fun messages(sessionId: String) = kotlinx.coroutines.flow.flowOf(emptyList<ChatMessage>())
@@ -108,7 +115,11 @@ class ChatLayoutTest {
             override suspend fun history(sessionId: String) = emptyList<ChatMessage>()
             override suspend fun append(message: ChatMessage) = error("Not a chat operation")
             override suspend fun deleteSession(sessionId: String) = error("Not a chat operation")
-            override suspend fun recentPostTurnJobs(before: PostTurnJobCursor?, limit: Int) = listOf(record)
+            override suspend fun recentPostTurnJobs(before: PostTurnJobCursor?, limit: Int) = if (retired) emptyList() else listOf(record)
+            override suspend fun deletePostTurnJob(id: String, expectedAttempt: Int, expectedStatus: PostTurnJobStatus): Boolean {
+                assertEquals(record.id, id); assertEquals(1, expectedAttempt); assertEquals(PostTurnJobStatus.WAITING, expectedStatus)
+                retired = true; return true
+            }
             override suspend fun retryPostTurnJob(id: String, expectedAttempt: Int, now: Long): Boolean {
                 assertEquals(record.id, id); assertEquals(1, expectedAttempt)
                 retries++; record = record.copy(status = PostTurnJobStatus.WAITING, failure = null)
@@ -137,6 +148,14 @@ class ChatLayoutTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithText("等待处理").fetchSemanticsNodes().isNotEmpty() }
             assertEquals(1, retries)
             screenshot("memory-task-confirmed-retry")
+            rule.onNodeWithText("删除任务").performClick()
+            rule.onNodeWithText("取消").performClick()
+            assertFalse(retired)
+            rule.onNodeWithText("删除任务").performClick()
+            rule.onNodeWithText("确认删除").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithText("暂无自动记忆任务").fetchSemanticsNodes().isNotEmpty() }
+            assertTrue(retired)
+
         } finally { taskScope.cancel() }
     }
 

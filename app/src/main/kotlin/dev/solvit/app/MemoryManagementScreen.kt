@@ -11,21 +11,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import dev.solvit.market.BuiltinMemoryManager
+import dev.solvit.chat.PostTurnWorker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 import kotlinx.serialization.json.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MemoryManagementScreen(manager: BuiltinMemoryManager, onDismiss: () -> Unit) {
+fun MemoryManagementScreen(manager: BuiltinMemoryManager, worker: PostTurnWorker? = null, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     var facts by remember { mutableStateOf(emptyList<JsonObject>()) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<JsonObject?>(null) }
+    var cleanupOpen by remember { mutableStateOf(false) }
+    var receipts by remember { mutableIntStateOf(0) }
     var deleting by remember { mutableStateOf<JsonObject?>(null) }
     suspend fun reload() {
-        facts = manager.snapshot().getValue("facts").jsonArray.map { it.jsonObject }
+        val snapshot = manager.snapshot()
+        facts = snapshot.getValue("facts").jsonArray.map { it.jsonObject }
+        receipts = snapshot["completedSources"]?.jsonArray?.size ?: 0
     }
     fun act(operation: suspend () -> Unit) {
         if (busy) return
@@ -51,6 +58,12 @@ fun MemoryManagementScreen(manager: BuiltinMemoryManager, onDismiss: () -> Unit)
             LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).testTag("memory_facts"),
                 contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item { UiText("查看所有角色的已保存事实；停用插件后仍可修改或删除。") }
+                item {
+                    UiText("自动保存记录：$receipts/512", style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = { cleanupOpen = true }, enabled = !busy && worker != null, modifier = Modifier.testTag("memory_cleanup")) {
+                        UiText("清理已完成任务")
+                    }
+                }
                 if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                 if (error) item { UiText("记忆操作未完成，请刷新核对数据。", color = MaterialTheme.colorScheme.error) }
                 if (facts.isEmpty() && !busy && !error) item { UiText("暂无已保存记忆") }
@@ -78,6 +91,19 @@ fun MemoryManagementScreen(manager: BuiltinMemoryManager, onDismiss: () -> Unit)
             }
         }
     }
+    if (cleanupOpen) AlertDialog(onDismissRequest = { cleanupOpen = false }, title = { UiText("清理已完成任务") },
+        text = { UiText("释放自动保存容量，保留已保存记忆和可重试任务。") },
+        dismissButton = { TextButton(onClick = { cleanupOpen = false }) { UiText("取消") } },
+        confirmButton = { TextButton(onClick = {
+            cleanupOpen = false
+            act {
+                val consumer = checkNotNull(worker)
+                withTimeout(30_000) {
+                    while (consumer.cleanupFinished("dev.solvit.memory") > 0) yield()
+                    manager.pruneRetiredSources { consumer.sourceRetired("dev.solvit.memory", it) }
+                }
+            }
+        }) { UiText("确认清理") } })
     editing?.let { fact ->
         var text by remember(fact) { mutableStateOf(fact.getValue("text").jsonPrimitive.content) }
         AlertDialog(onDismissRequest = { editing = null }, title = { UiText("修改记忆") }, text = {

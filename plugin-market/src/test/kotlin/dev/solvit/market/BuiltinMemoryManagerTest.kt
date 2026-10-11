@@ -1,6 +1,8 @@
 package dev.solvit.market
 
 import android.content.Context
+import dev.solvit.core.*
+import dev.solvit.storage.SqliteChatStore
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 import org.junit.Before
@@ -16,6 +18,7 @@ import kotlin.test.*
 class BuiltinMemoryManagerTest {
     private val context: Context get() = RuntimeEnvironment.getApplication()
     @Before fun clear() {
+        context.deleteDatabase("solvit.db")
         context.getSharedPreferences("extension_data.dev.solvit.memory", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).edit().clear().commit()
     }
@@ -57,6 +60,53 @@ class BuiltinMemoryManagerTest {
         val deleted = manager.snapshot()
         assertTrue(deleted.getValue("facts").jsonArray.isEmpty())
         assertEquals(JsonArray(listOf(receipt)), deleted["completedSources"])
+        assertEquals(0, manager.pruneRetiredSources { false })
+        assertEquals(deleted, manager.snapshot())
+        var checks = 0
+        assertFailsWith<Exception> { manager.pruneRetiredSources { ++checks == 1 } }
+        assertTrue(checks >= 2)
+        assertEquals(deleted, manager.snapshot())
+        assertEquals(1, manager.pruneRetiredSources { true })
+        assertEquals(0, manager.snapshot().getValue("completedSources").jsonArray.size)
+    }
+
+    @Test fun retiredSqliteJobsReleaseReceiptsButFailedTasksKeepReplayProtection() = runBlocking<Unit> {
+        SqliteChatStore(context).use { store ->
+            val session = store.createSession()
+            val target = PostTurnTarget("dev.solvit.memory", "1.2.0", "a".repeat(64))
+            val receipts = (0..1).map { index ->
+                val user = "user-$index"; val answer = "answer-$index"
+                store.append(ChatMessage(user, session.id, Role.USER, "Preference"))
+                val turn = CompletedChatTurn(answer, session.id, user, answer, null, null, null, null,
+                    "fixture", "fixture", 1, listOf(target))
+                store.appendCompletedTurn(listOf(ChatMessage(answer, session.id, Role.ASSISTANT, "Saved")), turn)
+                val jobId = "$answer:${target.pluginId}"
+                assertTrue(store.claimPostTurnJob(jobId, 0, 2))
+                assertTrue(store.finishPostTurnJob(jobId, 1,
+                    if (index == 0) PostTurnJobStatus.SUCCEEDED else PostTurnJobStatus.FAILED,
+                    if (index == 0) null else PostTurnFailure.STORAGE, 3))
+                buildJsonObject {
+                    put("turnId", answer); put("sessionId", session.id); put("userMessageId", user)
+                    put("assistantMessageId", answer); put("roleId", JsonNull); put("roleName", JsonNull)
+                    put("factIds", JsonArray(emptyList()))
+                }
+            }
+            val database = buildJsonObject {
+                put("format", 1); put("sequence", 0); put("facts", JsonArray(emptyList()))
+                put("edges", JsonArray(emptyList())); put("chunks", JsonArray(emptyList()))
+                put("profile", buildJsonObject {}); put("completedSources", JsonArray(receipts))
+            }
+            PluginDataStore(context).set(target.pluginId, "memory.v1", database, true) {}
+            val manager = BuiltinMemoryManager(context)
+            assertEquals(0, manager.pruneRetiredSources { store.postTurnJob("$it:${target.pluginId}") == null })
+            assertEquals(1, store.deleteFinishedPostTurnJobs(target.pluginId))
+            assertEquals(1, manager.pruneRetiredSources { store.postTurnJob("$it:${target.pluginId}") == null })
+            assertEquals(JsonArray(listOf(receipts[1])), manager.snapshot()["completedSources"])
+            assertEquals(4, store.history(session.id).size)
+            assertEquals(2, store.recordedTurns(0).size)
+            assertTrue(store.retryPostTurnJob("answer-1:${target.pluginId}", 1, 4))
+            assertEquals(0, manager.pruneRetiredSources { store.postTurnJob("$it:${target.pluginId}") == null })
+        }
     }
 
     @Test fun invalidStoredDataIsPreservedInsteadOfOverwritten() = runBlocking<Unit> {
