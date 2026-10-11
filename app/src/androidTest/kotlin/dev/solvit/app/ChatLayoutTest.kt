@@ -8,6 +8,10 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.*
+import dev.solvit.core.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.*
 
 
 /** Runs against the actual app and OS keyboard, not a mock inset value. */
@@ -33,6 +37,7 @@ class ChatLayoutTest {
         assertTrue("Composer must float with margins", bounds.left > 0 && bounds.right < decor.width)
         assertTrue("Composer overlaps keyboard: $bounds, IME=$ime", bounds.bottom <= decor.height - ime + 1)
         rule.onNodeWithContentDescription("发送").assertIsDisplayed()
+        rule.onNode(hasText("管理角色与 Skills", substring = true)).assertDoesNotExist()
         screenshot("chat-keyboard-floating")
     }
     @Test fun wideDrawerOpensSettingsAndLastSettingsRowCanBeSeen() {
@@ -73,5 +78,38 @@ class ChatLayoutTest {
         rule.waitUntil(10_000) { rule.onAllNodesWithText("Shell 2").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("Shell 2").assertIsDisplayed()
         screenshot("workspace-shell-real-process")
+        rule.onNodeWithText("工作目录").performClick()
+        rule.onNodeWithText("新建文本").assertIsDisplayed()
+        rule.onNodeWithText("插件草稿", substring = true).assertIsDisplayed()
+        screenshot("workspace-directory")
+    }
+    @Test fun javascriptPluginCanCreateShellAndRunActualAndroidCommand() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        runBlocking(Dispatchers.IO) {
+            val old = app.marketplace.installed.value.single { it.id == "dev.solvit.workspace" }.enabled
+            app.systemExecution.setMode("dev.solvit.workspace", ExecutionMode.APP)
+            try {
+                if (!old) app.marketplace.enable("dev.solvit.workspace", setOf("workspace", "shell"))
+                val workspace = app.workspaces.forChat("javascript-emulator-test")
+                val authorization = object : ToolAuthorization {
+                    override suspend fun authorize(descriptor: ToolDescriptor): Boolean {
+                        assertEquals(ExecutionMode.APP, descriptor.executionMode)
+                        return true
+                    }
+                }
+                withContext(ConversationContext("javascript-emulator-test", workspace.id)) {
+                    val shell = Json.parseToJsonElement(app.marketplace.runTool("dev_solvit_workspace_create_shell", """{"name":"JS Shell"}""", authorization)).jsonObject.getValue("id").jsonPrimitive.content
+                    val job = Json.parseToJsonElement(app.marketplace.runTool("dev_solvit_workspace_shell_start", buildJsonObject {
+                        put("shellId", shell); put("command", "printf js-native-shell")
+                    }.toString(), authorization)).jsonObject.getValue("id").jsonPrimitive.content
+                    val result = withTimeout(10_000) { app.workspaces.jobs.first { list -> list.any { it.id == job && it.stage == ShellStage.COMPLETED } } }.single { it.id == job }
+                    assertEquals("js-native-shell", result.output.joinToString("") { it.text })
+                    assertEquals("dev.solvit.workspace", result.owner)
+                    assertEquals(workspace.id, result.workspaceId)
+                    assertEquals(shell, result.shellSessionId)
+                }
+            } finally { if (!old) app.marketplace.disable("dev.solvit.workspace") }
+        }
     }
 }
