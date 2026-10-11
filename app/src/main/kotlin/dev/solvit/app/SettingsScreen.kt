@@ -17,7 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: () -> Unit,
-    onRoles: () -> Unit, onPlugins: () -> Unit, onBackup: () -> Unit, appearance: AppearanceStore) {
+    onRoles: () -> Unit, onPlugins: () -> Unit, onBackup: () -> Unit, appearance: AppearanceStore, onPermissions: () -> Unit) {
     val update by updates.state.collectAsStateWithLifecycle()
     val download by updates.downloadState.collectAsStateWithLifecycle()
     val theme by appearance.theme.collectAsStateWithLifecycle()
@@ -47,6 +47,7 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
                         }
                     } }
                     item { SettingsGroup("数据与备份") { SettingsRow("配置备份与恢复", "加密导出模型密钥、角色和外观；重装后导入", onBackup) } }
+                    item { SettingsGroup("权限与执行") { SettingsRow("权限与执行方式", "应用权限、Root 授权和插件 Shell 模式", onPermissions) } }
                     item { SettingsGroup("应用更新") {
                         SettingsRow("检查更新", "当前版本 ${BuildConfig.VERSION_NAME} · 启动时自动检查", { updates.check() }, update != UpdateUiState.Checking)
                         AppUpdateCard(update, download, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)

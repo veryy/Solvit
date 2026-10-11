@@ -126,11 +126,9 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val saving by vm.saving.collectAsStateWithLifecycle()
     val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
     val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
-    val activeRole by agents.activeRole.collectAsStateWithLifecycle()
-    val missingRole by agents.missingRole.collectAsStateWithLifecycle()
-    val agentBusy by agents.busy.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var permissionsOpen by rememberSaveable { mutableStateOf(false) }
     var modelsOpen by rememberSaveable { mutableStateOf(false) }
     var backupOpen by rememberSaveable { mutableStateOf(false) }
     var pluginsOpen by rememberSaveable { mutableStateOf(false) }
@@ -160,7 +158,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     }
 
     ModalNavigationDrawer(drawerState = drawer, drawerContent = {
-        ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.5f).testTag("chat_drawer")) {
+        ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.75f).testTag("chat_drawer")) {
             Text("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
             FilledTonalButton(onClick = { vm.newChat(); scope.launch { drawer.close() } }, enabled = ready && !busy,
                 modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
@@ -241,10 +239,6 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
                     Text("工作区：" + (workspaceState.workspaces.firstOrNull { it.id == workspaceId }?.name ?: "打开中…") + " · Shell / 文件")
                 }
-                OutlinedButton(onClick = { hideInput(); agentsOpen = true }, enabled = ready && !busy && !agentBusy,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth()) {
-                    Text(if (missingRole) "角色已删除 · 重新选择" else "角色：${activeRole?.name ?: "默认"} · 管理角色与 Skills")
-                }
             if (messages.isEmpty() && !busy) {
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     val expanded = maxHeight >= 240.dp
@@ -282,6 +276,9 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             text = { LazyColumn(Modifier.heightIn(max = 360.dp)) {
                 item { Text(pending.descriptor.description) }
                 item { Text(pending.descriptor.name, style = MaterialTheme.typography.labelSmall) }
+                pending.descriptor.executionMode?.let { mode -> item {
+                    Text(if (mode == ExecutionMode.ROOT) "执行身份：Root（设备最高权限）" else "执行身份：普通应用")
+                } }
                 item { SelectionContainer { Text(pending.call.argumentsJson) } }
             } },
             confirmButton = { TextButton(onClick = { vm.approveTool(true) }) { Text("允许这一次") } },
@@ -290,7 +287,8 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     if (workspaceOpen) WorkspaceDialog(workspaces) { workspaceOpen = false }
     val app = LocalContext.current.applicationContext as SolvitApplication
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
-        { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance)
+        { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true })
+    if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace) { permissionsOpen = false }
     if (modelsOpen) ModelSettings(config, saving, error, onDismiss = { if (!saving) modelsOpen = false },
         onSave = { vm.saveConfig(it) { modelsOpen = false } }, onFetchModels = vm::discoverModels)
     if (backupOpen) ConfigurationBackupDialog(vm, app.roles, app.appearance, onDismiss = { backupOpen = false })
