@@ -10,6 +10,8 @@
 
 [0.17.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.17.0)：已保存记忆自动检索、原生开关、每步上下文刷新与 API 7 非密钥配置；[标签验证](https://github.com/veryy/Solvit/actions/runs/38167779375) 的单元、模拟器、Lint、APK、固定签名、TS/市场和公网搜索通过。具体边界见 [记忆阶段记录](memory-context-stage.md)，后台自动抽取、全请求预算与摘要仍未完成。
 
+0.18.0 候选新增全请求预算、输出预留、压力触发的工具结果投影裁剪与持久历史摘要；[候选验证](https://github.com/veryy/Solvit/actions/runs/38171706314) 通过 179 个单元及 31 个模拟器测试、Lint、APK 和固定签名。标签发布正在推进；后台长期记忆抽取及真实模型摘要质量仍待完成，见 [上下文阶段](context-budget-stage.md)。
+
 ## 当前验证
 
 - 0.1.0：基础文本聊天、流式取消、多会话、加密密钥设置；15 个单元测试、Lint 和 APK 构建通过 GitHub Actions。
