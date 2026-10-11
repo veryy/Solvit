@@ -9,7 +9,7 @@ import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null,
-    private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null, private val approvals: ToolPolicyService? = null) : ViewModel() {
+    private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null, private val approvals: ToolPolicyService? = null, private val profiles: ModelProfilesService? = null) : ViewModel() {
     suspend fun discoverModels(candidate: ModelConfig): List<AvailableModel> =
         (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
@@ -53,11 +53,15 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     private var generation: Job? = null
 
     init {
+        if (profiles != null) viewModelScope.launch {
+            profiles.state.collect { state -> config.value = state.selected(ModelTask.CHAT)!!.config; modelConfigured.value = state.configured }
+        }
+        if (profiles != null) viewModelScope.launch { profiles.loadError.collect { if (it != null) error.value = it } }
         viewModelScope.launch {
-            try { config.value = settings.load() }
+            try { if (profiles == null) config.value = settings.load() }
             catch (e: SettingsDecryptionException) { config.value = e.partial; error.value = "API Key 无法解密；模型地址和提示词已保留，请恢复备份或重新填写密钥" }
             catch (e: Exception) { error.value = "模型配置无法解密，请在设置中重新保存 API Key" }
-            modelConfigured.value = settings.isConfigured()
+            if (profiles == null) modelConfigured.value = settings.isConfigured()
             try {
                 selected.value = chat.sessions().first().firstOrNull()?.id ?: chat.createSession().id
                 ready.value = true
@@ -104,12 +108,19 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             } catch (e: Exception) { error.value = "删除对话失败" }
         }
     }
+    private suspend fun persistConfiguration(value: ModelConfig) {
+        if (profiles == null) settings.save(value)
+        else {
+            val current = profiles.state.value.selected(ModelTask.CHAT)!!
+            profiles.save(current.copy(config=value))
+        }
+    }
     fun saveConfig(value: ModelConfig, onSaved: () -> Unit) {
         if (saving.value) return
         value.validate()?.let { error.value = it; return }
         saving.value = true
         viewModelScope.launch {
-            try { settings.save(value); config.value = value; modelConfigured.value = true; error.value = null; onSaved() }
+            try { persistConfiguration(value); config.value = value; modelConfigured.value = true; error.value = null; onSaved() }
             catch (e: Exception) { error.value = "保存模型配置失败" }
             finally { saving.value = false }
         }
@@ -118,7 +129,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         check(!busy.value && !branching.value && !saving.value) { "请等待当前操作结束" }
         value.validate()?.let { error(it) }
         saving.value = true
-        try { settings.save(value); config.value = value; modelConfigured.value = true; error.value = null }
+        try { persistConfiguration(value); config.value = value; modelConfigured.value = true; error.value = null }
         finally { saving.value = false }
     }
     fun send(text: String): Boolean {

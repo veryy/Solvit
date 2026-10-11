@@ -12,10 +12,12 @@ class ToolAgentRuntime(
     private val maxRounds: Int = 8,
     private val maxCalls: Int = 16,
     private val hooks: ContextHookRegistry? = null,
+    private val modelProfiles: ModelProfilesService? = null,
 ) : AgentRuntime {
     init { require(maxRounds > 0 && maxCalls > 0) }
     override fun run(request: ModelRequest): Flow<ModelChunk> = flow {
         val execution = AgentExecutionContext()
+        val followUpConfig = modelProfiles?.resolve(ModelTask.TOOL_FOLLOW_UP, request.config) ?: request.config
         try {
         val advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false &&
             (request.conversation != null || it.capabilities.none { permission -> permission in setOf("workspace","shell","plugins") }) }.take(64)
@@ -38,7 +40,7 @@ class ToolAgentRuntime(
             val reasoning = StringBuilder()
             var calls = emptyList<ToolCall>()
             var completed = false
-            provider.stream(request.copy(messages = messages.toList(), tools = advertised)).collect { chunk ->
+            provider.stream(request.copy(config = if (round == 0) request.config else followUpConfig, messages = messages.toList(), tools = advertised)).collect { chunk ->
                 check(!completed) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { text.append(chunk.value); emit(chunk) }

@@ -7,8 +7,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 17
-        versionName = "0.13.0"
+        versionCode = 18
+        versionName = "0.14.0"
     }
     // setup-android can change ANDROID_USER_HOME. Never rely on AGP's implicit
     // debug-keystore path: CI restores and uses this exact file.
@@ -47,6 +47,7 @@ dependencies {
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test:rules:1.6.1")
     testImplementation(kotlin("test-junit"))
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
     testImplementation("org.robolectric:robolectric:4.16.1")
 }

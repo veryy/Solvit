@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                             val service = result!!.getOrThrow()
                             val factory = remember(service) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches, app.toolApprovals) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches, app.toolApprovals, app.modelProfiles) as T
                             } }
                             val vm: ChatViewModel = viewModel(factory = factory)
                             val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {
@@ -317,8 +317,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true })
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace, app.toolApprovals) { permissionsOpen = false }
-    if (modelsOpen) ModelSettings(config, saving, error, onDismiss = { if (!saving) modelsOpen = false },
-        onSave = { vm.saveConfig(it) { modelsOpen = false } }, onFetchModels = vm::discoverModels)
+    if (modelsOpen) ModelProfilesScreen(app.modelProfiles, busy, onDismiss = { modelsOpen = false }, onFetchModels = vm::discoverModels)
     if (backupOpen) ConfigurationBackupDialog(vm, app.roles, app.appearance, onDismiss = { backupOpen = false })
     if (pluginsOpen) PluginMarketplaceDialog(marketplace, onDismiss = { pluginsOpen = false })
     if (agentsOpen) AgentLibraryDialog(agents, onDismiss = { agentsOpen = false })
@@ -332,8 +331,8 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, onDismiss: () -> Unit, onSave: (ModelConfig) -> Unit,
-    onFetchModels: suspend (ModelConfig) -> List<AvailableModel>) {
+internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, onDismiss: () -> Unit, onSave: (ModelConfig) -> Unit,
+    onFetchModels: suspend (ModelConfig) -> List<AvailableModel>, profileName: String? = null, onProfileNameChanged: (String) -> Unit = {}) {
     // API keys deliberately do not use rememberSaveable / saved-instance state.
     var base by remember { mutableStateOf(config.baseUrl) }
     var model by remember { mutableStateOf(config.model) }
@@ -362,12 +361,13 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
             Scaffold(topBar = { TopAppBar(title = { UiText("模型设置") }, navigationIcon = {
                 IconButton(onClick = onDismiss, enabled = !saving) { UiIcon(Icons.Default.Close, "关闭设置") }
             }) }, bottomBar = {
-                Button(onClick = { onSave(candidate) }, enabled = !saving && invalid == null,
-                    modifier = Modifier.navigationBarsPadding().imePadding().padding(16.dp).fillMaxWidth()) {
+                Button(onClick = { onSave(candidate) }, enabled = !saving && invalid == null && (profileName == null || (profileName.isNotBlank() && profileName.length <= 80)),
+                    modifier = Modifier.navigationBarsPadding().imePadding().padding(16.dp).fillMaxWidth().testTag("save_model_profile")) {
                     UiText(if (saving) "保存中…" else "保存配置")
                 }
             }) { padding ->
                 LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                    if (profileName != null) item { OutlinedTextField(profileName,onProfileNameChanged,label={ UiText("配置名称") },singleLine=true,enabled=!saving,modifier=Modifier.fillMaxWidth().testTag("model_profile_name")) }
                     item { UiText("连接你选择的模型", style = MaterialTheme.typography.headlineSmall) }
                     item { UiText("支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                     item { OutlinedTextField(base, { base = it }, label = { UiText("API 基础地址") },

@@ -8,11 +8,11 @@ import java.util.UUID
 
 class ChatAgentPlugin : SolvitPlugin {
     override val id = "builtin.agent.chat"
-    override val requires = setOf(Services.Model, Services.Tools, ContextHookServiceKey)
+    override val requires = setOf(Services.Model, Services.Tools, ContextHookServiceKey, ModelProfilesServiceKey)
     override val provides = setOf(Services.Agent)
     override suspend fun enable(context: PluginContext) {
         val provider = context.require(Services.Model)
-        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools), hooks = context.require(ContextHookServiceKey)))
+        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools), hooks = context.require(ContextHookServiceKey), modelProfiles = context.require(ModelProfilesServiceKey)))
     }
 }
 

@@ -20,6 +20,8 @@ class SolvitApplication : Application() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutableReady = MutableStateFlow<Result<ChatService>?>(null)
     val ready = mutableReady.asStateFlow()
+    lateinit var modelProfiles: SettingsModelProfiles
+        private set
     lateinit var language: LanguageStore
         private set
     lateinit var toolApprovals: ToolApprovalStore
@@ -57,12 +59,14 @@ class SolvitApplication : Application() {
         appearance = AppearanceStore(this)
         language = LanguageStore(this)
         updateDownloader = AppUpdateDownloader(this, scope)
+        modelProfiles = SettingsModelProfiles(settings)
         scope.launch {
+            modelProfiles.initialize()
             val manager = PluginManager(scope = scope)
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts })
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
+                listOf(ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
                     OpenAiPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 branches = manager.registry.require(ChatBranchServiceKey)
