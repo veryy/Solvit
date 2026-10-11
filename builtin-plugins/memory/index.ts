@@ -126,7 +126,7 @@ function recallContext(db: Database, query: string): string {
     if (seen.has(key)) continue;
     const row = { source: 'dev.solvit.memory/' + key, kind: String(candidate.kind), id: String(candidate.id),
       title: Array.from(String(candidate.title)).slice(0, 160).join(''),
-      text: Array.from(String(candidate.text)).slice(0, 700).join(''), updatedAt: String(candidate.updatedAt ?? '') };
+      text: Array.from(String(candidate.text)).slice(0, 700).join(''), truncated: Array.from(String(candidate.text)).length > 700, updatedAt: String(candidate.updatedAt ?? '') };
     if (JSON.stringify([...rows, row]).length > 6000) continue;
     rows.push(row); seen.add(key);
     if (rows.length === 6) break;

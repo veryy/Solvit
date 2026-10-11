@@ -112,9 +112,15 @@ test('automatic recall bounds Unicode records and avoids unrelated facts', async
   const plugin=runtime();
   await plugin.run('memory_put',{text:'Quantumphysics experiments'});
   assert.equal(await plugin.recall('Kotlin'),'');
-  for(let index=0;index<12;index++) await plugin.run('memory_profile',{key:'profile'+index,value:'😀'.repeat(700)});
+  for(let index=0;index<12;index++) await plugin.run('memory_profile',{key:'profile'+index,value:'😀'.repeat(900)});
   const context=await plugin.recall('question');
   assert.ok(context.length<6500);assert.equal(context.includes('\uFFFD'),false);
   const records=JSON.parse(context.slice(context.indexOf('\n')+1));
-  assert.ok(records.length<=6);assert.ok(records.every(row=>row.source&&row.id));
+  assert.ok(records.length<=6);assert.ok(records.every(row=>row.source&&row.id));assert.ok(records.some(row=>row.truncated));
+});
+
+test('disabled recall does not read even a malformed database',async () => {
+  const plugin=runtime(new Map([['memory.v1',{format:99}]]));
+  assert.equal(await plugin.recall('question',{autoRecall:'false'}),'');
+  await assert.rejects(()=>plugin.recall('question'),/invalid/);
 });

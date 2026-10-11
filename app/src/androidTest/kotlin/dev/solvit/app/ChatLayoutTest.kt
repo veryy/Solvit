@@ -70,6 +70,40 @@ class ChatLayoutTest {
         rule.onNodeWithText("branch original question").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("later answer").fetchSemanticsNodes().isNotEmpty() }
     }
+    @Test fun nativeMemoryRecallSwitchSavesAndReopensWithoutTextEntry() {
+        ready()
+        val extension = InstalledExtension("dev.solvit.memory", "本地记忆", "1.1.0", setOf("storage"), emptySet(), false, emptyList(),
+            settings = listOf(ExtensionSetting("autoRecall", "自动将相关记忆用于聊天", "boolean", defaultValue = "true")), contextHooks = setOf("beforeModel"))
+        val saved = MutableStateFlow(mapOf("autoRecall" to "true"))
+        val service = object : MarketplaceService {
+            override val installed = MutableStateFlow(listOf(extension))
+            override suspend fun catalog() = emptyList<MarketEntry>()
+            override suspend fun install(entry: MarketEntry) = error("not used")
+            override suspend fun enable(id: String, grantedPermissions: Set<String>) = error("not used")
+            override suspend fun disable(id: String) = error("not used")
+            override suspend fun uninstall(id: String) = error("not used")
+            override suspend fun configuration(id: String) = saved.value
+            override suspend fun configure(id: String, values: Map<String, String>) { saved.value = values.toMap() }
+            override suspend fun runTool(name: String, argumentsJson: String, authorization: ToolAuthorization) = error("not used")
+        }
+        lateinit var vm: MarketplaceViewModel
+        rule.runOnUiThread {
+            vm = MarketplaceViewModel(service)
+            rule.activity.setContent { MaterialTheme { PluginMarketplaceDialog(vm) {} } }
+            vm.openConfiguration(extension)
+        }
+        try {
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_setting_autoRecall").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_setting_autoRecall").assertIsOn().performClick().assertIsOff()
+            rule.onNodeWithText("保存").performClick()
+            rule.waitUntil(10_000) { vm.configuring.value == null }
+            assertEquals("false", saved.value["autoRecall"])
+            rule.runOnUiThread { vm.openConfiguration(extension) }
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_setting_autoRecall").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_setting_autoRecall").assertIsOff()
+        } finally { rule.runOnUiThread { vm.viewModelScope.cancel() } }
+    }
+
     @Test fun actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard() {
         ready()
         val app = rule.activity.application as SolvitApplication
