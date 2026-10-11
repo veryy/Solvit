@@ -3926,5 +3926,21 @@
     "ko": "대화 압축 중: 배치 {0}",
     "es": "Resumiendo el historial, lote {0}",
     "fr": "Résumé de l’historique, lot {0}"
+  },
+  "输出限制参数": {
+    "zh": "输出限制参数",
+    "en": "Output limit parameter",
+    "ja": "出力上限パラメータ",
+    "ko": "출력 제한 매개변수",
+    "es": "Parámetro de límite de salida",
+    "fr": "Paramètre de limite de sortie"
+  },
+  "按服务地址选择": {
+    "zh": "按服务地址选择",
+    "en": "Choose by service address",
+    "ja": "サービスアドレスで選択",
+    "ko": "서비스 주소로 선택",
+    "es": "Elegir según la dirección del servicio",
+    "fr": "Choisir selon l’adresse du service"
   }
 }

@@ -7,8 +7,21 @@ import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import kotlin.test.*
+import kotlinx.serialization.json.jsonObject
 
 class OpenAiProviderTest {
+    @Test fun selectedOutputLimitParameterIsSentAloneWithConfiguredBudget() = runTest {
+        for (parameter in listOf("max_tokens", "max_completion_tokens")) {
+            withServer("data: {\"choices\":[{\"delta\":{\"content\":\"answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n") { provider, request, server ->
+                val config = ModelConfig(request.config.baseUrl, request.config.model, request.config.apiKey,
+                    providerOptions = mapOf("output_token_parameter" to parameter), contextBudget = ContextBudgetPolicy(outputTokens = 4096))
+                provider.stream(request.copy(config = config)).toList()
+                val payload = kotlinx.serialization.json.Json.parseToJsonElement(server.takeRequest().body.readUtf8()).jsonObject
+                assertEquals("4096", payload[parameter]!!.toString())
+                assertFalse(payload.containsKey(if (parameter == "max_tokens") "max_completion_tokens" else "max_tokens"))
+            }
+        }
+    }
     @Test fun streamsProviderReasoningSeparatelyFromAnswer() = runTest {
         val frames = listOf(
             """{"choices":[{"delta":{"reasoning_content":"先核对","content":""},"finish_reason":""}]}""",

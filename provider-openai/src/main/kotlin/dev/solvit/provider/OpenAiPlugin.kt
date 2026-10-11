@@ -16,13 +16,19 @@ import kotlin.coroutines.resumeWithException
 class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
     override val id = "openai-compatible"
     private val json = Json { ignoreUnknownKeys = true }
+    override fun validate(config: ModelConfig): String? = config.validate() ?: if (
+        (config.providerOptions["output_token_parameter"] ?: "auto") in setOf("auto", "max_tokens", "max_completion_tokens")) null else "输出限制参数无效"
+    private fun outputField(config: ModelConfig): String = when (val selected = config.providerOptions["output_token_parameter"] ?: "auto") {
+        "auto" -> if (java.net.URI(config.baseUrl).host == "api.openai.com") "max_completion_tokens" else "max_tokens"
+        else -> selected
+    }
 
     override fun stream(request: ModelRequest): Flow<ModelChunk> = flow {
-        request.config.validate()?.let { throw ModelException(it) }
+        validate(request.config)?.let { throw ModelException(it) }
         val payload = buildJsonObject {
             put("model", request.config.model)
             put("stream", true)
-            put("max_tokens", request.config.providerOptions["max_tokens"]?.toIntOrNull() ?: request.config.contextBudget.outputTokens)
+            put(outputField(request.config), request.config.providerOptions["max_tokens"]?.toIntOrNull() ?: request.config.contextBudget.outputTokens)
             if (request.tools.isNotEmpty()) {
                 put("tool_choice", "auto")
                 putJsonArray("tools") {
@@ -230,6 +236,8 @@ class OpenAiPlugin : SolvitPlugin {
             client.dispatcher.executorService.shutdown()
         }
         context.own(context.require(ModelProvidersServiceKey).register(ModelProviderInfo("openai-compatible","OpenAI 兼容","https://api.openai.com/v1",
-            "例如 https://api.deepseek.com/v1；无需填写 /chat/completions"),OpenAiProvider(client),OpenAiModelCatalog(client)))
+            "例如 https://api.deepseek.com/v1；无需填写 /chat/completions", options = listOf(
+                ProviderOption("output_token_parameter", "输出限制参数", "auto", listOf("auto" to "按服务地址选择", "max_tokens" to "max_tokens", "max_completion_tokens" to "max_completion_tokens"))
+            )),OpenAiProvider(client),OpenAiModelCatalog(client)))
     }
 }
