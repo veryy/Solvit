@@ -11,7 +11,7 @@ import org.junit.Assert.*
 import dev.solvit.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.json.*
+import org.json.JSONObject
 
 
 /** Runs against the actual app and OS keyboard, not a mock inset value. */
@@ -99,10 +99,9 @@ class ChatLayoutTest {
                     }
                 }
                 withContext(ConversationContext("javascript-emulator-test", workspace.id)) {
-                    val shell = Json.parseToJsonElement(app.marketplace.runTool("dev_solvit_workspace_create_shell", """{"name":"JS Shell"}""", authorization)).jsonObject.getValue("id").jsonPrimitive.content
-                    val job = Json.parseToJsonElement(app.marketplace.runTool("dev_solvit_workspace_shell_start", buildJsonObject {
-                        put("shellId", shell); put("command", "printf js-native-shell")
-                    }.toString(), authorization)).jsonObject.getValue("id").jsonPrimitive.content
+                    val shell = JSONObject(app.marketplace.runTool("dev_solvit_workspace_create_shell", """{"name":"JS Shell"}""", authorization)).getString("id")
+                    val job = JSONObject(app.marketplace.runTool("dev_solvit_workspace_shell_start", JSONObject()
+                        .put("shellId", shell).put("command", "printf js-native-shell").toString(), authorization)).getString("id")
                     val result = withTimeout(10_000) { app.workspaces.jobs.first { list -> list.any { it.id == job && it.stage == ShellStage.COMPLETED } } }.single { it.id == job }
                     assertEquals("js-native-shell", result.output.joinToString("") { it.text })
                     assertEquals("dev.solvit.workspace", result.owner)
