@@ -31,6 +31,13 @@ class ChatLayoutTest {
         ready()
         rule.onNode(hasSetTextAction()).assertIsFocused()
         rule.waitUntil(10_000) { rule.activity.window.decorView.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == true }
+        // isVisible flips before the IME animation and Compose inset layout finish.
+        rule.waitUntil(10_000) {
+            val decor = rule.activity.window.decorView
+            val inset = decor.rootWindowInsets.getInsets(WindowInsets.Type.ime()).bottom
+            val composer = rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
+            inset > 0 && composer.bottom <= decor.height - inset + 1
+        }
         val bounds = rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
         val decor = rule.activity.window.decorView
         val ime = decor.rootWindowInsets.getInsets(WindowInsets.Type.ime()).bottom

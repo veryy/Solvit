@@ -41,6 +41,8 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
     override suspend fun open(workspaceId: String, shellId: String): TerminalSession {
         val context = currentCoroutineContext()
         val (owner, role) = verify(context, workspaceId, "open", shellId)
+        var acquired: Entry? = null
+        try {
         val result = execution.authorized(owner) { mode ->
             check(mode == ExecutionMode.APP) { "交互式 PTY 暂不支持 Root；请使用已提供的普通 Root 命令工具，或在设置切换普通应用身份" }
             check(workspace.state.value.shells.any { it.id == shellId && it.workspaceId == workspaceId }) { "Shell 不属于此工作区" }
@@ -51,20 +53,26 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
                     it.state.active && it.state.owner == owner && it.state.roleId == role &&
                         it.state.workspaceId == workspaceId && it.state.shellId == shellId && it.state.mode == mode
                 } }
-                if (existing != null) return@withLock existing.state
+                if (existing != null) { acquired = existing; return@withLock existing.state }
                 synchronized(snapshots) {
                     check(entries.values.count { it.state.active } < 8) { "最多同时运行 8 个交互终端" }
                     while (entries.size >= 16) entries.entries.firstOrNull { !it.value.state.active }?.let { entries.remove(it.key) } ?: error("终端历史已满")
                 }
                 val pty = PtyConnection.open(directory)
                 val entry = Entry(pty, TerminalSession(UUID.randomUUID().toString(), owner, role, workspaceId, shellId, mode))
+                acquired = entry
                 synchronized(snapshots) { entries[entry.state.id] = entry; publish() }
                 entry.reader = scope.launch(Dispatchers.IO) { collect(entry) }
                 entry.state
             } }
         }
         own(context, result.id)
+        context.ensureActive()
         return result
+        } catch (e: Throwable) {
+            withContext(NonCancellable) { acquired?.let { entry -> lock.withLock { stop(entry) } } }
+            throw e
+        }
     }
     private fun own(context: kotlin.coroutines.CoroutineContext, id: String) {
         val cleanup: suspend () -> Unit = { lock.withLock { synchronized(snapshots) { entries[id] }?.let { stop(it) } } }

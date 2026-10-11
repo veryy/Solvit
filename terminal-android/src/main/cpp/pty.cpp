@@ -162,17 +162,24 @@ Java_dev_solvit_terminal_NativePty_open(JNIEnv *env, jobject, jstring directory,
 extern "C" JNIEXPORT jbyteArray JNICALL
 Java_dev_solvit_terminal_NativePty_read(JNIEnv *env, jobject, jlong id) {
     auto session = lookup(env, id); if (!session) return nullptr;
-    std::lock_guard<std::mutex> guard(session->mutex);
-    if (session->fd < 0) return nullptr;
-    pollfd input{session->fd, POLLIN | POLLHUP, 0};
+    Fd descriptor;
+    {
+        std::lock_guard<std::mutex> guard(session->mutex);
+        if (session->fd < 0) return nullptr;
+        descriptor.value = fcntl(session->fd, F_DUPFD_CLOEXEC, 0);
+    }
+    if (descriptor.value < 0) { failure(env, "无法读取终端设备"); return nullptr; }
+    // Poll a duplicate without holding the writer/closer lock. Its lifetime is
+    // bounded to 100 ms, and it cannot accidentally refer to a reused descriptor.
+    pollfd input{descriptor.value, POLLIN | POLLHUP, 0};
     int ready;
     do { ready = poll(&input, 1, 100); } while (ready < 0 && errno == EINTR);
-    session->reap();
+    { std::lock_guard<std::mutex> guard(session->mutex); session->reap(); }
     if (ready == 0) return env->NewByteArray(0);
     if (ready < 0) { failure(env, "读取终端失败"); return nullptr; }
     char bytes[8192];
     ssize_t length;
-    do { length = ::read(session->fd, bytes, sizeof(bytes)); } while (length < 0 && errno == EINTR);
+    do { length = ::read(descriptor.value, bytes, sizeof(bytes)); } while (length < 0 && errno == EINTR);
     if (length == 0 || (length < 0 && errno == EIO)) return nullptr;
     if (length < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return env->NewByteArray(0);
     if (length < 0) { failure(env, "读取终端失败"); return nullptr; }
