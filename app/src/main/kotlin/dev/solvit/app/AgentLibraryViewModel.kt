@@ -13,6 +13,7 @@ class AgentLibraryViewModel(
     private val library: SkillLibraryService,
     marketplace: MarketplaceService,
 ) : ViewModel() {
+    val applied = MutableStateFlow<String?>(null)
     val error = MutableStateFlow<String?>(null)
     val busy = MutableStateFlow(false)
     val roles = roleService.roles().catch { error.value = "读取角色失败，已有角色数据未被重置" }
@@ -35,6 +36,7 @@ class AgentLibraryViewModel(
     }
     fun setSession(id: String?) {
         sessionId = id
+        applied.value = null
         activeRole.value = null; missingRole.value = false
         viewModelScope.launch { refreshSelection() }
     }
@@ -61,6 +63,7 @@ class AgentLibraryViewModel(
     fun selectRole(roleId: String?) = operation {
         val id = sessionId ?: error("请先创建对话")
         roleService.select(id, roleId); refreshSelection()
+        applied.value = "已应用${activeRole.value?.name ?: "默认角色"}：从下一条消息生效，新对话会继承。已有消息保留。"
     }
     fun saveRole(role: AgentRole, onSaved: () -> Unit) = operation {
         roleService.save(role); refreshSelection(); onSaved()

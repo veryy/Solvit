@@ -19,7 +19,8 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExecutionPermissionsScreen(system: SystemExecutionService, market: MarketplaceService, onDismiss: () -> Unit) {
+fun ExecutionPermissionsScreen(system: SystemExecutionService, market: MarketplaceService, approvals: ToolApprovalStore, onDismiss: () -> Unit) {
+    val grants by approvals.policies.collectAsStateWithLifecycle()
     val device by system.device.collectAsStateWithLifecycle()
     val modes by system.modes.collectAsStateWithLifecycle()
     val installed by market.installed.collectAsStateWithLifecycle()
@@ -62,8 +63,13 @@ fun ExecutionPermissionsScreen(system: SystemExecutionService, market: Marketpla
                 }
                 if (busy) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                 error?.let { text -> item { Text(text, color = MaterialTheme.colorScheme.error) } }
+                item { Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                    Text("工具免询问授权", style = MaterialTheme.typography.titleMedium)
+                    Text("已记住 ${grants.size} 项授权。插件代码、权限、执行模式或角色配置变化后需重新确认。")
+                    OutlinedButton(onClick = { operation { approvals.clear() } }, enabled = !busy && grants.isNotEmpty()) { Text("清除所有免询问授权") }
+                } } }
                 item { Text("Shell 执行方式", style = MaterialTheme.typography.titleLarge) }
-                item { Text("普通模式使用应用身份；Root 使用设备最高权限。每个插件单独选择，AI 调用仍需逐次确认。切换模式会停止该插件正在运行的命令。") }
+                item { Text("普通模式使用应用身份；Root 使用设备最高权限。每个插件单独选择，AI 调用遵循工具授权设置。切换模式会停止该插件正在运行的命令。") }
                 val owners = listOf(TERMINAL_OWNER to "手动终端") + installed.filter { "shell" in it.permissions }.map { it.id to it.name }
                 owners.forEach { (id, name) -> item(key = id) {
                     Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

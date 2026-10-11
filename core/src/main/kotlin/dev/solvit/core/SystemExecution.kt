@@ -8,12 +8,19 @@ import kotlin.coroutines.CoroutineContext
 enum class ToolPolicy { ASK, ALLOW, DENY }
 fun toolPolicyKey(tool: ToolDescriptor): String {
     val identity = listOf(tool.pluginId, tool.pluginVersion, tool.name, tool.description, tool.inputSchema,
-        tool.capabilities.sorted().joinToString(","), tool.executionMode?.name.orEmpty(), tool.pluginDigest).joinToString("\u0000")
+        tool.capabilities.sorted().joinToString(","), tool.androidPermissions.sorted().joinToString(","), tool.requiresConfirmation.toString(), tool.executionMode?.name.orEmpty(), tool.pluginDigest).joinToString("\u0000")
     return MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 255) }
 }
+fun scopedToolPolicyKey(tool: ToolDescriptor, role: AgentRole?): String = toolPolicyKey(tool) + ":" +
+    MessageDigest.getInstance("SHA-256").digest((role?.let {
+        listOf(it.id, it.prompt, it.pluginIds.sorted().joinToString(","), it.skillIds.sorted().joinToString(",")).joinToString("\u0000")
+    } ?: "default").toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 255) }
+
 interface ToolPolicyService {
     val policies: StateFlow<Map<String, ToolPolicy>>
     suspend fun set(tool: ToolDescriptor, policy: ToolPolicy)
+    suspend fun set(tool: ToolDescriptor, role: AgentRole?, policy: ToolPolicy) = set(tool, policy)
+    fun policy(tool: ToolDescriptor, role: AgentRole?) = policy(tool)
     fun policy(tool: ToolDescriptor) = policies.value[toolPolicyKey(tool)] ?: ToolPolicy.ASK
 }
 val ToolPolicyServiceKey = ServiceKey("tools.policies", ToolPolicyService::class)

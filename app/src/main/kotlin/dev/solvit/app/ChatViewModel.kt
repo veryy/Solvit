@@ -9,7 +9,7 @@ import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null,
-    private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null) : ViewModel() {
+    private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null, private val approvals: ToolPolicyService? = null) : ViewModel() {
     suspend fun discoverModels(candidate: ModelConfig): List<AvailableModel> =
         (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
@@ -39,8 +39,17 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     val saving = MutableStateFlow(false)
     val toolActivity = MutableStateFlow<List<ModelChunk.ToolActivity>>(emptyList())
     val toolApproval = MutableStateFlow<ToolApproval?>(null)
-    data class ToolApproval(val descriptor: ToolDescriptor, val call: ToolCall, val decision: CompletableDeferred<Boolean>)
-    fun approveTool(allow: Boolean) { toolApproval.value?.decision?.complete(allow) }
+    data class ToolApproval(val descriptor: ToolDescriptor, val call: ToolCall, val role: AgentRole?, val decision: CompletableDeferred<Boolean>)
+    fun approveTool(allow: Boolean, remember: Boolean = false) {
+        val pending = toolApproval.value ?: return
+        if (!remember) { pending.decision.complete(allow); return }
+        viewModelScope.launch {
+            try {
+                (approvals ?: error("工具授权服务不可用")).set(pending.descriptor, pending.role, ToolPolicy.ALLOW)
+                if (toolApproval.value === pending) pending.decision.complete(true)
+            } catch (e: Exception) { error.value = "免询问授权保存失败，请重试或允许这一次" }
+        }
+    }
     private var generation: Job? = null
 
     init {
@@ -125,10 +134,11 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         val snapshot = config.value
         generation = viewModelScope.launch {
             try {
+                val role = roles?.selected(id)
                 val gate = object : ToolAuthorization {
                     override suspend fun authorize(descriptor: ToolDescriptor) = false
                     override suspend fun authorizeCall(descriptor: ToolDescriptor, call: ToolCall): Boolean {
-                        val pending = ToolApproval(descriptor, call, CompletableDeferred())
+                        val pending = ToolApproval(descriptor, call, role, CompletableDeferred())
                         toolApproval.value = pending
                         return try { pending.decision.await() }
                         finally { if (toolApproval.value === pending) toolApproval.value = null }

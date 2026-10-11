@@ -23,6 +23,7 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AgentLibraryDialog(vm: AgentLibraryViewModel, onDismiss: () -> Unit) {
+    val applied by vm.applied.collectAsStateWithLifecycle()
     val roles by vm.roles.collectAsStateWithLifecycle()
     val active by vm.activeRole.collectAsStateWithLifecycle()
     val missing by vm.missingRole.collectAsStateWithLifecycle()
@@ -67,6 +68,7 @@ fun AgentLibraryDialog(vm: AgentLibraryViewModel, onDismiss: () -> Unit) {
                         Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("角色") })
                         Tab(selected = tab == 1, onClick = { tab = 1; vm.refreshSkills() }, text = { Text("技能库") })
                     }
+                    applied?.let { Text(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(16.dp)) }
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
                     LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

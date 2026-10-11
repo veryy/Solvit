@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                             val service = result!!.getOrThrow()
                             val factory = remember(service) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches, app.toolApprovals) as T
                             } }
                             val vm: ChatViewModel = viewModel(factory = factory)
                             val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {
@@ -169,12 +169,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             if (vm.branchInput.value == it) vm.branchInput.value=null
         }
     }
-    val list = rememberLazyListState()
     LaunchedEffect(selected) { agents.setSession(selected); workspaces.selectChat(selected) }
-    LaunchedEffect(chatRows.size, draft, reasoning, toolActivity) {
-        val count = list.layoutInfo.totalItemsCount
-        if (count > 0) list.animateScrollToItem(count - 1)
-    }
 
     ModalNavigationDrawer(drawerState = drawer, drawerContent = {
         ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.75f).testTag("chat_drawer")) {
@@ -276,17 +271,13 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                     }
                 }
             } else {
-                LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth().testTag("chat_messages"),
-                    contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(chatRows, key = { it.id }) { row -> ChatBubble(row,
-                        onBranch = if (busy || branching) null else { message, mode ->
-                            hideInput(); vm.branchError.value = null; branchTarget = message to mode
-                        }) }
-
-                    if (workspaceId == null && !busy) item(key="create-workspace") {
+                ChatTimeline(chatRows, selected, Modifier.weight(1f),
+                    onBranch = if (busy || branching) null else { message, mode ->
+                        hideInput(); vm.branchError.value = null; branchTarget = message to mode
+                    }, footer = if (workspaceId == null && !busy) ({
                         TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { Text("新建工作区") }
-                    }
-                }
+                    }) else null)
+
             }
             }
         }
@@ -308,15 +299,19 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                     Text(if (mode == ExecutionMode.ROOT) "执行身份：Root（设备最高权限）" else "执行身份：普通应用")
                 } }
                 item { SelectionContainer { Text(pending.call.argumentsJson) } }
+                item { Text("不再询问仅用于此角色和当前版本的此工具，后续不同参数也可执行。可在设置 → 权限与执行方式清除。", style = MaterialTheme.typography.bodySmall) }
             } },
-            confirmButton = { TextButton(onClick = { vm.approveTool(true) }) { Text("允许这一次") } },
+            confirmButton = { Column {
+                TextButton(onClick = { vm.approveTool(true) }) { Text("允许这一次") }
+                TextButton(onClick = { vm.approveTool(true, remember = true) }) { Text("允许且不再询问") }
+            } },
             dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { Text("拒绝") } })
     }
     val app = LocalContext.current.applicationContext as SolvitApplication
     if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution, createOnOpen=workspaceCreateRequested) { workspaceOpen = false }
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true })
-    if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace) { permissionsOpen = false }
+    if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace, app.toolApprovals) { permissionsOpen = false }
     if (modelsOpen) ModelSettings(config, saving, error, onDismiss = { if (!saving) modelsOpen = false },
         onSave = { vm.saveConfig(it) { modelsOpen = false } }, onFetchModels = vm::discoverModels)
     if (backupOpen) ConfigurationBackupDialog(vm, app.roles, app.appearance, onDismiss = { backupOpen = false })

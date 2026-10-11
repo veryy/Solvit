@@ -61,10 +61,10 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         val tool = synchronized(this) { tools[name] } ?: error("Unknown tool: $name")
         val descriptor = snapshot(tool)
         if (role != null && !role.allows(descriptor.pluginId)) throw ToolDeniedException()
-        val policy = policies?.policy(descriptor) ?: ToolPolicy.ASK
+        val policy = policies?.policy(descriptor, role) ?: ToolPolicy.ASK
         if (policy == ToolPolicy.DENY || (policy == ToolPolicy.ASK && !authorization.authorizeCall(descriptor, call))) throw ToolDeniedException()
         currentCoroutineContext().ensureActive()
-        if (policies?.policy(descriptor) == ToolPolicy.DENY) throw ToolDeniedException()
+        if (policies?.policy(descriptor, role) == ToolPolicy.DENY) throw ToolDeniedException()
         check(snapshot(tool).executionMode == descriptor.executionMode) { "执行模式已变化，请重新确认" }
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
         onAuthorized()

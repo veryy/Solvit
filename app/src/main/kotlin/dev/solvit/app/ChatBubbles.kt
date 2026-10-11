@@ -66,7 +66,7 @@ private fun AssistantContents(row: ChatRow) {
         val split = splitThinking(message.content)
         val thinking = listOf(message.reasoning, split.thinking).filter { it.isNotBlank() }.joinToString("\n\n")
         if (thinking.isNotBlank()) { ThinkingSection(thinking, row.generating, message.id); hasContent = true }
-        if (split.answer.isNotBlank()) { MarkdownBody(split.answer); hasContent = true }
+        if (split.answer.isNotBlank()) { MarkdownBody(split.answer, streaming = row.generating && message.id == "live-answer"); hasContent = true }
         message.toolCalls.forEach { call ->
             if (emitted.add(call.id)) {
                 val result = results[call.id]
@@ -87,8 +87,11 @@ private fun AssistantContents(row: ChatRow) {
 }
 
 @Composable
-fun MarkdownBody(content: String) {
-    SelectionContainer { Markdown(content=content, modifier=Modifier.fillMaxWidth().testTag("markdown_body")) }
+fun MarkdownBody(content: String, streaming: Boolean = false) {
+    SelectionContainer {
+        if (streaming) Text(content, modifier=Modifier.fillMaxWidth().testTag("streaming_body"), style=MaterialTheme.typography.bodyLarge)
+        else Markdown(content=content, modifier=Modifier.fillMaxWidth().testTag("markdown_body"))
+    }
 }
 
 @Composable

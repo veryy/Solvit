@@ -63,8 +63,10 @@ class DefaultChatService(
             admitted = true
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
             val messages = buildList {
-                if (config.systemPrompt.isNotBlank()) add(ModelMessage(Role.SYSTEM, config.systemPrompt))
-                if (!role?.prompt.isNullOrBlank()) add(ModelMessage(Role.SYSTEM, role!!.prompt))
+                val instructions = listOf(config.systemPrompt, role?.let {
+                    "当前角色：${it.name}。以下角色指令优先于通用风格和历史对话中的旧角色描述：\n${it.prompt}"
+                }.orEmpty()).filter { it.isNotBlank() }.joinToString("\n\n")
+                if (instructions.isNotBlank()) add(ModelMessage(Role.SYSTEM, instructions))
                 addAll(completeContext(history))
             }
             var done = false
