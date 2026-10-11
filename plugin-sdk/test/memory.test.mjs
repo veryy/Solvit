@@ -88,7 +88,7 @@ test('storage failure and malformed persisted data never silently reset user mem
 });
 test('oversized updates reject before changing persistent database', async () => {
   const plugin = runtime();
-  for (let index = 0; index < 18; index++) await plugin.run('memory_put', { text: `${index}:` + '中'.repeat(3900) });
+  for (let index = 0; index < 19; index++) await plugin.run('memory_put', { text: `${index}:` + '中'.repeat(3900) });
   const before = JSON.stringify([...plugin.data]);
   await assert.rejects(() => plugin.run('memory_put', { text: 'overflow:' + '中'.repeat(3900) }), /Memory full/);
   assert.equal(JSON.stringify([...plugin.data]), before);
