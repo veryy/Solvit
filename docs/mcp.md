@@ -10,6 +10,10 @@
 
 MCP 配置不进入模型的工具参数和描述，但启用的插件可读取自己的配置；允许的远程工具结果会进入模型上下文。插件没有访问其他插件配置或模型 API Key 的接口。卸载移除配置及凭据，停用尝试关闭远程会话。
 
+## 实际 HTTPS 演示
+
+可填写 `https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空。服务器只提供 echo 与 server_time 两个只读演示工具，不访问文件或执行 Shell。该端点已实际通过插件的 HTTPS 初始化、工具发现和回显调用验证；它是本项目的演示服务器，第三方 MCP 服务仍待验证。
+
 ## 当前协议支持
 
 按 [MCP Streamable HTTP 规范](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports) 与 [生命周期规范](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle) 实现：
