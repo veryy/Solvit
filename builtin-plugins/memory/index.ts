@@ -266,6 +266,20 @@ const plugin = definePlugin({
       }
       await save(db, ctx); return { document, chunks: db.chunks.filter(chunk => chunk.document === document).length };
     },
+    // Not declared in the public manifest. Only the bundled native management
+    // executor advertises this handler after checking durable job retirement.
+    async memory_prune_sources(args, ctx) {
+      if (Object.keys(args).length !== 1 || !Array.isArray(args.turnIds) || args.turnIds.length > MAX_PROCESSED_SOURCES ||
+          args.turnIds.some(id => typeof id !== 'string' || !id.trim() || id.length > 128) ||
+          new Set(args.turnIds).size !== args.turnIds.length) throw new Error('Invalid retired sources');
+      const retired = new Set(args.turnIds);
+      const db = await load(ctx);
+      const previous = db.completedSources ?? [];
+      const remaining = previous.filter(source => !retired.has(source.turnId));
+      const deleted = previous.length - remaining.length;
+      if (deleted > 0) { db.completedSources = remaining; await save(db, ctx); }
+      return { deleted };
+    },
     async memory_export(_args, ctx) {
       const db = await load(ctx);
       if (ctx.role) return { ...scoped(db, ctx.role.id), completedSources: db.completedSources?.filter(source => source.roleId === ctx.role!.id) ?? [] } as unknown as JsonValue;
@@ -274,7 +288,7 @@ const plugin = definePlugin({
   },
 });
 
-const writers = new Set(['memory_put','memory_extract','memory_delete','memory_profile','memory_link','memory_document']);
+const writers = new Set(['memory_put','memory_extract','memory_delete','memory_profile','memory_link','memory_document','memory_prune_sources']);
 const tools = Object.fromEntries(Object.entries(plugin.tools).map(([name, handler]) => [name, writers.has(name)
   ? (args: JsonObject, ctx: PluginContext) => transact(ctx, local => handler(args, local)) : handler]));
 export default definePlugin({ ...plugin, tools });

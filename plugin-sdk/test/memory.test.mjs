@@ -249,3 +249,32 @@ test('repeated extraction preserves ownership and provenance of a manually confi
   await plugin.afterTurn(completed('reply5'));
   const db=await plugin.run('memory_export');assert.deepEqual(db.facts[0],before);assert.equal(db.completedSources.length,2);
 });
+
+test('internal source retirement preserves facts and remaining replay protection without inference',async()=>{
+  let calls=0;
+  const plugin=runtime(new Map(),false,{model:{async complete(){calls++;return extraction}}});
+  await plugin.afterTurn(completed('old'));await plugin.afterTurn(completed('live'));
+  const previous=await plugin.run('memory_export');
+  assert.ok(!pkg.manifest.tools.some(tool=>tool.name==='memory_prune_sources'));
+  assert.deepEqual(await plugin.run('memory_prune_sources',{turnIds:['old']}),{deleted:1});
+  const current=await plugin.run('memory_export');
+  assert.deepEqual(current.facts,previous.facts);
+  assert.deepEqual(current.completedSources.map(source=>source.turnId),['live']);
+  await plugin.afterTurn(completed('live'));assert.equal(calls,2);
+  assert.deepEqual(await plugin.run('memory_prune_sources',{turnIds:['old']}),{deleted:0});
+  for(const args of [{turnIds:['live','live']},{turnIds:[1]},{turnIds:['live'],extra:true}])
+    await assert.rejects(()=>plugin.run('memory_prune_sources',args),/Invalid retired sources/);
+  assert.deepEqual(await plugin.run('memory_export'),current);
+});
+test('source retirement rebases around concurrent manual writes without discarding user facts',async()=>{
+  const data=new Map();let injected=false;
+  const plugin=runtime(data,false,{model:{async complete(){return extraction}},beforeCompare:async()=>{
+    if(!injected){injected=true;await runtime(data).run('memory_put',{text:'Manual concurrent fact'});}
+  }});
+  // Seed without the retirement conflict injector.
+  await runtime(data,false,{model:{async complete(){return extraction}}}).afterTurn(completed('old'));
+  assert.deepEqual(await plugin.run('memory_prune_sources',{turnIds:['old']}),{deleted:1});
+  const current=await plugin.run('memory_export');
+  assert.equal(current.facts.length,2);assert.ok(current.facts.some(fact=>fact.text==='Manual concurrent fact'));
+  assert.equal(current.completedSources.length,0);
+});
