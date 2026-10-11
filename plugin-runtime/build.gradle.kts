@@ -12,6 +12,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     testImplementation(kotlin("test-junit"))
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.11.0")
+    testImplementation(project(":chat-runtime"))
+    testImplementation(project(":provider-openai"))
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
 }
 configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
     resolutionStrategy.dependencySubstitution {
