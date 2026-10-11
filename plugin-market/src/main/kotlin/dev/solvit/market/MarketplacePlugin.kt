@@ -100,8 +100,8 @@ class AndroidMarketplace(
         publish()
     }
 
-    override suspend fun enable(id: String, grantedPermissions: Set<String>) = mutex.withLock {
-        try { activate(id, grantedPermissions); failures.remove(id) }
+    override suspend fun enable(id: String, grantedPermissions: Set<String>): Unit = mutex.withLock {
+        try { activate(id, grantedPermissions); failures.remove(id); Unit }
         catch (e: CancellationException) { throw e }
         catch (e: Exception) { failures[id] = e.message ?: "启用失败"; throw e }
         finally { publish() }

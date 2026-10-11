@@ -24,7 +24,7 @@ class ScriptRuntimeTest {
 
     private val deniedHost = ScriptHost { _, _, _ -> error("Host should not be called") }
 
-    @Test fun executesAsyncJavaScriptAndPreservesArgumentsAsData() = runBlocking {
+    @Test fun executesAsyncJavaScriptAndPreservesArgumentsAsData() = runBlocking<Unit> {
         val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo: async args => args}};"), deniedHost)
         executor.start()
         try {
@@ -34,7 +34,7 @@ class ScriptRuntimeTest {
         assertFailsWith<IllegalStateException> { executor.execute("echo", "{}") }
     }
 
-    @Test fun undeclaredHostPermissionCannotBeBypassedFromJavaScript() = runBlocking {
+    @Test fun undeclaredHostPermissionCannotBeBypassedFromJavaScript() = runBlocking<Unit> {
         var calls = 0
         val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo: async args => await __solvitHostCall('storage.get','{}')}};"),
             ScriptHost { _, _, _ -> calls++; JsonNull })
@@ -43,7 +43,7 @@ class ScriptRuntimeTest {
         finally { executor.stop() }
     }
 
-    @Test fun declaredStorageBridgeAwaitsNativeResult() = runBlocking {
+    @Test fun declaredStorageBridgeAwaitsNativeResult() = runBlocking<Unit> {
         val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo: async args => await ctx.storage.get(args.key)}};", listOf("storage")),
             ScriptHost { plugin, operation, arguments ->
                 assertEquals("test.plugin", plugin.id); assertEquals("storage.get", operation)
@@ -55,14 +55,14 @@ class ScriptRuntimeTest {
         finally { executor.stop() }
     }
 
-    @Test fun infiniteLoopIsInterruptedByEngineDeadline() = runBlocking {
+    @Test fun infiniteLoopIsInterruptedByEngineDeadline() = runBlocking<Unit> {
         val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo: args => {while(true){}}}};"), deniedHost, timeoutMs = 100)
         executor.start()
         try { withTimeout(5_000) { assertFailsWith<QuickJsException> { executor.execute("echo", "{}") } } }
         finally { executor.stop() }
     }
 
-    @Test fun toolRegistrationsDisappearWhenPluginUnloads() = runBlocking {
+    @Test fun toolRegistrationsDisappearWhenPluginUnloads() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val manager = PluginManager(scope = scope)
         try {
