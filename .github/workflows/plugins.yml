@@ -1,5 +1,6 @@
 name: TypeScript plugins
 on:
+  workflow_call:
   push:
     paths: ['plugin-sdk/**', 'plugin-examples/**', 'builtin-plugins/**', 'market-server/packages/**', '.github/workflows/plugins.yml']
   pull_request:
@@ -27,3 +28,5 @@ jobs:
           path: market-server/packages/*.solvit.json
       - run: npm run typecheck && npm test
         working-directory: plugin-sdk
+      - run: npm test
+        working-directory: market-server
