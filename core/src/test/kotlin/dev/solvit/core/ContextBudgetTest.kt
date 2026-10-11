@@ -42,4 +42,18 @@ class ContextBudgetTest {
         assertNull(planner.plan(request, policy.copy(automaticSummary = false)).region)
         assertNull(planner.plan(request.copy(messages = listOf(ModelMessage(Role.USER, "small"))), policy).region)
     }
+    @Test fun reusedToolIdsAcrossClosedTurnsRemainCompactable() {
+        val messages = buildList {
+            repeat(3) { i ->
+                add(ModelMessage(Role.USER, "old task $i"))
+                add(ModelMessage(Role.ASSISTANT, "x".repeat(2_000), listOf(ToolCall("call_0", "run", "{}"))))
+                add(ModelMessage(Role.TOOL, "done", toolCallId = "call_0"))
+            }
+            add(ModelMessage(Role.USER, "current task"))
+        }
+        val region = assertNotNull(planner.plan(ModelRequest(ModelConfig(), messages), policy).region)
+        assertEquals(0, region.start)
+        assertTrue(region.endExclusive >= 6)
+        assertEquals(Role.USER, messages[region.endExclusive].role)
+    }
 }

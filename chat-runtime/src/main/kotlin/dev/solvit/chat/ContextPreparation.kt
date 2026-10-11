@@ -115,7 +115,7 @@ class DefaultContextPreparation(
             when (chunk) {
                 is ModelChunk.Text -> {
                     result.append(chunk.value)
-                    if (result.toString().toByteArray(Charsets.UTF_8).size > 32 * 1024) throw ModelException("摘要超过长度限制")
+                    if (result.length > 32 * 1024) throw ModelException("摘要超过长度限制")
                 }
                 is ModelChunk.Reasoning, is ModelChunk.NativeTranscript -> Unit
                 ModelChunk.Done -> done = true
@@ -123,7 +123,9 @@ class DefaultContextPreparation(
             }
         }
         if (!done || result.isBlank()) throw ModelException("摘要模型未返回完整摘要，原聊天记录已保留")
-        return result.toString().trim()
+        val text = result.toString().trim()
+        if (text.toByteArray(Charsets.UTF_8).size > 32 * 1024) throw ModelException("摘要超过长度限制")
+        return if (request.config.apiKey.isNotBlank()) text.replace(request.config.apiKey, "[凭据已隐藏]") else text
     }
     private fun clipToolResult(text: String, limit: Int): String {
         if (meter.textTokens(text) <= limit) return text

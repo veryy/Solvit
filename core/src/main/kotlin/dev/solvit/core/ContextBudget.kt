@@ -81,46 +81,49 @@ class BalancedContextBudgetPlanner(private val meter: ContextTokenMeter = Utf8Co
         if (messages.drop(start).any { it.role == Role.SYSTEM })
             throw ModelException("系统规则必须独立于可压缩历史")
         // Prefer keeping a recent tail; grow the selected prefix until pressure is relieved.
+        val prices = LongArray(messages.size + 1)
+        messages.forEachIndexed { index, message -> prices[index + 1] = prices[index] + meter.messageTokens(message) }
         val recentBudget = maxOf(256L, policy.inputTokens.toLong() / 4)
-        var kept = messages.drop(lastUser).sumOf(meter::messageTokens)
+        var kept = prices[messages.size] - prices[lastUser]
         var cut = lastUser
         while (cut > start && kept < recentBudget) {
-            kept += meter.messageTokens(messages[cut - 1]); cut--
+            kept += prices[cut] - prices[cut - 1]; cut--
         }
         // Only whole closed user turns are admissible. Never split call/result groups.
-        val boundaries = (start + 1..lastUser).filter { messages[it].role == Role.USER && balanced(messages, start, it) }
+        val boundaries = balancedBoundaries(messages, start, lastUser)
         if (boundaries.isEmpty()) return ContextBudgetPlan(measurement, null)
         val initial = boundaries.lastOrNull { it <= cut } ?: boundaries.first()
+        var selectedIndex = boundaries.indexOf(initial)
         var selected = initial
         // Leave room for a bounded summary, even when the recent tail alone is too large.
         val summaryReserve = minOf(2_048L, policy.inputTokens.toLong() / 8)
         while (selected < lastUser && measurement.estimatedTokens -
-            messages.subList(start, selected).sumOf(meter::messageTokens) + summaryReserve > policy.inputTokens) {
-            selected = boundaries.firstOrNull { it > selected } ?: break
+            (prices[selected] - prices[start]) + summaryReserve > policy.inputTokens) {
+            if (++selectedIndex >= boundaries.size) break
+            selected = boundaries[selectedIndex]
         }
-        val region = ContextCompactionRegion(start, selected, messages.subList(start, selected).sumOf(meter::messageTokens))
+        val region = ContextCompactionRegion(start, selected, prices[selected] - prices[start])
         return ContextBudgetPlan(measurement, region)
     }
 
-    private fun balanced(messages: List<ModelMessage>, start: Int, end: Int): Boolean {
+    private fun balancedBoundaries(messages: List<ModelMessage>, start: Int, lastUser: Int): List<Int> {
         val pending = mutableSetOf<String>()
-        val seen = mutableSetOf<String>()
-        for (message in messages.subList(start, end)) {
+        val boundaries = mutableListOf<Int>()
+        for (index in start..lastUser) {
+            val message = messages[index]
+            if (message.role == Role.USER && index > start && pending.isEmpty()) boundaries += index
             when (message.role) {
                 Role.ASSISTANT -> {
-                    if (pending.isNotEmpty()) return false
-                    for (call in message.toolCalls) {
-                        if (!seen.add(call.id)) return false
-                        pending += call.id
-                    }
+                    if (pending.isNotEmpty()) break
+                    for (call in message.toolCalls) if (!pending.add(call.id)) return boundaries
                 }
                 Role.TOOL -> {
-                    val id = message.toolCallId ?: return false
-                    if (!pending.remove(id)) return false
+                    val id = message.toolCallId ?: break
+                    if (!pending.remove(id)) break
                 }
-                Role.USER, Role.SYSTEM -> if (pending.isNotEmpty()) return false
+                Role.USER, Role.SYSTEM -> if (pending.isNotEmpty()) break
             }
         }
-        return pending.isEmpty()
+        return boundaries
     }
 }
