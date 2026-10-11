@@ -32,7 +32,7 @@ class BuiltinMemoryTest {
         try {
             val initial = setup(); manager = initial.first
             val market = initial.second
-            assertEquals(setOf("dev.solvit.memory", "dev.solvit.clock", "dev.solvit.mcp"), market.installed.value.map { it.id }.toSet())
+            assertEquals(setOf("dev.solvit.memory", "dev.solvit.clock", "dev.solvit.mcp", "dev.solvit.skills"), market.installed.value.map { it.id }.toSet())
             assertTrue(market.installed.value.none { it.enabled })
             assertFailsWith<IllegalStateException> { market.enable("dev.solvit.memory", emptySet()) }
             market.enable("dev.solvit.memory", setOf("storage"))
