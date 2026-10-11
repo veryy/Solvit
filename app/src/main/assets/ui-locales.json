@@ -60,7 +60,7 @@
     "en": "API base address",
     "ja": "APIベースアドレス",
     "ko": "API 기본 주소",
-    "es": "dirección base API",
+    "es": "Dirección base API",
     "fr": "Adresse de base de l'API"
   },
   "Agent 暴露了未处理工具调用": {
@@ -265,11 +265,11 @@
   },
   "交互终端": {
     "zh": "交互终端",
-    "en": "interactive terminal",
+    "en": "Interactive terminal",
     "ja": "インタラクティブターミナル",
     "ko": "대화형 터미널",
-    "es": "terminal interactivo",
-    "fr": "borne interactive"
+    "es": "Terminal interactivo",
+    "fr": "Borne interactive"
   },
   "仅保留最近输出": {
     "zh": "仅保留最近输出",
@@ -281,11 +281,11 @@
   },
   "从一个想法开始": {
     "zh": "从一个想法开始",
-    "en": "start with an idea",
-    "ja": "アイデアから始める",
-    "ko": "아이디어로 시작하다",
-    "es": "empezar con una idea",
-    "fr": "commencer par une idée"
+    "en": "Start with an idea",
+    "ja": "アイデアから始めましょう",
+    "ko": "아이디어로 시작하세요",
+    "es": "Empieza con una idea",
+    "fr": "Commencez par une idée"
   },
   "从这条回复创建分支": {
     "zh": "从这条回复创建分支",
@@ -297,11 +297,11 @@
   },
   "从这里分支": {
     "zh": "从这里分支",
-    "en": "branch from here",
+    "en": "Branch from here",
     "ja": "ここから分岐する",
     "ko": "여기에서 분기",
-    "es": "sucursal desde aquí",
-    "fr": "succursale d'ici"
+    "es": "Sucursal desde aquí",
+    "fr": "Succursale d'ici"
   },
   "以应用身份运行 Shell，可访问本应用文件和网络": {
     "zh": "以应用身份运行 Shell，可访问本应用文件和网络",
@@ -321,11 +321,11 @@
   },
   "你": {
     "zh": "你",
-    "en": "you",
+    "en": "You",
     "ja": "あなた",
     "ko": "당신",
-    "es": "tu",
-    "fr": "vous"
+    "es": "Tu",
+    "fr": "Vous"
   },
   "使用默认角色": {
     "zh": "使用默认角色",
@@ -393,27 +393,27 @@
   },
   "停止": {
     "zh": "停止",
-    "en": "stop",
+    "en": "Stop",
     "ja": "停止",
     "ko": "중지",
-    "es": "detenerse",
-    "fr": "arrêter"
+    "es": "Detenerse",
+    "fr": "Arrêter"
   },
   "停止生成": {
     "zh": "停止生成",
     "en": "Stop generating",
     "ja": "生成を停止する",
     "ko": "생성 중지",
-    "es": "dejar de generar",
+    "es": "Dejar de generar",
     "fr": "Arrêter de générer"
   },
   "停用": {
     "zh": "停用",
-    "en": "deactivate",
+    "en": "Deactivate",
     "ja": "非アクティブ化する",
     "ko": "비활성화하다",
-    "es": "desactivar",
-    "fr": "désactiver"
+    "es": "Desactivar",
+    "fr": "Désactiver"
   },
   "停用后可配置": {
     "zh": "停用后可配置",
@@ -457,11 +457,11 @@
   },
   "允许这一次": {
     "zh": "允许这一次",
-    "en": "allow this time",
+    "en": "Allow this time",
     "ja": "今回は許してください",
     "ko": "이번에는 허용",
-    "es": "permitir este tiempo",
-    "fr": "permettez cette fois"
+    "es": "Permitir este tiempo",
+    "fr": "Permettez cette fois"
   },
   "免询问授权保存失败，请重试或允许这一次": {
     "zh": "免询问授权保存失败，请重试或允许这一次",
@@ -474,18 +474,18 @@
   "关于 Solvit": {
     "zh": "关于 Solvit",
     "en": "About Solvit",
-    "ja": "ソルビットについて",
-    "ko": "솔빛 소개",
+    "ja": "Solvit について",
+    "ko": "Solvit 정보",
     "es": "Acerca de Solvit",
     "fr": "À propos de Solvit"
   },
   "关闭": {
     "zh": "关闭",
-    "en": "close",
+    "en": "Close",
     "ja": "閉じる",
     "ko": "닫기",
-    "es": "cerrar",
-    "fr": "fermer"
+    "es": "Cerrar",
+    "fr": "Fermer"
   },
   "关闭工作区": {
     "zh": "关闭工作区",
@@ -556,7 +556,7 @@
     "en": "Create a branch",
     "ja": "ブランチを作成する",
     "ko": "지점 만들기",
-    "es": "crear una sucursal",
+    "es": "Crear una sucursal",
     "fr": "Créer une succursale"
   },
   "创建分支失败，请重试；原对话已保留": {
@@ -729,11 +729,11 @@
   },
   "参数": {
     "zh": "参数",
-    "en": "parameters",
+    "en": "Parameters",
     "ja": "パラメータ",
     "ko": "매개변수",
-    "es": "parámetros",
-    "fr": "paramètres"
+    "es": "Parámetros",
+    "fr": "Paramètres"
   },
   "参数（JSON 对象）": {
     "zh": "参数（JSON 对象）",
@@ -745,11 +745,11 @@
   },
   "发送": {
     "zh": "发送",
-    "en": "send",
+    "en": "Send",
     "ja": "送信する",
     "ko": "보내다",
-    "es": "enviar",
-    "fr": "envoyer"
+    "es": "Enviar",
+    "fr": "Envoyer"
   },
   "发送失败，请检查模型配置或缩短对话后重试": {
     "zh": "发送失败，请检查模型配置或缩短对话后重试",
@@ -825,11 +825,11 @@
   },
   "启用": {
     "zh": "启用",
-    "en": "enable",
+    "en": "Enable",
     "ja": "有効にする",
     "ko": "활성화",
-    "es": "habilitar",
-    "fr": "activer"
+    "es": "Habilitar",
+    "fr": "Activer"
   },
   "启用 {0}？": {
     "zh": "启用 {0}？",
@@ -1049,11 +1049,11 @@
   },
   "工作区": {
     "zh": "工作区",
-    "en": "workspace",
+    "en": "Workspace",
     "ja": "ワークスペース",
     "ko": "작업 공간",
-    "es": "espacio de trabajo",
-    "fr": "espace de travail"
+    "es": "Espacio de trabajo",
+    "fr": "Espace de travail"
   },
   "工作区内相对路径": {
     "zh": "工作区内相对路径",
@@ -1073,11 +1073,11 @@
   },
   "工作目录": {
     "zh": "工作目录",
-    "en": "working directory",
+    "en": "Working directory",
     "ja": "作業ディレクトリ",
     "ko": "작업 디렉토리",
-    "es": "directorio de trabajo",
-    "fr": "répertoire de travail"
+    "es": "Directorio de trabajo",
+    "fr": "Répertoire de travail"
   },
   "工具免询问授权": {
     "zh": "工具免询问授权",
@@ -1177,11 +1177,11 @@
   },
   "已检测到 su": {
     "zh": "已检测到 su",
-    "en": "su has been detected",
+    "en": "Su has been detected",
     "ja": "suが検出されました",
     "ko": "su가 감지되었습니다",
-    "es": "su ha sido detectado",
-    "fr": "su a été détecté"
+    "es": "Su ha sido detectado",
+    "fr": "Su a été détecté"
   },
   "已记住 {0} 项授权。插件代码、权限、执行模式或角色配置变化后需重新确认。": {
     "zh": "已记住 {0} 项授权。插件代码、权限、执行模式或角色配置变化后需重新确认。",
@@ -1209,11 +1209,11 @@
   },
   "市场": {
     "zh": "市场",
-    "en": "market",
+    "en": "Market",
     "ja": "市場",
     "ko": "시장",
-    "es": "mercado",
-    "fr": "marché"
+    "es": "Mercado",
+    "fr": "Marché"
   },
   "应用 UID：{0}": {
     "zh": "应用 UID：{0}",
@@ -1225,11 +1225,11 @@
   },
   "应用更新": {
     "zh": "应用更新",
-    "en": "Apply updates",
-    "ja": "アップデートを適用する",
-    "ko": "업데이트 적용",
-    "es": "Aplicar actualizaciones",
-    "fr": "Appliquer les mises à jour"
+    "en": "App updates",
+    "ja": "アプリの更新",
+    "ko": "앱 업데이트",
+    "es": "Actualizaciones de la app",
+    "fr": "Mises à jour de l’application"
   },
   "应用权限、Root 授权和插件 Shell 模式": {
     "zh": "应用权限、Root 授权和插件 Shell 模式",
@@ -1249,11 +1249,11 @@
   },
   "当前时间": {
     "zh": "当前时间",
-    "en": "current time",
+    "en": "Current time",
     "ja": "現在時刻",
     "ko": "현재 시간",
-    "es": "hora actual",
-    "fr": "heure actuelle"
+    "es": "Hora actual",
+    "fr": "Heure actuelle"
   },
   "当前版本 {0} · 启动时自动检查": {
     "zh": "当前版本 {0} · 启动时自动检查",
@@ -1273,11 +1273,11 @@
   },
   "思考过程": {
     "zh": "思考过程",
-    "en": "thought process",
+    "en": "Thought process",
     "ja": "思考プロセス",
     "ko": "사고 과정",
-    "es": "proceso de pensamiento",
-    "fr": "processus de réflexion"
+    "es": "Proceso de pensamiento",
+    "fr": "Processus de réflexion"
   },
   "恢复失败，已有配置未修改或已恢复，请检查本机存储后重试。": {
     "zh": "恢复失败，已有配置未修改或已恢复，请检查本机存储后重试。",
@@ -1324,7 +1324,7 @@
     "en": "Manual",
     "ja": "マニュアル",
     "ko": "매뉴얼",
-    "es": "manuales",
+    "es": "Manuales",
     "fr": "Manuel"
   },
   "手动 Shell": {
@@ -1340,7 +1340,7 @@
     "en": "Manual terminal",
     "ja": "手動端子",
     "ko": "수동단말기",
-    "es": "terminales manuales",
+    "es": "Terminales manuales",
     "fr": "Terminal manuel"
   },
   "手动终端：Root 模式": {
@@ -1364,7 +1364,7 @@
     "en": "Executing",
     "ja": "実行中",
     "ko": "실행 중",
-    "es": "ejecutando",
+    "es": "Ejecutando",
     "fr": "Exécution"
   },
   "执行失败": {
@@ -1409,11 +1409,11 @@
   },
   "拒绝": {
     "zh": "拒绝",
-    "en": "reject",
+    "en": "Reject",
     "ja": "拒否する",
     "ko": "거절하다",
-    "es": "rechazar",
-    "fr": "rejeter"
+    "es": "Rechazar",
+    "fr": "Rejeter"
   },
   "提示词、角色绑定、技能导入和管理": {
     "zh": "提示词、角色绑定、技能导入和管理",
@@ -1425,19 +1425,19 @@
   },
   "插件": {
     "zh": "插件",
-    "en": "plug-in",
+    "en": "Plug-in",
     "ja": "プラグイン",
     "ko": "플러그인",
-    "es": "complemento",
-    "fr": "plug-in"
+    "es": "Complemento",
+    "fr": "Plug-in"
   },
   "插件市场": {
     "zh": "插件市场",
-    "en": "plug-in market",
+    "en": "Plug-in market",
     "ja": "プラグイン市場",
     "ko": "플러그인 시장",
-    "es": "mercado de complementos",
-    "fr": "marché des plug-ins"
+    "es": "Mercado de complementos",
+    "fr": "Marché des plug-ins"
   },
   "插件操作失败": {
     "zh": "插件操作失败",
@@ -1513,11 +1513,11 @@
   },
   "文本内容": {
     "zh": "文本内容",
-    "en": "text content",
+    "en": "Text content",
     "ja": "テキストコンテンツ",
     "ko": "텍스트 내용",
-    "es": "contenido del texto",
-    "fr": "contenu du texte"
+    "es": "Contenido del texto",
+    "fr": "Contenu du texte"
   },
   "文本资源：\n{0}": {
     "zh": "文本资源：\n{0}",
@@ -1545,11 +1545,11 @@
   },
   "新建文本": {
     "zh": "新建文本",
-    "en": "new text",
+    "en": "New text",
     "ja": "新しいテキスト",
     "ko": "새 텍스트",
-    "es": "nuevo texto",
-    "fr": "nouveau texte"
+    "es": "Nuevo texto",
+    "fr": "Nouveau texte"
   },
   "无法写入备份": {
     "zh": "无法写入备份",
@@ -1641,18 +1641,18 @@
   },
   "显示密钥": {
     "zh": "显示密钥",
-    "en": "show key",
+    "en": "Show key",
     "ja": "キーを表示",
     "ko": "키 표시",
-    "es": "mostrar clave",
-    "fr": "afficher la clé"
+    "es": "Mostrar clave",
+    "fr": "Afficher la clé"
   },
   "普通": {
     "zh": "普通",
     "en": "Ordinary",
     "ja": "普通",
     "ko": "보통",
-    "es": "ordinario",
+    "es": "Ordinario",
     "fr": "Ordinaire"
   },
   "普通 Shell 可用": {
@@ -1737,11 +1737,11 @@
   },
   "未检测到 su": {
     "zh": "未检测到 su",
-    "en": "su not detected",
+    "en": "Su not detected",
     "ja": "suは検出されませんでした",
     "ko": "감지되지 않음",
-    "es": "no detectado",
-    "fr": "su non détecté"
+    "es": "No detectado",
+    "fr": "Su non détecté"
   },
   "权限与执行": {
     "zh": "权限与执行",
@@ -1852,7 +1852,7 @@
     "en": "Model settings",
     "ja": "モデル設定",
     "ko": "모델 설정",
-    "es": "Configuración del modelo",
+    "es": "Ajustes del modelo",
     "fr": "Paramètres du modèle"
   },
   "模型配置": {
@@ -1937,11 +1937,11 @@
   },
   "浅色": {
     "zh": "浅色",
-    "en": "light color",
-    "ja": "明るい色",
-    "ko": "연한 색",
-    "es": "color claro",
-    "fr": "couleur claire"
+    "en": "Light",
+    "ja": "ライト",
+    "ko": "라이트",
+    "es": "Claro",
+    "fr": "Clair"
   },
   "消息操作": {
     "zh": "消息操作",
@@ -1954,18 +1954,18 @@
   "深色": {
     "zh": "深色",
     "en": "Dark",
-    "ja": "暗い",
-    "ko": "어둠",
-    "es": "oscuro",
+    "ja": "ダーク",
+    "ko": "다크",
+    "es": "Oscuro",
     "fr": "Sombre"
   },
   "清除任务": {
     "zh": "清除任务",
-    "en": "clear task",
+    "en": "Clear task",
     "ja": "クリアタスク",
     "ko": "작업 지우기",
-    "es": "tarea clara",
-    "fr": "tâche claire"
+    "es": "Tarea clara",
+    "fr": "Tâche claire"
   },
   "清除所有免询问授权": {
     "zh": "清除所有免询问授权",
@@ -2001,11 +2001,11 @@
   },
   "用于此对话": {
     "zh": "用于此对话",
-    "en": "for this conversation",
+    "en": "For this conversation",
     "ja": "この会話のために",
     "ko": "이 대화를 위해",
-    "es": "para esta conversación",
-    "fr": "pour cette conversation"
+    "es": "Para esta conversación",
+    "fr": "Pour cette conversation"
   },
   "留空时从 API 基础地址下的 /models 获取；也支持独立 JSON 模型列表地址。": {
     "zh": "留空时从 API 基础地址下的 /models 获取；也支持独立 JSON 模型列表地址。",
@@ -2121,11 +2121,11 @@
   },
   "结果": {
     "zh": "结果",
-    "en": "result",
+    "en": "Result",
     "ja": "結果",
     "ko": "결과",
-    "es": "resultado",
-    "fr": "résultat"
+    "es": "Resultado",
+    "fr": "Résultat"
   },
   "编辑": {
     "zh": "编辑",
@@ -2201,26 +2201,26 @@
   },
   "角色": {
     "zh": "角色",
-    "en": "role",
-    "ja": "役割",
+    "en": "Roles",
+    "ja": "ロール",
     "ko": "역할",
-    "es": "papel",
-    "fr": "rôle"
+    "es": "Roles",
+    "fr": "Rôles"
   },
   "角色与 Skills": {
     "zh": "角色与 Skills",
     "en": "Roles and Skills",
-    "ja": "役割とスキル",
-    "ko": "역할과 기술",
-    "es": "Roles y habilidades",
-    "fr": "Rôles et compétences"
+    "ja": "ロールと Skills",
+    "ko": "역할 및 Skills",
+    "es": "Roles y Skills",
+    "fr": "Rôles et Skills"
   },
   "角色与能力": {
     "zh": "角色与能力",
-    "en": "Roles and abilities",
-    "ja": "役割と能力",
-    "ko": "역할과 능력",
-    "es": "Roles y habilidades",
+    "en": "Roles and capabilities",
+    "ja": "ロールと機能",
+    "ko": "역할 및 기능",
+    "es": "Roles y capacidades",
     "fr": "Rôles et capacités"
   },
   "角色或技能操作失败": {
@@ -2233,19 +2233,19 @@
   },
   "角色提示词": {
     "zh": "角色提示词",
-    "en": "character prompts",
-    "ja": "文字プロンプト",
-    "ko": "문자 메시지",
-    "es": "indicaciones de personajes",
-    "fr": "invites de caractères"
+    "en": "Role instructions",
+    "ja": "ロールの指示",
+    "ko": "역할 지침",
+    "es": "Instrucciones del rol",
+    "fr": "Instructions du rôle"
   },
   "角色管理与 Skills": {
     "zh": "角色管理与 Skills",
-    "en": "Role Management and Skills",
-    "ja": "役割管理とスキル",
-    "ko": "역할 관리 및 기술",
-    "es": "Gestión de roles y habilidades",
-    "fr": "Gestion des rôles et compétences"
+    "en": "Roles and Skills",
+    "ja": "ロールと Skills の管理",
+    "ko": "역할 및 Skills 관리",
+    "es": "Roles y Skills",
+    "fr": "Rôles et Skills"
   },
   "设备权限": {
     "zh": "设备权限",
@@ -2337,11 +2337,11 @@
   },
   "读取": {
     "zh": "读取",
-    "en": "read",
+    "en": "Read",
     "ja": "読む",
     "ko": "읽다",
-    "es": "leer",
-    "fr": "lire"
+    "es": "Leer",
+    "fr": "Lire"
   },
   "读取会话失败": {
     "zh": "读取会话失败",
@@ -2417,18 +2417,18 @@
   },
   "运行": {
     "zh": "运行",
-    "en": "run",
+    "en": "Run",
     "ja": "走る",
     "ko": "달리다",
-    "es": "correr",
-    "fr": "courir"
+    "es": "Correr",
+    "fr": "Courir"
   },
   "运行中": {
     "zh": "运行中",
     "en": "Running",
     "ja": "ランニング",
     "ko": "달리기",
-    "es": "corriendo",
+    "es": "Corriendo",
     "fr": "Courir"
   },
   "返回聊天": {
