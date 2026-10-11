@@ -9,7 +9,7 @@ import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null,
-    private val catalog: ModelCatalogService? = null) : ViewModel() {
+    private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null) : ViewModel() {
     suspend fun discoverModels(candidate: ModelConfig): List<AvailableModel> =
         (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
@@ -33,6 +33,9 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         private set
     var sendingText: String = ""
         private set
+    val branching = MutableStateFlow(false)
+    val branchError = MutableStateFlow<String?>(null)
+    val branchInput = MutableStateFlow<Pair<String,String>?>(null)
     val saving = MutableStateFlow(false)
     val toolActivity = MutableStateFlow<List<ModelChunk.ToolActivity>>(emptyList())
     val toolApproval = MutableStateFlow<ToolApproval?>(null)
@@ -52,9 +55,9 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             } catch (e: Exception) { error.value = "无法打开聊天存储，请重启应用" }
         }
     }
-    fun select(id: String) { if (!busy.value) { selected.value = id; draft.value = ""; dismissError() } }
+    fun select(id: String) { if (!busy.value && !branching.value) { selected.value = id; draft.value = ""; dismissError() } }
     fun newChat() {
-        if (busy.value) return
+        if (busy.value || branching.value) return
         viewModelScope.launch {
             try {
                 val role = selected.value?.let { roles?.selected(it) }
@@ -65,8 +68,26 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             catch (e: Exception) { error.value = "创建对话失败" }
         }
     }
+    fun fork(point: BranchPoint, editedText: String, onForked: () -> Unit) {
+        val source = selected.value ?: return
+        if (busy.value || branching.value) return
+        val service = branches ?: run { branchError.value = "当前存储不支持聊天分支"; return }
+        branching.value = true; branchError.value = null
+        viewModelScope.launch {
+            try {
+                val branch = service.fork(source, point)
+                branchInput.value = branch.id to editedText
+                selected.value = branch.id
+                draft.value = ""; reasoning.value = ""; liveTranscript.value = emptyList(); toolActivity.value = emptyList()
+                dismissError()
+                onForked()
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { branchError.value = "创建分支失败，请重试；原对话已保留" }
+            finally { branching.value = false }
+        }
+    }
     fun delete(id: String) {
-        if (busy.value) return
+        if (busy.value || branching.value) return
         viewModelScope.launch {
             try {
                 chat.deleteSession(id)
@@ -85,7 +106,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         }
     }
     suspend fun restoreConfig(value: ModelConfig) {
-        check(!busy.value && !saving.value) { "请等待当前操作结束" }
+        check(!busy.value && !branching.value && !saving.value) { "请等待当前操作结束" }
         value.validate()?.let { error(it) }
         saving.value = true
         try { settings.save(value); config.value = value; modelConfigured.value = true; error.value = null }
@@ -93,12 +114,12 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     }
     fun send(text: String): Boolean {
         val id = selected.value ?: return false
-        if (busy.value || !ready.value || text.isBlank()) return false
+        if (busy.value || branching.value || !ready.value || text.isBlank()) return false
         dismissError()
         config.value.validate()?.let { error.value = it; return false }
         draft.value = ""
         reasoning.value = ""; liveTranscript.value = emptyList()
-        turnBaseline = messages.value.lastOrNull()?.id; sendingText = text.trim()
+        turnBaseline = messages.value.lastOrNull { it.sessionId == id }?.id; sendingText = text.trim()
         toolActivity.value = emptyList()
         busy.value = true
         val snapshot = config.value

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.*
@@ -20,13 +21,29 @@ import com.mikepenz.markdown.m3.Markdown
 import dev.solvit.core.*
 
 @Composable
-fun ChatBubble(row: ChatRow) {
+fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = null) {
     val user = row.user
     val width = LocalConfiguration.current.screenWidthDp.dp * .88f
     Column(Modifier.fillMaxWidth().testTag(if (user != null) "user_message" else "assistant_message"),
         horizontalAlignment = if (user != null) Alignment.End else Alignment.Start) {
-        Text(if (user != null) "你" else "Solvit", style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal=4.dp, vertical=4.dp))
+        Row(verticalAlignment=Alignment.CenterVertically) {
+            Text(if (user != null) "你" else "Solvit", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal=4.dp, vertical=4.dp))
+            val anchor = user ?: row.messages.lastOrNull { it.role == Role.ASSISTANT }
+            if (onBranch != null && !row.generating && anchor != null) {
+                var menu by rememberSaveable(row.id) { mutableStateOf(false) }
+                Box {
+                    IconButton(onClick={ menu=true },modifier=Modifier.size(32.dp).testTag("message_actions_${anchor.id}")) {
+                        Icon(Icons.Default.MoreVert,"消息操作",Modifier.size(18.dp))
+                    }
+                    DropdownMenu(expanded=menu,onDismissRequest={ menu=false }) {
+                        DropdownMenuItem(text={ Text(if (user != null) "编辑并分支" else "从这里分支") }, onClick={
+                            menu=false; onBranch(anchor, if (user != null) BranchMode.BEFORE_USER else BranchMode.AFTER_REPLY)
+                        })
+                    }
+                }
+            }
+        }
         Surface(Modifier.widthIn(max=width), shape = if (user != null)
             RoundedCornerShape(topStart=10.dp,topEnd=2.dp,bottomEnd=10.dp,bottomStart=10.dp)
             else RoundedCornerShape(topStart=2.dp,topEnd=10.dp,bottomEnd=10.dp,bottomStart=10.dp),

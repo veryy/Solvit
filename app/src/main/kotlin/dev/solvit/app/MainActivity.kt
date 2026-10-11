@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
                             val service = result!!.getOrThrow()
                             val factory = remember(service) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches) as T
                             } }
                             val vm: ChatViewModel = viewModel(factory = factory)
                             val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {
@@ -114,8 +114,9 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val updateState by updates.state.collectAsStateWithLifecycle()
     val downloadState by updates.downloadState.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
-    val messages by vm.messages.collectAsStateWithLifecycle()
     val selected by vm.sessionId.collectAsStateWithLifecycle()
+    val storedMessages by vm.messages.collectAsStateWithLifecycle()
+    val messages = storedMessages.filter { it.sessionId == selected }
     val config by vm.config.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val ready by vm.ready.collectAsStateWithLifecycle()
@@ -126,6 +127,9 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val error by vm.error.collectAsStateWithLifecycle()
     val errorDetails by vm.errorDetails.collectAsStateWithLifecycle()
     var showErrorDetails by remember { mutableStateOf(false) }
+    val branching by vm.branching.collectAsStateWithLifecycle()
+    val branchError by vm.branchError.collectAsStateWithLifecycle()
+    val branchInput by vm.branchInput.collectAsStateWithLifecycle()
     val saving by vm.saving.collectAsStateWithLifecycle()
     val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
     val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
@@ -143,6 +147,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val workspaceId by workspaces.workspaceId.collectAsStateWithLifecycle()
     val workspaceState by workspaces.state.collectAsStateWithLifecycle()
     var agentsOpen by rememberSaveable { mutableStateOf(false) }
+    var branchTarget by remember { mutableStateOf<Pair<ChatMessage,BranchMode>?>(null) }
     var deleteTarget by remember { mutableStateOf<ChatSession?>(null) }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -157,6 +162,12 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             keyboard?.show()
         }
     }
+    LaunchedEffect(selected, branchInput) {
+        branchInput?.takeIf { it.first == selected }?.let {
+            input=it.second; vm.branchInput.value=null
+            withFrameNanos { }; inputFocus.requestFocus(); keyboard?.show()
+        }
+    }
     val list = rememberLazyListState()
     LaunchedEffect(selected) { agents.setSession(selected); workspaces.selectChat(selected) }
     LaunchedEffect(chatRows.size, draft, reasoning, toolActivity) {
@@ -167,7 +178,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     ModalNavigationDrawer(drawerState = drawer, drawerContent = {
         ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.75f).testTag("chat_drawer")) {
             Text("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
-            FilledTonalButton(onClick = { vm.newChat(); scope.launch { drawer.close() } }, enabled = ready && !busy,
+            FilledTonalButton(onClick = { vm.newChat(); scope.launch { drawer.close() } }, enabled = ready && !busy && !branching,
                 modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().testTag("new_chat")) {
                 Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("新对话")
             }
@@ -175,7 +186,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             LazyColumn(Modifier.weight(1f)) {
                 items(sessions, key = { it.id }) { session ->
                     NavigationDrawerItem(
-                        label = { Text(session.title, maxLines = 1) },
+                        label = { Text(session.title + if (session.originSessionId != null && !session.title.endsWith(" · 分支")) " · 分支" else "", maxLines = 1) },
                         selected = selected == session.id,
                         onClick = { if (!busy) { vm.select(session.id); scope.launch { drawer.close() } } },
                         badge = { IconButton(onClick = { deleteTarget = session }, enabled = !busy) {
@@ -232,7 +243,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                             Spacer(Modifier.width(8.dp))
                             FilledIconButton(
                                 onClick = { if (busy) vm.stop() else if (vm.send(input)) input = "" },
-                                enabled = busy || (ready && input.isNotBlank() && !missingRole && !agentBusy), modifier = Modifier.size(52.dp),
+                                enabled = busy || (ready && !branching && input.isNotBlank() && !missingRole && !agentBusy), modifier = Modifier.size(52.dp),
                             ) { Icon(if (busy) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send, if (busy) "停止生成" else "发送") }
                         }
                     }
@@ -266,7 +277,11 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             } else {
                 LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    items(chatRows, key = { it.id }) { ChatBubble(it) }
+                    items(chatRows, key = { it.id }) { row -> ChatBubble(row,
+                        onBranch = if (busy || branching) null else { message, mode ->
+                            hideInput(); vm.branchError.value = null; branchTarget = message to mode
+                        }) }
+
                     if (workspaceId == null && !busy) item(key="create-workspace") {
                         TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { Text("新建工作区") }
                     }
@@ -274,6 +289,12 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             }
             }
         }
+    }
+    branchTarget?.let { (message,mode) ->
+        ChatBranchDialog(message,mode,branching,branchError,
+            onDismiss={ if (!branching) branchTarget=null },onConfirm={ edited ->
+                vm.fork(BranchPoint(message.id,mode),edited) { branchTarget=null }
+            })
     }
     if (showErrorDetails) errorDetails?.let { ModelErrorDialog(it) { showErrorDetails = false } }
     LaunchedEffect(errorDetails) { showErrorDetails = false }

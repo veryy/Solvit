@@ -20,6 +20,8 @@ class SolvitApplication : Application() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutableReady = MutableStateFlow<Result<ChatService>?>(null)
     val ready = mutableReady.asStateFlow()
+    lateinit var branches: ChatBranchService
+        private set
     lateinit var settings: SettingsStore
         private set
     lateinit var updateDownloader: AppUpdateDownloader
@@ -54,9 +56,10 @@ class SolvitApplication : Application() {
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts })
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
+                listOf(ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
                     OpenAiPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
+                branches = manager.registry.require(ChatBranchServiceKey)
                 updates = manager.registry.require(UpdateServiceKey)
                 marketplace = manager.registry.require(MarketplaceServiceKey)
                 roles = manager.registry.require(RoleServiceKey)
