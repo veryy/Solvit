@@ -1,0 +1,87 @@
+{
+  "id": "dev.solvit.mcp",
+  "name": "MCP 连接",
+  "description": "TS 实现的远程 MCP 工具桥接：HTTPS Streamable HTTP 初始化、工具发现和调用。先在插件配置中填写服务器地址与可选令牌。",
+  "version": "1.0.0",
+  "apiVersion": 2,
+  "permissions": [
+    "network"
+  ],
+  "dependencies": [],
+  "settings": [
+    {
+      "key": "url",
+      "label": "MCP HTTPS 地址",
+      "kind": "url",
+      "required": true
+    },
+    {
+      "key": "token",
+      "label": "Bearer 令牌（可选）",
+      "kind": "secret",
+      "required": false
+    }
+  ],
+  "tools": [
+    {
+      "name": "mcp_connect",
+      "description": "连接已配置的 MCP 服务器，协商会话并发现工具。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "mcp_tools",
+      "description": "列出 MCP 服务器工具及输入格式。调用远程工具前先查询此列表。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "mcp_call",
+      "description": "执行已发现的 MCP 远程工具。name 与 arguments 必须按 mcp_tools 的描述填写；可能改变远程数据，须遵从用户意图。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "arguments": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "name",
+          "arguments"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "mcp_disconnect",
+      "description": "关闭当前 MCP 会话。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
