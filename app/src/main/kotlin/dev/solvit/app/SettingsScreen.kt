@@ -10,6 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -26,7 +27,7 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
             Scaffold(topBar = { TopAppBar(title = { Text("设置") }, navigationIcon = {
                 IconButton(onClick = onDismiss) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回聊天") }
             }) }) { padding ->
-                LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(vertical = 16.dp),
+                LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding).testTag("settings_list"), contentPadding = PaddingValues(vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     item { SettingsGroup("模型配置") { SettingsRow("模型与连接", "API 地址、模型、密钥、系统提示词", onModels) } }
                     item { SettingsGroup("角色与能力") {

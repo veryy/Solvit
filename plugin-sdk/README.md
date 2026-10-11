@@ -69,3 +69,17 @@ Hook 只允许读取本插件存储，不允许 settings.get、storage.set 或 H
 manifest 工具设置 `exposure: "management"` 后，只出现在原生管理调用中，不向模型提供。默认值为 `chat`。Skills 导入、删除、导出使用 management；聊天正文/资源读取使用 chat。示例及限制见 [Skills](../docs/skills.md)。
 
 Solvit 0.7.0 为 API 3 提供可选 `ctx.clock.now()`，返回 `utc`、`localTime`、Android IANA `timezone` 和 JS 约定的 `timezoneOffsetMinutes`（上海为 -480）。这是只读服务，可在 beforeModel 中使用；旧宿主不存在此属性，插件应检查后回退到 JS Date。实际示例见 [时间插件](../builtin-plugins/clock/index.ts)。
+
+
+## API 4：工作区与插件草稿
+
+权限新增 `workspace`、`shell`、`plugins`；老宿主仍只收到兼容的市场包。插件不直接访问文件系统或进程，通过 `ctx.workspace.call(operation, args)` 与 `ctx.plugins.draft(args)` 请求原生服务。参数必须与用户确认的工具 JSON 完全一致，并绑定当前聊天的工作区。管理页手动试运行没有聊天上下文，因此工作区工具应在绑定工作区的对话中使用。
+
+- `workspace.call('info', {})`：工作区名称、ID 与 Shell ID。
+- `workspace.call('read', {path})` / `workspace.call('write', {path,text})`：工作区文本文件。
+- `workspace.call('createShell', {name})`：创建命名 Shell 会话。
+- `workspace.call('start', {shellId,command})`：以应用身份启动非交互式命令。
+- `workspace.call('status', {id})` / `workspace.call('cancel', {id})`：当前插件和角色的任务输出、状态与停止。
+- `plugins.draft({manifestJson,source})`：启动校验并写入草稿，无法安装或启用。
+
+`beforeModel` Hook 仍不能调用这些能力，插件 `activate` 也没有用户授权的工作区上下文。Shell 除工作目录外没有操作系统隔离，可访问应用 UID 的文件与网络。实现示例在 `builtin-plugins/workspace`、`builtin-plugins/authoring`，使用边界见 [工作区](../docs/workspaces.md) 与 [插件开发](../docs/plugin-authoring.md)。

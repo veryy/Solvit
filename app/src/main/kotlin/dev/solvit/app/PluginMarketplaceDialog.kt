@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -53,7 +54,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
                     }
                     if (loading || busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                     error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
-                    LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    LazyColumn(Modifier.weight(1f).testTag("plugins_list"), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         if (tab == 0) {
                             if (catalog.isEmpty() && !loading) item {
                                 Text("暂无插件，点击右上角刷新市场。", modifier = Modifier.padding(16.dp))

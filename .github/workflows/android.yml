@@ -78,9 +78,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: |
-            trap 'adb pull /sdcard/Android/data/dev.solvit.app/files/ ui-screenshots || true' EXIT
-            ./gradlew :app:connectedDebugAndroidTest --stacktrace
+          script: bash scripts/verify-android-ui.sh
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -45,6 +45,12 @@
 
 成功回复的工具调用、结果和最终文本一起保存；失败或中断记录保留并从后续上下文排除。数据库升级保留已有聊天。尚未验证真实模型和真机上的完整调用体验。
 
+## 工作区、Shell 与 AI 插件开发
+
+当前源码已接入每个对话一个工作区、多 Shell 命令会话、工作区文本文件编辑，以及 API 4 的两个独立 JS/TS 插件。使用方式见 [工作区与 Shell](docs/workspaces.md)。
+
+启用“插件开发”后，AI 可生成普通 JS 插件草稿，做清单及启动校验。你在“工作区 → 插件草稿”查看代码和权限后安装，安装后保持停用，需单独启用。应用内尚无 TS 编译器，完整流程与边界见 [AI 插件开发](docs/plugin-authoring.md)。
+
 ## 本地记忆与 TS 插件
 
 当前源码提供可离线安装的本地记忆插件：事实合并、用户画像、记忆关系、文本分块、关键词搜索和导出。启用后，可以通过聊天请求保存或查找记忆，每次执行都需确认。使用方式与限制见 [记忆插件](docs/memory.md)。Android 宿主集成测试已通过远程验证；[0.4.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.4.0)。
@@ -68,7 +74,7 @@
 需要 JDK 17、Android SDK Platform 36、Build Tools 36.0.0。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
 
 ```sh
-./gradlew :core:test :system-runtime:test :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:lintDebug :app:assembleDebug
+./gradlew :core:test :system-runtime:test :workspace-android:testDebugUnitTest :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同命令并上传 APK 和测试报告。Gradle Wrapper 固定为 9.3.1，AGP 9.1.1 使用内置 Kotlin，项目 Kotlin 版本 2.4.10，以接入具有超时与取消能力的 QuickJS 插件引擎。
@@ -95,6 +101,6 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 当前 0.7.0 提供流式聊天、多会话、JS/TS 插件、[插件市场](https://solvit.207.57.126.73.sslip.io/)、有界工具循环、MCP/Skills、角色、模型列表获取、配置备份和应用内更新。测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
 
-当前 MCP 支持 HTTPS 工具发现、调用和按插件绑定角色；多服务器、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。Shell 作业引擎已通过真实 Linux 子进程测试，Android 宿主和终端 UI 尚未接入；手机控制、向量记忆、附件、Markdown 排版和后台 Agent 持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
+当前 MCP 支持 HTTPS 工具发现、调用和按插件绑定角色；多服务器、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。工作区与 Shell 已接入 Android 宿主和终端 UI，当前为应用 UID 的非交互式命令；PTY、持久环境、Root、Shizuku、Linux 发行版和 SSH/SFTP 尚未实现；手机控制、向量记忆、附件、Markdown 排版和后台 Agent 持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
 
 停止或失败后的助手回复保留并标记，但不进入后续模型上下文；用户输入仍保留。进程被系统杀死时，未结算的流式片段可能丢失，已写入的用户消息和完整回复保留。完整上下文发送给配置的模型服务，较长对话目前需要新建对话。

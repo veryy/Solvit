@@ -11,6 +11,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,7 +75,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                         }
                     }
                     Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(command, { command = it }, placeholder = { Text("输入命令") }, maxLines = 4, modifier = Modifier.weight(1f))
+                        OutlinedTextField(command, { command = it }, placeholder = { Text("输入命令") }, maxLines = 4, modifier = Modifier.weight(1f).testTag("shell_command"))
                         Button(onClick = { activeShell?.let { vm.run(it, command); command = "" } }, enabled = !busy && activeShell != null && command.isNotBlank()) { Text("运行") }
                     }
                 } else if (tab == 1) {
