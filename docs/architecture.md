@@ -14,7 +14,7 @@
 | [DSH Cordis Primer](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/cordis-primer.md) | inject 声明依赖，Context 查服务，注册是可撤销 effect | requires / provides、PluginContext、逆序 disposer 与 SupervisorJob |
 | [DSH Tools](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/tools.md) | 发现与执行用同一注册表，执行前权限门禁，模型 schema 与 host 回调分离 | ToolRegistry.descriptors / execute；ToolDescriptor 不暴露执行函数 |
 
-DSH 的完整配置覆盖、作用域树、waterfall 中间件和持久事件日志值得长期研究，但不属于第一版需要的最小机制。Solvit 通过 ModelProfilesService 管理多配置和任务选择，当前 Provider 支持 OpenAI 兼容协议。其他协议和本地推理仍待实现；事件用于进程内观察。
+DSH 的完整配置覆盖、作用域树、waterfall 中间件和持久事件日志值得长期研究，但不属于第一版需要的最小机制。Solvit 通过 ModelProfilesService 管理多配置和任务选择，当前 Provider 支持 OpenAI 兼容与 Claude 原生协议。Gemini 和本地推理仍待实现；事件用于进程内观察。
 
 ## 模块关系
 
@@ -90,7 +90,7 @@ ToolRegistry 提供描述、JSON 输入 schema、权限集合与确认要求。�
 4. 注册 UI 设置卡片和能力展示，逐步增加 scoped registration。
 5. 需要重放和恢复时引入版本化持久事件日志，区分事实与瞬态流。
 
-模型设置通过独立 ModelProfilesService 保存多组 OpenAI 兼容连接和任务绑定。聊天首轮使用聊天配置，模型提出工具调用后，后续轮次可使用另外的模型配置并接收完整上下文。工具后续配置在每次 Agent 执行开始时取快照。配置与任务绑定加密后一次提交，旧单模型配置可读取迁移；完整备份包含所有配置。其他协议、摘要模型、嵌入模型和本地推理继续沿着服务接口扩展，避免将 Provider 逻辑放入聊天 UI。
+模型设置通过独立 ModelProfilesService 保存多组连接、协议参数和任务绑定。聊天首轮使用聊天配置，模型提出工具调用后，后续轮次可使用另外的模型配置并接收完整上下文。工具后续配置在每次 Agent 执行开始时取快照。配置与任务绑定加密后一次提交，旧单模型配置可读取迁移；完整备份包含所有配置。其他协议、摘要模型、嵌入模型和本地推理继续沿着服务接口扩展，避免将 Provider 逻辑放入聊天 UI。
 
 ## 原生协议转录
 

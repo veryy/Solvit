@@ -4,7 +4,7 @@
 
 ## 第一版功能
 
-- OpenAI 兼容 Chat Completions：可配置基础地址、模型、API Key、系统提示词。
+- OpenAI 兼容 Chat Completions 与 Claude 原生 Messages：多组加密连接、按任务选择模型、流式文本/思考和工具回传。
 - SSE 流式回复，停止生成，网络与认证错误提示。
 - 本机多会话历史、新建与删除、文字选择复制；SQLite 持久化。
 - API Key 使用 Android Keystore AES-GCM 加密保存，禁用应用备份。
@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.14.0 版本下载](https://github.com/veryy/Solvit/releases/tag/v0.14.0)，[123 个单元测试、24 个 Android 模拟器测试、Lint、APK 和固定签名验证通过](https://github.com/veryy/Solvit/actions/runs/38138273585)。新增多组加密模型配置，支持分别选择聊天模型和工具后续模型；实际双 HTTP 服务验证独立地址、模型、凭据和工具结果回传。旧连接读取保留，完整配置备份包含全部连接与任务绑定。继续支持六种界面语言、联网搜索、按角色/工具记住授权、实时流式回复与 ANSI 终端。详情见 [版本说明](docs/release-0.14.0.md)、[界面语言](docs/localization.md)、[联网搜索](docs/web-search.md) 和 [完整产品进度](docs/product-roadmap.md)。
+[0.15.0 版本下载](https://github.com/veryy/Solvit/releases/tag/v0.15.0)，[145 个单元测试、26 个 Android 模拟器测试、Lint、APK 和固定签名验证通过](https://github.com/veryy/Solvit/actions/runs/38144065045)。新增 Claude 原生协议、独立 Provider 注册与路由、带签名思考和工具结果回传；实际 HTTP 验证连续工具轮次及跨协议任务切换。原生转录贯穿历史与分支，长记录按字节分块读取。协议与参数纳入加密配置和备份。继续支持六种界面语言、联网搜索、实时流式回复和 ANSI 终端。详情见 [版本说明](docs/release-0.15.0.md)、[Claude 插件](docs/anthropic-provider.md)、[界面语言](docs/localization.md) 和 [完整产品进度](docs/product-roadmap.md)。
 
 **签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
 
@@ -76,7 +76,7 @@
 需要 JDK 17、Android SDK Platform 36、Build Tools 36.0.0。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
 
 ```sh
-./gradlew :core:test :system-runtime:test :workspace-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:lintDebug :app:assembleDebug
+./gradlew :core:test :system-runtime:test :workspace-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest
 ```
 
 APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同命令并上传 APK 和测试报告。Gradle Wrapper 固定为 9.3.1，AGP 9.1.1 使用内置 Kotlin，项目 Kotlin 版本 2.4.10，以接入具有超时与取消能力的 QuickJS 插件引擎。

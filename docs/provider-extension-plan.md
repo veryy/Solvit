@@ -1,6 +1,6 @@
 # 原生模型协议的下一步
 
-多配置与任务选择使用 `ModelProfilesService`。OpenAI 兼容协议已经发布；Provider 注册/路由、原生转录与 Claude Messages 插件已提交实现，正在远程验证，详见 [Claude 插件](anthropic-provider.md)。Gemini 与本地推理仍待实现，不因原生基础接口已有而视为完成。
+多配置与任务选择使用 `ModelProfilesService`。OpenAI 兼容协议已经发布；Provider 注册/路由、原生转录与 Claude Messages 插件已提交实现，[远程验证通过](https://github.com/veryy/Solvit/actions/runs/38144065045)，详见 [Claude 插件](anthropic-provider.md)。Gemini 与本地推理仍待实现，不因原生基础接口已有而视为完成。
 
 ## 服务组合
 

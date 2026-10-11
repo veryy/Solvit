@@ -20,4 +20,4 @@ Claude 请求将系统指令放到顶层，把助手调用映射成 `tool_use`�
 
 协议依据官方 [Messages 请求文档](https://platform.claude.com/docs/en/api/messages/create)、[流式事件文档](https://platform.claude.com/docs/en/build-with-claude/streaming)、[思考文档](https://platform.claude.com/docs/en/build-with-claude/thinking) 和 [模型目录 API](https://platform.claude.com/docs/en/api/models/list)。
 
-远程 HTTP 测试覆盖请求、流式思考和签名、授权工具回传、拒绝回传、流错误、截断、取消、JSON 回退、分页和独立订阅凭据；存储与界面测试覆盖转录重开/分支、配置与协议参数持久化。真实账户、真实模型能力和真机联动需另行验证。当前没有请求服务端搜索、代码执行等工具类型；模型返回这些尚未支持的原生内容时会展示明确错误，应用内 JS 工具仍走既有权限门禁。
+远程 HTTP 测试覆盖请求、流式思考和签名、授权工具回传、拒绝回传、流错误、截断、取消、JSON 回退、分页和独立订阅凭据；存储与界面测试覆盖转录重开/分支、配置与协议参数持久化。长记录通过受限 UTF-8 字节块读取，避免整行内容超出 Android CursorWindow；实际模拟器也验证了大行限制和完整恢复。真实账户、真实模型能力和真机联动需另行验证。当前没有请求服务端搜索、代码执行等工具类型；模型返回这些尚未支持的原生内容时会展示明确错误，应用内 JS 工具仍走既有权限门禁。
