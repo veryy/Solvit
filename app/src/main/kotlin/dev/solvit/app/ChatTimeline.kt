@@ -25,14 +25,11 @@ fun ChatTimeline(rows: List<ChatRow>, sessionId: String?, modifier: Modifier = M
     }
     LaunchedEffect(sessionId, rows.lastOrNull { it.user != null }?.id) { follow = true }
     val tail = rows.size + if (footer == null) 0 else 1
-    LaunchedEffect(rows.size, sessionId, follow, tail) {
+    LaunchedEffect(rows, sessionId, follow, tail) {
         if (follow && rows.isNotEmpty()) { withFrameNanos { }; list.scrollToItem(tail) }
     }
     LaunchedEffect(sessionId, follow, tail) {
-        if (follow) snapshotFlow {
-            val layout = list.layoutInfo
-            Triple(layout.viewportEndOffset, layout.totalItemsCount, layout.visibleItemsInfo.lastOrNull()?.let { it.index to it.size })
-        }.distinctUntilChanged().collect {
+        if (follow) snapshotFlow { list.layoutInfo.viewportEndOffset }.distinctUntilChanged().collect {
             if (rows.isNotEmpty()) { withFrameNanos { }; list.scrollToItem(tail) }
         }
     }

@@ -313,7 +313,7 @@ class ChatLayoutTest {
         rule.onNodeWithContentDescription("插件市场").performClick()
         rule.onNode(hasText("已安装 (", substring = true)).performClick()
         val last = (rule.activity.application as SolvitApplication).marketplace.installed.value.last().name
-        rule.onNodeWithTag("plugins_list").performScrollToNode(hasText(last))
+        rule.onNodeWithTag("plugins_list").performScrollToIndex((rule.activity.application as SolvitApplication).marketplace.installed.value.lastIndex)
         rule.onNodeWithText(last).assertIsDisplayed()
         rule.onNodeWithText(last).performClick()
         rule.onNodeWithText("卸载").assertIsDisplayed()
@@ -419,7 +419,7 @@ class ChatLayoutTest {
             rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("model_name"))
             rule.onNodeWithTag("model_name").performTextInput("native-test-model")
             rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("provider_option_max_tokens"))
-            rule.onNodeWithTag("provider_option_max_tokens").performTextReplacement("16384")
+            rule.onNodeWithTag("provider_option_max_tokens").performClick().performTextReplacement("16384")
             rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("provider_option_thinking_mode"))
             rule.onNodeWithTag("provider_option_thinking_mode").performClick()
             rule.onNodeWithText("自适应思考").performClick()

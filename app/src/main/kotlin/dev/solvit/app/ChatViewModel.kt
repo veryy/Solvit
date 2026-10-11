@@ -163,7 +163,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                         for (point in points) {
                             ensureActive()
                             draft.value += String(Character.toChars(point))
-                            delay(12)
+                            delay(4)
                         }
                     }
                     is ModelChunk.Reasoning -> reasoning.value += chunk.value
