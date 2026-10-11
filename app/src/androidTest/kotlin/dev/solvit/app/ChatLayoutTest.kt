@@ -54,4 +54,16 @@ class ChatLayoutTest {
         rule.onNodeWithContentDescription("关闭插件页面").performClick()
         rule.onNodeWithTag("chat_composer").assertIsDisplayed()
     }
+    @Test fun workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace() {
+        ready()
+        rule.waitUntil(15_000) { rule.onAllNodes(hasText("工作区：", substring = true) and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNode(hasText("工作区：", substring = true)).performClick()
+        rule.onNode(hasSetTextAction()).performClick().performTextInput("printf hello-solvit")
+        rule.onNodeWithText("运行").performClick()
+        rule.waitUntil(10_000) { rule.onAllNodesWithText("hello-solvit").fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText("hello-solvit").assertIsDisplayed()
+        rule.onNodeWithText("＋ Shell").performClick()
+        rule.onNodeWithText("Shell 2").assertIsDisplayed()
+        screenshot("workspace-shell-real-process")
+    }
 }
