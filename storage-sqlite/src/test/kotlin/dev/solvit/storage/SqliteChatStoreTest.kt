@@ -20,6 +20,26 @@ class SqliteChatStoreTest {
     @Before fun before() { context.deleteDatabase("solvit.db") }
     @After fun after() { context.deleteDatabase("solvit.db") }
 
+    @Test fun nativeContentSurvivesReopeningAndBranchingWithoutChangingOpaqueData() = runBlocking<Unit> {
+        val native = ProviderTranscript("anthropic", "test-model",
+            """[{"type":"thinking","thinking":"reason","signature":"opaque+/=="},{"type":"text","text":"answer"}]""",
+            mapOf("thinking_mode" to "enabled"), "a".repeat(64))
+        lateinit var session: ChatSession
+        SqliteChatStore(context).use { store ->
+            session = store.createSession()
+            store.append(ChatMessage("u",session.id,Role.USER,"question"))
+            store.append(ChatMessage("a",session.id,Role.ASSISTANT,"answer",providerTranscript=native))
+        }
+        SqliteChatStore(context).use { store ->
+            assertEquals(native,store.history(session.id).last().providerTranscript)
+            val branch = store.forkSession(session.id,BranchPoint("a",BranchMode.AFTER_REPLY))
+            assertEquals(native,store.history(branch.id).last().providerTranscript)
+            assertNotEquals("a",store.history(branch.id).last().id)
+            store.deleteSession(session.id)
+            assertEquals(native,store.history(branch.id).last().providerTranscript)
+        }
+    }
+
     @Test fun migratesOldMessagesAndPersistsToolCallsAcrossReopening() = runBlocking<Unit> {
         val file = context.getDatabasePath("solvit.db")
         file.parentFile!!.mkdirs()

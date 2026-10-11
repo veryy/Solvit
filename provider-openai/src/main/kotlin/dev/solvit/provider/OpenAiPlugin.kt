@@ -1,6 +1,7 @@
 package dev.solvit.provider
 
 import dev.solvit.core.*
+import dev.solvit.http.ResponseDiagnostics
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
@@ -213,7 +214,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
 
 class OpenAiPlugin : SolvitPlugin {
     override val id = "builtin.provider.openai"
-    override val provides = setOf(Services.Model, ModelCatalogServiceKey)
+    override val requires = setOf(ModelProvidersServiceKey)
     override suspend fun enable(context: PluginContext) {
         val client = OkHttpClient.Builder()
             .connectTimeout(20, TimeUnit.SECONDS)
@@ -227,7 +228,7 @@ class OpenAiPlugin : SolvitPlugin {
             client.connectionPool.evictAll()
             client.dispatcher.executorService.shutdown()
         }
-        context.register(Services.Model, OpenAiProvider(client))
-        context.register(ModelCatalogServiceKey, OpenAiModelCatalog(client))
+        context.own(context.require(ModelProvidersServiceKey).register(ModelProviderInfo("openai-compatible","OpenAI 兼容","https://api.openai.com/v1",
+            "例如 https://api.deepseek.com/v1；无需填写 /chat/completions"),OpenAiProvider(client),OpenAiModelCatalog(client)))
     }
 }

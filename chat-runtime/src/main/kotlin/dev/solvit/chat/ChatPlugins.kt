@@ -39,6 +39,7 @@ class DefaultChatService(
         check(turn.tryLock()) { "已有回复正在生成" }
         val answer = StringBuilder()
         val reasoning = StringBuilder()
+        var native: ProviderTranscript? = null
         val transcript = mutableListOf<ModelMessage>()
         var settled = false
         var admitted = false
@@ -50,8 +51,8 @@ class DefaultChatService(
             val batch = transcript.map { message -> ChatMessage(
                 UUID.randomUUID().toString(), sessionId, message.role, message.content, status,
                 toolCalls = message.toolCalls, toolCallId = message.toolCallId,
-                reasoning = message.reasoning, toolStage = message.toolStage,
-            ) } + ChatMessage(UUID.randomUUID().toString(), sessionId, Role.ASSISTANT, answer.toString(), status, reasoning = reasoning.toString())
+                reasoning = message.reasoning, toolStage = message.toolStage, providerTranscript = message.providerTranscript,
+            ) } + ChatMessage(UUID.randomUUID().toString(), sessionId, Role.ASSISTANT, answer.toString(), status, reasoning = reasoning.toString(), providerTranscript = native)
             store.appendBatch(batch)
             batch.forEach { events.publish(CoreEvent.MessageStored(sessionId, it.id)) }
             settled = true
@@ -74,11 +75,12 @@ class DefaultChatService(
                 check(!done) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { answer.append(chunk.value); emit(chunk) }
+                    is ModelChunk.NativeTranscript -> { native = chunk.value; emit(chunk) }
                     is ModelChunk.Reasoning -> { reasoning.append(chunk.value); emit(chunk) }
                     is ModelChunk.ToolCalls -> error("Agent 暴露了未处理的工具调用")
                     is ModelChunk.Transcript -> {
                         transcript += chunk.message
-                        if (chunk.message.role == Role.ASSISTANT) { answer.setLength(0); reasoning.setLength(0) }
+                        if (chunk.message.role == Role.ASSISTANT) { answer.setLength(0); reasoning.setLength(0); native = null }
                         emit(chunk)
                     }
                     is ModelChunk.ToolActivity -> emit(chunk)
@@ -111,13 +113,13 @@ internal fun completeContext(history: List<ChatMessage>): List<ModelMessage> {
     while (index < history.size) {
         val message = history[index++]
         if (message.role == Role.TOOL) continue
-        if (message.toolCalls.isEmpty()) { result += ModelMessage(message.role, message.content); continue }
+        if (message.toolCalls.isEmpty()) { result += ModelMessage(message.role, message.content, providerTranscript=message.providerTranscript); continue }
         val batch = history.drop(index).takeWhile { it.role == Role.TOOL }
         index += batch.size
         val ids = message.toolCalls.map { it.id }
         if (ids.toSet().size != ids.size || batch.size != ids.size || batch.map { it.toolCallId }.toSet() != ids.toSet()) continue
-        result += ModelMessage(message.role, message.content, message.toolCalls)
-        result += batch.map { ModelMessage(Role.TOOL, it.content, toolCallId = it.toolCallId) }
+        result += ModelMessage(message.role, message.content, message.toolCalls, providerTranscript=message.providerTranscript)
+        result += batch.map { ModelMessage(Role.TOOL, it.content, toolCallId = it.toolCallId, toolStage = it.toolStage) }
     }
     return result
 }

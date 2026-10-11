@@ -1,6 +1,7 @@
 package dev.solvit.provider
 
 import dev.solvit.core.*
+import dev.solvit.http.ResponseDiagnostics
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import okhttp3.*

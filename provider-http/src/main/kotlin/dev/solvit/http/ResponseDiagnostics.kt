@@ -1,11 +1,11 @@
-package dev.solvit.provider
+package dev.solvit.http
 
 import dev.solvit.core.*
 import okhttp3.HttpUrl
 import okhttp3.Response
 
 /** Only response data, never request headers/body. Bound reads even for an endless error stream. */
-internal class ResponseDiagnostics(private val config: ModelConfig, private val url: HttpUrl) {
+class ResponseDiagnostics(private val config: ModelConfig, private val url: HttpUrl) {
     private val secrets = buildList {
         if (config.apiKey.isNotBlank()) add(config.apiKey)
         url.queryParameterNames.forEach { name -> addAll(url.queryParameterValues(name).filterNotNull().filter(String::isNotEmpty)) }

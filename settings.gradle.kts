@@ -11,3 +11,5 @@ include(":plugin-market")
 include(":system-runtime")
 include(":workspace-android")
 include(":terminal-android")
+
+include(":provider-http", ":provider-anthropic")

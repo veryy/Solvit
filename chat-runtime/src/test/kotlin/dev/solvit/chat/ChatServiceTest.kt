@@ -18,6 +18,26 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun providerMetadataIsStoredAndReturnedInNextContextWithoutLeakingIntoText() = runTest {
+        val store = MemoryStore()
+        val native = ProviderTranscript("anthropic","test-model","""[{"type":"thinking","signature":"opaque"}]""")
+        var count = 0
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest): Flow<ModelChunk> {
+                if (count++ > 0) {
+                    val previous = request.messages.first { it.role == Role.ASSISTANT }
+                    assertEquals(native,previous.providerTranscript)
+                    assertEquals("answer",previous.content)
+                    assertEquals("",previous.reasoning)
+                }
+                return flowOf(ModelChunk.Text("answer"),ModelChunk.NativeTranscript(native),ModelChunk.Done)
+            }
+        }
+        val chat = DefaultChatService(store,agent,EventBus())
+        chat.send("session","first",ModelConfig()).toList()
+        assertEquals(native,store.saved.last().providerTranscript)
+        chat.send("session","second",ModelConfig()).toList()
+    }
     @Test fun changingRoleAffectsNextRequestAndDoesNotEraseTranscript() = runTest {
         var role: AgentRole? = AgentRole("first", "First", "Speak briefly")
         val roles = object : RoleService {

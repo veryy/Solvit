@@ -42,6 +42,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var skills: SkillLibraryService
         private set
+    lateinit var modelProviders: ModelProviderRegistry
+        private set
     lateinit var modelCatalog: ModelCatalogService
         private set
     lateinit var workspaces: WorkspaceService
@@ -66,7 +68,7 @@ class SolvitApplication : Application() {
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts })
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
+                listOf(ModelProvidersPlugin(), ModelRoutingPlugin(), ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
                     OpenAiPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 branches = manager.registry.require(ChatBranchServiceKey)
@@ -74,6 +76,7 @@ class SolvitApplication : Application() {
                 marketplace = manager.registry.require(MarketplaceServiceKey)
                 roles = manager.registry.require(RoleServiceKey)
                 skills = manager.registry.require(SkillLibraryServiceKey)
+                modelProviders = manager.registry.require(ModelProvidersServiceKey)
                 modelCatalog = manager.registry.require(ModelCatalogServiceKey)
                 workspaces = manager.registry.require(WorkspaceServiceKey)
                 systemExecution = manager.registry.require(SystemExecutionServiceKey)

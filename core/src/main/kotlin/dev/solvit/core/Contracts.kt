@@ -16,6 +16,7 @@ data class ChatMessage(
     val toolCallId: String? = null,
     val reasoning: String = "",
     val toolStage: ToolStage? = null,
+    val providerTranscript: ProviderTranscript? = null,
 )
 data class ChatSession(val id: String, val title: String, val updatedAt: Long,
     val originSessionId: String? = null, val originMessageId: String? = null)
@@ -27,6 +28,7 @@ data class ModelMessage(
     val toolCallId: String? = null,
     val reasoning: String = "",
     val toolStage: ToolStage? = null,
+    val providerTranscript: ProviderTranscript? = null,
 )
 
 /** Not a data class: toString must never reveal API keys. */
@@ -37,13 +39,18 @@ class ModelConfig(
     val systemPrompt: String = "你是 Solvit，一个认真、可靠的 AI 助手。",
     val modelListUrl: String = "",
     val modelListUsesApiKey: Boolean = false,
+    val providerId: String = "openai-compatible",
+    val providerOptions: Map<String,String> = emptyMap(),
 ) {
     fun validate(): String? {
         validateConnection()?.let { return it }
+        if (model.length > 256 || model.any(Char::isISOControl)) return "模型名称无效"
         if (model.isBlank()) return "请输入模型名称或获取模型列表后选择"
         return null
     }
     fun validateConnection(): String? {
+        if (!providerId.matches(Regex("[A-Za-z0-9_.-]{1,80}"))) return "模型协议 ID 无效"
+        if (providerOptions.size > 32 || providerOptions.any { it.key.length !in 1..80 || it.value.length > 1024 }) return "模型协议参数超过限制"
         val uri = runCatching { URI(baseUrl) }.getOrNull() ?: return "API 地址格式不正确"
         if (uri.host.isNullOrBlank() || uri.userInfo != null || uri.query != null || uri.fragment != null)
             return "API 地址需为不含账号、查询参数的基础地址"
@@ -78,12 +85,14 @@ sealed interface ModelChunk {
     /** Provider-supplied reasoning, kept separate from the visible answer. */
     data class Reasoning(val value: String) : ModelChunk
     data class ToolCalls(val calls: List<ToolCall>) : ModelChunk
+    data class NativeTranscript(val value: ProviderTranscript) : ModelChunk
     data class ToolActivity(val call: ToolCall, val stage: ToolStage, val result: String? = null) : ModelChunk
     data class Transcript(val message: ModelMessage) : ModelChunk
     data object Done : ModelChunk
 }
 interface ModelProvider {
     val id: String
+    fun validate(config: ModelConfig): String? = config.validate()
     fun stream(request: ModelRequest): Flow<ModelChunk>
 }
 /** Diagnostics are already redacted by the provider; never include request prompts. */

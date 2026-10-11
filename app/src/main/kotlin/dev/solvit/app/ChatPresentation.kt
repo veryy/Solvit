@@ -28,7 +28,7 @@ fun presentChat(history: List<ChatMessage>, busy: Boolean = false, baseline: Str
     val userId = userIndex?.let { history[it].id } ?: "pending-user"
     if (userIndex == null) rows += ChatRow(userId, user = ChatMessage(userId, "", Role.USER, sendingText))
     val live = transcript.mapIndexed { index, message -> ChatMessage("live-$index", "", message.role, message.content,
-        toolCalls = message.toolCalls, toolCallId = message.toolCallId, reasoning = message.reasoning, toolStage = message.toolStage) } +
+        toolCalls = message.toolCalls, toolCallId = message.toolCallId, reasoning = message.reasoning, toolStage = message.toolStage, providerTranscript = message.providerTranscript) } +
         ChatMessage("live-answer", "", Role.ASSISTANT, draft, reasoning = reasoning)
     rows += ChatRow("reply-$userId", messages = live, activity = activity, generating = true)
     return rows

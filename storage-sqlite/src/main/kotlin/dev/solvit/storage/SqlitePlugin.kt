@@ -15,14 +15,15 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
-    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 4) {
+    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 5) {
         override fun onConfigure(db: SQLiteDatabase) { db.setForeignKeyConstraintsEnabled(true) }
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT NOT NULL, updated_at INTEGER NOT NULL, origin_session_id TEXT, origin_message_id TEXT)")
-            db.execSQL("CREATE TABLE messages (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, role TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL, tool_calls TEXT NOT NULL DEFAULT '[]', tool_call_id TEXT, reasoning TEXT NOT NULL DEFAULT '', tool_stage TEXT)")
+            db.execSQL("CREATE TABLE messages (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, role TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL, tool_calls TEXT NOT NULL DEFAULT '[]', tool_call_id TEXT, reasoning TEXT NOT NULL DEFAULT '', tool_stage TEXT, provider_transcript TEXT)")
             db.execSQL("CREATE INDEX messages_session ON messages(session_id, sequence)")
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+            if (oldVersion < 5) db.execSQL("ALTER TABLE messages ADD COLUMN provider_transcript TEXT")
             if (oldVersion < 2) {
                 db.execSQL("ALTER TABLE messages ADD COLUMN tool_calls TEXT NOT NULL DEFAULT '[]'")
                 db.execSQL("ALTER TABLE messages ADD COLUMN tool_call_id TEXT")
@@ -59,8 +60,8 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     override fun messages(sessionId: String): Flow<List<ChatMessage>> = revision.map { history(sessionId) }.distinctUntilChanged()
     override suspend fun history(sessionId: String): List<ChatMessage> = read { history(it, sessionId) }
     private fun history(db: SQLiteDatabase, sessionId: String): List<ChatMessage> =
-        db.rawQuery("SELECT id,role,content,status,tool_calls,tool_call_id,reasoning,tool_stage FROM messages WHERE session_id=? ORDER BY sequence", arrayOf(sessionId)).use { c ->
-            buildList { while (c.moveToNext()) add(ChatMessage(c.getString(0), sessionId, Role.valueOf(c.getString(1)), c.getString(2), MessageStatus.valueOf(c.getString(3)), decodeCalls(c.getString(4)), if (c.isNull(5)) null else c.getString(5), c.getString(6), if (c.isNull(7)) null else ToolStage.valueOf(c.getString(7)))) }
+        db.rawQuery("SELECT id,role,content,status,tool_calls,tool_call_id,reasoning,tool_stage,provider_transcript FROM messages WHERE session_id=? ORDER BY sequence", arrayOf(sessionId)).use { c ->
+            buildList { while (c.moveToNext()) add(ChatMessage(c.getString(0), sessionId, Role.valueOf(c.getString(1)), c.getString(2), MessageStatus.valueOf(c.getString(3)), decodeCalls(c.getString(4)), if (c.isNull(5)) null else c.getString(5), c.getString(6), if (c.isNull(7)) null else ToolStage.valueOf(c.getString(7)), if(c.isNull(8)) null else decodeTranscript(c.getString(8)))) }
         }
     override suspend fun createSession(): ChatSession {
         val session = ChatSession(UUID.randomUUID().toString(), "新对话", System.currentTimeMillis())
@@ -103,6 +104,7 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
             } }).toString())
             put("tool_call_id", message.toolCallId)
             put("reasoning", message.reasoning); put("tool_stage", message.toolStage?.name)
+            put("provider_transcript", message.providerTranscript?.let { encodeTranscript(it) })
         })
     }
     override suspend fun deleteSession(sessionId: String) { write { it.delete("sessions", "id=?", arrayOf(sessionId)) } }
@@ -112,6 +114,13 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
             val call = array.getJSONObject(index)
             ToolCall(call.getString("id"), call.getString("name"), call.getString("arguments"))
         }
+    }
+    private fun encodeTranscript(value: ProviderTranscript): String = JSONObject().put("provider",value.providerId).put("model",value.model)
+        .put("blocks",value.blocksJson).put("options",JSONObject(value.options)).put("prefix",value.prefixHash).toString()
+    private fun decodeTranscript(value: String): ProviderTranscript {
+        val root=JSONObject(value);val options=root.optJSONObject("options") ?: JSONObject()
+        return ProviderTranscript(root.getString("provider"),root.getString("model"),root.getString("blocks"),
+            options.keys().asSequence().associateWith { options.getString(it) },root.optString("prefix",""))
     }
     override fun close() { helper.close() }
 }

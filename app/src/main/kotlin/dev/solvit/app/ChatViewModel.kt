@@ -155,6 +155,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                     }
                 }
                 chat.send(id, text, snapshot, gate).collect { chunk -> when (chunk) {
+                    is ModelChunk.NativeTranscript -> Unit
                     is ModelChunk.Text -> draft.value += chunk.value
                     is ModelChunk.Reasoning -> reasoning.value += chunk.value
                     is ModelChunk.ToolCalls -> error("Agent 暴露了未处理工具调用")

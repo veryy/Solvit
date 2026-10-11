@@ -39,12 +39,14 @@ class ToolAgentRuntime(
             val text = StringBuilder()
             val reasoning = StringBuilder()
             var calls = emptyList<ToolCall>()
+            var native: ProviderTranscript? = null
             var completed = false
             provider.stream(request.copy(config = if (round == 0) request.config else followUpConfig, messages = messages.toList(), tools = advertised)).collect { chunk ->
                 check(!completed) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { text.append(chunk.value); emit(chunk) }
                     is ModelChunk.Reasoning -> { reasoning.append(chunk.value); emit(chunk) }
+                    is ModelChunk.NativeTranscript -> { check(native == null); native = chunk.value }
                     is ModelChunk.ToolCalls -> {
                         check(calls.isEmpty()) { "Duplicate tool call batch" }
                         calls = chunk.calls
@@ -54,10 +56,10 @@ class ToolAgentRuntime(
                 }
             }
             check(completed) { "模型响应提前结束" }
-            if (calls.isEmpty()) { emit(ModelChunk.Done); return@flow }
+            if (calls.isEmpty()) { native?.let { emit(ModelChunk.NativeTranscript(it)) }; emit(ModelChunk.Done); return@flow }
             if (round == maxRounds - 1 || executions + calls.size > maxCalls) throw ModelException("已达到工具执行上限，请继续对话")
             if (calls.any { it.name !in allowed || !seen.add(it.id) }) throw ModelException("模型调用了未提供或重复的工具")
-            val assistant = ModelMessage(Role.ASSISTANT, text.toString(), calls, reasoning = reasoning.toString())
+            val assistant = ModelMessage(Role.ASSISTANT, text.toString(), calls, reasoning = reasoning.toString(), providerTranscript = native)
             messages += assistant
             emit(ModelChunk.Transcript(assistant))
             for (call in calls) {
