@@ -27,7 +27,8 @@ class SqliteChatStoreTest {
             session = store.createSession()
             store.append(ChatMessage("user", session.id, Role.USER, "Remember my editor"))
             record = CompletedChatTurn("answer", session.id, "user", "answer", "coder", "Coder",
-                setOf("dev.solvit.memory"), "primary", "openai-compatible", "fixture", 1)
+                setOf("dev.solvit.memory"), "primary", "openai-compatible", "fixture", 1,
+                listOf(PostTurnTarget("dev.solvit.memory", "1.2.0", "a".repeat(64))))
             val reply = ChatMessage("answer", session.id, Role.ASSISTANT, "Acknowledged")
             SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
                 db.execSQL("CREATE TRIGGER reject_turn BEFORE INSERT ON completed_turns BEGIN SELECT RAISE(ABORT,'fixture failure'); END")
@@ -35,6 +36,7 @@ class SqliteChatStoreTest {
             assertFails { store.appendCompletedTurn(listOf(reply), record) }
             assertEquals(listOf("user"), store.history(session.id).map { it.id })
             assertTrue(store.recordedTurns(0).isEmpty())
+            assertTrue(store.postTurnJobs(PostTurnJobStatus.entries.toSet()).isEmpty())
             SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { it.execSQL("DROP TRIGGER reject_turn") }
             assertFailsWith<IllegalArgumentException> { store.appendCompletedTurn(listOf(reply), record.copy(userMessageId = "missing")) }
             assertEquals(1, store.history(session.id).size)
@@ -44,6 +46,7 @@ class SqliteChatStoreTest {
             assertTrue(store.supportsCompletedTurns)
             val saved = store.recordedTurns(0, 1).single()
             assertEquals(record, saved.turn)
+            assertEquals(record.targets.single(), store.postTurnJobs(setOf(PostTurnJobStatus.WAITING)).single().target)
             assertTrue(store.recordedTurns(saved.sequence).isEmpty())
             assertFailsWith<IllegalArgumentException> { store.recordedTurns(-1) }
             assertFailsWith<IllegalArgumentException> { store.recordedTurns(0, 101) }
@@ -52,6 +55,7 @@ class SqliteChatStoreTest {
             assertEquals(listOf(record), store.recordedTurns(0).map { it.turn })
             store.deleteSession(session.id)
             assertTrue(store.recordedTurns(0).isEmpty())
+            assertTrue(store.postTurnJobs(PostTurnJobStatus.entries.toSet()).isEmpty())
             assertEquals(2, store.history(branch.id).size)
         }
     }
@@ -62,11 +66,44 @@ class SqliteChatStoreTest {
             store.appendBatch(listOf(ChatMessage("u", session.id, Role.USER, "old"), ChatMessage("a", session.id, Role.ASSISTANT, "reply")))
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
-            db.execSQL("DROP TABLE completed_turns"); db.version = 6
+            db.execSQL("DROP TABLE post_turn_jobs"); db.execSQL("DROP TABLE completed_turns"); db.version = 6
         }
         SqliteChatStore(context).use { store ->
             assertEquals(2, store.history(store.sessions().first().single().id).size)
             assertTrue(store.recordedTurns(0).isEmpty())
+        }
+    }
+
+    @Test fun postTurnJobClaimsAreExclusiveAndInterruptedWorkNeedsBoundedExplicitRetry() = runBlocking<Unit> {
+        lateinit var job: PostTurnJob
+        SqliteChatStore(context).use { store ->
+            val session = store.createSession()
+            store.append(ChatMessage("u", session.id, Role.USER, "I use Emacs"))
+            val target = PostTurnTarget("dev.solvit.memory", "1.2.0", "b".repeat(64))
+            val turn = CompletedChatTurn("a", session.id, "u", "a", null, null, null, null, "fixture", "model", 1, listOf(target))
+            store.appendCompletedTurn(listOf(ChatMessage("a", session.id, Role.ASSISTANT, "Understood")), turn)
+            job = store.postTurnJobs(setOf(PostTurnJobStatus.WAITING)).single()
+            assertTrue(store.claimPostTurnJob(job.id, 0, 2))
+            assertFalse(store.claimPostTurnJob(job.id, 0, 2))
+            assertFalse(store.finishPostTurnJob(job.id, 2, PostTurnJobStatus.SUCCEEDED, null, 3))
+        }
+        SqliteChatStore(context).use { store ->
+            assertEquals(1, store.recoverInterruptedPostTurnJobs(4))
+            val failed = store.postTurnJobs(setOf(PostTurnJobStatus.FAILED)).single()
+            assertEquals(1, failed.attempt); assertEquals(PostTurnFailure.INTERRUPTED, failed.failure)
+            assertFalse(store.claimPostTurnJob(job.id, 1, 5))
+            assertFalse(store.retryPostTurnJob(job.id, 2, 5))
+            assertTrue(store.retryPostTurnJob(job.id, 1, 5))
+            assertTrue(store.claimPostTurnJob(job.id, 1, 6))
+            assertTrue(store.finishPostTurnJob(job.id, 2, PostTurnJobStatus.FAILED, PostTurnFailure.MODEL, 7))
+            assertFalse(store.finishPostTurnJob(job.id, 2, PostTurnJobStatus.SUCCEEDED, null, 8))
+            assertTrue(store.retryPostTurnJob(job.id, 2, 8))
+            assertTrue(store.claimPostTurnJob(job.id, 2, 9))
+            assertTrue(store.finishPostTurnJob(job.id, 3, PostTurnJobStatus.FAILED, PostTurnFailure.INVALID_OUTPUT, 10))
+            assertFalse(store.retryPostTurnJob(job.id, 3, 11))
+            assertTrue(store.postTurnJobs(emptySet()).isEmpty())
+            assertFailsWith<IllegalArgumentException> { store.postTurnJobs(setOf(PostTurnJobStatus.FAILED), 101) }
+            assertFailsWith<IllegalArgumentException> { store.finishPostTurnJob(job.id, 3, PostTurnJobStatus.SUCCEEDED, PostTurnFailure.MODEL, 12) }
         }
     }
 

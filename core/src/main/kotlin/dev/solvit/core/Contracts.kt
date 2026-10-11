@@ -137,6 +137,12 @@ interface ChatStore {
         appendBatch(messages)
     }
     suspend fun recordedTurns(afterSequence: Long, limit: Int = 20): List<RecordedChatTurn> = emptyList()
+    suspend fun postTurnJobs(statuses: Set<PostTurnJobStatus>, limit: Int = 20): List<PostTurnJob> = emptyList()
+    suspend fun claimPostTurnJob(id: String, expectedAttempt: Int, now: Long): Boolean = false
+    suspend fun finishPostTurnJob(id: String, attempt: Int, status: PostTurnJobStatus, failure: PostTurnFailure?, now: Long): Boolean = false
+    /** Failed jobs retry only through an explicit action, with at most three claims. */
+    suspend fun retryPostTurnJob(id: String, expectedAttempt: Int, now: Long): Boolean = false
+    suspend fun recoverInterruptedPostTurnJobs(now: Long): Int = 0
     suspend fun deleteSession(sessionId: String)
 }
 enum class ToolStage { CONFIRMING, RUNNING, SUCCEEDED, FAILED, DENIED }

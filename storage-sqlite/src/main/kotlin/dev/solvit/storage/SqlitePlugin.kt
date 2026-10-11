@@ -175,6 +175,13 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
                 put("user_id", turn.userMessageId); put("assistant_id", turn.assistantMessageId)
                 put("payload", encodeTurn(turn).toString())
             })
+            turn.targets.forEach { target ->
+                db.insertOrThrow("post_turn_jobs", null, ContentValues().apply {
+                    put("id", turn.id + ":" + target.pluginId); put("turn_id", turn.id)
+                    put("plugin_id", target.pluginId); put("version", target.version); put("digest", target.digest)
+                    put("status", PostTurnJobStatus.WAITING.name); put("attempt", 0); put("updated_at", turn.createdAt)
+                })
+            }
         }
     }
     override suspend fun recordedTurns(afterSequence: Long, limit: Int): List<RecordedChatTurn> {
@@ -187,6 +194,8 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     }
     private fun createTurnTable(db: SQLiteDatabase) {
         db.execSQL("CREATE TABLE completed_turns (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE, assistant_id TEXT UNIQUE NOT NULL REFERENCES messages(id) ON DELETE CASCADE, payload TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE post_turn_jobs (id TEXT PRIMARY KEY, turn_id TEXT NOT NULL REFERENCES completed_turns(id) ON DELETE CASCADE, plugin_id TEXT NOT NULL, version TEXT NOT NULL, digest TEXT NOT NULL, status TEXT NOT NULL, attempt INTEGER NOT NULL, updated_at INTEGER NOT NULL, failure TEXT, UNIQUE(turn_id,plugin_id))")
+        db.execSQL("CREATE INDEX post_turn_jobs_status ON post_turn_jobs(status,updated_at)")
     }
     private fun encodeTurn(t: CompletedChatTurn) = JSONObject().put("id", t.id).put("session", t.sessionId)
         .put("user", t.userMessageId).put("assistant", t.assistantMessageId)
@@ -194,11 +203,52 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         .put("plugins", t.allowedPluginIds?.let { JSONArray(it.sorted()) } ?: JSONObject.NULL)
         .put("profile", t.requestedProfileId ?: JSONObject.NULL).put("provider", t.requestedProviderId)
         .put("model", t.requestedModel).put("created", t.createdAt)
+        .put("targets", JSONArray(t.targets.map { target -> JSONObject().put("id", target.pluginId).put("version", target.version).put("digest", target.digest) }))
     private fun decodeTurn(j: JSONObject) = CompletedChatTurn(j.getString("id"), j.getString("session"),
         j.getString("user"), j.getString("assistant"), if (j.isNull("roleId")) null else j.getString("roleId"),
         if (j.isNull("roleName")) null else j.getString("roleName"),
         if (j.isNull("plugins")) null else j.getJSONArray("plugins").let { a -> (0 until a.length()).map { a.getString(it) }.toSet() },
-        if (j.isNull("profile")) null else j.getString("profile"), j.getString("provider"), j.getString("model"), j.getLong("created")).also { it.validate() }
+        if (j.isNull("profile")) null else j.getString("profile"), j.getString("provider"), j.getString("model"), j.getLong("created"),
+        j.getJSONArray("targets").let { a -> (0 until a.length()).map { a.getJSONObject(it).let { t -> PostTurnTarget(t.getString("id"), t.getString("version"), t.getString("digest")) } } }).also { it.validate() }
+    override suspend fun postTurnJobs(statuses: Set<PostTurnJobStatus>, limit: Int): List<PostTurnJob> {
+        require(limit in 1..100)
+        if (statuses.isEmpty()) return emptyList()
+        val ordered = statuses.sortedBy { it.name }
+        return read { db ->
+            db.rawQuery("SELECT j.id,t.payload,j.plugin_id,j.version,j.digest,j.status,j.attempt,j.updated_at,j.failure FROM post_turn_jobs j JOIN completed_turns t ON t.id=j.turn_id WHERE j.status IN (${ordered.joinToString(",") { "?" }}) ORDER BY j.updated_at,j.id LIMIT ?",
+                (ordered.map { it.name } + limit.toString()).toTypedArray()).use { c ->
+                buildList { while (c.moveToNext()) add(PostTurnJob(c.getString(0), decodeTurn(JSONObject(c.getString(1))),
+                    PostTurnTarget(c.getString(2), c.getString(3), c.getString(4)), PostTurnJobStatus.valueOf(c.getString(5)),
+                    c.getInt(6), c.getLong(7), if (c.isNull(8)) null else PostTurnFailure.valueOf(c.getString(8)))) }
+            }
+        }
+    }
+    override suspend fun claimPostTurnJob(id: String, expectedAttempt: Int, now: Long): Boolean {
+        require(expectedAttempt in 0..2 && now >= 0)
+        return write { db -> db.update("post_turn_jobs", ContentValues().apply {
+            put("status", PostTurnJobStatus.RUNNING.name); put("attempt", expectedAttempt + 1); put("updated_at", now); putNull("failure")
+        }, "id=? AND status=? AND attempt=?", arrayOf(id, PostTurnJobStatus.WAITING.name, expectedAttempt.toString())) == 1 }
+    }
+    override suspend fun finishPostTurnJob(id: String, attempt: Int, status: PostTurnJobStatus, failure: PostTurnFailure?, now: Long): Boolean {
+        require(attempt in 1..3 && now >= 0 && status in setOf(PostTurnJobStatus.SUCCEEDED, PostTurnJobStatus.FAILED, PostTurnJobStatus.SKIPPED))
+        require((status == PostTurnJobStatus.FAILED) == (failure != null))
+        return write { db -> db.update("post_turn_jobs", ContentValues().apply {
+            put("status", status.name); put("updated_at", now); put("failure", failure?.name)
+        }, "id=? AND status=? AND attempt=?", arrayOf(id, PostTurnJobStatus.RUNNING.name, attempt.toString())) == 1 }
+    }
+    override suspend fun retryPostTurnJob(id: String, expectedAttempt: Int, now: Long): Boolean {
+        require(expectedAttempt in 1..3 && now >= 0)
+        if (expectedAttempt == 3) return false
+        return write { db -> db.update("post_turn_jobs", ContentValues().apply {
+            put("status", PostTurnJobStatus.WAITING.name); put("updated_at", now); putNull("failure")
+        }, "id=? AND status=? AND attempt=?", arrayOf(id, PostTurnJobStatus.FAILED.name, expectedAttempt.toString())) == 1 }
+    }
+    override suspend fun recoverInterruptedPostTurnJobs(now: Long): Int {
+        require(now >= 0)
+        return write { db -> db.update("post_turn_jobs", ContentValues().apply {
+            put("status", PostTurnJobStatus.FAILED.name); put("failure", PostTurnFailure.INTERRUPTED.name); put("updated_at", now)
+        }, "status=?", arrayOf(PostTurnJobStatus.RUNNING.name)) }
+    }
     private fun appendMessages(db: SQLiteDatabase, messages: List<ChatMessage>) {
         messages.forEach { message ->
             val first = db.rawQuery("SELECT COUNT(*) FROM messages WHERE session_id=?", arrayOf(message.sessionId)).use { it.moveToFirst(); it.getLong(0) == 0L }

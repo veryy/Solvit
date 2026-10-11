@@ -13,6 +13,7 @@ data class CompletedChatTurn(
     val requestedProviderId: String,
     val requestedModel: String,
     val createdAt: Long,
+    val targets: List<PostTurnTarget> = emptyList(),
 ) {
     fun validate() {
         require(id == assistantMessageId && id.isNotBlank() && id.length <= 128)
@@ -24,6 +25,8 @@ data class CompletedChatTurn(
         require(requestedProviderId.matches(Regex("[A-Za-z0-9_.-]{1,80}")))
         require(requestedModel.isNotBlank() && requestedModel.length <= 256 && !requestedModel.any(Char::isISOControl))
         require(createdAt >= 0)
+        require(targets.size <= 32 && targets.map { it.pluginId }.toSet().size == targets.size)
+        targets.forEach { it.validate(); require(allows(it.pluginId)) }
     }
     fun allows(pluginId: String) = allowedPluginIds == null || pluginId in allowedPluginIds
 }
