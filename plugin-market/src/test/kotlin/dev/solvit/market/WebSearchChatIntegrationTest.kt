@@ -22,6 +22,15 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class WebSearchChatIntegrationTest {
+    private fun browserPlugin(service: WebPageService) = object : SolvitPlugin {
+        override val id = "fixture.web"
+        override val provides = setOf(WebPageServiceKey)
+        override suspend fun enable(context: PluginContext) { context.register(WebPageServiceKey, service) }
+    }
+    private fun blockedBrowser() = object : WebPageService {
+        override suspend fun visit(url: String): WebPage = error("Browser unavailable in HTTP fixture")
+    }
+
     @Test fun bundledSearchUpgradePreservesActivationAndWorksWithoutProviderConfiguration() = runBlocking<Unit> {
         val context = RuntimeEnvironment.getApplication()
         val path = java.io.File(context.filesDir, "extensions/dev.solvit.web-search.solvit.json")
@@ -43,13 +52,13 @@ class WebSearchChatIntegrationTest {
         val scope = CoroutineScope(SupervisorJob()+Dispatchers.Default)
         val manager = PluginManager(scope=scope)
         try {
-            manager.load(ToolsPlugin()); manager.enableAll()
+            manager.load(ToolsPlugin()); manager.load(browserPlugin(blockedBrowser())); manager.enableAll()
             val tools = manager.registry.require(Services.Tools)
             val config = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32), "AES") }
-            val market = AndroidMarketplace(context, manager, client, tools, config)
+            val market = AndroidMarketplace(context, manager, client, tools, config, webPages = manager.registry.require(WebPageServiceKey))
             market.restore()
             val upgraded = market.installed.value.single { it.id == "dev.solvit.web-search" }
-            assertEquals("1.1.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals("1.2.0", upgraded.version); assertTrue(upgraded.enabled)
             assertTrue(market.configuration(upgraded.id).isEmpty())
             val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
             val result = tools.executeCall(ToolCall("search-default", "dev_solvit_web_search_search", """{"query":"Solvit"}"""), allow)
@@ -69,10 +78,10 @@ class WebSearchChatIntegrationTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val manager = PluginManager(scope=scope)
         try {
-            manager.load(ToolsPlugin()); manager.enableAll()
+            manager.load(ToolsPlugin()); manager.load(browserPlugin(blockedBrowser())); manager.enableAll()
             val tools = manager.registry.require(Services.Tools)
             val configuration = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { it.toByte() },"AES") }
-            val market = AndroidMarketplace(context,manager,client,tools,configuration)
+            val market = AndroidMarketplace(context,manager,client,tools,configuration, webPages = manager.registry.require(WebPageServiceKey))
             market.restore()
             market.configure("dev.solvit.web-search",mapOf("provider" to "tavily","endpoint" to server.url("/search").toString(),"apiKey" to "search-fixture-key"))
             market.enable("dev.solvit.web-search",setOf("network"))
@@ -112,4 +121,55 @@ class WebSearchChatIntegrationTest {
             client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown()
         }
     }
+    @Test fun actualJsBrowserSearchAndPageTextReachModelAndHonorAuthorization() = runBlocking<Unit> {
+        val context = RuntimeEnvironment.getApplication()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val manager = PluginManager(scope = scope)
+        val client = OkHttpClient()
+        val visits = mutableListOf<String>()
+        val source = "https://example.com/solvit"
+        val browser = object : WebPageService {
+            override suspend fun visit(url: String): WebPage {
+                visits += url
+                return if (url.startsWith("https://cn.bing.com/search?"))
+                    WebPage(url, "Search", "", listOf(WebPageLink(source, "Solvit source", "Relevant source")))
+                else { assertEquals(source, url); WebPage(source, "Solvit article", "Observed dynamic page evidence") }
+            }
+        }
+        try {
+            manager.load(ToolsPlugin()); manager.load(browserPlugin(browser)); manager.enableAll()
+            val tools = manager.registry.require(Services.Tools)
+            val market = AndroidMarketplace(context, manager, client, tools, webPages = browser)
+            market.restore(); market.enable("dev.solvit.web-search", setOf("network"))
+            val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
+            val role = AgentRole("research", "Research", pluginIds = setOf("dev.solvit.web-search"))
+            var round = 0
+            val provider = object : ModelProvider {
+                override val id = "fixture"
+                override fun stream(request: ModelRequest): Flow<ModelChunk> = when (round++) {
+                    0 -> flowOf(ModelChunk.ToolCalls(listOf(ToolCall("search", "dev_solvit_web_search_search", """{"query":"Solvit"}"""))), ModelChunk.Done)
+                    1 -> {
+                        assertTrue(request.messages.last().content.contains(source))
+                        flowOf(ModelChunk.ToolCalls(listOf(ToolCall("page", "dev_solvit_web_search_read_page", """{"url":"$source"}"""))), ModelChunk.Done)
+                    }
+                    else -> {
+                        assertTrue(request.messages.last().content.contains("Observed dynamic page evidence"))
+                        flowOf(ModelChunk.Text("Verified source: $source"), ModelChunk.Done)
+                    }
+                }
+            }
+            val chunks = ToolAgentRuntime(provider, tools).run(ModelRequest(ModelConfig(), listOf(ModelMessage(Role.USER, "Search Solvit and read its source")), authorization = allow, agentRole = role)).toList()
+            assertEquals(3, round); assertEquals(2, visits.size)
+            assertTrue(chunks.filterIsInstance<ModelChunk.Text>().single().value.contains(source))
+            val deny = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = false }
+            assertFailsWith<ToolDeniedException> { tools.executeCall(ToolCall("denied", "dev_solvit_web_search_read_page", """{"url":"$source"}"""), deny, role) }
+            assertFailsWith<ToolDeniedException> { tools.executeCall(ToolCall("role-denied", "dev_solvit_web_search_read_page", """{"url":"$source"}"""), allow, AgentRole("restricted", "Restricted")) }
+            assertEquals(2, visits.size)
+            market.disable("dev.solvit.web-search")
+            assertFalse(tools.descriptors().any { it.pluginId == "dev.solvit.web-search" })
+        } finally {
+            manager.shutdown(); scope.cancel(); client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown()
+        }
+    }
+
 }
