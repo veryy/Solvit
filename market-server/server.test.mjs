@@ -25,7 +25,10 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.ok(api4.plugins.some(plugin => plugin.id === 'dev.solvit.workspace' && plugin.apiVersion === 4));
     assert.ok(api4.plugins.some(plugin => plugin.id === 'dev.solvit.authoring' && plugin.apiVersion === 4));
     assert.ok(latest.plugins.every(plugin => plugin.apiVersion < 4));
-    for (const plugin of api4.plugins) {
+    const api5 = await (await fetch(base + '/api/v1/plugins?hostApi=5')).json();
+    assert.ok(api5.plugins.some(plugin => plugin.id === 'dev.solvit.terminal' && plugin.apiVersion === 5));
+    assert.ok(api4.plugins.every(plugin => plugin.apiVersion <= 4));
+    for (const plugin of api5.plugins) {
       const response = await fetch(base + plugin.downloadPath);
       assert.equal(response.status, 200);
       const bytes = Buffer.from(await response.arrayBuffer());

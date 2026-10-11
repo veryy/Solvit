@@ -25,6 +25,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDi
     val executionModes by system.modes.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
     val jobs by vm.jobs.collectAsStateWithLifecycle()
+    val terminals by vm.terminalSessions.collectAsStateWithLifecycle()
     val id by vm.workspaceId.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
@@ -40,11 +41,16 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDi
     var name by remember { mutableStateOf("") }
     var shellId by rememberSaveable(id) { mutableStateOf<String?>(null) }
     var command by rememberSaveable(id, shellId) { mutableStateOf("") }
+    var interactive by rememberSaveable(id) { mutableStateOf(false) }
+    var selectedTerminal by rememberSaveable(id, shellId) { mutableStateOf<String?>(null) }
     var path by rememberSaveable(id) { mutableStateOf("notes.txt") }
     var editor by rememberSaveable(id) { mutableStateOf(false) }
     var showDrafts by rememberSaveable(id) { mutableStateOf(false) }
     val shells = state.shells.filter { it.workspaceId == id }
     val activeShell = shellId ?: shells.firstOrNull()?.id
+    val shellTerminals = terminals.filter { it.workspaceId == id && it.shellId == activeShell }
+    val activeTerminal = shellTerminals.firstOrNull { it.id == selectedTerminal }
+        ?: shellTerminals.lastOrNull { it.owner == TERMINAL_OWNER && it.active }
     FullScreenPage(onDismissRequest = onDismiss) {
         val keyboard = LocalSoftwareKeyboardController.current
         val focus = LocalFocusManager.current
@@ -68,6 +74,35 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDi
                             onClick = { shellId = shell.id }, label = { Text(shell.name) }) }
                         item { TextButton(onClick = vm::createShell, enabled = !busy && id != null) { Text("＋ Shell") } }
                     }
+                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = !interactive, onClick = { interactive = false }, label = { Text("普通命令") })
+                        FilterChip(selected = interactive, onClick = { interactive = true }, label = { Text("交互终端") })
+                    }
+                    if (interactive) {
+                        LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            item { FilterChip(selected = activeTerminal == null, onClick = { selectedTerminal = null }, label = { Text("手动 Shell") }) }
+                            items(shellTerminals, key = { it.id }) { session -> FilterChip(selected = activeTerminal?.id == session.id,
+                                onClick = { selectedTerminal = session.id }, label = { Text((if (session.owner == TERMINAL_OWNER) "手动" else session.owner) +
+                                    (session.roleId?.let { " · $it" } ?: "") + if (session.active) "" else " · 已关闭") }) }
+                        }
+                        LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("terminal_transcript"), contentPadding = PaddingValues(12.dp)) {
+                            item {
+                                Text("同一终端保留目录和环境。输入会直接发送给 Shell；支持交互提示和 Ctrl-C。", style = MaterialTheme.typography.bodySmall)
+                                if (activeTerminal == null) Text("输入命令后打开终端。", modifier = Modifier.padding(vertical = 16.dp))
+                                activeTerminal?.let { session ->
+                                    if (session.truncated) Text("仅保留最近输出", style = MaterialTheme.typography.labelSmall)
+                                    SelectionContainer { Text(terminalDisplayText(session.output), fontFamily = FontFamily.Monospace,
+                                        style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth().testTag("terminal_output")) }
+                                    session.failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                                    if (!session.active) Text("终端已关闭 · ${session.exitCode ?: "—"}")
+                                }
+                            }
+                        }
+                        activeTerminal?.takeIf { it.active }?.let { session -> Row(Modifier.padding(horizontal = 12.dp)) {
+                            TextButton(onClick = { vm.interrupt(session) }, enabled = !busy) { Text("Ctrl-C") }
+                            TextButton(onClick = { vm.closeTerminal(session) }, enabled = !busy) { Text("关闭终端") }
+                        } }
+                    } else {
                     LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         item { Text("以本应用身份运行非交互式命令，可访问本应用的文件和网络。每条命令从工作区目录启动。", style = MaterialTheme.typography.bodySmall) }
                         items(jobs.filter { it.workspaceId == id && it.shellSessionId == activeShell }.reversed(), key = { it.id }) { job ->
@@ -85,12 +120,14 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDi
                             } }
                         }
                     }
+                    }
                     Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(command, { command = it }, placeholder = { Text("输入命令") }, maxLines = 4, modifier = Modifier.weight(1f).testTag("shell_command"))
+                        OutlinedTextField(command, { command = it }, placeholder = { Text(if (interactive) "命令或交互输入" else "输入命令") }, maxLines = 4, modifier = Modifier.weight(1f).testTag("shell_command"))
                         Button(onClick = { activeShell?.let {
                             keyboard?.hide(); focus.clearFocus()
-                            vm.run(it, command); command = ""
-                        } }, enabled = !busy && activeShell != null && command.isNotBlank()) { Text("运行") }
+                            if (interactive) vm.send(it, activeTerminal?.takeIf { session -> session.active }?.id, command) else vm.run(it, command)
+                            command = ""
+                        } }, enabled = !busy && activeShell != null && (command.isNotBlank() || interactive)) { Text(if (interactive) "发送输入" else "运行") }
                     }
                 } else {
                     LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -154,3 +191,9 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDi
         OutlinedTextField(name, { name = it }, label = { Text("名称") }, singleLine = true)
     }, confirmButton = { TextButton(onClick = { vm.create(name); creating = false; name = "" }, enabled = name.isNotBlank()) { Text("创建并绑定") } })
 }
+
+/** Transcript view deliberately strips terminal escape sequences; no VT screen is claimed. */
+private fun terminalDisplayText(text: String): String = text
+    .replace(Regex("\u001B\\[[0-?]*[ -/]*[@-~]"), "")
+    .replace(Regex("\u001B\\][^\u0007\u001B]*(?:\u0007|\u001B\\\\)"), "")
+    .replace("\r\n", "\n").replace("\r", "")

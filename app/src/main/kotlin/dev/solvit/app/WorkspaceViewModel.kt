@@ -6,9 +6,10 @@ import dev.solvit.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-class WorkspaceViewModel(val service: WorkspaceService, private val plugins: PluginDraftService) : ViewModel() {
+class WorkspaceViewModel(val service: WorkspaceService, private val plugins: PluginDraftService, val terminals: TerminalService) : ViewModel() {
     val state = service.state
     val jobs = service.jobs
+    val terminalSessions = terminals.sessions
     val workspaceId = MutableStateFlow<String?>(null)
     val busy = MutableStateFlow(false)
     val error = MutableStateFlow<String?>(null)
@@ -58,6 +59,16 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
         operation { service.run(id, shellId, command) }
     }
     fun stop(job: ShellJob) = operation { service.cancel(job.workspaceId ?: return@operation, job.id) }
+    fun send(shellId: String, terminalId: String?, text: String) {
+        val workspace = workspaceId.value ?: return
+        operation {
+            val session = terminalId?.let { terminals.status(workspace, it) }?.takeIf { it.active }
+                ?: terminals.open(workspace, shellId)
+            terminals.input(workspace, session.id, text + "\n")
+        }
+    }
+    fun interrupt(session: TerminalSession) = operation { terminals.interrupt(session.workspaceId, session.id) }
+    fun closeTerminal(session: TerminalSession) = operation { terminals.close(session.workspaceId, session.id) }
     fun read(path: String) {
         val id = workspaceId.value ?: return
         operation { val text = service.read(id, path); if (workspaceId.value == id) fileText.value = text }
