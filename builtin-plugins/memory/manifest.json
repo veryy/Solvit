@@ -1,9 +1,9 @@
 {
   "id": "dev.solvit.memory",
   "name": "本地记忆",
-  "description": "纯 TypeScript 插件：记忆保存与合并、用户画像、关系图、文本分块和关键词检索。仅本机保存，所有工具调用逐次确认。",
-  "version": "1.0.0",
-  "apiVersion": 1,
+  "description": "TS 本地记忆：启用后自动将相关已保存记录和用户画像提供给当前模型，可在插件配置中关闭。保存、更新和删除仍需工具授权。",
+  "version": "1.1.0",
+  "apiVersion": 7,
   "permissions": [
     "storage"
   ],
@@ -233,6 +233,17 @@
         "required": [],
         "additionalProperties": false
       }
+    }
+  ],
+  "hooks": [
+    "beforeModel"
+  ],
+  "settings": [
+    {
+      "key": "autoRecall",
+      "label": "自动将相关记忆用于聊天",
+      "kind": "boolean",
+      "defaultValue": "true"
     }
   ]
 }

@@ -13,6 +13,7 @@ data class InstalledExtension(
     val id: String, val name: String, val version: String, val permissions: Set<String>,
     val enabled: Boolean, val tools: List<ToolDescriptor>, val failure: String? = null,
     val settings: List<ExtensionSetting> = emptyList(),
+    val contextHooks: Set<String> = emptySet(),
 )
 
 interface MarketplaceService {

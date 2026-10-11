@@ -3798,5 +3798,21 @@
     "ko": "관련 기억을 대화에 자동으로 사용",
     "es": "Usar recuerdos relevantes automáticamente en el chat",
     "fr": "Utiliser automatiquement les souvenirs pertinents dans le chat"
+  },
+  "插件会为聊天提供上下文，已保存的资料可能发送给当前模型服务。": {
+    "zh": "插件会为聊天提供上下文，已保存的资料可能发送给当前模型服务。",
+    "en": "The plugin contributes chat context. Saved information may be sent to the selected model service.",
+    "ja": "プラグインは会話のコンテキストを提供し、保存済みの情報が選択したモデルサービスへ送信される場合があります。",
+    "ko": "플러그인은 대화 맥락을 제공하며 저장된 정보가 선택한 모델 서비스로 전송될 수 있습니다.",
+    "es": "El complemento aporta contexto al chat. La información guardada puede enviarse al servicio del modelo seleccionado.",
+    "fr": "Le plugin fournit du contexte au chat. Les informations enregistrées peuvent être envoyées au service du modèle sélectionné."
+  },
+  "插件可为聊天提供上下文；停用后停止提供。": {
+    "zh": "插件可为聊天提供上下文；停用后停止提供。",
+    "en": "The plugin can contribute chat context; disabling it stops these contributions.",
+    "ja": "プラグインは会話のコンテキストを提供できます。無効にすると提供を停止します。",
+    "ko": "플러그인은 대화 맥락을 제공할 수 있으며 비활성화하면 제공이 중단됩니다.",
+    "es": "El complemento puede aportar contexto al chat; al desactivarlo deja de hacerlo.",
+    "fr": "Le plugin peut fournir du contexte au chat ; sa désactivation arrête ces contributions."
   }
 }

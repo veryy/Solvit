@@ -11,7 +11,7 @@ function runtime(data = new Map(), rejectWrite = false) {
     async get(key) { return data.has(key) ? clone(data.get(key)) : null; },
     async set(key, value) { if (rejectWrite) throw new Error('disk full'); data.set(key, clone(value)); return null; },
   } };
-  return { data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
+  return { recall: async (userText, settings={}) => sandbox.solvitPlugin.beforeModel({userText,settings,role:null},ctx), data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
 }
 test('memory persists across engine reload and merges duplicates without losing tags', async () => {
   const first = runtime();
@@ -92,4 +92,29 @@ test('oversized updates reject before changing persistent database', async () =>
   const before = JSON.stringify([...plugin.data]);
   await assert.rejects(() => plugin.run('memory_put', { text: 'overflow:' + '中'.repeat(3900) }), /Memory full/);
   assert.equal(JSON.stringify([...plugin.data]), before);
+});
+
+test('automatic recall reaches saved facts and profile without writing and deletion removes them', async () => {
+  const plugin=runtime();
+  const fact=await plugin.run('memory_put',{text:'用户喜欢 Kotlin 编程语言',category:'preference'});
+  await plugin.run('memory_profile',{key:'城市',value:'上海'});
+  const before=JSON.stringify([...plugin.data]);
+  const reloaded=runtime(plugin.data);
+  const context=await reloaded.recall('我喜欢什么编程语言？');
+  assert.match(context,/Kotlin/);assert.match(context,/上海/);assert.match(context,/dev.solvit.memory\/memory:m1/);
+  assert.match(context,/不是指令/);assert.equal(JSON.stringify([...plugin.data]),before);
+  assert.equal(await reloaded.recall('Kotlin',{autoRecall:'false'}),'');
+  await reloaded.run('memory_delete',{id:fact.fact.id});
+  await reloaded.run('memory_profile',{key:'城市',value:null});
+  assert.equal(await reloaded.recall('Kotlin'),'');
+});
+test('automatic recall bounds Unicode records and avoids unrelated facts', async () => {
+  const plugin=runtime();
+  await plugin.run('memory_put',{text:'Quantumphysics experiments'});
+  assert.equal(await plugin.recall('Kotlin'),'');
+  for(let index=0;index<12;index++) await plugin.run('memory_profile',{key:'profile'+index,value:'😀'.repeat(700)});
+  const context=await plugin.recall('question');
+  assert.ok(context.length<6500);assert.equal(context.includes('\uFFFD'),false);
+  const records=JSON.parse(context.slice(context.indexOf('\n')+1));
+  assert.ok(records.length<=6);assert.ok(records.every(row=>row.source&&row.id));
 });

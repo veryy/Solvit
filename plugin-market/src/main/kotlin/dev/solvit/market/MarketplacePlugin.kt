@@ -241,7 +241,7 @@ class AndroidMarketplace(
             val prefix = pkg.manifest.id.replace('.', '_').replace('-', '_') + "_"
             val names = pkg.manifest.tools.map { prefix + it.name }.toSet()
             InstalledExtension(pkg.manifest.id, pkg.manifest.name, pkg.manifest.version, pkg.manifest.permissions,
-                enabled, if (enabled) tools.descriptors().filter { it.name in names } else emptyList(), failures[pkg.manifest.id], pkg.manifest.settings)
+                enabled, if (enabled) tools.descriptors().filter { it.name in names } else emptyList(), failures[pkg.manifest.id], pkg.manifest.settings, pkg.manifest.hooks)
         }
     }
 
