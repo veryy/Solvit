@@ -4,8 +4,9 @@ import android.app.Application
 import dev.solvit.core.*
 import dev.solvit.chat.ToolAgentRuntime
 import dev.solvit.provider.OpenAiProvider
+import dev.solvit.anthropic.AnthropicProvider
 import kotlinx.coroutines.flow.toList
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.MockResponse
@@ -21,6 +22,45 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28],application=Application::class)
 class ModelTaskRoutingTest {
+    @Test fun taskRoutingCanSwitchNativeProtocolToOpenAiAndKeepPortableToolSemantics()=runBlocking {
+        val context=RuntimeEnvironment.getApplication()
+        context.getSharedPreferences("model",0).edit().clear().commit()
+        val key=KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
+        val profiles=SettingsModelProfiles(EncryptedSettingsStore(context) { key });profiles.initialize()
+        val native=MockWebServer();val compatible=MockWebServer();native.start();compatible.start()
+        val client=OkHttpClient.Builder().callTimeout(10,TimeUnit.SECONDS).build()
+        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
+        val manager=PluginManager(scope=scope)
+        try {
+            val first=ModelConfig(native.url("/v1").toString(),"native-model","NATIVE_KEY",providerId="anthropic")
+            profiles.save(ModelProfile("chat","Native chat",first))
+            profiles.save(ModelProfile("tools","Compatible tools",ModelConfig(compatible.url("/v1").toString(),"compatible-model","COMPATIBLE_KEY")))
+            profiles.assign(ModelTask.TOOL_FOLLOW_UP,"tools")
+            manager.load(ModelProvidersPlugin());manager.load(ModelRoutingPlugin());manager.enableAll()
+            val providers=manager.registry.require(ModelProvidersServiceKey)
+            providers.register(ModelProviderInfo("anthropic","Native","",""),AnthropicProvider(client))
+            providers.register(ModelProviderInfo("openai-compatible","Compatible","",""),OpenAiProvider(client))
+            native.enqueue(MockResponse().setHeader("Content-Type","application/json").setBody("""{"role":"assistant","content":[{"type":"thinking","thinking":"reason","signature":"opaque-native-signature"},{"type":"tool_use","id":"c1","name":"clock","input":{}}],"stop_reason":"tool_use"}"""))
+            compatible.enqueue(MockResponse().setHeader("Content-Type","application/json").setBody("""{"choices":[{"message":{"content":"Checked actual tool result"},"finish_reason":"stop"}]}"""))
+            val tools=ToolRegistry(EventBus()).apply { register(object:SolvitTool {
+                override val descriptor=ToolDescriptor("clock","Clock","{}")
+                override suspend fun execute(argumentsJson:String)="actual UTC"
+            }) }
+            val allow=object:ToolAuthorization { override suspend fun authorize(descriptor:ToolDescriptor)=true }
+            val output=ToolAgentRuntime(manager.registry.require(Services.Model),tools,modelProfiles=profiles).run(
+                ModelRequest(first,listOf(ModelMessage(Role.USER,"check time")),authorization=allow)).toList()
+            assertEquals("Checked actual tool result",output.filterIsInstance<ModelChunk.Text>().single().value)
+            val firstHttp=native.takeRequest(2,TimeUnit.SECONDS)!!;val secondHttp=compatible.takeRequest(2,TimeUnit.SECONDS)!!
+            assertEquals("/v1/messages",firstHttp.path);assertEquals("NATIVE_KEY",firstHttp.getHeader("x-api-key"))
+            assertEquals("/v1/chat/completions",secondHttp.path);assertEquals("Bearer COMPATIBLE_KEY",secondHttp.getHeader("Authorization"))
+            assertNull(secondHttp.getHeader("x-api-key"))
+            val body=JSONObject(secondHttp.body.readUtf8())
+            assertEquals("compatible-model",body.getString("model"))
+            assertTrue(body.toString().contains("actual UTC"));assertFalse(body.toString().contains("opaque-native-signature"))
+            val messages=body.getJSONArray("messages")
+            assertEquals("c1",messages.getJSONObject(messages.length()-1).getString("tool_call_id"))
+        } finally { manager.shutdown();scope.cancel();native.shutdown();compatible.shutdown();client.dispatcher.executorService.shutdown();client.connectionPool.evictAll() }
+    }
     @Test fun actualHttpToolFollowUpUsesItsOwnEndpointModelAndCredentialAndKeepsTheTranscript()=runBlocking {
         val context=RuntimeEnvironment.getApplication()
         context.getSharedPreferences("model",0).edit().clear().commit()

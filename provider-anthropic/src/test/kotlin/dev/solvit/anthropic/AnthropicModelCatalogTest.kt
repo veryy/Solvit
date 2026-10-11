@@ -7,7 +7,7 @@ import okhttp3.mockwebserver.*
 import kotlin.test.*
 
 class AnthropicModelCatalogTest {
-    @Test fun followsNativePaginationAndRetainsDisplayNames() = runBlocking {
+    @Test fun followsNativePaginationAndRetainsDisplayNames() = runBlocking<Unit> {
         val server=MockWebServer();server.start();val client=OkHttpClient()
         try {
             server.enqueue(MockResponse().setBody("""{"data":[{"id":"first","display_name":"First Claude"}],"has_more":true,"last_id":"first"}"""))
@@ -18,7 +18,7 @@ class AnthropicModelCatalogTest {
             assertEquals("first",server.takeRequest().requestUrl!!.queryParameter("after_id"))
         } finally { server.shutdown();client.connectionPool.evictAll();client.dispatcher.executorService.shutdown() }
     }
-    @Test fun independentSubscriptionNeverReceivesKeyUnlessOptedInAndRepeatingCursorFails() = runBlocking {
+    @Test fun independentSubscriptionNeverReceivesKeyUnlessOptedInAndRepeatingCursorFails() = runBlocking<Unit> {
         val server=MockWebServer();server.start();val client=OkHttpClient()
         try {
             for(optIn in listOf(false,true)) {

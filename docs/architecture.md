@@ -7,7 +7,7 @@
 | 参考 | 最值得借鉴的设计 | Solvit 的落点 |
 | --- | --- | --- |
 | [Operit AIService](https://github.com/AAswordman/Operit/blob/main/app/src/main/java/com/ai/assistance/operit/api/chat/llmprovider/AIService.kt) | 统一模型接口、流式回复、取消与资源释放 | 不含 Android Context 的 ModelProvider + Flow；Coroutine 取消连接 |
-| [Operit AIServiceFactory](https://github.com/AAswordman/Operit/blob/main/app/src/main/java/com/ai/assistance/operit/api/chat/llmprovider/AIServiceFactory.kt) | Provider 创建与网络连接管理集中化 | 网络完全封装在 provider-openai 插件，UI 不选具体实现 |
+| [Operit AIServiceFactory](https://github.com/AAswordman/Operit/blob/main/app/src/main/java/com/ai/assistance/operit/api/chat/llmprovider/AIServiceFactory.kt) | Provider 创建与网络连接管理集中化 | 网络封装在独立 Provider 插件，通过注册表路由，UI 不选具体实现 |
 | [Operit ChatViewModel](https://github.com/AAswordman/Operit/blob/main/app/src/main/java/com/ai/assistance/operit/ui/features/chat/viewmodel/ChatViewModel.kt) | ViewModel、Coroutine、Flow、聊天及工具体验 | 保留原生流式聊天与多会话；避免第一版引入复杂服务与工具依赖 |
 | [Operit AndroidPermissionLevel](https://github.com/AAswordman/Operit/blob/main/app/src/main/java/com/ai/assistance/operit/core/tools/system/AndroidPermissionLevel.kt) | 基础、无障碍、调试、管理员、Root 能力分层 | ToolDescriptor 声明权限及敏感确认；授权接口默认必须显式允许 |
 | [DSH Architecture](https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.md) | Everything is a Plugin；Definition / Provider / Consumer 能力缝隙；组合启动 | Core 只有契约和注册机制，模型、存储、Agent 和聊天服务都由插件提供 |
@@ -25,11 +25,15 @@ flowchart TD
   R --> S[ChatStore interface]
   R --> A[AgentRuntime interface]
   A --> M[ModelProvider interface]
-  M --> O[OpenAiPlugin]
+  M --> MR[ModelRoutingPlugin]
+  MR --> MP[ModelProviderRegistry]
+  MP --> O[OpenAiPlugin]
+  MP --> CL[AnthropicPlugin]
   S --> SQL[SqliteStoragePlugin]
   Boot[Application composition] --> PM[PluginManager / PluginRegistry]
   PM --> R
   PM --> O
+  PM --> CL
   PM --> SQL
   PM --> T[ToolsPlugin / ToolRegistry]
 ```
@@ -87,3 +91,7 @@ ToolRegistry 提供描述、JSON 输入 schema、权限集合与确认要求。�
 5. 需要重放和恢复时引入版本化持久事件日志，区分事实与瞬态流。
 
 模型设置通过独立 ModelProfilesService 保存多组 OpenAI 兼容连接和任务绑定。聊天首轮使用聊天配置，模型提出工具调用后，后续轮次可使用另外的模型配置并接收完整上下文。工具后续配置在每次 Agent 执行开始时取快照。配置与任务绑定加密后一次提交，旧单模型配置可读取迁移；完整备份包含所有配置。其他协议、摘要模型、嵌入模型和本地推理继续沿着服务接口扩展，避免将 Provider 逻辑放入聊天 UI。
+
+## 原生协议转录
+
+`ModelConfig.providerId` 与 `providerOptions` 纳入加密配置和备份，旧配置默认 OpenAI 兼容。Provider 独立注册模型目录与声明式选项；路由插件按任务配置选择实现。`ProviderTranscript` 保存来源、原始块、发起参数和前缀摘要，贯穿 Agent、SQLite v5、重开和分支，展示层不输出原始 JSON。Claude 的流式、签名与工具回传边界见 [原生 Provider](anthropic-provider.md)。JS 模型扩展、Gemini 与本地推理仍待实现。

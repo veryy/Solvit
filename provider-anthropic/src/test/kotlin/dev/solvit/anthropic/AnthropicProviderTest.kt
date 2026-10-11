@@ -98,6 +98,29 @@ class AnthropicProviderTest {
             assertTrue(body["messages"]!!.jsonArray.last().jsonObject["content"]!!.jsonArray.single().jsonObject["is_error"]!!.jsonPrimitive.boolean)
         }
     }
+    @Test fun continuousNativeToolsKeepEverySignedRoundBeforeFinalReply() = runBlocking {
+        server { server,client,config ->
+            server.enqueue(response(thinkingAndTool()))
+            server.enqueue(response(thinkingAndTool().replace("call1","call2")))
+            server.enqueue(response(answer("two results checked")))
+            var executions=0
+            val tools=ToolRegistry(EventBus()).apply { register(object:SolvitTool {
+                override val descriptor=ToolDescriptor("clock","Clock","{}")
+                override suspend fun execute(argumentsJson:String):String { executions++;return "result-$executions" }
+            }) }
+            val allow=object:ToolAuthorization { override suspend fun authorize(descriptor:ToolDescriptor)=true }
+            val chunks=ToolAgentRuntime(AnthropicProvider(client),tools).run(ModelRequest(config,listOf(ModelMessage(Role.USER,"verify twice")),authorization=allow)).toList()
+            assertEquals(2,executions);assertEquals(1,chunks.count { it==ModelChunk.Done })
+            server.takeRequest();server.takeRequest()
+            val messages=Json.parseToJsonElement(server.takeRequest().body.readUtf8()).jsonObject["messages"]!!.jsonArray
+            assertEquals(5,messages.size)
+            for(index in listOf(1,3)) {
+                assertEquals("opaque+/==",messages[index].jsonObject["content"]!!.jsonArray[0].jsonObject["signature"]!!.jsonPrimitive.content)
+                assertEquals("hidden+/==",messages[index].jsonObject["content"]!!.jsonArray[1].jsonObject["data"]!!.jsonPrimitive.content)
+            }
+            assertEquals("call2",messages.last().jsonObject["content"]!!.jsonArray.single().jsonObject["tool_use_id"]!!.jsonPrimitive.content)
+        }
+    }
     @Test fun http200StreamErrorsAndHttpFailuresRetainRedactedDetailsAndNeverComplete() = runBlocking {
         for(status in listOf(200,401)) server { server,client,config ->
             val body=if(status==200) start()+event("error",",\"error\":{\"message\":\"private-native-key\"}") else "private-native-key denied"

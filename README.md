@@ -76,7 +76,7 @@
 需要 JDK 17、Android SDK Platform 36、Build Tools 36.0.0。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
 
 ```sh
-./gradlew :core:test :system-runtime:test :workspace-android:testDebugUnitTest :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:lintDebug :app:assembleDebug
+./gradlew :core:test :system-runtime:test :workspace-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同命令并上传 APK 和测试报告。Gradle Wrapper 固定为 9.3.1，AGP 9.1.1 使用内置 Kotlin，项目 Kotlin 版本 2.4.10，以接入具有超时与取消能力的 QuickJS 插件引擎。
@@ -86,7 +86,9 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 | 模块 | 职责 |
 | --- | --- |
 | `core` | 服务契约、插件管理、类型化事件、工具发现和授权接口，无 Android 依赖 |
-| `provider-openai` | OkHttp 网络与 SSE，独立注册 ModelProvider |
+| `provider-http` | 通用受限 SSE、HTTP 取消与脱敏诊断 |
+| `provider-openai` | OpenAI 兼容 Chat Completions，独立注册 Provider 和模型目录 |
+| `provider-anthropic` | Claude 原生 Messages、签名转录、工具回传和模型目录 |
 | `storage-sqlite` | ChatStore 的 Android SQLite 实现 |
 | `chat-runtime` | 有界工具 Agent、消息结算、上下文和 ChatService 插件 |
 | `system-runtime` | Shell 作业、流式输出与取消引擎 |
