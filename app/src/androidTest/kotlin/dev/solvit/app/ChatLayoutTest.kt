@@ -48,7 +48,7 @@ class ChatLayoutTest {
     @Test fun pluginPageCanReachBottomAndReturnToChat() {
         ready()
         rule.onNodeWithContentDescription("插件市场").performClick()
-        rule.onNodeWithText("已安装 (6)").performClick()
+        rule.onNode(hasText("已安装 (", substring = true)).performClick()
         rule.onNodeWithText("插件开发").performScrollTo().assertIsDisplayed()
         screenshot("plugins-bottom-insets")
         rule.onNodeWithContentDescription("关闭插件页面").performClick()

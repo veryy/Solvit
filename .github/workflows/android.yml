@@ -79,8 +79,8 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
+            trap 'adb pull /sdcard/Android/data/dev.solvit.app/files/ ui-screenshots || true' EXIT
             ./gradlew :app:connectedDebugAndroidTest --stacktrace
-            adb pull /sdcard/Android/data/dev.solvit.app/files/ ui-screenshots
       - uses: actions/upload-artifact@v4
         if: always()
         with:

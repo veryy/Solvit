@@ -86,8 +86,8 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     fun send(text: String): Boolean {
         val id = selected.value ?: return false
         if (busy.value || !ready.value || text.isBlank()) return false
-        config.value.validate()?.let { error.value = it; return false }
         dismissError()
+        config.value.validate()?.let { error.value = it; return false }
         draft.value = ""
         toolActivity.value = emptyList()
         busy.value = true
