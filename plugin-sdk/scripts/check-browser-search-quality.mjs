@@ -21,7 +21,7 @@ const ctx = {settings:{get:async()=>null},http:{request:async options=>{
     await page.goto(url,{waitUntil:'load',timeout:7000});
     await page.waitForTimeout(500);
     const snapshot=JSON.parse(await page.evaluate(script));
-    observations.push({url,finalUrl:snapshot.url,title:snapshot.title,links:snapshot.links.length});
+    observations.push({url,finalUrl:snapshot.url,title:snapshot.title,links:snapshot.links.length,textSample:snapshot.text.slice(0,2000),dom:await page.evaluate(()=>({bodyText:document.body.innerText.slice(0,2000),bodyLinks:document.querySelectorAll('a[href]').length,results:document.querySelectorAll('li.b_algo').length,main:document.querySelector('main,article,[role="main"]')?.outerHTML.slice(0,2000)}))});
     return snapshot;
   } finally {await page.close();}
 }}};
