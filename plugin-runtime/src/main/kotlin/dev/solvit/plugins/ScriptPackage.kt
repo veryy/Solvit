@@ -16,6 +16,7 @@ data class ScriptManifest(
     val apiVersion: Int = 1,
     val settings: List<ExtensionSetting> = emptyList(),
     val hooks: Set<String> = emptySet(),
+    val afterTurnEnabledSetting: String? = null,
 )
 data class ScriptPackage(val manifest: ScriptManifest, val source: String, val payload: ByteArray) {
     companion object {
@@ -30,7 +31,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val root = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
             val m = root.getValue("manifest").jsonObject
             val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..7) { "插件需要其他版本的宿主 API" }
+            require(apiVersion in 1..8) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -39,7 +40,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val version = string("version")
             require(version.matches(Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"))) { "插件版本无效" }
             val permissions = strings("permissions")
-            require(permissions.all { it in setOf("storage", "network") || apiVersion >= 4 && it in setOf("workspace", "shell", "plugins") }) { "插件声明了尚未支持的权限" }
+            require(permissions.all { it in setOf("storage", "network") || apiVersion >= 4 && it in setOf("workspace", "shell", "plugins") || apiVersion >= 8 && it == "model" }) { "插件声明了尚未支持的权限" }
             val dependencies = strings("dependencies")
             require(id !in dependencies) { "插件不能依赖自身" }
             val tools = m.getValue("tools").jsonArray.map { element ->
@@ -68,10 +69,14 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             require(settings.size <= 16 && settings.map { it.key }.toSet().size == settings.size && (settings.isEmpty() || apiVersion >= 2))
             val source = root.getValue("source").jsonPrimitive.content
             val hooks = m["hooks"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty()
-            require(hooks.all { it == "beforeModel" } && (hooks.isEmpty() || apiVersion >= 3)) { "插件 Hook 声明无效" }
+            require(hooks.all { it == "beforeModel" && apiVersion >= 3 || it == "afterTurn" && apiVersion >= 8 }) { "插件 Hook 声明无效" }
+            val afterTurnSetting = m["afterTurnEnabledSetting"]?.jsonPrimitive?.content
+            if ("afterTurn" in hooks) {
+                require(afterTurnSetting != null && settings.any { it.key == afterTurnSetting && it.kind == "boolean" && it.defaultValue != "true" }) { "后台 Hook 必须声明默认关闭的开关" }
+            } else require(afterTurnSetting == null && "model" !in permissions) { "后台模型权限需要 afterTurn Hook" }
             require(source.isNotBlank()) { "插件缺少 JavaScript 代码" }
             return ScriptPackage(ScriptManifest(id, string("name"), string("description"), version,
-                permissions, dependencies, tools, apiVersion, settings, hooks), source, bytes.copyOf())
+                permissions, dependencies, tools, apiVersion, settings, hooks, afterTurnSetting), source, bytes.copyOf())
         }
     }
 }

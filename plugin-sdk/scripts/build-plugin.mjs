@@ -5,7 +5,14 @@ import { pathToFileURL } from 'node:url';
 
 export async function buildPlugin(entry, manifestFile, output) {
   const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
-  if (![1, 2, 3, 4, 5, 6, 7].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
+  if (![1, 2, 3, 4, 5, 6, 7, 8].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
+  const hooks = manifest.hooks ?? [];
+  if (!Array.isArray(hooks) || hooks.some(hook => hook !== 'beforeModel' && hook !== 'afterTurn') ||
+      hooks.includes('beforeModel') && manifest.apiVersion < 3 || hooks.includes('afterTurn') && manifest.apiVersion < 8) throw new Error('Invalid hooks');
+  if (hooks.includes('afterTurn')) {
+    const field = (manifest.settings ?? []).find(field => field.key === manifest.afterTurnEnabledSetting);
+    if (!field || field.kind !== 'boolean' || field.defaultValue === 'true') throw new Error('afterTurn requires a default-off setting');
+  } else if (manifest.afterTurnEnabledSetting !== undefined || (manifest.permissions ?? []).includes('model')) throw new Error('Model permission requires afterTurn');
   const result = await build({
     entryPoints: [entry], bundle: true, write: false, format: 'iife', globalName: '__solvitBundle',
     platform: 'neutral', target: 'es2020', legalComments: 'inline', minify: false,

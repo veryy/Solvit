@@ -10,9 +10,25 @@ fun interface PostTurnModel { suspend fun complete(instructions: String, input: 
 class PostTurnWorkException(val failure: PostTurnFailure) : IllegalStateException("Post-turn work failed: ${failure.name}")
 class PostTurnRevokedException : IllegalStateException("Post-turn authorization no longer applies")
 /** Native bindings must recheck this before inference or storage writes. */
-class PostTurnExecutionContext(private val verify: suspend () -> Unit) : AbstractCoroutineContextElement(Key) {
+class PostTurnExecutionContext(val target: PostTurnTarget, private val model: PostTurnModel,
+    private val verify: suspend () -> Unit) : AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<PostTurnExecutionContext>
-    suspend fun ensureAuthorized() = verify()
+    @Volatile var nativeFailure: PostTurnFailure? = null
+        private set
+    @Volatile var revoked = false
+        private set
+    fun recordFailure(failure: PostTurnFailure) { nativeFailure = failure }
+    suspend fun ensureAuthorized() {
+        try { verify() }
+        catch (e: PostTurnRevokedException) { revoked = true; throw e }
+        catch (e: PostTurnWorkException) { recordFailure(e.failure); throw e }
+    }
+    suspend fun complete(instructions: String, input: String): String {
+        ensureAuthorized()
+        try { return model.complete(instructions, input) }
+        catch (e: ModelException) { recordFailure(PostTurnFailure.MODEL); throw e }
+        catch (e: PostTurnWorkException) { recordFailure(e.failure); throw e }
+    }
 }
 interface PostTurnHook {
     val target: PostTurnTarget

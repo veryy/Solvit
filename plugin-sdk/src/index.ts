@@ -2,6 +2,8 @@
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
 export interface PluginContext {
+  /** API 8: available only during an opted-in afterTurn invocation; at most one call. */
+  readonly model?: { complete(options: { instructions: string; input: string }): Promise<string> };
   /** API 6: anonymous Android browser observation; requires network permission. */
   readonly web?: { visit(url: string): Promise<{ url: string; title: string; text: string; truncated: boolean;
     links: { url: string; title: string; snippet: string }[] }> };
@@ -18,6 +20,8 @@ export interface PluginContext {
   readonly storage: {
     get<T extends JsonValue = JsonValue>(key: string): Promise<T | null>;
     set(key: string, value: JsonValue): Promise<null>;
+    /** API 8: atomically replace a value only if it still equals the last read. */
+    compareAndSet?(key: string, expected: JsonValue, value: JsonValue): Promise<boolean>;
   };
   readonly http: {
     request(options: { url: string; method?: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string; cancelBody?: string; timeoutMs?: number }): Promise<{ body: string; status: number; headers: Record<string, string> }>;
@@ -29,16 +33,21 @@ export interface PluginDefinition {
   activate?(context: PluginContext): void | Promise<void>;
   deactivate?(context: PluginContext): void | Promise<void>;
   beforeModel?(input: { userText: string; role: PluginContext['role']; settings?: Readonly<Record<string, string | null>> }, context: PluginContext): string | Promise<string>;
+  /** Runs in a separate fresh instance; does not share activate() state with chat. */
+  afterTurn?(input: { source: { turnId: string; sessionId: string; userMessageId: string; assistantMessageId: string;
+    roleId: string | null; roleName: string | null }; userText: string; assistantText: string;
+    settings: Readonly<Record<string, string | null>> }, context: PluginContext): void | Promise<void>;
 }
 export interface PluginManifest {
   id: string;
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7;
-  hooks?: ('beforeModel')[];
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  hooks?: ('beforeModel' | 'afterTurn')[];
+  afterTurnEnabledSetting?: string;
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret' | 'boolean'; required?: boolean; defaultValue?: 'true' | 'false' }[];
-  permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins')[];
+  permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins' | 'model')[];
   dependencies: string[];
   tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management' }[];
 }

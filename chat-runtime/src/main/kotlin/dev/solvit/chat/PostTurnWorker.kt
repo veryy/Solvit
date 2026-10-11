@@ -126,8 +126,14 @@ class PostTurnWorker(
                 throw PostTurnWorkException(PostTurnFailure.INPUT_TOO_LARGE)
             infer(configuration(job.turn), instructions, input)
         }
-        withContext(PostTurnExecutionContext { authority() }) {
-            hook.process(PostTurnInput(job.turn, user.content, answer.content), model)
+        val execution = PostTurnExecutionContext(job.target, model) { authority() }
+        try {
+            withContext(execution) { hook.process(PostTurnInput(job.turn, user.content, answer.content), model) }
+        } catch (e: Exception) {
+            currentCoroutineContext().ensureActive()
+            if (execution.revoked) throw PostTurnRevokedException()
+            execution.nativeFailure?.let { throw PostTurnWorkException(it) }
+            throw e
         }
     }
 

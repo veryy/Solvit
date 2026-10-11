@@ -34,6 +34,7 @@ class AndroidMarketplace(
 ) : MarketplaceService {
     private val directory = File(context.filesDir, "extensions").apply { mkdirs() }
     private val prefs = context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
+    private val data = PluginDataStore(context)
     private val mutex = Mutex()
     private val packages = linkedMapOf<String, ScriptPackage>()
     private val failures = mutableMapOf<String, String>()
@@ -253,7 +254,8 @@ class AndroidMarketplace(
             return (configurationValues(manifest)[field.key])?.let(::JsonPrimitive) ?: JsonNull
         }
         val permission = when (operation) {
-            "storage.get", "storage.set" -> "storage"
+            "storage.get", "storage.set", "storage.compareAndSet" -> "storage"
+            "model.complete" -> "model"
             "http.request", "web.visit" -> "network"
             "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
             "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
@@ -262,6 +264,17 @@ class AndroidMarketplace(
             else -> error("未开放的宿主操作")
         }
         check(permission in manifest.permissions && permission in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty()) { "插件权限未授予" }
+        val background = currentCoroutineContext()[PostTurnExecutionContext]
+        if (background != null) {
+            check(manifest.apiVersion >= 8 && background.target.pluginId == manifest.id && background.target.version == manifest.version)
+            background.ensureAuthorized()
+        }
+        if (operation == "model.complete") {
+            check(manifest.apiVersion >= 8 && background != null) { "模型调用需要已授权的后台任务" }
+            require(arguments.keys == setOf("instructions", "input"))
+            return JsonPrimitive(background.complete(arguments.getValue("instructions").jsonPrimitive.content,
+                arguments.getValue("input").jsonPrimitive.content))
+        }
         if (operation == "web.visit") {
             check(manifest.apiVersion >= 6) { "浏览器观察需要 API 6" }
             val active = currentCoroutineContext()
@@ -327,16 +340,33 @@ class AndroidMarketplace(
             }
         }
         return when (operation) {
-            "storage.get", "storage.set" -> withContext(Dispatchers.IO) {
+            "storage.get", "storage.set", "storage.compareAndSet" -> {
                 val key = arguments.getValue("key").jsonPrimitive.content
-                require(key.length in 1..256) { "存储键长度无效" }
-                val storage = context.getSharedPreferences("extension_data.${manifest.id}", Context.MODE_PRIVATE)
-                if (operation == "storage.get") storage.getString(key, null)?.let { Json.parseToJsonElement(it) } ?: JsonNull
-                else {
-                    val value = arguments.getValue("value").toString()
-                    require(value.length <= 256 * 1024) { "存储值过大" }
-                    check(storage.edit().putString(key, value).commit()) { "插件数据保存失败" }
-                    JsonNull
+                suspend fun verifyWrite() {
+                    currentCoroutineContext().ensureActive()
+                    check("storage" in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty()) { "插件权限未授予" }
+                    background?.ensureAuthorized()
+                }
+                try {
+                    when (operation) {
+                        "storage.get" -> { require(arguments.keys == setOf("key")); data.get(manifest.id, key) { verifyWrite() } }
+                        "storage.compareAndSet" -> {
+                            check(manifest.apiVersion >= 8)
+                            require(arguments.keys == setOf("key", "expected", "value"))
+                            JsonPrimitive(data.compareAndSet(manifest.id, key, arguments.getValue("expected"), arguments.getValue("value")) { verifyWrite() })
+                        }
+                        else -> {
+                            require(arguments.keys == setOf("key", "value"))
+                            data.set(manifest.id, key, arguments.getValue("value"), manifest.apiVersion >= 8) { verifyWrite() }
+                            JsonNull
+                        }
+                    }
+                } catch (e: PostTurnRevokedException) { throw e }
+                catch (e: PostTurnWorkException) { background?.recordFailure(e.failure); throw e }
+                catch (e: CancellationException) { throw e }
+                catch (e: Exception) {
+                    background?.recordFailure(PostTurnFailure.STORAGE)
+                    throw e
                 }
             }
             "http.request" -> {

@@ -170,5 +170,6 @@ private fun permissionDescription(permissions: Set<String>): String = if (permis
         "workspace" -> "读取和修改当前对话工作区的文件与会话"
         "shell" -> "以应用身份运行 Shell，可访问本应用文件和网络"
         "plugins" -> "生成和校验插件草稿；安装与启用需单独操作"
+        "model" -> "后台模型调用，可能产生模型服务费用"
         else -> it
     }) }.joinToString(" · ")

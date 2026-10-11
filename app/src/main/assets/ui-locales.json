@@ -3942,5 +3942,13 @@
     "ko": "서비스 주소로 선택",
     "es": "Elegir según la dirección del servicio",
     "fr": "Choisir selon l’adresse du service"
+  },
+  "后台模型调用，可能产生模型服务费用": {
+    "zh": "后台模型调用，可能产生模型服务费用",
+    "en": "Background model calls may incur model service charges",
+    "ja": "バックグラウンドのモデル呼び出しには利用料金が発生する場合があります",
+    "ko": "백그라운드 모델 호출에 서비스 요금이 발생할 수 있습니다",
+    "es": "Las llamadas al modelo en segundo plano pueden generar cargos",
+    "fr": "Les appels au modèle en arrière-plan peuvent entraîner des frais"
   }
 }

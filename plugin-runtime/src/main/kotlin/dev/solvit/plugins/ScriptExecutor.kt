@@ -21,7 +21,8 @@ fun interface ScriptHost {
 }
 
 /** One engine per enabled plugin; no Java reflection or implicit OS access. */
-class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHost, private val timeoutMs: Long = 30_000) {
+class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHost, private val timeoutMs: Long = 30_000,
+    private val background: Boolean = false) {
     private val mutex = Mutex()
     @Volatile private var engine: QuickJs? = null
     @Volatile private var executionJob: Job? = null
@@ -38,10 +39,12 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                 js.evaluationTimeoutMillis = timeoutMs
                 js.asyncFunction("__solvitHostCall") { args ->
                     val operation = args[0] as String
+                    check(!background || operation in setOf("storage.get", "storage.set", "storage.compareAndSet", "clock.now", "model.complete")) { "后台 Hook 不允许此操作" }
                     check(!readOnlyHost || operation in setOf("storage.get", "clock.now")) { "上下文 Hook 只允许读取插件存储和当前时间" }
                     val arguments = Json.parseToJsonElement(args[1] as String).jsonObject
                     val permission = when (operation) {
-                        "storage.get", "storage.set" -> "storage"
+                        "storage.get", "storage.set", "storage.compareAndSet" -> "storage"
+                        "model.complete" -> "model"
                         "http.request", "web.visit" -> "network"
                         "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
@@ -55,10 +58,17 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(!operation.startsWith("workspace.") && !operation.startsWith("plugins.") || pkg.manifest.apiVersion >= 4) { "工作区与插件开发需要 API 4" }
                     check(!operation.startsWith("terminal.") || pkg.manifest.apiVersion >= 5) { "交互终端需要 API 5" }
                     check(operation != "web.visit" || pkg.manifest.apiVersion >= 6) { "浏览器观察需要 API 6" }
+                    check(operation !in setOf("model.complete", "storage.compareAndSet") || pkg.manifest.apiVersion >= 8) { "此操作需要 API 8" }
+                    check(operation != "model.complete" || background) { "模型调用只允许在后台 Hook 中使用" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
                     withContext(parent) {
+                        if (background) {
+                            val execution = currentCoroutineContext()[PostTurnExecutionContext] ?: error("后台执行缺少任务授权")
+                            check(execution.target.pluginId == pkg.manifest.id)
+                            execution.ensureAuthorized()
+                        }
                         if (operation == "clock.now") {
                             clockSnapshot().toString()
                         } else host.call(pkg.manifest, operation, arguments).toString()
@@ -77,8 +87,10 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                           settings: Object.freeze({ get: async key => JSON.parse(await __solvitHostCall('settings.get', JSON.stringify({key}))) }),
                           storage: Object.freeze({
                             get: async key => JSON.parse(await __solvitHostCall('storage.get', JSON.stringify({key}))),
-                            set: async (key,value) => JSON.parse(await __solvitHostCall('storage.set', JSON.stringify({key,value})))
+                            set: async (key,value) => JSON.parse(await __solvitHostCall('storage.set', JSON.stringify({key,value}))),
+                            compareAndSet: async (key,expected,value) => JSON.parse(await __solvitHostCall('storage.compareAndSet', JSON.stringify({key,expected,value})))
                           }),
+                          model: Object.freeze({ complete: async options => JSON.parse(await __solvitHostCall('model.complete', JSON.stringify(options))) }),
                           web: Object.freeze({ visit: async url => JSON.parse(await __solvitHostCall('web.visit', JSON.stringify({url}))) }),
                           http: Object.freeze({
                             request: async options => JSON.parse(await __solvitHostCall('http.request', JSON.stringify(options)))
@@ -95,7 +107,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     if ("beforeModel" in pkg.manifest.hooks) {
                         js.evaluate<Any?>("if (typeof solvitPlugin.beforeModel !== 'function') throw new Error('Missing beforeModel hook');")
                     }
-                    js.evaluate<Any?>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
+                    if ("afterTurn" in pkg.manifest.hooks) js.evaluate<Any?>("if (typeof solvitPlugin.afterTurn !== 'function') throw new Error('Missing afterTurn hook');")
+                    if (!background) js.evaluate<Any?>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
                     } finally { executionJob = null; executionContext = null }
                 }
                 engine = js
@@ -114,13 +127,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
         check("beforeModel" in pkg.manifest.hooks)
         check(engine != null) { "插件未启用" }
         // Read only schema-declared public fields. Secret fields never enter the Hook payload.
-        val publicSettings = if (pkg.manifest.apiVersion >= 7) buildJsonObject {
-            for (field in pkg.manifest.settings.filter { it.kind != "secret" }) {
-                val value = host.call(pkg.manifest, "settings.get", buildJsonObject { put("key", field.key) })
-                require(value is JsonNull || value is JsonPrimitive && value.isString && value.content.length <= 4096)
-                put(field.key, value)
-            }
-        } else null
+        val publicSettings = if (pkg.manifest.apiVersion >= 7) publicSettings() else null
         val payload = buildJsonObject {
             if (publicSettings != null) put("settings", publicSettings)
             put("userText", input.userText)
@@ -130,6 +137,33 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
         val value = Json.parseToJsonElement(result)
         require(value is JsonPrimitive && value.isString) { "上下文 Hook 必须返回文本" }
         return value.content
+    }
+
+    private suspend fun publicSettings(): JsonObject = buildJsonObject {
+            for (field in pkg.manifest.settings.filter { it.kind != "secret" }) {
+                val value = host.call(pkg.manifest, "settings.get", buildJsonObject { put("key", field.key) })
+                require(value is JsonNull || value is JsonPrimitive && value.isString && value.content.length <= 4096)
+                put(field.key, value)
+            }
+        }
+    suspend fun afterTurn(input: PostTurnInput) {
+        check(background && pkg.manifest.apiVersion >= 8 && "afterTurn" in pkg.manifest.hooks)
+        val execution = currentCoroutineContext()[PostTurnExecutionContext] ?: error("后台执行缺少任务授权")
+        execution.ensureAuthorized()
+        val role = input.turn.roleId?.let { AgentRole(it, input.turn.roleName!!, pluginIds = input.turn.allowedPluginIds.orEmpty()) }
+        val payload = buildJsonObject {
+            put("settings", publicSettings())
+            put("userText", input.userText)
+            put("assistantText", input.assistantText)
+            putJsonObject("source") {
+                put("turnId", input.turn.id); put("sessionId", input.turn.sessionId)
+                put("userMessageId", input.turn.userMessageId); put("assistantMessageId", input.turn.assistantMessageId)
+                put("roleId", input.turn.roleId?.let(::JsonPrimitive) ?: JsonNull)
+                put("roleName", input.turn.roleName?.let(::JsonPrimitive) ?: JsonNull)
+            }
+        }
+        val result = invoke("solvitPlugin.afterTurn(JSON.parse(${JsonPrimitive(payload.toString())}), ${contextExpression(role)})", false)
+        require(result == "null") { "后台 Hook 必须完成且不返回正文" }
     }
 
     private fun roleJson(role: AgentRole?): JsonElement = role?.let { buildJsonObject {
@@ -161,10 +195,16 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             const value = await ($expression);
                             return JSON.stringify({ok: true, result: JSON.stringify(value) ?? 'null'});
                           } catch (error) {
-                            return JSON.stringify({ok: false, error: String(error?.message ?? error)});
+                            return JSON.stringify({ok: false, error: String(error?.message ?? error), code: typeof error?.solvitCode === 'string' ? error.solvitCode : null});
                           }
                         })()
                     """.trimIndent())).jsonObject
+                    if (!outcome.getValue("ok").jsonPrimitive.boolean && background) {
+                        val code = outcome["code"]?.jsonPrimitive?.contentOrNull
+                        runCatching { PostTurnFailure.valueOf(code.orEmpty()) }.getOrNull()?.let {
+                            currentCoroutineContext()[PostTurnExecutionContext]?.recordFailure(it)
+                        }
+                    }
                     check(outcome.getValue("ok").jsonPrimitive.boolean) {
                         outcome.getValue("error").jsonPrimitive.content
                     }
@@ -190,7 +230,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     withTimeout(2_000) {
                         executionJob = currentCoroutineContext().job
                         executionContext = currentCoroutineContext()
-                        try { js.evaluate<Any?>("if (solvitPlugin.deactivate) await solvitPlugin.deactivate(ctx);") }
+                        try { if (!background) js.evaluate<Any?>("if (solvitPlugin.deactivate) await solvitPlugin.deactivate(ctx);") }
                         finally { executionJob = null; executionContext = null }
                     }
                 }
@@ -204,7 +244,8 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
     override val dependencies = pkg.manifest.dependencies
     override val requires = buildSet {
         add(Services.Tools)
-        if (pkg.manifest.hooks.isNotEmpty()) add(ContextHookServiceKey)
+        if ("beforeModel" in pkg.manifest.hooks) add(ContextHookServiceKey)
+        if ("afterTurn" in pkg.manifest.hooks) add(PostTurnHookServiceKey)
         if (pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }) add(WorkspaceServiceKey)
         if (pkg.manifest.apiVersion >= 5 && "shell" in pkg.manifest.permissions) add(TerminalServiceKey)
         if (pkg.manifest.apiVersion >= 6 && "network" in pkg.manifest.permissions) add(WebPageServiceKey)
@@ -215,6 +256,36 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
         if (TerminalServiceKey in requires) context.own { context.require(TerminalServiceKey).cancelOwner(id) }
         context.own { executor.stop() }
         executor.start()
+        if ("afterTurn" in pkg.manifest.hooks) {
+            val lifecycle = Any()
+            val running = mutableSetOf<ScriptExecutor>()
+            var disposed = false
+            val target = PostTurnTarget(id, pkg.manifest.version, java.security.MessageDigest.getInstance("SHA-256")
+                .digest(pkg.payload).joinToString("") { "%02x".format(it) })
+            context.own {
+                val active = synchronized(lifecycle) { disposed = true; running.toList() }
+                active.forEach { it.stop() }
+            }
+            val unregister = context.require(PostTurnHookServiceKey).register(object : PostTurnHook {
+                override val target = target
+                override suspend fun enabled(): Boolean {
+                    val value = host.call(pkg.manifest, "settings.get", buildJsonObject { put("key", pkg.manifest.afterTurnEnabledSetting!!) })
+                    return value is JsonPrimitive && value.isString && value.content == "true"
+                }
+                override suspend fun process(input: PostTurnInput, model: PostTurnModel) {
+                    val cold = ScriptExecutor(pkg, host, timeoutMs = 60_000, background = true)
+                    synchronized(lifecycle) { if (disposed) throw PostTurnRevokedException(); running += cold }
+                    try {
+                        currentCoroutineContext()[PostTurnExecutionContext]!!.ensureAuthorized()
+                        cold.start(); cold.afterTurn(input)
+                    } finally {
+                        withContext(NonCancellable) { cold.stop() }
+                        synchronized(lifecycle) { running -= cold }
+                    }
+                }
+            })
+            context.own { unregister() }
+        }
         if ("beforeModel" in pkg.manifest.hooks) {
             val unregister = context.require(ContextHookServiceKey).register(id, ContextHook { input -> executor.beforeModel(input) })
             context.own { unregister() }
