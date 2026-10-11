@@ -24,7 +24,8 @@ class ToolAgentRuntimeTest {
                 assertEquals("clock", request.tools.single().name)
                 return if (requests == 1) flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
                 else {
-                    assertEquals(listOf(Role.USER, Role.ASSISTANT, Role.TOOL), request.messages.map { it.role })
+                    assertEquals(listOf(Role.USER, Role.ASSISTANT, Role.TOOL), request.messages.filter { it.role != Role.SYSTEM }.map { it.role })
+                    assertTrue(request.messages.any { it.role == Role.SYSTEM && it.content.contains("插件工具") })
                     assertEquals("UTC", request.messages.last().content)
                     assertEquals(call.id, request.messages.last().toolCallId)
                     flowOf(ModelChunk.Text("现在是 UTC"), ModelChunk.Done)

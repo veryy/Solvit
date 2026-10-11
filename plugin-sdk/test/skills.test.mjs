@@ -89,3 +89,16 @@ test('corruption, storage failure and capacity overflow never reset existing ski
   await assert.rejects(() => first.run('skills_import', { files: { 'SKILL.md': markdown('overflow', '中'.repeat(10000)) } }), /storage full/);
   assert.equal(JSON.stringify([...first.data]), full);
 });
+
+test('maximum Unicode skill directory remains within the Android hook budget', async () => {
+  const plugin = await runtime();
+  await plugin.run('skills_remove', { name: 'code-review' });
+  for (let index = 0; index < 32; index++) {
+    const name = 'a'.repeat(59) + '-' + String(index).padStart(3, '0');
+    const text = `---\nname: ${name}\ndescription: ${'中'.repeat(1024)}\n---\nBody`;
+    await plugin.run('skills_import', { files: { 'SKILL.md': text } });
+  }
+  const context = await plugin.context();
+  assert.ok(Buffer.byteLength(context) < 32 * 1024);
+  assert.equal((await plugin.run('skills_list')).skills.length, 32);
+});
