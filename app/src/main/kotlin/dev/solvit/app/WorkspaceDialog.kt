@@ -201,6 +201,6 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     }, confirmButton = { TextButton(onClick = { chooser = false; creating = true }) { UiText("新建工作区") } },
         dismissButton = { TextButton(onClick = { chooser = false }) { UiText("关闭") } })
     if (creating) AlertDialog(onDismissRequest = { creating = false }, title = { UiText("新建工作区") }, text = {
-        OutlinedTextField(name, { name = it }, label = { UiText("名称") }, singleLine = true)
+        OutlinedTextField(name, { name = it }, label = { UiText("名称") }, singleLine = true, modifier = Modifier.testTag("workspace_create_name"))
     }, confirmButton = { TextButton(onClick = { vm.create(name); creating = false; name = "" }, enabled = name.isNotBlank()) { UiText("创建并绑定") } })
 }
