@@ -31,7 +31,9 @@ private fun terminalColor(index: Int): Color = when {
 @Composable
 fun TerminalScreen(session: TerminalSession, onKey: (String) -> Unit) {
     val grid = remember(session.id, session.output) { TerminalGrid().apply { feed(session.output) } }
-    val lines = grid.lines()
+    // Empty rows below the cursor must not scroll a fresh prompt out of view.
+    val usedRows = maxOf(grid.y, grid.visibleLines().indexOfLast { cells -> cells.any { it.text.isNotBlank() } }) + 1
+    val lines = grid.lines().take(grid.scrollback.size + usedRows)
     val text = buildAnnotatedString {
         lines.forEachIndexed { row, cells ->
             cells.forEachIndexed { col, cell ->
