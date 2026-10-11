@@ -47,7 +47,8 @@ class SkillsChatIntegrationTest {
                 override val id = "test"
                 override fun stream(request: ModelRequest): Flow<ModelChunk> {
                     assertEquals(role, request.agentRole)
-                    assertTrue(request.messages.any { it.content == role.prompt })
+                    assertEquals(1, request.messages.count { it.role == Role.SYSTEM })
+                    assertTrue(request.messages.single { it.role == Role.SYSTEM }.content.contains(role.prompt))
                     assertEquals(setOf("dev_solvit_skills_skills_list", "dev_solvit_skills_skills_load", "dev_solvit_skills_skills_read"), request.tools.map { it.name }.toSet())
                     return if (round++ == 0) {
                         val prompts = request.messages.filter { it.role == Role.SYSTEM }.joinToString { it.content }
