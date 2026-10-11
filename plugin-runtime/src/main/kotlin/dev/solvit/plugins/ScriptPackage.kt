@@ -30,7 +30,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val root = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
             val m = root.getValue("manifest").jsonObject
             val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..6) { "插件需要其他版本的宿主 API" }
+            require(apiVersion in 1..7) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -58,10 +58,12 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
                 val field = element.jsonObject
                 val key = field.getValue("key").jsonPrimitive.content
                 val kind = field.getValue("kind").jsonPrimitive.content
-                require(key.matches(Regex("[a-z][a-zA-Z0-9_]{0,39}")) && kind in setOf("text", "secret", "url")) { "插件配置字段无效" }
+                require(key.matches(Regex("[a-z][a-zA-Z0-9_]{0,39}")) && (kind in setOf("text", "secret", "url") || apiVersion >= 7 && kind == "boolean")) { "插件配置字段无效" }
                 val label = field.getValue("label").jsonPrimitive.content
                 require(label.isNotBlank() && label.length <= 100)
-                ExtensionSetting(key, label, kind, field["required"]?.jsonPrimitive?.boolean ?: false)
+                val defaultValue = field["defaultValue"]?.jsonPrimitive?.content
+                require(defaultValue == null || apiVersion >= 7 && kind == "boolean" && defaultValue in setOf("true", "false")) { "插件配置默认值无效" }
+                ExtensionSetting(key, label, kind, field["required"]?.jsonPrimitive?.boolean ?: false, defaultValue)
             }.orEmpty()
             require(settings.size <= 16 && settings.map { it.key }.toSet().size == settings.size && (settings.isEmpty() || apiVersion >= 2))
             val source = root.getValue("source").jsonPrimitive.content

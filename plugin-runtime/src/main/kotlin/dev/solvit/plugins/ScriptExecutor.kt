@@ -112,7 +112,17 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
 
     suspend fun beforeModel(input: ContextInput): String {
         check("beforeModel" in pkg.manifest.hooks)
+        check(engine != null) { "插件未启用" }
+        // Read only schema-declared public fields. Secret fields never enter the Hook payload.
+        val publicSettings = if (pkg.manifest.apiVersion >= 7) buildJsonObject {
+            for (field in pkg.manifest.settings.filter { it.kind != "secret" }) {
+                val value = host.call(pkg.manifest, "settings.get", buildJsonObject { put("key", field.key) })
+                require(value is JsonNull || value is JsonPrimitive && value.isString && value.content.length <= 4096)
+                put(field.key, value)
+            }
+        } else null
         val payload = buildJsonObject {
+            if (publicSettings != null) put("settings", publicSettings)
             put("userText", input.userText)
             put("role", roleJson(input.role))
         }

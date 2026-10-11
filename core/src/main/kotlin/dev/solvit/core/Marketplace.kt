@@ -7,7 +7,7 @@ data class MarketEntry(
     val permissions: Set<String>, val dependencies: Set<String>,
     val sha256: String, val bytes: Long, val downloadPath: String,
 )
-data class ExtensionSetting(val key: String, val label: String, val kind: String, val required: Boolean = false)
+data class ExtensionSetting(val key: String, val label: String, val kind: String, val required: Boolean = false, val defaultValue: String? = null)
 
 data class InstalledExtension(
     val id: String, val name: String, val version: String, val permissions: Set<String>,

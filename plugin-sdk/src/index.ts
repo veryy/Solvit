@@ -28,16 +28,16 @@ export interface PluginDefinition {
   tools: Record<string, ToolHandler>;
   activate?(context: PluginContext): void | Promise<void>;
   deactivate?(context: PluginContext): void | Promise<void>;
-  beforeModel?(input: { userText: string; role: PluginContext['role'] }, context: PluginContext): string | Promise<string>;
+  beforeModel?(input: { userText: string; role: PluginContext['role']; settings?: Readonly<Record<string, string | null>> }, context: PluginContext): string | Promise<string>;
 }
 export interface PluginManifest {
   id: string;
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   hooks?: ('beforeModel')[];
-  settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret'; required?: boolean }[];
+  settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret' | 'boolean'; required?: boolean; defaultValue?: 'true' | 'false' }[];
   permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins')[];
   dependencies: string[];
   tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management' }[];

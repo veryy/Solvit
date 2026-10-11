@@ -99,7 +99,15 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
                 UiText("配置只提供给此插件，密钥加密保存在本机。")
                 LazyColumn(Modifier.heightIn(max = 400.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(extension.settings, key = { it.key }) { field ->
-                        OutlinedTextField(value = values[field.key].orEmpty(), onValueChange = { values = values + (field.key to it) },
+                        if (field.kind == "boolean") {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Text(field.label, Modifier.weight(1f))
+                                Switch(checked = (values[field.key] ?: field.defaultValue ?: "false") == "true",
+                                    onCheckedChange = { values = values + (field.key to it.toString()) }, enabled = !busy,
+                                    modifier = Modifier.testTag("plugin_setting_${field.key}"))
+                            }
+                        } else OutlinedTextField(value = values[field.key].orEmpty(), onValueChange = { values = values + (field.key to it) },
                             label = { Text(field.label + if (field.required) " *" else "") }, singleLine = true, enabled = !busy,
                             visualTransformation = if (field.kind == "secret") PasswordVisualTransformation() else VisualTransformation.None,
                             modifier = Modifier.fillMaxWidth())

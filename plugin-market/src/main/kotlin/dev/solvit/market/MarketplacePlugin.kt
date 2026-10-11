@@ -117,7 +117,7 @@ class AndroidMarketplace(
     }
 
     override suspend fun catalog(): List<MarketEntry> {
-        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=6", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
+        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=7", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
         check(root.getValue("apiVersion").jsonPrimitive.int == 1) { "市场 API 版本不兼容" }
         val entries = root.getValue("plugins").jsonArray.map { element ->
             val m = element.jsonObject
@@ -166,7 +166,7 @@ class AndroidMarketplace(
         val pkg = packages[id] ?: error("插件未安装")
         check(grants == pkg.manifest.permissions) { "请确认插件所需权限" }
         check(pkg.manifest.dependencies.all { manager.states.value[it] == PluginState.ENABLED }) { "请先安装并启用依赖插件" }
-        val values = withContext(Dispatchers.IO) { config.read(id) }
+        val values = configurationValues(pkg.manifest)
         check(pkg.manifest.settings.filter { it.required }.all { !values[it.key].isNullOrBlank() }) { "请先填写插件配置" }
         if (manager.states.value[id] == PluginState.ENABLED) return
         if (manager.states.value[id] in setOf(PluginState.LOADED, PluginState.INITIALIZED, PluginState.DISABLED)) manager.unload(id)
@@ -204,17 +204,25 @@ class AndroidMarketplace(
         publish()
     }
 
+    private suspend fun configurationValues(manifest: ScriptManifest): Map<String, String> {
+        val stored = withContext(Dispatchers.IO) { config.read(manifest.id) }
+        return manifest.settings.mapNotNull { field ->
+            (stored[field.key] ?: field.defaultValue ?: if (field.kind == "boolean") "false" else null)?.let { field.key to it }
+        }.toMap()
+    }
+
     override suspend fun configuration(id: String): Map<String, String> = mutex.withLock {
         val pkg = packages[id] ?: error("插件未安装")
-        withContext(Dispatchers.IO) { config.read(id) }.filterKeys { key -> pkg.manifest.settings.any { it.key == key } }
+        configurationValues(pkg.manifest)
     }
     override suspend fun configure(id: String, values: Map<String, String>) = mutex.withLock {
         val pkg = packages[id] ?: error("插件未安装")
         check(manager.states.value[id] != PluginState.ENABLED) { "请先停用插件再修改配置" }
         require(values.keys.all { key -> pkg.manifest.settings.any { it.key == key } })
         pkg.manifest.settings.forEach { field ->
-            val value = values[field.key].orEmpty()
+            val value = values[field.key] ?: field.defaultValue ?: if (field.kind == "boolean") "false" else ""
             require(value.length <= 4096 && (!field.required || value.isNotBlank())) { "插件配置不完整" }
+            if (field.kind == "boolean") require(value in setOf("true", "false")) { "开关配置必须为 true 或 false" }
             if (field.kind == "url" && value.isNotBlank()) {
                 val uri = URI(value)
                 require(uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null) { "插件地址需要 HTTPS" }
@@ -241,8 +249,8 @@ class AndroidMarketplace(
         if (operation == "settings.get") {
             check(manifest.apiVersion >= 2)
             val key = arguments.getValue("key").jsonPrimitive.content
-            check(manifest.settings.any { it.key == key }) { "插件未声明此配置字段" }
-            return withContext(Dispatchers.IO) { config.read(manifest.id)[key]?.let(::JsonPrimitive) ?: JsonNull }
+            val field = manifest.settings.singleOrNull { it.key == key } ?: error("插件未声明此配置字段")
+            return (configurationValues(manifest)[field.key])?.let(::JsonPrimitive) ?: JsonNull
         }
         val permission = when (operation) {
             "storage.get", "storage.set" -> "storage"
