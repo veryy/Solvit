@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -140,6 +142,8 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val scope = rememberCoroutineScope()
     val inputFocus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
+    val focus = LocalFocusManager.current
+    fun hideInput() { keyboard?.hide(); focus.clearFocus() }
     LaunchedEffect(ready) {
         if (ready && !settingsOpen && !modelsOpen && !pluginsOpen && !agentsOpen && !workspaceOpen) {
             withFrameNanos { }
@@ -155,7 +159,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     }
 
     ModalNavigationDrawer(drawerState = drawer, drawerContent = {
-        ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.5f)) {
+        ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.5f).testTag("chat_drawer")) {
             Text("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
             FilledTonalButton(onClick = { vm.newChat(); scope.launch { drawer.close() } }, enabled = ready && !busy,
                 modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
@@ -190,9 +194,9 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                         Text(config.model, style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } },
-                    navigationIcon = { IconButton(onClick = { scope.launch { drawer.open() } }) { Icon(Icons.Default.Menu, "对话历史") } },
+                    navigationIcon = { IconButton(onClick = { hideInput(); scope.launch { drawer.open() } }) { Icon(Icons.Default.Menu, "对话历史") } },
                     actions = {
-                        IconButton(onClick = { pluginsOpen = true }) { Icon(Icons.Default.Extension, "插件市场") }
+                        IconButton(onClick = { hideInput(); pluginsOpen = true }) { Icon(Icons.Default.Extension, "插件市场") }
                         IconButton(onClick = vm::newChat, enabled = ready && !busy) { Icon(Icons.Default.Add, "新对话") }
                     },
                 )
@@ -200,7 +204,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             bottomBar = {
                 Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
                     .padding(horizontal = 12.dp, vertical = 8.dp)) {
-                    Surface(shape = RoundedCornerShape(28.dp), tonalElevation = 4.dp, shadowElevation = 4.dp) {
+                    Surface(modifier = Modifier.fillMaxWidth().testTag("chat_composer"), shape = RoundedCornerShape(28.dp), tonalElevation = 4.dp, shadowElevation = 4.dp) {
                     Column(Modifier.padding(8.dp)) {
                         if (error != null) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -232,11 +236,11 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
                 AppUpdateCard(updateState, downloadState, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)
-                TextButton(onClick = { workspaceOpen = true }, enabled = ready && !busy && workspaceId != null,
+                TextButton(onClick = { hideInput(); workspaceOpen = true }, enabled = ready && !busy && workspaceId != null,
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
                     Text("工作区：" + (workspaceState.workspaces.firstOrNull { it.id == workspaceId }?.name ?: "打开中…") + " · Shell / 文件")
                 }
-                OutlinedButton(onClick = { agentsOpen = true }, enabled = ready && !busy && !agentBusy,
+                OutlinedButton(onClick = { hideInput(); agentsOpen = true }, enabled = ready && !busy && !agentBusy,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth()) {
                     Text(if (missingRole) "角色已删除 · 重新选择" else "角色：${activeRole?.name ?: "默认"} · 管理角色与 Skills")
                 }
