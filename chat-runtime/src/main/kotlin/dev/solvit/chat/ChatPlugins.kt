@@ -21,6 +21,7 @@ class DefaultChatService(
     private val agent: AgentRuntime,
     private val events: EventBus,
     private val roles: RoleService? = null,
+    private val workspaces: WorkspaceService? = null,
 ) : ChatService {
     // V1 permits one active turn. Deletion cannot race with a stream settlement.
     private val turn = Mutex()
@@ -29,7 +30,7 @@ class DefaultChatService(
     override suspend fun createSession() = store.createSession()
     override suspend fun deleteSession(sessionId: String) {
         check(turn.tryLock()) { "请先停止生成" }
-        try { store.deleteSession(sessionId); roles?.select(sessionId, null) } finally { turn.unlock() }
+        try { store.deleteSession(sessionId); roles?.select(sessionId, null); workspaces?.unbind(sessionId) } finally { turn.unlock() }
     }
 
     override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization): Flow<ModelChunk> = flow {
@@ -55,6 +56,7 @@ class DefaultChatService(
         }
         try {
             val role = roles?.selected(sessionId)
+            val conversation = workspaces?.forChat(sessionId)?.let { ConversationContext(sessionId, it.id) }
             persist(ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim()))
             admitted = true
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
@@ -64,7 +66,7 @@ class DefaultChatService(
                 addAll(completeContext(history))
             }
             var done = false
-            agent.run(ModelRequest(config, messages, authorization = authorization, agentRole = role)).collect { chunk ->
+            agent.run(ModelRequest(config, messages, authorization = authorization, agentRole = role, conversation = conversation)).collect { chunk ->
                 check(!done) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { answer.append(chunk.value); emit(chunk) }
@@ -114,13 +116,14 @@ internal fun completeContext(history: List<ChatMessage>): List<ModelMessage> {
     return result
 }
 
-class ChatServicePlugin : SolvitPlugin {
+class ChatServicePlugin(private val useWorkspaces: Boolean = false) : SolvitPlugin {
     override val id = "builtin.chat"
-    override val requires = setOf(Services.Storage, Services.Agent, RoleServiceKey)
+    override val requires = buildSet { addAll(setOf(Services.Storage, Services.Agent, RoleServiceKey)); if (useWorkspaces) add(WorkspaceServiceKey) }
     override val provides = setOf(Services.Chat)
     override suspend fun enable(context: PluginContext) {
         context.register(Services.Chat, DefaultChatService(
             context.require(Services.Storage), context.require(Services.Agent), context.events, context.require(RoleServiceKey),
+            if (useWorkspaces) context.require(WorkspaceServiceKey) else null,
         ))
     }
 }

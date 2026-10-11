@@ -62,16 +62,18 @@ class ShellJobEngine(
     }
     private fun active(stage: ShellStage) = stage in setOf(ShellStage.STARTING, ShellStage.RUNNING)
 
-    fun start(owner: String, roleId: String?, request: ShellRequest, mode: ExecutionMode): ShellJob {
+    fun start(owner: String, roleId: String?, request: ShellRequest, mode: ExecutionMode,
+        workspaceDirectory: File = workspace, workspaceId: String? = null, shellSessionId: String? = null): ShellJob {
         request.validate()
         check(scope.isActive) { "系统执行服务已关闭" }
-        val base = workspace.canonicalFile.also { check(it.isDirectory) { "工作区无法打开" } }
+        val base = workspaceDirectory.canonicalFile.also { check(it.isDirectory) { "工作区无法打开" } }
         val cwd = if (request.cwd.isEmpty()) base else File(request.cwd).let { if (it.isAbsolute) it else File(base, request.cwd) }.canonicalFile
         if (mode == ExecutionMode.APP) {
             require(cwd == base || cwd.path.startsWith(base.path + File.separator)) { "普通模式工作目录需在 Solvit 工作区内" }
             require(cwd.isDirectory) { "工作目录不存在" }
         }
-        val record = Record(ShellJob(UUID.randomUUID().toString(), owner, roleId, request.command, cwd.path, mode, ShellStage.STARTING))
+        val record = Record(ShellJob(UUID.randomUUID().toString(), owner, roleId, request.command, cwd.path, mode, ShellStage.STARTING,
+            workspaceId = workspaceId, shellSessionId = shellSessionId))
         synchronized(monitor) {
             check(records.values.count { active(it.snapshot.stage) } < 8) { "运行中的 Shell 任务已达上限" }
             while (records.size >= 32) {

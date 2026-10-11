@@ -44,6 +44,7 @@ data class ShellJob(
     val mode: ExecutionMode, val stage: ShellStage, val output: List<ShellOutput> = emptyList(),
     val nextSequence: Long = 0, val truncated: Boolean = false, val exitCode: Int? = null,
     val failure: String? = null,
+    val workspaceId: String? = null, val shellSessionId: String? = null,
 )
 data class DeviceExecutionState(
     val appUid: Int, val shellAvailable: Boolean, val rootDetected: Boolean,

@@ -54,7 +54,8 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         return executeCall(ToolCall("manual", name, argumentsJson), authorization)
     }
     suspend fun executeCall(call: ToolCall, authorization: ToolAuthorization, role: AgentRole? = null,
-        execution: AgentExecutionContext? = null, onAuthorized: suspend () -> Unit = {}): String {
+        execution: AgentExecutionContext? = null, conversation: ConversationContext? = null,
+        onAuthorized: suspend () -> Unit = {}): String {
         val name = call.name
         val argumentsJson = call.argumentsJson
         val tool = synchronized(this) { tools[name] } ?: error("Unknown tool: $name")
@@ -68,7 +69,7 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
         onAuthorized()
         val invocation = ToolInvocationContext(descriptor, call)
-        val context = AgentRoleContext(role) + invocation
+        val context = AgentRoleContext(role) + invocation + (conversation ?: kotlin.coroutines.EmptyCoroutineContext)
         try {
             return withTimeout(60_000) { withContext(if (execution == null) context else context + execution) { tool.execute(argumentsJson) } }
         } catch (e: Throwable) { invocation.cancelResources(); throw e }

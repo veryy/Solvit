@@ -9,6 +9,7 @@ import dev.solvit.updates.ReleaseUpdatesPlugin
 import dev.solvit.market.MarketplacePlugin
 import dev.solvit.market.RolesPlugin
 import dev.solvit.market.SkillLibraryPlugin
+import dev.solvit.workspace.WorkspacePlugin
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var modelCatalog: ModelCatalogService
         private set
+    lateinit var workspaces: WorkspaceService
+        private set
     override fun onCreate() {
         super.onCreate()
         settings = EncryptedSettingsStore(this)
@@ -43,7 +46,7 @@ class SolvitApplication : Application() {
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager)
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(ChatServicePlugin(), ChatAgentPlugin(), ToolsPlugin(), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
+                listOf(ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
                     OpenAiPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 updates = manager.registry.require(UpdateServiceKey)
@@ -51,6 +54,7 @@ class SolvitApplication : Application() {
                 roles = manager.registry.require(RoleServiceKey)
                 skills = manager.registry.require(SkillLibraryServiceKey)
                 modelCatalog = manager.registry.require(ModelCatalogServiceKey)
+                workspaces = manager.registry.require(WorkspaceServiceKey)
                 marketPlugin.service.restore()
                 mutableReady.value = Result.success(manager.registry.require(Services.Chat))
             } catch (e: Exception) {

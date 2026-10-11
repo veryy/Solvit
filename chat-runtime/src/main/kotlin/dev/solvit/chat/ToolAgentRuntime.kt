@@ -63,7 +63,7 @@ class ToolAgentRuntime(
                     }
                 }
                 val outcome = try {
-                    val result = tools.executeCall(call, gate, request.agentRole, execution) { emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING)) }
+                    val result = tools.executeCall(call, gate, request.agentRole, execution, request.conversation) { emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING)) }
                     check(result.toByteArray(Charsets.UTF_8).size <= 256 * 1024) { "工具返回结果超出限制" }
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {
