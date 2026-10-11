@@ -30,7 +30,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val root = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
             val m = root.getValue("manifest").jsonObject
             val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..3) { "插件需要其他版本的宿主 API" }
+            require(apiVersion in 1..4) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -39,7 +39,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val version = string("version")
             require(version.matches(Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"))) { "插件版本无效" }
             val permissions = strings("permissions")
-            require(permissions.all { it in setOf("storage", "network") }) { "插件声明了尚未支持的权限" }
+            require(permissions.all { it in setOf("storage", "network") || apiVersion >= 4 && it in setOf("workspace", "shell", "plugins") }) { "插件声明了尚未支持的权限" }
             val dependencies = strings("dependencies")
             require(id !in dependencies) { "插件不能依赖自身" }
             val tools = m.getValue("tools").jsonArray.map { element ->

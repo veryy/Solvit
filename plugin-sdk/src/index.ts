@@ -3,6 +3,9 @@ export type JsonValue = null | boolean | number | string | JsonValue[] | { [key:
 export type JsonObject = { [key: string]: JsonValue };
 export interface PluginContext {
   /** Optional on hosts older than Solvit 0.7.0; use JS Date as a UTC fallback. */
+  /** API 4; operations are bound to the active chat and the exact approved tool arguments. */
+  readonly workspace?: { call(operation: 'info' | 'read' | 'write' | 'createShell' | 'start' | 'status' | 'cancel', args?: JsonObject): Promise<JsonValue> };
+  readonly plugins?: { draft(args: { manifestJson: string; source: string }): Promise<JsonValue> };
   readonly clock?: { now(): Promise<{ utc: string; localTime: string; timezone: string; timezoneOffsetMinutes: number }> };
   readonly role?: { readonly id: string; readonly name: string; readonly skillIds: readonly string[] } | null;
   readonly settings: { get(key: string): Promise<string | null> };
@@ -26,10 +29,10 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3;
+  apiVersion: 1 | 2 | 3 | 4;
   hooks?: ('beforeModel')[];
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret'; required?: boolean }[];
-  permissions: ('storage' | 'network')[];
+  permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins')[];
   dependencies: string[];
   tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management' }[];
 }

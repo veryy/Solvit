@@ -148,7 +148,7 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         if (invocation != null) check(job.owner == invocation.descriptor.pluginId && job.roleId == context[AgentRoleContext]?.role?.id) { "任务属于其他插件或角色" }
         engine.cancel(job.owner, job.roleId, job.id, userInitiated = invocation == null)
     }
-    suspend fun cancelOwner(owner: String) = engine.cancelOwner(owner)
+    override suspend fun cancelOwner(owner: String) = engine.cancelOwner(owner)
     suspend fun close() = engine.close()
     private companion object {
         val ID = Regex("[a-f0-9-]{36}")

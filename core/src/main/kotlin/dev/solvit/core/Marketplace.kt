@@ -19,6 +19,7 @@ interface MarketplaceService {
     val installed: StateFlow<List<InstalledExtension>>
     suspend fun catalog(): List<MarketEntry>
     suspend fun install(entry: MarketEntry)
+    suspend fun installLocal(payload: ByteArray) { error("此宿主未开放本地插件安装") }
     suspend fun enable(id: String, grantedPermissions: Set<String>)
     suspend fun disable(id: String)
     suspend fun uninstall(id: String)

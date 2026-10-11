@@ -1,0 +1,36 @@
+{
+  "id": "dev.solvit.authoring",
+  "name": "插件开发",
+  "description": "AI 可生成、校验 JS 插件草稿；用户在工作区查看并安装，安装后单独启用。",
+  "version": "1.0.0",
+  "apiVersion": 4,
+  "permissions": [
+    "workspace",
+    "plugins"
+  ],
+  "dependencies": [],
+  "tools": [
+    {
+      "name": "draft_plugin",
+      "description": "生成并启动校验一个 JS 插件草稿。manifestJson 必须为 Solvit 清单 JSON（id/name/description/version/apiVersion/permissions/dependencies/tools），source 为普通 JavaScript，设置 globalThis.solvitPlugin={tools:{工具名:async(args,ctx)=>结果}}。不能包含 TS 类型或 import/require；校验期间禁止宿主调用。仅创建草稿，不安装或启用。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "manifestJson": {
+            "type": "string",
+            "description": "完整清单 JSON 字符串"
+          },
+          "source": {
+            "type": "string",
+            "description": "完整 JavaScript 代码"
+          }
+        },
+        "required": [
+          "manifestJson",
+          "source"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

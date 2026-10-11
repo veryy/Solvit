@@ -45,11 +45,15 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     val permission = when (operation) {
                         "storage.get", "storage.set" -> "storage"
                         "http.request" -> "network"
+                        "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
+                        "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
+                        "plugins.draft" -> "plugins"
                         "settings.get", "clock.now" -> null
                         else -> error("宿主未开放此操作")
                     }
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
                     check(operation != "clock.now" || pkg.manifest.apiVersion >= 3) { "当前时间服务需要 API 3" }
+                    check(!operation.startsWith("workspace.") && !operation.startsWith("plugins.") || pkg.manifest.apiVersion >= 4) { "工作区与插件开发需要 API 4" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
@@ -71,6 +75,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     try {
                     js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
+                          workspace: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspace.' + operation, JSON.stringify(args))) }),
+                          plugins: Object.freeze({ draft: async args => JSON.parse(await __solvitHostCall('plugins.draft', JSON.stringify(args))) }),
                           clock: Object.freeze({ now: async () => JSON.parse(await __solvitHostCall('clock.now', '{}')) }),
                           settings: Object.freeze({ get: async key => JSON.parse(await __solvitHostCall('settings.get', JSON.stringify({key}))) }),
                           storage: Object.freeze({
@@ -189,9 +195,14 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
 class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptHost) : SolvitPlugin {
     override val id = pkg.manifest.id
     override val dependencies = pkg.manifest.dependencies
-    override val requires = if (pkg.manifest.hooks.isEmpty()) setOf(Services.Tools) else setOf(Services.Tools, ContextHookServiceKey)
+    override val requires = buildSet {
+        add(Services.Tools)
+        if (pkg.manifest.hooks.isNotEmpty()) add(ContextHookServiceKey)
+        if (pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }) add(WorkspaceServiceKey)
+    }
     override suspend fun enable(context: PluginContext) {
         val executor = ScriptExecutor(pkg, host)
+        if (WorkspaceServiceKey in requires) context.own { context.require(WorkspaceServiceKey).cancelOwner(id) }
         context.own { executor.stop() }
         executor.start()
         if ("beforeModel" in pkg.manifest.hooks) {

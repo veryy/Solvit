@@ -9,6 +9,7 @@ import dev.solvit.updates.ReleaseUpdatesPlugin
 import dev.solvit.market.MarketplacePlugin
 import dev.solvit.market.RolesPlugin
 import dev.solvit.market.SkillLibraryPlugin
+import dev.solvit.market.PluginDraftsPlugin
 import dev.solvit.workspace.WorkspacePlugin
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var workspaces: WorkspaceService
         private set
+    lateinit var pluginDrafts: PluginDraftService
+        private set
     override fun onCreate() {
         super.onCreate()
         settings = EncryptedSettingsStore(this)
@@ -43,10 +46,10 @@ class SolvitApplication : Application() {
         updateDownloader = AppUpdateDownloader(this, scope)
         scope.launch {
             val manager = PluginManager(scope = scope)
-            val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager)
+            val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts })
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
+                listOf(PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
                     OpenAiPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 updates = manager.registry.require(UpdateServiceKey)
@@ -55,6 +58,7 @@ class SolvitApplication : Application() {
                 skills = manager.registry.require(SkillLibraryServiceKey)
                 modelCatalog = manager.registry.require(ModelCatalogServiceKey)
                 workspaces = manager.registry.require(WorkspaceServiceKey)
+                pluginDrafts = manager.registry.require(PluginDraftServiceKey)
                 marketPlugin.service.restore()
                 mutableReady.value = Result.success(manager.registry.require(Services.Chat))
             } catch (e: Exception) {

@@ -27,6 +27,8 @@ class AndroidMarketplace(
     private val client: OkHttpClient,
     private val tools: ToolRegistry,
     private val config: EncryptedPluginConfiguration = EncryptedPluginConfiguration(context),
+    private val workspaces: WorkspaceService? = null,
+    private val drafts: (() -> PluginDraftService)? = null,
 ) : MarketplaceService {
     private val directory = File(context.filesDir, "extensions").apply { mkdirs() }
     private val prefs = context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
@@ -97,8 +99,21 @@ class AndroidMarketplace(
         publish()
     }
 
+    override suspend fun installLocal(payload: ByteArray) = mutex.withLock {
+        val pkg = ScriptPackage.parse(payload)
+        val id = pkg.manifest.id
+        if (manager.states.value[id] == PluginState.ENABLED) manager.unload(id)
+        withContext(Dispatchers.IO) {
+            val file = AtomicFile(File(directory, "$id.solvit.json")); val stream = file.startWrite()
+            try { stream.write(payload); file.finishWrite(stream) }
+            catch (e: Throwable) { file.failWrite(stream); throw e }
+        }
+        check(prefs.edit().putBoolean("enabled.$id", false).remove("grants.$id").commit())
+        packages[id] = pkg; failures.remove(id); publish()
+    }
+
     override suspend fun catalog(): List<MarketEntry> {
-        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=3", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
+        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=4", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
         check(root.getValue("apiVersion").jsonPrimitive.int == 1) { "市场 API 版本不兼容" }
         val entries = root.getValue("plugins").jsonArray.map { element ->
             val m = element.jsonObject
@@ -225,8 +240,52 @@ class AndroidMarketplace(
             check(manifest.settings.any { it.key == key }) { "插件未声明此配置字段" }
             return withContext(Dispatchers.IO) { config.read(manifest.id)[key]?.let(::JsonPrimitive) ?: JsonNull }
         }
-        val permission = if (operation.startsWith("storage.")) "storage" else if (operation == "http.request") "network" else error("未开放的宿主操作")
+        val permission = when (operation) {
+            "storage.get", "storage.set" -> "storage"
+            "http.request" -> "network"
+            "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
+            "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
+            "plugins.draft" -> "plugins"
+            else -> error("未开放的宿主操作")
+        }
         check(permission in manifest.permissions && permission in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty()) { "插件权限未授予" }
+        if (operation.startsWith("workspace.") || operation == "plugins.draft") {
+            check(manifest.apiVersion >= 4)
+            val context = currentCoroutineContext()
+            context.ensureActive()
+            val invocation = context[ToolInvocationContext] ?: error("工作区操作必须通过工具授权")
+            check(invocation.descriptor.pluginId == manifest.id && context[AgentRoleContext]?.role?.allows(manifest.id) != false)
+            // Bind actual native operations to the exact approved JSON. A script
+            // cannot hide a different command, path or plugin source behind it.
+            check(Json.parseToJsonElement(invocation.call.argumentsJson) == arguments) { "宿主参数与用户确认内容不一致" }
+            val conversation = context[ConversationContext] ?: error("请在绑定工作区的 AI 对话中调用此工具")
+            val service = workspaces ?: error("工作区服务不可用")
+            val workspace = conversation.workspaceId
+            check(service.state.value.bindings[conversation.sessionId] == workspace) { "对话工作区已变化，请重新调用" }
+            if (operation in setOf("workspace.write", "workspace.createShell", "workspace.start", "workspace.cancel", "plugins.draft")) invocation.claim(operation)
+            fun string(key: String) = arguments.getValue(key).jsonPrimitive.content
+            return when (operation) {
+                "workspace.info" -> buildJsonObject {
+                    put("workspaceId", workspace)
+                    put("name", service.state.value.workspaces.first { it.id == workspace }.name)
+                    put("shells", JsonArray(service.state.value.shells.filter { it.workspaceId == workspace }.map { buildJsonObject { put("id", it.id); put("name", it.name) } }))
+                }
+                "workspace.read" -> JsonPrimitive(service.read(workspace, string("path")))
+                "workspace.write" -> { service.write(workspace, string("path"), string("text")); JsonNull }
+                "workspace.createShell" -> service.createShell(workspace, string("name")).let { buildJsonObject { put("id", it.id); put("name", it.name) } }
+                "workspace.start" -> shellJson(service.run(workspace, string("shellId"), string("command")))
+                "workspace.status" -> {
+                    val job = service.jobs.value.firstOrNull { it.id == string("id") && it.workspaceId == workspace } ?: error("此工作区不存在该任务")
+                    check(job.owner == manifest.id && job.roleId == context[AgentRoleContext]?.role?.id) { "任务属于其他插件或角色" }
+                    shellJson(job)
+                }
+                "workspace.cancel" -> { service.cancel(workspace, string("id")); JsonNull }
+                "plugins.draft" -> (drafts?.invoke() ?: error("插件草稿服务不可用")).prepare(workspace, string("manifestJson"), string("source")).let { draft ->
+                    buildJsonObject { put("id", draft.id); put("path", draft.path); put("sha256", draft.sha256); put("status", "已校验，等待用户在工作区查看并安装；尚未启用") }
+                }
+                else -> error("未知工作区操作")
+            }
+        }
         return when (operation) {
             "storage.get", "storage.set" -> withContext(Dispatchers.IO) {
                 val key = arguments.getValue("key").jsonPrimitive.content
@@ -282,6 +341,12 @@ class AndroidMarketplace(
         }
     }
 
+    private fun shellJson(job: ShellJob): JsonObject = buildJsonObject {
+        put("id", job.id); put("shellId", job.shellSessionId); put("stage", job.stage.name)
+        put("output", job.output.joinToString("") { it.text }); put("exitCode", job.exitCode?.let(::JsonPrimitive) ?: JsonNull)
+        put("truncated", job.truncated); put("failure", job.failure)
+    }
+
     private suspend fun getBytes(url: String, maxBytes: Int): ByteArray {
         val response = request(Request.Builder().url(url).build(), maxBytes)
         return response.bytes
@@ -331,9 +396,10 @@ class AndroidMarketplace(
     }
 }
 
-class MarketplacePlugin(private val context: Context, private val manager: PluginManager) : SolvitPlugin {
+class MarketplacePlugin(private val context: Context, private val manager: PluginManager,
+    private val useWorkspaces: Boolean = false, private val drafts: (() -> PluginDraftService)? = null) : SolvitPlugin {
     override val id = "builtin.plugins.marketplace"
-    override val requires = setOf(Services.Tools)
+    override val requires = buildSet { add(Services.Tools); if (useWorkspaces) add(WorkspaceServiceKey) }
     override val provides = setOf(MarketplaceServiceKey)
     lateinit var service: AndroidMarketplace
         private set
@@ -341,7 +407,8 @@ class MarketplacePlugin(private val context: Context, private val manager: Plugi
         val client = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).readTimeout(20, TimeUnit.SECONDS)
             .callTimeout(30, TimeUnit.SECONDS).followRedirects(false).followSslRedirects(false).build()
         context.own { client.dispatcher.cancelAll(); client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown() }
-        service = AndroidMarketplace(this.context, manager, client, context.require(Services.Tools))
+        service = AndroidMarketplace(this.context, manager, client, context.require(Services.Tools),
+            workspaces = if (useWorkspaces) context.require(WorkspaceServiceKey) else null, drafts = drafts)
         context.register(MarketplaceServiceKey, service)
     }
 }

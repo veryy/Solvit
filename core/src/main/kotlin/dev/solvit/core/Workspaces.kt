@@ -24,5 +24,17 @@ interface WorkspaceService {
     suspend fun write(workspaceId: String, path: String, text: String)
     suspend fun run(workspaceId: String, shellId: String, command: String, timeoutMs: Long = 60_000): ShellJob
     suspend fun cancel(workspaceId: String, jobId: String)
+    suspend fun cancelOwner(owner: String)
 }
 val WorkspaceServiceKey = ServiceKey("workspace", WorkspaceService::class)
+
+data class PluginDraft(val id: String, val workspaceId: String, val pluginId: String, val name: String,
+    val version: String, val permissions: Set<String>, val path: String, val sha256: String)
+interface PluginDraftService {
+    val drafts: StateFlow<List<PluginDraft>>
+    suspend fun prepare(workspaceId: String, manifestJson: String, source: String): PluginDraft
+    suspend fun payload(id: String): String
+    /** Installs exactly the reviewed digest and always leaves the plugin disabled. */
+    suspend fun install(id: String, expectedSha256: String)
+}
+val PluginDraftServiceKey = ServiceKey("plugins.drafts", PluginDraftService::class)
