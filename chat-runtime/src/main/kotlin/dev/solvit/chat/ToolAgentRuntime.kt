@@ -54,13 +54,11 @@ class ToolAgentRuntime(
                 val gate = object : ToolAuthorization {
                     override suspend fun authorize(descriptor: ToolDescriptor) = false
                     override suspend fun authorizeCall(descriptor: ToolDescriptor, actual: ToolCall): Boolean {
-                        val granted = request.authorization.authorizeCall(descriptor, actual)
-                        if (granted) emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING))
-                        return granted
+                        return request.authorization.authorizeCall(descriptor, actual)
                     }
                 }
                 val outcome = try {
-                    val result = tools.executeCall(call, gate, request.agentRole)
+                    val result = tools.executeCall(call, gate, request.agentRole) { emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING)) }
                     check(result.toByteArray(Charsets.UTF_8).size <= 256 * 1024) { "工具返回结果超出限制" }
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {

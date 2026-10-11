@@ -13,6 +13,8 @@ data class ToolDescriptor(
     val requiresConfirmation: Boolean = false,
     val pluginId: String = "builtin.tools",
     val chatVisible: Boolean = true,
+    val pluginVersion: String = "",
+    val capabilities: Set<String> = emptySet(),
 )
 interface SolvitTool {
     val descriptor: ToolDescriptor
@@ -29,7 +31,7 @@ object DenyTools : ToolAuthorization {
 
 class ToolDeniedException : IllegalStateException("Tool authorization denied")
 
-class ToolRegistry(private val events: EventBus) {
+class ToolRegistry(private val events: EventBus, private val policies: ToolPolicyService? = null) {
     private val tools = linkedMapOf<String, SolvitTool>()
     @Synchronized fun descriptors(): List<ToolDescriptor> = tools.values.map { it.descriptor }
     @Synchronized fun register(tool: SolvitTool): () -> Unit {
@@ -46,22 +48,25 @@ class ToolRegistry(private val events: EventBus) {
     suspend fun execute(name: String, argumentsJson: String, authorization: ToolAuthorization): String {
         return executeCall(ToolCall("manual", name, argumentsJson), authorization)
     }
-    suspend fun executeCall(call: ToolCall, authorization: ToolAuthorization, role: AgentRole? = null): String {
+    suspend fun executeCall(call: ToolCall, authorization: ToolAuthorization, role: AgentRole? = null, onAuthorized: suspend () -> Unit = {}): String {
         val name = call.name
         val argumentsJson = call.argumentsJson
         val tool = synchronized(this) { tools[name] } ?: error("Unknown tool: $name")
         if (role != null && !role.allows(tool.descriptor.pluginId)) throw ToolDeniedException()
-        if (!authorization.authorizeCall(tool.descriptor, call)) throw ToolDeniedException()
+        val policy = policies?.policy(tool.descriptor) ?: ToolPolicy.ASK
+        if (policy == ToolPolicy.DENY || (policy == ToolPolicy.ASK && !authorization.authorizeCall(tool.descriptor, call))) throw ToolDeniedException()
         currentCoroutineContext().ensureActive()
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
-        return withTimeout(60_000) { withContext(AgentRoleContext(role)) { tool.execute(argumentsJson) } }
+        onAuthorized()
+        return withTimeout(60_000) { withContext(AgentRoleContext(role) + ToolInvocationContext(tool.descriptor, call)) { tool.execute(argumentsJson) } }
     }
 }
 
-class ToolsPlugin : SolvitPlugin {
+class ToolsPlugin(private val enforcePolicies: Boolean = false) : SolvitPlugin {
     override val id = "builtin.tools"
     override val provides = setOf(Services.Tools)
+    override val requires = if (enforcePolicies) setOf(ToolPolicyServiceKey) else emptySet()
     override suspend fun enable(context: PluginContext) {
-        context.register(Services.Tools, ToolRegistry(context.events))
+        context.register(Services.Tools, ToolRegistry(context.events, if (enforcePolicies) context.require(ToolPolicyServiceKey) else null))
     }
 }
