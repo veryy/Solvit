@@ -1,0 +1,34 @@
+# MCP 连接插件
+
+`dev.solvit.mcp` 用 TypeScript 实现，使用 Solvit 插件宿主 API v2。Kotlin 提供私有配置、加密存储、HTTPS 请求与取消；MCP 协商、工具发现和调用逻辑位于 [插件源码](../builtin-plugins/mcp/index.ts)。
+
+## 配置与使用
+
+新版内置包首次启动保持停用。进入“插件 → 已安装 → MCP 连接 → 配置插件”，填写 Streamable HTTP 的 HTTPS 端点，例如 `https://your-server.example/mcp`；可选填写已有的 Bearer 令牌。所有配置使用 Android Keystore AES-GCM 加密保存，并与插件 ID 绑定。启用后不能修改配置，先停用再修改。
+
+授权 network 后，在聊天中请求“连接 MCP 并列出工具”。模型先调用 `mcp_connect` 或 `mcp_tools`，得到服务器的工具名和参数 schema，再通过 `mcp_call` 调用已发现工具。调用参数包括远程工具名与 arguments，执行前逐次确认。也可在插件页面试运行。
+
+MCP 配置不进入模型的工具参数和描述，但启用的插件可读取自己的配置；允许的远程工具结果会进入模型上下文。插件没有访问其他插件配置或模型 API Key 的接口。卸载移除配置及凭据，停用尝试关闭远程会话。
+
+## 当前协议支持
+
+按 [MCP Streamable HTTP 规范](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports) 与 [生命周期规范](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle) 实现：
+
+- initialize → notifications/initialized → tools/list → tools/call。
+- 协商 2025-11-25、2025-06-18 或 2025-03-26，携带会话 ID 与协商后的协议版本头。
+- JSON 或有限 SSE POST 响应，忽略进度通知，回应 ping，拒绝未声明的客户端能力请求。
+- 工具列表最多 8 页、200 个工具，拒绝重复工具和重复 cursor；结果分页提供给模型。
+- 未发现的远程工具不执行；响应 ID 和 JSON-RPC 格式需匹配，错误诊断不输出远程消息中的凭据。
+- HTTP 404 会清除过期会话，下次调用重新初始化；有副作用的工具调用不会自动重试。
+- 停止工具请求时中断本地 HTTP，并在权限仍有效时最多用 1 秒尝试向同一端点发送 notifications/cancelled。远程已发生的操作能否撤销由服务器决定。
+- 停用/断开时尝试 DELETE 会话；服务器不支持 DELETE 可返回 405。网络和引擎执行都有期限。
+
+## 仍待完善
+
+当前通过 `mcp_tools`/`mcp_call` 桥接远程工具，还未把每个远程工具动态注册成独立模型函数。多个服务器配置、角色绑定、OAuth 登录、MCP resources/prompts、持续 GET 事件流、SSE 断线恢复，以及老式 HTTP+SSE 和 stdio/Linux 进程传输尚未实现。当前不声称完整 MCP 协议兼容。
+
+## 验证
+
+TS 测试覆盖会话协商、工具分页、JSON/SSE、未知工具、过期会话、不重试、错误 ID、版本拒绝与诊断脱敏。Android 宿主测试使用实际 HTTPS 测试服务器和真实 QuickJS，检查加密配置、请求头、工具结果、取消通知、权限撤销与会话清理。它使用测试证书和注入的测试密钥；生产环境仍使用平台 TLS 与 Android Keystore。
+
+真机、第三方真实 MCP 服务、OAuth 和真实模型的 MCP 工具选择尚未验证。
