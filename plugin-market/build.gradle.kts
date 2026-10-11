@@ -3,6 +3,7 @@ android {
     namespace = "dev.solvit.market"
     compileSdk = 36
     defaultConfig { minSdk = 26 }
+    testOptions { unitTests.isIncludeAndroidResources = true }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
 dependencies {
@@ -11,4 +12,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    testImplementation(kotlin("test-junit"))
+    testImplementation("org.robolectric:robolectric:4.16.1")
+}
+
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
+    resolutionStrategy.dependencySubstitution {
+        substitute(module("io.github.dokar3:quickjs-kt-android"))
+            .using(module("io.github.dokar3:quickjs-kt-jvm:1.0.15"))
+    }
 }
