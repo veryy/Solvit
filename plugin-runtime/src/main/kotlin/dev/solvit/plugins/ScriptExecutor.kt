@@ -22,6 +22,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
     private val mutex = Mutex()
     @Volatile private var engine: QuickJs? = null
     @Volatile private var executionJob: Job? = null
+    @Volatile private var readOnlyHost = false
 
     suspend fun start() = mutex.withLock {
         check(engine == null) { "插件已启用" }
@@ -33,6 +34,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                 js.evaluationTimeoutMillis = timeoutMs
                 js.asyncFunction("__solvitHostCall") { args ->
                     val operation = args[0] as String
+                    check(!readOnlyHost || operation == "storage.get") { "上下文 Hook 只允许读取插件存储" }
                     val arguments = Json.parseToJsonElement(args[1] as String).jsonObject
                     val permission = when (operation) {
                         "storage.get", "storage.set" -> "storage"
@@ -68,6 +70,9 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     for (tool in pkg.manifest.tools) {
                         js.evaluate<Any?>("if (typeof solvitPlugin.tools[${JsonPrimitive(tool.name)}] !== 'function') throw new Error('Missing tool handler');")
                     }
+                    if ("beforeModel" in pkg.manifest.hooks) {
+                        js.evaluate<Any?>("if (typeof solvitPlugin.beforeModel !== 'function') throw new Error('Missing beforeModel hook');")
+                    }
                     js.evaluate<Any?>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
                     } finally { executionJob = null }
                 }
@@ -76,15 +81,41 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
         }
     }
 
-    suspend fun execute(tool: String, arguments: String): String = mutex.withLock {
+    suspend fun execute(tool: String, arguments: String): String {
         require(pkg.manifest.tools.any { it.name == tool }) { "插件没有声明此工具" }
         val input = Json.parseToJsonElement(arguments).jsonObject
+        val role = currentCoroutineContext()[AgentRoleContext]?.role
+        return invoke("solvitPlugin.tools[${JsonPrimitive(tool)}](JSON.parse(${JsonPrimitive(input.toString())}), ${contextExpression(role)})", false)
+    }
+
+    suspend fun beforeModel(input: ContextInput): String {
+        check("beforeModel" in pkg.manifest.hooks)
+        val payload = buildJsonObject {
+            put("userText", input.userText)
+            put("role", roleJson(input.role))
+        }
+        val result = invoke("solvitPlugin.beforeModel(JSON.parse(${JsonPrimitive(payload.toString())}), ${contextExpression(input.role)})", true)
+        val value = Json.parseToJsonElement(result)
+        require(value is JsonPrimitive && value.isString) { "上下文 Hook 必须返回文本" }
+        return value.content
+    }
+
+    private fun roleJson(role: AgentRole?): JsonElement = role?.let { buildJsonObject {
+        put("id", it.id); put("name", it.name)
+        put("skillIds", JsonArray(it.skillIds.sorted().map(::JsonPrimitive)))
+    } } ?: JsonNull
+
+    private fun contextExpression(role: AgentRole?) =
+        "Object.freeze({...ctx,role:JSON.parse(${JsonPrimitive(roleJson(role).toString())})})"
+
+    private suspend fun invoke(expression: String, readOnly: Boolean): String = mutex.withLock {
         val js = engine ?: error("插件未启用")
         withContext(Dispatchers.Default) {
             // Let the native execution deadline fire first; this also bounds
             // promises waiting on asynchronous host operations.
             withTimeout(timeoutMs + 1_000) {
                 executionJob = currentCoroutineContext().job
+                readOnlyHost = readOnly
                 try {
                     // Resolve the JS evaluation with an explicit result envelope.
                     // After Kotlin cancels an evaluation, a native binding may
@@ -93,7 +124,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     val outcome = Json.parseToJsonElement(js.evaluate<String>("""
                         await (async () => {
                           try {
-                            const value = await solvitPlugin.tools[${JsonPrimitive(tool)}](JSON.parse(${JsonPrimitive(input.toString())}), ctx);
+                            const value = await ($expression);
                             return JSON.stringify({ok: true, result: JSON.stringify(value) ?? 'null'});
                           } catch (error) {
                             return JSON.stringify({ok: false, error: String(error?.message ?? error)});
@@ -104,7 +135,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         outcome.getValue("error").jsonPrimitive.content
                     }
                     outcome.getValue("result").jsonPrimitive.content
-                } finally { executionJob = null }
+                } finally { executionJob = null; readOnlyHost = false }
             }
         }
     }
@@ -131,11 +162,15 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
 class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptHost) : SolvitPlugin {
     override val id = pkg.manifest.id
     override val dependencies = pkg.manifest.dependencies
-    override val requires = setOf(Services.Tools)
+    override val requires = if (pkg.manifest.hooks.isEmpty()) setOf(Services.Tools) else setOf(Services.Tools, ContextHookServiceKey)
     override suspend fun enable(context: PluginContext) {
         val executor = ScriptExecutor(pkg, host)
         context.own { executor.stop() }
         executor.start()
+        if ("beforeModel" in pkg.manifest.hooks) {
+            val unregister = context.require(ContextHookServiceKey).register(id, ContextHook { input -> executor.beforeModel(input) })
+            context.own { unregister() }
+        }
         val tools = context.require(Services.Tools)
         for (tool in pkg.manifest.tools) {
             val unregister = tools.register(object : SolvitTool {
@@ -145,6 +180,7 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
                     inputSchema = tool.inputSchema.toString(),
                     requiresConfirmation = true,
                     pluginId = id,
+                    chatVisible = tool.chatVisible,
                 )
                 override suspend fun execute(argumentsJson: String): String = executor.execute(tool.name, argumentsJson)
             })

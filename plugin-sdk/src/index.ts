@@ -2,6 +2,7 @@
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
 export interface PluginContext {
+  readonly role?: { readonly id: string; readonly name: string; readonly skillIds: readonly string[] } | null;
   readonly settings: { get(key: string): Promise<string | null> };
   readonly storage: {
     get<T extends JsonValue = JsonValue>(key: string): Promise<T | null>;
@@ -16,17 +17,19 @@ export interface PluginDefinition {
   tools: Record<string, ToolHandler>;
   activate?(context: PluginContext): void | Promise<void>;
   deactivate?(context: PluginContext): void | Promise<void>;
+  beforeModel?(input: { userText: string; role: PluginContext['role'] }, context: PluginContext): string | Promise<string>;
 }
 export interface PluginManifest {
   id: string;
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2;
+  apiVersion: 1 | 2 | 3;
+  hooks?: ('beforeModel')[];
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret'; required?: boolean }[];
   permissions: ('storage' | 'network')[];
   dependencies: string[];
-  tools: { name: string; description: string; inputSchema: JsonObject }[];
+  tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management' }[];
 }
 export function definePlugin<T extends PluginDefinition>(definition: T): T { return definition; }
 export function textArgument(args: JsonObject, key: string, maxLength = 4000): string {

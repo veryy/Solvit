@@ -7,10 +7,11 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class ScriptRuntimeTest {
-    private fun pkg(source: String, permissions: List<String> = emptyList()): ScriptPackage {
+    private fun pkg(source: String, permissions: List<String> = emptyList(), hook: Boolean = false): ScriptPackage {
         val payload = buildJsonObject {
             putJsonObject("manifest") {
-                put("id", "test.plugin"); put("name", "Test"); put("description", "Runtime test"); put("version", "1.0.0"); put("apiVersion", 1)
+                put("id", "test.plugin"); put("name", "Test"); put("description", "Runtime test"); put("version", "1.0.0"); put("apiVersion", if (hook) 3 else 1)
+                if (hook) put("hooks", JsonArray(listOf(JsonPrimitive("beforeModel"))))
                 put("permissions", JsonArray(permissions.map(::JsonPrimitive)))
                 put("dependencies", JsonArray(emptyList()))
                 putJsonArray("tools") { add(buildJsonObject {
@@ -111,5 +112,32 @@ class ScriptRuntimeTest {
         val bytes = pkg("globalThis.solvitPlugin={tools:{echo: args => args}};").payload
         assertFailsWith<IllegalArgumentException> { ScriptPackage.parse(bytes, "0".repeat(64)) }
         assertFailsWith<IllegalArgumentException> { ScriptPackage.parse(ByteArray(ScriptPackage.MAX_BYTES + 1)) }
+    }
+
+    @Test fun hookIsReadOnlyAndRoleContextComesFromHost() = runBlocking<Unit> {
+        var reads = 0
+        val executor = ScriptExecutor(pkg("""
+            globalThis.solvitPlugin={
+              tools:{echo:async(args,ctx)=>ctx.role},
+              beforeModel:async(input,ctx)=>{
+                if(input.userText==='write') await ctx.storage.set('x',1);
+                if(input.userText==='secret') await ctx.settings.get('token');
+                return (await ctx.storage.get('catalog'))+':'+ctx.role.skillIds.join(',');
+              }
+            };
+        """.trimIndent(), listOf("storage"), hook = true), ScriptHost { _, operation, _ ->
+            assertEquals("storage.get", operation); reads++; JsonPrimitive("catalog")
+        })
+        val role = AgentRole("role", "Role", pluginIds = setOf("test.plugin"), skillIds = setOf("code-review"))
+        executor.start()
+        try {
+            assertEquals("catalog:code-review", executor.beforeModel(ContextInput(role, "read")))
+            for (text in listOf("write", "secret")) {
+                assertFailsWith<IllegalStateException> { executor.beforeModel(ContextInput(role, text)) }
+            }
+            assertEquals(1, reads)
+            val response = withContext(AgentRoleContext(role)) { executor.execute("echo", """{"role":null}""") }
+            assertEquals("role", Json.parseToJsonElement(response).jsonObject.getValue("id").jsonPrimitive.content)
+        } finally { executor.stop() }
     }
 }

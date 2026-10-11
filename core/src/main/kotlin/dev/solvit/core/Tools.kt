@@ -3,6 +3,7 @@ package dev.solvit.core
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withContext
 
 data class ToolDescriptor(
     val name: String,
@@ -11,6 +12,7 @@ data class ToolDescriptor(
     val androidPermissions: Set<String> = emptySet(),
     val requiresConfirmation: Boolean = false,
     val pluginId: String = "builtin.tools",
+    val chatVisible: Boolean = true,
 )
 interface SolvitTool {
     val descriptor: ToolDescriptor
@@ -52,7 +54,7 @@ class ToolRegistry(private val events: EventBus) {
         if (!authorization.authorizeCall(tool.descriptor, call)) throw ToolDeniedException()
         currentCoroutineContext().ensureActive()
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
-        return withTimeout(60_000) { tool.execute(argumentsJson) }
+        return withTimeout(60_000) { withContext(AgentRoleContext(role)) { tool.execute(argumentsJson) } }
     }
 }
 

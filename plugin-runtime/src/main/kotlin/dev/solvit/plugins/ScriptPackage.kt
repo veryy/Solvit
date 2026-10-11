@@ -4,7 +4,7 @@ import kotlinx.serialization.json.*
 import java.security.MessageDigest
 import dev.solvit.core.ExtensionSetting
 
-data class ScriptTool(val name: String, val description: String, val inputSchema: JsonObject)
+data class ScriptTool(val name: String, val description: String, val inputSchema: JsonObject, val chatVisible: Boolean = true)
 data class ScriptManifest(
     val id: String,
     val name: String,
@@ -15,6 +15,7 @@ data class ScriptManifest(
     val tools: List<ScriptTool>,
     val apiVersion: Int = 1,
     val settings: List<ExtensionSetting> = emptyList(),
+    val hooks: Set<String> = emptySet(),
 )
 data class ScriptPackage(val manifest: ScriptManifest, val source: String, val payload: ByteArray) {
     companion object {
@@ -29,7 +30,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val root = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
             val m = root.getValue("manifest").jsonObject
             val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..2) { "插件需要其他版本的宿主 API" }
+            require(apiVersion in 1..3) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -47,7 +48,9 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
                 require(name.length <= 20 && name.matches(Regex("[a-zA-Z][a-zA-Z0-9_]*"))) { "工具名无效" }
                 val schema = tool.getValue("inputSchema").jsonObject
                 require(schema["type"]?.jsonPrimitive?.content == "object") { "工具输入必须为对象" }
-                ScriptTool(name, tool.getValue("description").jsonPrimitive.content, schema)
+                val exposure = tool["exposure"]?.jsonPrimitive?.content ?: "chat"
+                require(exposure in setOf("chat", "management") && (exposure == "chat" || apiVersion >= 3))
+                ScriptTool(name, tool.getValue("description").jsonPrimitive.content, schema, exposure == "chat")
             }
             require(tools.map { it.name }.toSet().size == tools.size) { "工具名重复" }
             require(tools.size <= 64) { "插件工具过多" }
@@ -62,9 +65,11 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             }.orEmpty()
             require(settings.size <= 16 && settings.map { it.key }.toSet().size == settings.size && (settings.isEmpty() || apiVersion >= 2))
             val source = root.getValue("source").jsonPrimitive.content
+            val hooks = m["hooks"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty()
+            require(hooks.all { it == "beforeModel" } && (hooks.isEmpty() || apiVersion >= 3)) { "插件 Hook 声明无效" }
             require(source.isNotBlank()) { "插件缺少 JavaScript 代码" }
             return ScriptPackage(ScriptManifest(id, string("name"), string("description"), version,
-                permissions, dependencies, tools, apiVersion, settings), source, bytes.copyOf())
+                permissions, dependencies, tools, apiVersion, settings, hooks), source, bytes.copyOf())
         }
     }
 }

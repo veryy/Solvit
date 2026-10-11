@@ -2,6 +2,12 @@ package dev.solvit.core
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withTimeout
+import kotlin.coroutines.AbstractCoroutineContextElement
+import kotlin.coroutines.CoroutineContext
+
+class AgentRoleContext(val role: AgentRole?) : AbstractCoroutineContextElement(Key) {
+    companion object Key : CoroutineContext.Key<AgentRoleContext>
+}
 
 /** A null role keeps legacy behavior; an explicit empty binding allows no plugins. */
 data class AgentRole(
