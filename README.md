@@ -9,7 +9,7 @@
 - 本机多会话历史、新建与删除、文字选择复制；SQLite 持久化。
 - API Key 使用 Android Keystore AES-GCM 加密保存，禁用应用备份。
 - 简单插件生命周期、类型化服务注册、声明式依赖、失败回滚、Coroutine 资源回收。
-- 可替换 Provider、存储、单次聊天 Agent 与 ChatService；工具注册与授权接口已预留。
+- 可替换 Provider、存储、Agent 与 ChatService；JS 插件工具发现、逐次确认、执行进度、结果回传和有界连续调用。
 
 ## 开始使用
 
@@ -31,6 +31,14 @@
 
 不要在基础地址末尾填写 `/chat/completions`。HTTPS 远程服务可使用自定义路径；HTTP 仅允许 localhost、127.0.0.1、::1、模拟器宿主地址 10.0.2.2。无需认证的本地模型可以留空 API Key。模型名称和账户额度以实际服务为准。
 
+## 在聊天中使用插件工具
+
+安装插件后，在“已安装”页面启用并授予声明权限。例如启用“当前时间”，然后在聊天中询问当前时间。配置的模型需要支持 Chat Completions 工具调用。
+
+模型提出工具调用时，Solvit 显示工具描述和完整参数，点击“允许这一次”后执行。拒绝会回传拒绝结果；“停止生成”会取消等待和执行。工具状态与结果可以展开查看。默认整次回复最多 8 轮、16 次工具执行，每次执行有 60 秒上限，JS 引擎期限为 30 秒。
+
+成功回复的工具调用、结果和最终文本一起保存；失败或中断记录保留并从后续上下文排除。数据库升级保留已有聊天。尚未验证真实模型和真机上的完整调用体验。
+
 ## 构建
 
 需要 JDK 17、Android SDK Platform 36、Build Tools 36.0.0。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
@@ -48,7 +56,7 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 | `core` | 服务契约、插件管理、类型化事件、工具发现和授权接口，无 Android 依赖 |
 | `provider-openai` | OkHttp 网络与 SSE，独立注册 ModelProvider |
 | `storage-sqlite` | ChatStore 的 Android SQLite 实现 |
-| `chat-runtime` | 单次模型 Agent、消息结算、上下文和 ChatService 插件 |
+| `chat-runtime` | 有界工具 Agent、消息结算、上下文和 ChatService 插件 |
 | `release-updates` | GitHub Release 更新检查 |
 | `plugin-runtime` | QuickJS 引擎、JS 工具适配、依赖、权限与执行限制 |
 | `plugin-market` | HTTPS 目录、包校验、安装启停、独立存储和权限配置 |
@@ -62,6 +70,6 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 当前已发布版本提供基础聊天和更新检查。0.2.0 已接入 [插件市场](https://solvit.207.57.126.73.sslip.io/)、JS 包下载校验、安装启停、权限授予和手动工具试运行；测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
 
-Shell、手机控制、模型工具调用循环、MCP、向量记忆、附件、Markdown 排版和后台持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
+Shell、手机控制、MCP、向量记忆、附件、Markdown 排版和后台持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
 
 停止或失败后的助手回复保留并标记，但不进入后续模型上下文；用户输入仍保留。进程被系统杀死时，未结算的流式片段可能丢失，已写入的用户消息和完整回复保留。完整上下文发送给配置的模型服务，较长对话目前需要新建对话。
