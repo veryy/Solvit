@@ -18,6 +18,39 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun plainChatDoesNotCreateWorkspaceAndExplicitBindingIsUsedNextTurn() = runTest {
+        val workspace = Workspace("workspace", "Explicit")
+        val state = MutableStateFlow(WorkspaceState())
+        val service = object : WorkspaceService {
+            override val state = state
+            override val jobs = MutableStateFlow<List<ShellJob>>(emptyList())
+            override suspend fun forChat(sessionId: String): Workspace = error("Chat must not auto-create a workspace")
+            override suspend fun bind(sessionId: String, workspaceId: String) { state.value = WorkspaceState(listOf(workspace), mapOf(sessionId to workspaceId)) }
+            override suspend fun unbind(sessionId: String) = Unit
+            override suspend fun create(name: String): Workspace = error("Explicit UI operation only")
+            override suspend fun createShell(workspaceId: String, name: String): ShellSession = error("Not used")
+            override suspend fun read(workspaceId: String, path: String): String = error("Not used")
+            override suspend fun write(workspaceId: String, path: String, text: String) = Unit
+            override suspend fun run(workspaceId: String, shellId: String, command: String, timeoutMs: Long): ShellJob = error("Not used")
+            override suspend fun cancel(workspaceId: String, jobId: String) = Unit
+            override suspend fun cancelOwner(owner: String) = Unit
+        }
+        var conversation: ConversationContext? = null
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest): Flow<ModelChunk> {
+                conversation = request.conversation
+                return flowOf(ModelChunk.Text("answer"), ModelChunk.Done)
+            }
+        }
+        val chat = DefaultChatService(MemoryStore(), agent, EventBus(), workspaces = service)
+        chat.send("session", "plain question", ModelConfig()).toList()
+        assertNull(conversation)
+        assertTrue(state.value.workspaces.isEmpty())
+        assertTrue(state.value.shells.isEmpty())
+        service.bind("session", workspace.id)
+        chat.send("session", "bound question", ModelConfig()).toList()
+        assertEquals(workspace.id, conversation!!.workspaceId)
+    }
     @Test fun reasoningIsStreamedAndStoredButExcludedFromNextModelContext() = runTest {
         val store = MemoryStore()
         var observed: ModelRequest? = null

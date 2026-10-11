@@ -27,6 +27,8 @@ class ChatPresentationTest {
     @Test fun partialThinkingIsHiddenAndCodeExamplesRemainLiteral() {
         assertEquals(ThinkingText("answer","plan"),splitThinking("<think>plan</think>answer"))
         assertEquals(ThinkingText("","partial"),splitThinking("<think>partial"))
+        val afterThinking="Example: <think>literal</think>"
+        assertEquals(ThinkingText(afterThinking,"plan"), splitThinking("<think>plan</think>"+afterThinking))
         val example="Example:\n```xml\n<think>literal</think>\n```"
         assertEquals(ThinkingText(example,""),splitThinking(example))
     }

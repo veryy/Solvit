@@ -39,16 +39,7 @@ data class ThinkingText(val answer: String, val thinking: String)
 fun splitThinking(text: String): ThinkingText {
     val first = text.indexOfFirst { !it.isWhitespace() }
     if (first < 0 || !text.startsWith("<think>", first, ignoreCase = true)) return ThinkingText(text, "")
-    val answer = StringBuilder(); val thinking = StringBuilder()
-    var start = 0
-    while (start < text.length) {
-        val open = text.indexOf("<think>", start, ignoreCase = true)
-        if (open < 0) { answer.append(text.substring(start)); break }
-        answer.append(text.substring(start, open))
-        val close = text.indexOf("</think>", open + 7, ignoreCase = true)
-        if (thinking.isNotEmpty()) thinking.append('\n')
-        if (close < 0) { thinking.append(text.substring(open + 7)); break }
-        thinking.append(text.substring(open + 7, close)); start = close + 8
-    }
-    return ThinkingText(answer.toString().trim(), thinking.toString().trim())
+    val close = text.indexOf("</think>", first + 7, ignoreCase = true)
+    if (close < 0) return ThinkingText("", text.substring(first + 7).trim())
+    return ThinkingText(text.substring(close + 8).trim(), text.substring(first + 7, close).trim())
 }
