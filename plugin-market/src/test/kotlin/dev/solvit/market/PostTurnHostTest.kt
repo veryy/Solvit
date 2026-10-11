@@ -10,6 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import kotlin.test.*
+import javax.crypto.spec.SecretKeySpec
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
@@ -41,7 +42,8 @@ class PostTurnHostTest {
         }.toString().toByteArray()
         try {
             manager.load(ToolsPlugin()); manager.load(PostTurnHooksPlugin()); manager.enableAll()
-            val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools))
+            val configuration = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32), "AES") }
+            val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools), configuration)
             market.restore(); market.installLocal(payload)
             assertFailsWith<IllegalStateException> { market.enable(id, setOf("storage")) }
             market.enable(id, setOf("storage", "model"))
