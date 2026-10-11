@@ -25,3 +25,5 @@
 功能提交 5a7c9ab 的 [Android 远程验证 38162369617](https://github.com/veryy/Solvit/actions/runs/38162369617) 已全部通过：159 个单元测试无失败、Lint、APK、固定签名和模拟器界面/覆盖升级。JS 宿主及模型轮次集成与实际 WebView DOM 检查分别覆盖执行链和原生观察，未替代真实模型/真机验收。
 
 时效检查 [38163223079](https://github.com/veryy/Solvit/actions/runs/38163223079) 已通过；实际网页正文包含独立从 Kotlin 官方发布接口取得的当前稳定版本。27 个模拟器测试无失败、错误或跳过。标签发布新增公网来源与时效检查门禁，失败时不发布 APK。
+
+0.16.0 已发布：[标签 Actions 38163370140](https://github.com/veryy/Solvit/actions/runs/38163370140) 全部成功，包括 159 个单元、27 个模拟器测试（均无失败、错误或跳过）、Lint、APK、签名、TS/市场、公网来源及官方当前版本核对。公开 APK 下载返回 HTTP 200，22,641,279 字节，与 Release 资产大小一致；[下载入口](https://github.com/veryy/Solvit/releases/download/v0.16.0/solvit-debug.apk)。真实模型最终引用、真机与更广泛搜索问题集继续验收，后续推进上下文预算和自动记忆。

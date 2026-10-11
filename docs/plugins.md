@@ -1,4 +1,4 @@
-# Solvit JS/TS 插件 API 1–5
+# Solvit JS/TS 插件 API 1–6
 
 插件宿主使用 QuickJS，执行 JavaScript。[TS SDK](../plugin-sdk/README.md) 提供工具、生命周期、存储与网络接口类型；TypeScript 在发布前编译并打包为 JS；没有 Node.js 或 npm 模块运行时。
 
@@ -8,7 +8,7 @@ UTF-8 `.solvit.json` 包含 `manifest` 与 `source`。市场示例：[当前时�
 
 - `id`：稳定 ID，最长 40 字符，使用小写域名形式。
 - `version`：三段数字版本。
-- `apiVersion`：整数 `1`–`5`；API 2 增加配置，API 3 增加 Hook 和角色，API 4 增加工作区与插件草稿，API 5 增加交互 PTY。
+- `apiVersion`：整数 `1`–`6`；API 2 增加配置，API 3 增加 Hook 和角色，API 4 增加工作区与插件草稿，API 5 增加交互 PTY，API 6 增加匿名浏览器观察与单次 HTTP 超时。
 - `permissions`：`storage`、`network`；API 4 起还支持 `workspace`、`shell`、`plugins`。无权限插件填写空数组。
 - `dependencies`：先启用的插件 ID 集合。
 - `tools`：工具名、描述、JSON 对象输入 schema；工具名最长 20 字符。
@@ -57,3 +57,13 @@ globalThis.solvitPlugin = {
 - `close` `{id}`：关闭终端。停用插件、切换执行身份或停止使用该终端的 Agent 回合也会清理会话。
 
 `input` 不保证命令已经完成，之后需读取 `status`。支持同一进程的 `cd`、环境变量和交互提示；原有 `workspace.start` 是每次独立运行的有限作业。当前 PTY 使用普通应用身份，Root 模式明确拒绝，不降级。示例：[终端插件](../builtin-plugins/terminal/index.ts)；完整边界见 [工作区与 Shell](workspaces.md)。
+
+## API 6：匿名浏览器观察
+
+声明 `apiVersion: 6` 和 `network` 权限，工具内使用 `await ctx.web.visit("https://example.com")`。返回 `{ url, title, text, links, truncated }`，每条链接含 `{ url, title, snippet }`。宿主只接受 URL，不接受 Header、Cookie 或任意浏览器设置；Hook 与启停回调不能调用浏览器，实际工具授权仍由宿主执行。
+
+观察服务只允许无用户密码的 HTTPS 地址，有单次 7 秒期限，正文最多 16,000 字符、链接最多 60 条。页面完成加载后等待 500ms 再观察初始 DOM，不保证所有长时间异步内容完整。取消、失败或完成后销毁 WebView。
+
+`ctx.http.request` 可额外传 `timeoutMs`（200–20,000 毫秒），仅 API 6 接受，限制该次调用，超时后允许工具执行受限的后备逻辑；未提供则沿用宿主默认期限。网页与工具返回内容属于外部资料，不能覆盖角色、用户意图或宿主权限。
+
+新宿主查询市场使用 `hostApi=6`。搜索包 1.2.0 使用这些接口；旧客户端仍获取兼容包。完整示例见 `builtin-plugins/web-search/index.ts`。

@@ -29,3 +29,9 @@ Solvit 的适配：提示段有名称和来源，身份贡献一次；原生 Flo
 角色修复后，[远程运行 38158102949](https://github.com/veryy/Solvit/actions/runs/38158102949) 继续到 App 测试并复现接收器阻塞：23 个 App 测试中，大段文本后的 Provider 进度检查失败。流式修复新增大段响应、细碎响应、工具回合顺序和提前结算显示回归，并参考 Operit `RenderBatchCoordinatorTest.kt` 的调度及末次更新检查。
 
 [修复后的远程运行 38158456320](https://github.com/veryy/Solvit/actions/runs/38158456320) 全部通过。下载 XML 核对 153 个单元测试无失败、错误或跳过；App 的 ChatViewModel 5 个及 ChatPresentation 4 个测试、ChatService 10 个测试通过。Lint、APK、固定签名和模拟器界面/覆盖升级检查通过。真实模型与真机验收仍待进行；下一步补充实际请求上下文及耗时诊断。
+
+## 搜索阶段交付
+
+已对照 Operit `StandardWebVisitTool.kt` 和 `examples/various_search.ts`、DSH `packages/web/web-fetch-http/src/provider.ts`，将 Android DOM 观察与 TS 搜索策略分开；具体适配、公开引擎失败证据、回归及移植边界见 [搜索阶段记录](browser-search-stage.md)。未直接复制上游实现代码。
+
+[0.16.0 标签验证及发布](https://github.com/veryy/Solvit/actions/runs/38163370140) 通过 159 个单元、27 个模拟器测试、Lint、APK、签名、TS/市场及公网来源与时效检查。下一阶段已开始阅读 DSH `compaction-basic/src/config.ts`、`region.ts`（预算、工具配对及摘要事务）和 Operit `MemoryAutoSaveScheduler.kt`（按资料空间归组的候选与资源限制），再落实上下文预算与自动记忆；这些尚未作为功能交付。
