@@ -21,11 +21,11 @@ jobs:
         working-directory: plugin-sdk
       - run: npm run build:builtins
         working-directory: plugin-sdk
-      - run: git diff --exit-code -- market-server/packages plugin-market/src/main/assets/builtin-plugins
       - uses: actions/upload-artifact@v4
         with:
           name: solvit-builtin-plugins
           path: market-server/packages/*.solvit.json
+      - run: git diff --exit-code -- market-server/packages plugin-market/src/main/assets/builtin-plugins
       - run: npm run typecheck && npm test
         working-directory: plugin-sdk
       - run: npm test
