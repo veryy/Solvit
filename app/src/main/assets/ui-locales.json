@@ -3918,5 +3918,13 @@
     "ko": "서비스 용량에 맞게 설정하세요. 보수적인 UTF-8 바이트 추정값으로 실제 토큰 사용량이 아닙니다. 기본값은 로컬 예산이며 모델 용량이 아닙니다. 요약에는 추가 모델 호출이 필요합니다. 원본 대화는 보존됩니다.",
     "es": "Ajusta la ventana a la capacidad del servicio. La estimación conservadora de bytes UTF-8 no es el uso real de tokens. El valor predeterminado es un presupuesto local, no la capacidad del modelo. Los resúmenes requieren llamadas adicionales. Se conservan los mensajes originales.",
     "fr": "Réglez la fenêtre selon la capacité du service. L’estimation prudente en octets UTF-8 n’est pas l’usage réel des tokens. La valeur par défaut est un budget local, pas la capacité du modèle. Les résumés nécessitent des appels supplémentaires. Les messages originaux sont conservés."
+  },
+  "正在压缩历史，第 {0} 批": {
+    "zh": "正在压缩历史，第 {0} 批",
+    "en": "Summarizing history, batch {0}",
+    "ja": "履歴を圧縮中：バッチ {0}",
+    "ko": "대화 압축 중: 배치 {0}",
+    "es": "Resumiendo el historial, lote {0}",
+    "fr": "Résumé de l’historique, lot {0}"
   }
 }

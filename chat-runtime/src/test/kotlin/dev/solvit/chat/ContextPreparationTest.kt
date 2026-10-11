@@ -87,8 +87,10 @@ class ContextPreparationTest {
             override val id = "fixture"
             override fun stream(request: ModelRequest) = flow<ModelChunk> { entered.complete(Unit); awaitCancellation() }
         }
-        val job = launch { DefaultContextPreparation(provider, store, BalancedContextBudgetPlanner()).prepare(request(rows)) }
-        entered.await(); job.cancelAndJoin(); assertNull(store.saved); assertEquals(original, rows)
+        val service = DefaultContextPreparation(provider, store, BalancedContextBudgetPlanner())
+        val job = launch { service.prepare(request(rows)) }
+        entered.await(); assertEquals(1, service.progress.value?.batch)
+        job.cancelAndJoin(); assertNull(store.saved); assertEquals(original, rows); assertNull(service.progress.value)
     }
     @Test fun currentToolOutputIsClippedOnlyInProjectionAndToolDefinitionsCannotBeSilentlyRemoved() = runTest {
         val rows = mutableListOf(ChatMessage("u", "s", Role.USER, "run this")); val store = Store(rows)

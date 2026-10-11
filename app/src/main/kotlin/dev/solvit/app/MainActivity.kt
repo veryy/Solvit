@@ -116,6 +116,8 @@ private fun SolvitTheme(content: @Composable () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace: MarketplaceViewModel, agents: AgentLibraryViewModel, workspaces: WorkspaceViewModel) {
+    val app = LocalContext.current.applicationContext as SolvitApplication
+    val contextProgress by app.contextPreparation.progress.collectAsStateWithLifecycle()
     val updateState by updates.state.collectAsStateWithLifecycle()
     val downloadState by updates.downloadState.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
@@ -255,6 +257,9 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
                 AppUpdateCard(updateState, downloadState, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)
+                contextProgress?.takeIf { busy && it.sessionId == selected }?.let { progress ->
+                    UiText("正在压缩历史，第 ${progress.batch} 批", modifier = Modifier.padding(horizontal = 16.dp).testTag("context_preparing"), style = MaterialTheme.typography.bodySmall)
+                }
                 if (workspaceId != null) TextButton(onClick = { hideInput(); workspaceCreateRequested = false; workspaceOpen = true }, enabled = ready && !busy,
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
                     UiText("工作区：${workspaceState.workspaces.firstOrNull { it.id == workspaceId }?.name ?: uiString("打开中…")} · Shell / 文件")
@@ -313,7 +318,6 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
             } },
             dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { UiText("拒绝") } })
     }
-    val app = LocalContext.current.applicationContext as SolvitApplication
     if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution, createOnOpen=workspaceCreateRequested) { workspaceOpen = false }
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true }, { diagnosticsOpen = true })
