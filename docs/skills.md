@@ -43,6 +43,8 @@ Hook 每个最多 10 秒、32 KiB 文本，合计最多 64 KiB；取消会传递
 
 ## 验证
 
+[0.6.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.6.0)。[标签构建、55 个 Android 测试、23 个 TS 测试、Lint、APK、市场和公网插件检查全部通过](https://github.com/veryy/Solvit/actions/runs/38109369009)。
+
 TS 测试覆盖 YAML、文本资源、角色过滤、正文按需加载、替换确认、损坏与容量保护。Android 集成测试经过真实 QuickJS、宿主存储、角色服务、Agent 工具循环和 SQLite 结算。标签验证另从实际 HTTPS 市场下载包，校验与提交产物一致，并运行角色过滤和按需加载。
 
 真机文件选择、界面交互、真实模型采用技能的行为仍待验证，不以模拟模型或 Node VM 测试替代这些验证。

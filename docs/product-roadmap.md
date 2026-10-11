@@ -11,7 +11,8 @@
 - 市场服务已部署 HTTPS，目录、下载校验测试与健康检查通过；当前目录包含时间与纯 TS 编写的记忆工具；记忆包已部署，服务器目录与下载校验测试通过。
 - 0.4.0：TS SDK、记忆插件、离线安装与宿主集成已实现；[Android Actions 38105286718](https://github.com/veryy/Solvit/actions/runs/38105286718) 和 [TS/市场验证 38105244171](https://github.com/veryy/Solvit/actions/runs/38105244171) 通过，[0.4.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.4.0)，[Android、TS、市场验证与发布通过](https://github.com/veryy/Solvit/actions/runs/38105586294)。
 - 0.5.1：TS MCP、加密插件配置、声明式配置页、HTTPS 取消通知与取消后插件复用已发布；[45 个 Android 测试、Lint、APK、TS、市场、实际公网 HTTPS MCP 与发布通过](https://github.com/veryy/Solvit/actions/runs/38107628413)，[下载 0.5.1 APK](https://github.com/veryy/Solvit/releases/tag/v0.5.1)。0.5.0 标签被新增取消回归阻止发布，修复保留在后续提交中。
-- 尚未验证真机安装和真实模型调用。
+- 0.6.0：Skills 文本包导入/导出、角色绑定、只读 JS beforeModel Hook 已发布；[55 个 Android 测试、23 个 TS 测试、Lint、APK、市场、公网 MCP/Skills 与发布通过](https://github.com/veryy/Solvit/actions/runs/38109369009)，[下载 0.6.0 APK](https://github.com/veryy/Solvit/releases/tag/v0.6.0)。市场已上线含 ISC 署名的 Skills 1.0.1，旧客户端过滤验证通过。
+- 尚未验证真机安装、文件选择和真实模型调用。
 - 首版使用临时 CI debug 签名。后续构建改用 GitHub Actions Secret 中的固定签名，以保证后续版本可覆盖安装。0.1.0 与新签名不兼容，不能声称可以直接覆盖安装。
 
 ## 工作清单
@@ -24,12 +25,12 @@
 | 附件、Markdown、分支、摘要、上下文管理 | 待实现 | 数据持久化、模型请求与原生 UI 联调 |
 | 多协议、多配置、任务模型选择、本地推理 | 待实现 | 每种协议及本地模型端到端调用 |
 | 工具调用、执行进度、结果回传、有界循环 | 主体测试、Lint 和 APK 已通过；SQLite 迁移与 HTTP→JS 集成测试通过 Actions 38104490115，真机/真实模型待验 | 实际模型调用工具；完整取消、授权和执行记录 |
-| 内置 MCP 插件、安装配置与角色绑定 | 0.5.1 已发布；TS、公网 HTTPS 演示、Android HTTPS 与取消通知、宿主取消后复用及停用回归通过 Actions 38107628413；多服务器、角色绑定、OAuth、stdio 等待实现 | 真实 MCP 服务连接、发现和调用 |
-| 内置 Skills 插件、按需加载与角色绑定 | TS 技能库、原生导入/导出与角色 UI 已提交；23 个 TS 测试通过，Android 端到端验证中 | 技能包导入、发现、上下文注入 |
+| 内置 MCP 插件、安装配置与角色绑定 | 0.5.1 已发布；TS、公网 HTTPS 演示、Android HTTPS 与取消通知、宿主取消后复用及停用回归通过 Actions 38107628413；0.6.0 已实现按角色绑定 MCP 插件；多服务器、每工具绑定、OAuth、stdio 等待实现 | 真实 MCP 服务连接、发现和调用 |
+| 内置 Skills 插件、按需加载与角色绑定 | 0.6.0 已发布，55 个 Android/23 个 TS 测试通过；真实 QuickJS→角色→Agent→SQLite 集成验证、公网目录与下载校验通过；真机/真实模型待验 | 技能包导入、发现、上下文注入 |
 | 内置记忆插件、画像、抽取、合并、图、文档分块、混合检索 | TS 事实合并、候选批量抽取、画像、直接关系、文本分块和 BM25 已提交且 TS 测试通过；Android 宿主测试通过 Actions 38105286718，自动 Hook、向量混合检索待实现 | 持久化、检索、更新删除和上下文使用 |
 | Shell、Linux 环境、终端、SSH/SFTP、编辑器、项目管理 | 待实现 | 本地和远程执行、流式输出、取消及文件操作 |
 | 普通权限、无障碍、Shizuku、Root 与逐工具策略 | 待实现 | 设备检测、授权交互、实际执行前强制检查 |
-| Hook、模型扩展与声明式插件 UI | 声明式配置 UI、只读 beforeModel Hook 和角色上下文已提交；模型扩展、其他 Hook 和 UI 待实现 | 插件改变执行流程与渲染设置，不修改 App 核心 |
+| Hook、模型扩展与声明式插件 UI | 声明式配置 UI、只读 beforeModel Hook 和角色上下文已发布并通过远程验证；模型扩展、其他 Hook 和 UI 待实现 | 插件改变执行流程与渲染设置，不修改 App 核心 |
 
 ## 实施原则
 
