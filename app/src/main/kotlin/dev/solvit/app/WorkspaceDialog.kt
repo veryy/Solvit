@@ -51,6 +51,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDi
     val shellTerminals = terminals.filter { it.workspaceId == id && it.shellId == activeShell }
     val activeTerminal = shellTerminals.firstOrNull { it.id == selectedTerminal }
         ?: shellTerminals.lastOrNull { it.owner == TERMINAL_OWNER && it.active }
+        ?: shellTerminals.lastOrNull { it.owner == TERMINAL_OWNER }
     FullScreenPage(onDismissRequest = onDismiss) {
         val keyboard = LocalSoftwareKeyboardController.current
         val focus = LocalFocusManager.current
