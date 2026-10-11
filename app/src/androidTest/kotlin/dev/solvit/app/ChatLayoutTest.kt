@@ -435,6 +435,7 @@ class ChatLayoutTest {
         } finally { runBlocking { app.modelProfiles.replace(previous) } }
     }
     @Test fun largeNativeTranscriptReopensAndBranchesThroughRealAndroidCursorWindows() = runBlocking<Unit> {
+        ready()
         val app=rule.activity.application as SolvitApplication
         val text="🚀中文".repeat(125_000)
         val native=ProviderTranscript("anthropic","test",org.json.JSONArray().put(JSONObject().put("type","text").put("text",text)).toString())

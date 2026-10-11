@@ -85,7 +85,10 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         }
     /** Read UTF-8 as bytes, so chunk boundaries and embedded NULs do not alter text. */
     private fun readText(db:SQLiteDatabase,cursor:Cursor,id:String,column:String,prefixIndex:Int,lengthIndex:Int):String {
-        val prefix=cursor.getBlob(prefixIndex);val length=cursor.getInt(lengthIndex)
+        val length=cursor.getInt(lengthIndex)
+        // Android may represent a zero-length blob as null in CursorWindow.
+        if(length==0) return ""
+        val prefix=checkNotNull(cursor.getBlob(prefixIndex)) { "Missing message data" }
         if(prefix.size==length) return prefix.toString(Charsets.UTF_8)
         val data=ByteArrayOutputStream(length);data.write(prefix)
         var offset=prefix.size+1
