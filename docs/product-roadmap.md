@@ -7,7 +7,7 @@
 - 0.1.0：基础文本聊天、流式取消、多会话、加密密钥设置；15 个单元测试、Lint 和 APK 构建通过 GitHub Actions。
 - 0.1.1：更新检查与顶部卡片已发布；对应 Actions 测试、Lint、APK 和 Release 发布成功。
 - JS 插件宿主和原生市场：测试、Lint 和 APK 构建通过 [Actions 38103439870](https://github.com/veryy/Solvit/actions/runs/38103439870)。QuickJS 使用 compileSdk 36。0.2.0 已发布 APK。
-- 0.3.0：模型工具调用主体、SQLite 数据迁移与 HTTP→QuickJS 集成测试通过 [Actions 38104490115](https://github.com/veryy/Solvit/actions/runs/38104490115)，标签构建发布中。
+- 0.3.0：模型工具调用主体、SQLite 数据迁移与 HTTP→QuickJS 集成测试通过 [Actions 38104490115](https://github.com/veryy/Solvit/actions/runs/38104490115)，[0.3.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.3.0)，[标签构建与发布通过](https://github.com/veryy/Solvit/actions/runs/38104671862)。
 - 市场服务已部署 HTTPS，目录、下载校验测试与健康检查通过；当前目录包含纯 JS 时间工具示例。
 - 尚未验证真机安装和真实模型调用。
 - 首版使用临时 CI debug 签名。后续构建改用 GitHub Actions Secret 中的固定签名，以保证后续版本可覆盖安装。0.1.0 与新签名不兼容，不能声称可以直接覆盖安装。
