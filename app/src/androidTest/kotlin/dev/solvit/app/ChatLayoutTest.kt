@@ -401,6 +401,24 @@ class ChatLayoutTest {
             }
         }
     }
+    @Test fun languageSwitchesImmediatelyAndSurvivesRecreation() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        try {
+            rule.onNodeWithContentDescription("设置").performClick()
+            rule.onNodeWithTag("language_en").performScrollTo().performClick()
+            rule.onNodeWithText("Settings").assertIsDisplayed()
+            rule.onNodeWithContentDescription("Back to chat").assertExists()
+            assertEquals("en", LanguageStore(app).language.value)
+            rule.onNodeWithTag("language_ja").performScrollTo().performClick()
+            rule.onNodeWithText("設定").assertIsDisplayed()
+            rule.activityRule.scenario.recreate()
+            rule.waitUntil(10_000) { rule.onAllNodesWithContentDescription("設定").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithContentDescription("設定").performClick()
+            rule.onNodeWithText("設定").assertIsDisplayed()
+            assertEquals("ja", LanguageStore(app).language.value)
+        } finally { rule.runOnIdle { app.language.set("zh") } }
+    }
     @Test fun interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput() {
         ready()
         val app = rule.activity.application as SolvitApplication

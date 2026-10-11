@@ -55,122 +55,122 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     FullScreenPage(onDismissRequest = onDismiss) {
         val keyboard = LocalSoftwareKeyboardController.current
         val focus = LocalFocusManager.current
-        Scaffold(topBar = { TopAppBar(title = { Text("工作区") }, navigationIcon = {
-            IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, "关闭工作区") }
+        Scaffold(topBar = { TopAppBar(title = { UiText("工作区") }, navigationIcon = {
+            IconButton(onClick = onDismiss) { UiIcon(Icons.Default.Close, "关闭工作区") }
         }) }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                 if (id == null) {
                     Column(Modifier.weight(1f).fillMaxWidth(),horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
-                        Text("此对话尚未绑定工作区")
-                        TextButton(onClick = { creating = true }) { Text("新建工作区") }
-                        TextButton(onClick = { chooser = true }) { Text("绑定已有工作区") }
-                        error?.let { Text(it,color=MaterialTheme.colorScheme.error) }
+                        UiText("此对话尚未绑定工作区")
+                        TextButton(onClick = { creating = true }) { UiText("新建工作区") }
+                        TextButton(onClick = { chooser = true }) { UiText("绑定已有工作区") }
+                        error?.let { UiText(it,color=MaterialTheme.colorScheme.error) }
                     }
                 } else {
                 TextButton(onClick = { chooser = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                    Text(state.workspaces.firstOrNull { it.id == id }?.name ?: "打开工作区…")
+                    Text(state.workspaces.firstOrNull { it.id == id }?.name ?: uiString("打开工作区…"))
                 }
                 TabRow(selectedTabIndex = tab) {
-                    Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Shell") })
-                    Tab(selected = tab == 1, onClick = { tab = 1; vm.browse(directory) }, text = { Text("工作目录") })
+                    Tab(selected = tab == 0, onClick = { tab = 0 }, text = { UiText("Shell") })
+                    Tab(selected = tab == 1, onClick = { tab = 1; vm.browse(directory) }, text = { UiText("工作目录") })
                 }
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-                error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
+                error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
                 if (tab == 0) {
                     // Keep the composer reachable when the IME leaves only a short viewport.
                     // All selectors and transcript controls scroll in the remaining space.
                     LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("terminal_transcript")) {
                     item { Column {
-                    if (executionModes[TERMINAL_OWNER] == ExecutionMode.ROOT) Text("手动终端：Root 模式", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 12.dp))
+                    if (executionModes[TERMINAL_OWNER] == ExecutionMode.ROOT) UiText("手动终端：Root 模式", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 12.dp))
                     LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(shells, key = { it.id }) { shell -> FilterChip(selected = shell.id == activeShell,
                             onClick = { shellId = shell.id }, label = { Text(shell.name) }) }
-                        item { TextButton(onClick = vm::createShell, enabled = !busy && id != null) { Text("＋ Shell") } }
+                        item { TextButton(onClick = vm::createShell, enabled = !busy && id != null) { UiText("＋ Shell") } }
                     }
                     Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = !interactive, onClick = { interactive = false }, label = { Text("普通命令") })
-                        FilterChip(selected = interactive, onClick = { interactive = true }, label = { Text("交互终端") })
+                        FilterChip(selected = !interactive, onClick = { interactive = false }, label = { UiText("普通命令") })
+                        FilterChip(selected = interactive, onClick = { interactive = true }, label = { UiText("交互终端") })
                     }
                     } }
                     if (interactive) {
                         item { LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            item { FilterChip(selected = activeTerminal == null, onClick = { selectedTerminal = null }, label = { Text("手动 Shell") }) }
+                            item { FilterChip(selected = activeTerminal == null, onClick = { selectedTerminal = null }, label = { UiText("手动 Shell") }) }
                             items(shellTerminals, key = { it.id }) { session -> FilterChip(selected = activeTerminal?.id == session.id,
-                                onClick = { selectedTerminal = session.id }, label = { Text((if (session.owner == TERMINAL_OWNER) "手动" else session.owner) +
-                                    (session.roleId?.let { " · $it" } ?: "") + if (session.active) "" else " · 已关闭") }) }
+                                onClick = { selectedTerminal = session.id }, label = { UiText((if (session.owner == TERMINAL_OWNER) uiString("手动") else session.owner) +
+                                    (session.roleId?.let { " · $it" } ?: "") + if (session.active) "" else uiString(" · 已关闭")) }) }
                         }
                         }
                         item { Column(Modifier.padding(12.dp)) {
-                                Text("同一终端保留目录和环境。输入会直接发送给 Shell；支持交互提示和 Ctrl-C。", style = MaterialTheme.typography.bodySmall)
-                                if (activeTerminal == null) Text("输入命令后打开终端。", modifier = Modifier.padding(vertical = 16.dp))
+                                UiText("同一终端保留目录和环境。输入会直接发送给 Shell；支持交互提示和 Ctrl-C。", style = MaterialTheme.typography.bodySmall)
+                                if (activeTerminal == null) UiText("输入命令后打开终端。", modifier = Modifier.padding(vertical = 16.dp))
                                 activeTerminal?.let { session ->
-                                    if (session.truncated) Text("仅保留最近输出", style = MaterialTheme.typography.labelSmall)
+                                    if (session.truncated) UiText("仅保留最近输出", style = MaterialTheme.typography.labelSmall)
                                     TerminalScreen(session) { vm.sendKeys(session, it) }
-                                    session.failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                                    if (!session.active) Text("终端已关闭 · ${session.exitCode ?: "—"}")
+                                    session.failure?.let { UiText(it, color = MaterialTheme.colorScheme.error) }
+                                    if (!session.active) UiText("终端已关闭 · ${session.exitCode ?: "—"}")
                                 }
                             }
                         }
                         item { activeTerminal?.takeIf { it.active }?.let { session -> Row(Modifier.padding(horizontal = 12.dp)) {
-                            TextButton(onClick = { vm.interrupt(session) }, enabled = !busy) { Text("Ctrl-C") }
-                            TextButton(onClick = { vm.closeTerminal(session) }, enabled = !busy) { Text("关闭终端") }
+                            TextButton(onClick = { vm.interrupt(session) }, enabled = !busy) { UiText("Ctrl-C") }
+                            TextButton(onClick = { vm.closeTerminal(session) }, enabled = !busy) { UiText("关闭终端") }
                         } } }
                     } else {
-                        item { Text("以本应用身份运行非交互式命令，可访问本应用的文件和网络。每条命令从工作区目录启动。", style = MaterialTheme.typography.bodySmall) }
+                        item { UiText("以本应用身份运行非交互式命令，可访问本应用的文件和网络。每条命令从工作区目录启动。", style = MaterialTheme.typography.bodySmall) }
                         items(jobs.filter { it.workspaceId == id && it.shellSessionId == activeShell }.reversed(), key = { it.id }) { job ->
                             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
                                 SelectionContainer { Text("$ ${job.command}", fontFamily = FontFamily.Monospace) }
-                                Text(when (job.stage) {
+                                UiText(when (job.stage) {
                                     ShellStage.STARTING -> "启动中"; ShellStage.RUNNING -> "运行中"; ShellStage.COMPLETED -> "完成 · ${job.exitCode}"
-                                    ShellStage.FAILED -> "失败 · ${job.exitCode ?: "无法启动"}"; ShellStage.CANCELLED -> "已停止"; ShellStage.TIMED_OUT -> "已超时"
+                                    ShellStage.FAILED -> "失败 · ${job.exitCode ?: uiString("无法启动")}"; ShellStage.CANCELLED -> "已停止"; ShellStage.TIMED_OUT -> "已超时"
                                 }, style = MaterialTheme.typography.labelSmall)
-                                Text(if (job.mode == ExecutionMode.ROOT) "Root" else "普通应用身份", style = MaterialTheme.typography.labelSmall)
-                                if (job.truncated) Text("仅保留最近输出", style = MaterialTheme.typography.labelSmall)
+                                UiText(if (job.mode == ExecutionMode.ROOT) "Root" else "普通应用身份", style = MaterialTheme.typography.labelSmall)
+                                if (job.truncated) UiText("仅保留最近输出", style = MaterialTheme.typography.labelSmall)
                                 SelectionContainer { Text(job.output.joinToString("") { it.text }, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall) }
-                                job.failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                                if (job.stage in setOf(ShellStage.STARTING, ShellStage.RUNNING)) TextButton(onClick = { vm.stop(job) }, enabled = !busy) { Text("停止") }
+                                job.failure?.let { UiText(it, color = MaterialTheme.colorScheme.error) }
+                                if (job.stage in setOf(ShellStage.STARTING, ShellStage.RUNNING)) TextButton(onClick = { vm.stop(job) }, enabled = !busy) { UiText("停止") }
                             } }
                         }
                     }
                     }
                     Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(command, { command = it }, placeholder = { Text(if (interactive) "命令或交互输入" else "输入命令") }, maxLines = 4, modifier = Modifier.weight(1f).testTag("shell_command"))
+                        OutlinedTextField(command, { command = it }, placeholder = { UiText(if (interactive) "命令或交互输入" else "输入命令") }, maxLines = 4, modifier = Modifier.weight(1f).testTag("shell_command"))
                         Button(onClick = { activeShell?.let {
                             keyboard?.hide(); focus.clearFocus()
                             if (interactive) vm.send(it, activeTerminal?.takeIf { session -> session.active }?.id, command) else vm.run(it, command)
                             command = ""
-                        } }, enabled = !busy && activeShell != null && (command.isNotBlank() || interactive)) { Text(if (interactive) "发送输入" else "运行") }
+                        } }, enabled = !busy && activeShell != null && (command.isNotBlank() || interactive)) { UiText(if (interactive) "发送输入" else "运行") }
                     }
                 } else {
                     LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         item { SelectionContainer { Text(location + if (directory.isEmpty()) "" else "/$directory", style = MaterialTheme.typography.bodySmall) } }
                         item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (directory.isNotEmpty()) TextButton(onClick = { vm.browse(directory.substringBeforeLast('/', "")) }, enabled = !busy) { Text("上级目录") }
-                            TextButton(onClick = { vm.browse(directory) }, enabled = !busy) { Text("刷新") }
-                            TextButton(onClick = { path = if (directory.isEmpty()) "notes.txt" else "$directory/notes.txt"; editor = true }, enabled = !busy) { Text("新建文本") }
+                            if (directory.isNotEmpty()) TextButton(onClick = { vm.browse(directory.substringBeforeLast('/', "")) }, enabled = !busy) { UiText("上级目录") }
+                            TextButton(onClick = { vm.browse(directory) }, enabled = !busy) { UiText("刷新") }
+                            TextButton(onClick = { path = if (directory.isEmpty()) "notes.txt" else "$directory/notes.txt"; editor = true }, enabled = !busy) { UiText("新建文本") }
                         } }
-                        if (files.isEmpty()) item { Text("目录为空", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        if (files.isEmpty()) item { UiText("目录为空", color = MaterialTheme.colorScheme.onSurfaceVariant) }
                         items(files, key = { it.path }) { file ->
                             OutlinedButton(onClick = { if (file.directory) vm.browse(file.path) else { path = file.path; editor = true; vm.read(file.path) } },
-                                enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text((if (file.directory) "目录  " else "文件  ") + file.name) }
+                                enabled = !busy, modifier = Modifier.fillMaxWidth()) { UiText(uiString(if (file.directory) "目录  " else "文件  ") + file.name) }
                         }
                         if (editor) {
-                        item { OutlinedTextField(path, { path = it }, label = { Text("工作区内相对路径") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                        item { OutlinedTextField(path, { path = it }, label = { UiText("工作区内相对路径") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
                         item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { vm.read(path) }, enabled = !busy && id != null) { Text("读取") }
-                            Button(onClick = { vm.write(path) }, enabled = !busy && id != null) { Text("保存") }
+                            OutlinedButton(onClick = { vm.read(path) }, enabled = !busy && id != null) { UiText("读取") }
+                            Button(onClick = { vm.write(path) }, enabled = !busy && id != null) { UiText("保存") }
                         } }
-                        item { OutlinedTextField(fileText, { vm.fileText.value = it }, label = { Text("文本内容") }, minLines = 12, modifier = Modifier.fillMaxWidth()) }
+                        item { OutlinedTextField(fileText, { vm.fileText.value = it }, label = { UiText("文本内容") }, minLines = 12, modifier = Modifier.fillMaxWidth()) }
                         }
-                        item { TextButton(onClick = { showDrafts = !showDrafts }) { Text("插件草稿 (${drafts.count { it.workspaceId == id }})") } }
+                        item { TextButton(onClick = { showDrafts = !showDrafts }) { UiText("插件草稿 (${drafts.count { it.workspaceId == id }})") } }
                         if (showDrafts) {
-                        item { Text("AI 生成的 JS 插件包保存在此工作目录。查看代码和权限后安装；到插件页单独启用。") }
+                        item { UiText("AI 生成的 JS 插件包保存在此工作目录。查看代码和权限后安装；到插件页单独启用。") }
                         items(drafts.filter { it.workspaceId == id }.reversed(), key = { it.id }) { draft ->
                             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(draft.name, style = MaterialTheme.typography.titleMedium)
                                 Text("${draft.pluginId} · ${draft.version}")
-                                Text("已通过启动校验 · 尚未自动安装", style = MaterialTheme.typography.bodySmall)
-                                TextButton(onClick = { vm.review(draft) }, enabled = !busy) { Text("查看代码并安装") }
+                                UiText("已通过启动校验 · 尚未自动安装", style = MaterialTheme.typography.bodySmall)
+                                TextButton(onClick = { vm.review(draft) }, enabled = !busy) { UiText("查看代码并安装") }
                             } }
                         }
                         }
@@ -181,26 +181,26 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
         }
     }
     preview?.let { (draft, text) -> FullScreenPage(onDismissRequest = { if (!busy) vm.preview.value = null }) {
-        Scaffold(topBar = { TopAppBar(title = { Text("审阅 ${draft.name}") }, navigationIcon = {
-            IconButton(onClick = { vm.preview.value = null }, enabled = !busy) { Icon(Icons.Default.Close, "关闭草稿") }
+        Scaffold(topBar = { TopAppBar(title = { UiText("审阅 ${draft.name}") }, navigationIcon = {
+            IconButton(onClick = { vm.preview.value = null }, enabled = !busy) { UiIcon(Icons.Default.Close, "关闭草稿") }
         }) }, bottomBar = { Button(onClick = { vm.install(draft) }, enabled = !busy,
-            modifier = Modifier.padding(16.dp).fillMaxWidth()) { Text(if (busy) "安装中…" else "安装为停用插件") } }) { padding ->
+            modifier = Modifier.padding(16.dp).fillMaxWidth()) { UiText(if (busy) "安装中…" else "安装为停用插件") } }) { padding ->
             LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { Text("所需权限：${draft.permissions.joinToString().ifBlank { "无" }}\n同 ID 的已安装插件会被替换并停用，启用时需重新授权。") }
-                error?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
+                item { UiText("所需权限：${draft.permissions.joinToString().ifBlank { "无" }}\n同 ID 的已安装插件会被替换并停用，启用时需重新授权。") }
+                error?.let { message -> item { UiText(message, color = MaterialTheme.colorScheme.error) } }
                 item { SelectionContainer { Text(text, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall) } }
             }
         }
     } }
-    if (chooser) AlertDialog(onDismissRequest = { chooser = false }, title = { Text("绑定工作区") }, text = {
+    if (chooser) AlertDialog(onDismissRequest = { chooser = false }, title = { UiText("绑定工作区") }, text = {
         LazyColumn(Modifier.heightIn(max = 360.dp)) {
             items(state.workspaces, key = { it.id }) { workspace -> TextButton(onClick = { vm.bind(workspace.id); chooser = false }, modifier = Modifier.fillMaxWidth()) {
                 Text((if (workspace.id == id) "✓ " else "") + workspace.name)
             } }
         }
-    }, confirmButton = { TextButton(onClick = { chooser = false; creating = true }) { Text("新建工作区") } },
-        dismissButton = { TextButton(onClick = { chooser = false }) { Text("关闭") } })
-    if (creating) AlertDialog(onDismissRequest = { creating = false }, title = { Text("新建工作区") }, text = {
-        OutlinedTextField(name, { name = it }, label = { Text("名称") }, singleLine = true)
-    }, confirmButton = { TextButton(onClick = { vm.create(name); creating = false; name = "" }, enabled = name.isNotBlank()) { Text("创建并绑定") } })
+    }, confirmButton = { TextButton(onClick = { chooser = false; creating = true }) { UiText("新建工作区") } },
+        dismissButton = { TextButton(onClick = { chooser = false }) { UiText("关闭") } })
+    if (creating) AlertDialog(onDismissRequest = { creating = false }, title = { UiText("新建工作区") }, text = {
+        OutlinedTextField(name, { name = it }, label = { UiText("名称") }, singleLine = true)
+    }, confirmButton = { TextButton(onClick = { vm.create(name); creating = false; name = "" }, enabled = name.isNotBlank()) { UiText("创建并绑定") } })
 }

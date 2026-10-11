@@ -20,6 +20,8 @@ class SolvitApplication : Application() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutableReady = MutableStateFlow<Result<ChatService>?>(null)
     val ready = mutableReady.asStateFlow()
+    lateinit var language: LanguageStore
+        private set
     lateinit var toolApprovals: ToolApprovalStore
         private set
     lateinit var branches: ChatBranchService
@@ -53,6 +55,7 @@ class SolvitApplication : Application() {
         settings = EncryptedSettingsStore(this)
         toolApprovals = ToolApprovalStore(this)
         appearance = AppearanceStore(this)
+        language = LanguageStore(this)
         updateDownloader = AppUpdateDownloader(this, scope)
         scope.launch {
             val manager = PluginManager(scope = scope)

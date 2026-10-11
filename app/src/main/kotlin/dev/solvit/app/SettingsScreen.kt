@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -18,14 +19,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: () -> Unit,
     onRoles: () -> Unit, onPlugins: () -> Unit, onBackup: () -> Unit, appearance: AppearanceStore, onPermissions: () -> Unit) {
+    val languageStore = (LocalContext.current.applicationContext as SolvitApplication).language
+    val language by languageStore.language.collectAsStateWithLifecycle()
     val update by updates.state.collectAsStateWithLifecycle()
     val download by updates.downloadState.collectAsStateWithLifecycle()
     val theme by appearance.theme.collectAsStateWithLifecycle()
     val dynamic by appearance.dynamicColors.collectAsStateWithLifecycle()
     FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize()) {
-            Scaffold(topBar = { TopAppBar(title = { Text("设置") }, navigationIcon = {
-                IconButton(onClick = onDismiss) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "返回聊天") }
+            Scaffold(topBar = { TopAppBar(title = { UiText("设置") }, navigationIcon = {
+                IconButton(onClick = onDismiss) { UiIcon(Icons.AutoMirrored.Filled.ArrowBack, "返回聊天") }
             }) }) { padding ->
                 LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding).testTag("settings_list"), contentPadding = PaddingValues(vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -34,15 +37,24 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
                         SettingsRow("角色管理与 Skills", "提示词、角色绑定、技能导入和管理", onRoles)
                         SettingsRow("插件管理", "安装、启用、权限与插件配置", onPlugins)
                     } }
+                    item { SettingsGroup("语言") {
+                        UiText("默认中文；切换后立即生效", Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
+                        uiLanguages.forEach { option ->
+                            Row(Modifier.fillMaxWidth().testTag("language_${option.code}").clickable { languageStore.set(option.code) }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(selected = language == option.code, onClick = { languageStore.set(option.code) })
+                                Text(option.label)
+                            }
+                        }
+                    } }
                     item { SettingsGroup("外观") {
-                        Text("主题", Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
+                        UiText("主题", Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             listOf("system" to "跟随系统", "light" to "浅色", "dark" to "深色").forEach { (key, label) ->
-                                FilterChip(selected = theme == key, onClick = { appearance.setTheme(key) }, label = { Text(label) })
+                                FilterChip(selected = theme == key, onClick = { appearance.setTheme(key) }, label = { UiText(label) })
                             }
                         }
                         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) { Text("动态配色"); Text("Android 12 及以上使用壁纸配色", style = MaterialTheme.typography.bodySmall) }
+                            Column(Modifier.weight(1f)) { UiText("动态配色"); UiText("Android 12 及以上使用壁纸配色", style = MaterialTheme.typography.bodySmall) }
                             Switch(checked = dynamic, onCheckedChange = appearance::setDynamicColors)
                         }
                     } }
@@ -53,8 +65,8 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
                         AppUpdateCard(update, download, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)
                     } }
                     item { SettingsGroup("关于 Solvit") {
-                        Text("轻量、可组合的 Android AI 助手", Modifier.padding(16.dp))
-                        Text("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。", style = MaterialTheme.typography.bodySmall,
+                        UiText("轻量、可组合的 Android AI 助手", Modifier.padding(16.dp))
+                        UiText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。", style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp))
                     } }
                 }
@@ -66,15 +78,15 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
 @Composable
 private fun SettingsGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.padding(horizontal = 16.dp)) {
-        Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(8.dp))
+        UiText(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(8.dp))
         Card(Modifier.fillMaxWidth()) { Column(content = content) }
     }
 }
 @Composable
 private fun SettingsRow(title: String, subtitle: String, onClick: () -> Unit, enabled: Boolean = true) {
     Row(Modifier.fillMaxWidth().clickable(enabled = enabled, onClick = onClick).padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(title, style = MaterialTheme.typography.titleMedium); Spacer(Modifier.height(4.dp));
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        Icon(Icons.Default.ChevronRight, null)
+        Column(Modifier.weight(1f)) { UiText(title, style = MaterialTheme.typography.titleMedium); Spacer(Modifier.height(4.dp));
+            UiText(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        UiIcon(Icons.Default.ChevronRight, null)
     }
 }

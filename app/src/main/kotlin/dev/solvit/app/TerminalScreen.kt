@@ -49,15 +49,15 @@ fun TerminalScreen(session: TerminalSession, onKey: (String) -> Unit) {
     val vertical = rememberScrollState()
     LaunchedEffect(session.revision) { withFrameNanos { }; vertical.scrollTo(vertical.maxValue) }
     Column(Modifier.fillMaxWidth().background(Color(0xff101014)).padding(8.dp)) {
-        Text("PTY · 80 × 24", color = Color(0xff9999aa), fontSize = 11.sp)
-        Box(Modifier.fillMaxWidth().height(260.dp).verticalScroll(vertical).horizontalScroll(rememberScrollState())) {
+        UiText("PTY · 80 × 24", color = Color(0xff9999aa), fontSize = 11.sp)
+        Box(Modifier.fillMaxWidth().height(260.dp).testTag("terminal_output").verticalScroll(vertical).horizontalScroll(rememberScrollState())) {
             Text(text, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 16.sp, softWrap = false,
-                modifier = Modifier.testTag("terminal_output"))
+                modifier = Modifier.testTag("terminal_cells"))
         }
         if (session.active) {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 listOf("Enter" to "\r", "⌫" to "\u007f", "Esc" to "\u001b", "Tab" to "\t", "↑" to "\u001b[A", "↓" to "\u001b[B", "←" to "\u001b[D", "→" to "\u001b[C", "Ctrl-D" to "\u0004").forEach { (label, key) ->
-                    TextButton(onClick = { onKey(key) }, contentPadding = PaddingValues(3.dp), modifier = Modifier.defaultMinSize(minWidth = 28.dp)) { Text(label, color = Color.White, fontSize = 11.sp) }
+                    TextButton(onClick = { onKey(key) }, contentPadding = PaddingValues(3.dp), modifier = Modifier.defaultMinSize(minWidth = 28.dp)) { UiText(label, color = Color.White, fontSize = 11.sp) }
                 }
             }
             // This sends keys immediately, without waiting for the line composer.
@@ -71,7 +71,7 @@ fun TerminalScreen(session: TerminalSession, onKey: (String) -> Unit) {
                 }
             }, textStyle = TextStyle(color = Color.White, fontFamily = FontFamily.Monospace),
                 modifier = Modifier.fillMaxWidth().heightIn(min=36.dp).testTag("terminal_keys"),
-                decorationBox = { inner -> Box(Modifier.padding(6.dp)) { if (keys.text.isEmpty()) Text("点击直接输入按键", color = Color(0xffaaaaaa), fontSize = 12.sp); inner() } })
+                decorationBox = { inner -> Box(Modifier.padding(6.dp)) { if (keys.text.isEmpty()) UiText("点击直接输入按键", color = Color(0xffaaaaaa), fontSize = 12.sp); inner() } })
         }
     }
 }

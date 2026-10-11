@@ -15,10 +15,10 @@ import dev.solvit.core.ModelErrorDetails
 fun ModelErrorDialog(details: ModelErrorDetails, onDismiss: () -> Unit) {
     val clipboard = LocalClipboardManager.current
     val text = details.display()
-    AlertDialog(onDismissRequest = onDismiss, title = { Text("返回详细信息") },
+    AlertDialog(onDismissRequest = onDismiss, title = { UiText("返回详细信息") },
         text = { LazyColumn(Modifier.heightIn(max = 480.dp)) {
             item { SelectionContainer { Text(text, style = MaterialTheme.typography.bodySmall) } }
         } },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("关闭") } },
-        dismissButton = { TextButton(onClick = { clipboard.setText(AnnotatedString(text)) }) { Text("复制详情") } })
+        confirmButton = { TextButton(onClick = onDismiss) { UiText("关闭") } },
+        dismissButton = { TextButton(onClick = { clipboard.setText(AnnotatedString(text)) }) { UiText("复制详情") } })
 }

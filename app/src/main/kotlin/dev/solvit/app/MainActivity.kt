@@ -54,7 +54,7 @@ class MainActivity : ComponentActivity() {
                     when {
                         result == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
                         result!!.isFailure -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-                            Text("Solvit 初始化失败，请重启应用。聊天记录不会被自动清除。")
+                            UiText("Solvit 初始化失败，请重启应用。聊天记录不会被自动清除。")
                         }
                         else -> {
                             val service = result!!.getOrThrow()
@@ -96,6 +96,9 @@ class MainActivity : ComponentActivity() {
 private fun SolvitTheme(content: @Composable () -> Unit) {
     val context = LocalContext.current
     val appearance = (context.applicationContext as SolvitApplication).appearance
+    val app = context.applicationContext as SolvitApplication
+    val language by app.language.language.collectAsStateWithLifecycle()
+    val strings = remember(app) { UiStrings.load(app) }
     val mode by appearance.theme.collectAsStateWithLifecycle()
     val dynamic by appearance.dynamicColors.collectAsStateWithLifecycle()
     val dark = when (mode) { "dark" -> true; "light" -> false; else -> isSystemInDarkTheme() }
@@ -105,7 +108,9 @@ private fun SolvitTheme(content: @Composable () -> Unit) {
         dark -> darkColorScheme(primary = Color(0xFFBACDA8), secondary = Color(0xFFBBCAB4))
         else -> lightColorScheme(primary = Color(0xFF526743), secondary = Color(0xFF576350), tertiary = Color(0xFF38666B))
     }
-    MaterialTheme(colorScheme = colors, content = content)
+    CompositionLocalProvider(LocalUiStrings provides strings, LocalUiLanguage provides language) {
+        MaterialTheme(colorScheme = colors, content = content)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -173,20 +178,20 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
 
     ModalNavigationDrawer(drawerState = drawer, drawerContent = {
         ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.75f).testTag("chat_drawer")) {
-            Text("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
+            UiText("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
             FilledTonalButton(onClick = { vm.newChat(); scope.launch { drawer.close() } }, enabled = ready && !busy && !branching,
                 modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().testTag("new_chat")) {
-                Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("新对话")
+                UiIcon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); UiText("新对话")
             }
             Spacer(Modifier.height(12.dp))
             LazyColumn(Modifier.weight(1f)) {
                 items(sessions, key = { it.id }) { session ->
                     NavigationDrawerItem(
-                        label = { Text(session.title + if (session.originSessionId != null && !session.title.endsWith(" · 分支")) " · 分支" else "", maxLines = 1) },
+                        label = { Text(session.title + if (session.originSessionId != null && !session.title.endsWith(" · 分支")) uiString(" · 分支") else "", maxLines = 1) },
                         selected = selected == session.id,
                         onClick = { if (!busy) { vm.select(session.id); scope.launch { drawer.close() } } },
                         badge = { IconButton(onClick = { deleteTarget = session }, enabled = !busy) {
-                            Icon(Icons.Default.DeleteOutline, "删除 ${session.title}")
+                            UiIcon(Icons.Default.DeleteOutline, "删除 ${session.title}")
                         } },
                         modifier = Modifier.padding(horizontal = 12.dp),
                     )
@@ -195,7 +200,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
             HorizontalDivider()
             TextButton(onClick = { scope.launch { drawer.close(); settingsOpen = true } },
                 modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-                Icon(Icons.Default.Settings, null); Spacer(Modifier.width(8.dp)); Text("设置")
+                UiIcon(Icons.Default.Settings, null); Spacer(Modifier.width(8.dp)); UiText("设置")
             }
         }
     }) {
@@ -203,14 +208,14 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
             topBar = {
                 TopAppBar(
                     title = { Column {
-                        Text("Solvit", fontWeight = FontWeight.SemiBold)
+                        UiText("Solvit", fontWeight = FontWeight.SemiBold)
                         Text(config.model, style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } },
-                    navigationIcon = { IconButton(onClick = { hideInput(); scope.launch { drawer.open() } }) { Icon(Icons.Default.Menu, "对话历史") } },
+                    navigationIcon = { IconButton(onClick = { hideInput(); scope.launch { drawer.open() } }) { UiIcon(Icons.Default.Menu, "对话历史") } },
                     actions = {
-                        IconButton(onClick = { hideInput(); pluginsOpen = true }) { Icon(Icons.Default.Extension, "插件市场") }
-                        IconButton(onClick = { hideInput(); settingsOpen = true }) { Icon(Icons.Default.Settings, "设置") }
+                        IconButton(onClick = { hideInput(); pluginsOpen = true }) { UiIcon(Icons.Default.Extension, "插件市场") }
+                        IconButton(onClick = { hideInput(); settingsOpen = true }) { UiIcon(Icons.Default.Settings, "设置") }
                     },
                 )
             },
@@ -221,15 +226,15 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                     Column(Modifier.padding(8.dp)) {
                         if (error != null) {
                             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                Text(error!!, color = MaterialTheme.colorScheme.error,
+                                UiText(error!!, color = MaterialTheme.colorScheme.error,
                                     style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                                IconButton(onClick = vm::dismissError) { Icon(Icons.Default.Close, "关闭提示") }
+                                IconButton(onClick = vm::dismissError) { UiIcon(Icons.Default.Close, "关闭提示") }
                             }
-                            if (errorDetails != null) TextButton(onClick = { showErrorDetails = true }) { Text("查看详细信息") }
+                            if (errorDetails != null) TextButton(onClick = { showErrorDetails = true }) { UiText("查看详细信息") }
                         }
                         Row(verticalAlignment = Alignment.Bottom) {
                             TextField(value = input, onValueChange = { input = it },
-                                placeholder = { Text("问点什么，或描述你的想法…") },
+                                placeholder = { UiText("问点什么，或描述你的想法…") },
                                 modifier = Modifier.weight(1f).focusRequester(inputFocus), maxLines = 5, enabled = ready,
                                 shape = RoundedCornerShape(24.dp),
                                 colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent,
@@ -251,7 +256,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                 AppUpdateCard(updateState, downloadState, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)
                 if (workspaceId != null) TextButton(onClick = { hideInput(); workspaceCreateRequested = false; workspaceOpen = true }, enabled = ready && !busy,
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
-                    Text("工作区：" + (workspaceState.workspaces.firstOrNull { it.id == workspaceId }?.name ?: "打开中…") + " · Shell / 文件")
+                    UiText("工作区：${workspaceState.workspaces.firstOrNull { it.id == workspaceId }?.name ?: uiString("打开中…")} · Shell / 文件")
                 }
             if (messages.isEmpty() && !busy) {
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -261,13 +266,13 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                         verticalArrangement = Arrangement.spacedBy(if (expanded) 12.dp else 4.dp)) {
                         Icon(painterResource(R.drawable.ic_solvit_monochrome), null,
                             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(if (expanded) 80.dp else 48.dp))
-                        if (showTitle) Text("从一个想法开始", style = if (expanded) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleMedium)
+                        if (showTitle) UiText("从一个想法开始", style = if (expanded) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleMedium)
                         if (expanded) {
-                            Text("一起整理思路、解答问题", style = MaterialTheme.typography.bodyLarge,
+                            UiText("一起整理思路、解答问题", style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (!modelConfigured) OutlinedButton(onClick = { hideInput(); modelsOpen = true }) { Text("配置你的模型") }
+                            if (!modelConfigured) OutlinedButton(onClick = { hideInput(); modelsOpen = true }) { UiText("配置你的模型") }
                         }
-                        if (workspaceId == null && showTitle) OutlinedButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true },enabled=ready) { Text("新建工作区") }
+                        if (workspaceId == null && showTitle) OutlinedButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true },enabled=ready) { UiText("新建工作区") }
                     }
                 }
             } else {
@@ -275,7 +280,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                     onBranch = if (busy || branching) null else { message, mode ->
                         hideInput(); vm.branchError.value = null; branchTarget = message to mode
                     }, footer = if (workspaceId == null && !busy) ({
-                        TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { Text("新建工作区") }
+                        TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { UiText("新建工作区") }
                     }) else null)
 
             }
@@ -291,21 +296,21 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     if (showErrorDetails) errorDetails?.let { ModelErrorDialog(it) { showErrorDetails = false } }
     LaunchedEffect(errorDetails) { showErrorDetails = false }
     toolApproval?.let { pending ->
-        AlertDialog(onDismissRequest = { vm.approveTool(false) }, title = { Text("允许调用工具？") },
+        AlertDialog(onDismissRequest = { vm.approveTool(false) }, title = { UiText("允许调用工具？") },
             text = { LazyColumn(Modifier.heightIn(max = 360.dp)) {
                 item { Text(pending.descriptor.description) }
                 item { Text(pending.descriptor.name, style = MaterialTheme.typography.labelSmall) }
                 pending.descriptor.executionMode?.let { mode -> item {
-                    Text(if (mode == ExecutionMode.ROOT) "执行身份：Root（设备最高权限）" else "执行身份：普通应用")
+                    UiText(if (mode == ExecutionMode.ROOT) "执行身份：Root（设备最高权限）" else "执行身份：普通应用")
                 } }
                 item { SelectionContainer { Text(pending.call.argumentsJson) } }
-                item { Text("不再询问仅用于此角色和当前版本的此工具，后续不同参数也可执行。可在设置 → 权限与执行方式清除。", style = MaterialTheme.typography.bodySmall) }
+                item { UiText("不再询问仅用于此角色和当前版本的此工具，后续不同参数也可执行。可在设置 → 权限与执行方式清除。", style = MaterialTheme.typography.bodySmall) }
             } },
             confirmButton = { Column {
-                TextButton(onClick = { vm.approveTool(true) }) { Text("允许这一次") }
-                TextButton(onClick = { vm.approveTool(true, remember = true) }) { Text("允许且不再询问") }
+                TextButton(onClick = { vm.approveTool(true) }) { UiText("允许这一次") }
+                TextButton(onClick = { vm.approveTool(true, remember = true) }) { UiText("允许且不再询问") }
             } },
-            dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { Text("拒绝") } })
+            dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { UiText("拒绝") } })
     }
     val app = LocalContext.current.applicationContext as SolvitApplication
     if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution, createOnOpen=workspaceCreateRequested) { workspaceOpen = false }
@@ -318,10 +323,10 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     if (pluginsOpen) PluginMarketplaceDialog(marketplace, onDismiss = { pluginsOpen = false })
     if (agentsOpen) AgentLibraryDialog(agents, onDismiss = { agentsOpen = false })
     deleteTarget?.let { session ->
-        AlertDialog(onDismissRequest = { deleteTarget = null }, title = { Text("删除对话？") },
-            text = { Text("“${session.title}” 的记录将从本机删除。") },
-            confirmButton = { TextButton(onClick = { vm.delete(session.id); deleteTarget = null }) { Text("删除") } },
-            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("取消") } })
+        AlertDialog(onDismissRequest = { deleteTarget = null }, title = { UiText("删除对话？") },
+            text = { UiText("“${session.title}” 的记录将从本机删除。") },
+            confirmButton = { TextButton(onClick = { vm.delete(session.id); deleteTarget = null }) { UiText("删除") } },
+            dismissButton = { TextButton(onClick = { deleteTarget = null }) { UiText("取消") } })
     }
 }
 
@@ -354,31 +359,31 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
     val invalid = candidate.validate()
     FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Scaffold(topBar = { TopAppBar(title = { Text("模型设置") }, navigationIcon = {
-                IconButton(onClick = onDismiss, enabled = !saving) { Icon(Icons.Default.Close, "关闭设置") }
+            Scaffold(topBar = { TopAppBar(title = { UiText("模型设置") }, navigationIcon = {
+                IconButton(onClick = onDismiss, enabled = !saving) { UiIcon(Icons.Default.Close, "关闭设置") }
             }) }, bottomBar = {
                 Button(onClick = { onSave(candidate) }, enabled = !saving && invalid == null,
                     modifier = Modifier.navigationBarsPadding().imePadding().padding(16.dp).fillMaxWidth()) {
-                    Text(if (saving) "保存中…" else "保存配置")
+                    UiText(if (saving) "保存中…" else "保存配置")
                 }
             }) { padding ->
                 LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
-                    item { Text("连接你选择的模型", style = MaterialTheme.typography.headlineSmall) }
-                    item { Text("支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    item { OutlinedTextField(base, { base = it }, label = { Text("API 基础地址") },
-                        supportingText = { Text("例如 https://api.deepseek.com/v1；无需填写 /chat/completions") },
+                    item { UiText("连接你选择的模型", style = MaterialTheme.typography.headlineSmall) }
+                    item { UiText("支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    item { OutlinedTextField(base, { base = it }, label = { UiText("API 基础地址") },
+                        supportingText = { UiText("例如 https://api.deepseek.com/v1；无需填写 /chat/completions") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
-                    item { OutlinedTextField(key, { key = it }, label = { Text("API Key") }, modifier = Modifier.fillMaxWidth(),
+                    item { OutlinedTextField(key, { key = it }, label = { UiText("API Key") }, modifier = Modifier.fillMaxWidth(),
                         singleLine = true, enabled = !saving, visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = { IconButton(onClick = { visible = !visible }) { Icon(if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (visible) "隐藏密钥" else "显示密钥") } },
-                        supportingText = { Text("密钥加密保存在本机；无需认证的本地模型可留空。") }) }
-                    item { OutlinedTextField(listUrl, { listUrl = it }, label = { Text("模型列表 / 订阅地址（可选）") },
-                        supportingText = { Text("留空时从 API 基础地址下的 /models 获取；也支持独立 JSON 模型列表地址。") },
+                        supportingText = { UiText("密钥加密保存在本机；无需认证的本地模型可留空。") }) }
+                    item { OutlinedTextField(listUrl, { listUrl = it }, label = { UiText("模型列表 / 订阅地址（可选）") },
+                        supportingText = { UiText("留空时从 API 基础地址下的 /models 获取；也支持独立 JSON 模型列表地址。") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
                     if (listUrl.isNotBlank()) item {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = listAuth, onCheckedChange = { listAuth = it }, enabled = !saving)
-                            Text("不同站点的列表也使用此 API Key（同站点默认使用）", style = MaterialTheme.typography.bodySmall)
+                            UiText("不同站点的列表也使用此 API Key（同站点默认使用）", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -392,29 +397,29 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
                                 catch (e: Exception) { if (revision == fetchRevision) fetchError = "获取模型失败，请检查地址、密钥和网络" }
                                 finally { if (revision == fetchRevision) fetching = false }
                             }
-                        }) { Text(if (fetching) "正在获取…" else "获取模型") }
-                        if (fetching) TextButton(onClick = { fetchRevision++; fetchJob?.cancel(); fetching = false }) { Text("取消") }
-                        else if (models.isNotEmpty()) TextButton(onClick = { picker = true }) { Text("选择模型 (${models.size})") }
+                        }) { UiText(if (fetching) "正在获取…" else "获取模型") }
+                        if (fetching) TextButton(onClick = { fetchRevision++; fetchJob?.cancel(); fetching = false }) { UiText("取消") }
+                        else if (models.isNotEmpty()) TextButton(onClick = { picker = true }) { UiText("选择模型 (${models.size})") }
                     } }
                     if (fetching) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                     if (fetchError != null) item {
-                        Text(fetchError!!, color = MaterialTheme.colorScheme.error)
-                        if (fetchDetails != null) TextButton(onClick = { showFetchDetails = true }) { Text("查看详细信息") }
+                        UiText(fetchError!!, color = MaterialTheme.colorScheme.error)
+                        if (fetchDetails != null) TextButton(onClick = { showFetchDetails = true }) { UiText("查看详细信息") }
                     }
-                    item { OutlinedTextField(model, { model = it }, label = { Text("模型名称") },
+                    item { OutlinedTextField(model, { model = it }, label = { UiText("模型名称") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
-                    item { OutlinedTextField(prompt, { prompt = it }, label = { Text("系统提示词") },
+                    item { OutlinedTextField(prompt, { prompt = it }, label = { UiText("系统提示词") },
                         minLines = 3, maxLines = 8, enabled = !saving, modifier = Modifier.fillMaxWidth()) }
-                    if (invalid != null) item { Text(invalid, color = MaterialTheme.colorScheme.error) }
-                    if (error != null) item { Text(error, color = MaterialTheme.colorScheme.error) }
+                    if (invalid != null) item { UiText(invalid, color = MaterialTheme.colorScheme.error) }
+                    if (error != null) item { UiText(error, color = MaterialTheme.colorScheme.error) }
                 }
             }
         }
     }
     if (showFetchDetails) fetchDetails?.let { ModelErrorDialog(it) { showFetchDetails = false } }
-    if (picker) AlertDialog(onDismissRequest = { picker = false }, title = { Text("选择模型") }, text = {
+    if (picker) AlertDialog(onDismissRequest = { picker = false }, title = { UiText("选择模型") }, text = {
         Column {
-            OutlinedTextField(search, { search = it }, label = { Text("搜索模型名称") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(search, { search = it }, label = { UiText("搜索模型名称") }, singleLine = true, modifier = Modifier.fillMaxWidth())
             LazyColumn(Modifier.heightIn(max = 360.dp)) {
                 items(models.filter { it.id.contains(search, true) || it.name.contains(search, true) }, key = { it.id }) { item ->
                     TextButton(onClick = { model = item.id; picker = false }, modifier = Modifier.fillMaxWidth()) {
@@ -423,7 +428,7 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
                 }
             }
         }
-    }, confirmButton = { TextButton(onClick = { picker = false }) { Text("关闭") } })
+    }, confirmButton = { TextButton(onClick = { picker = false }) { UiText("关闭") } })
 }
 
 

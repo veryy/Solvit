@@ -27,17 +27,17 @@ fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = nu
     Column(Modifier.fillMaxWidth().testTag(if (user != null) "user_message" else "assistant_message"),
         horizontalAlignment = if (user != null) Alignment.End else Alignment.Start) {
         Row(verticalAlignment=Alignment.CenterVertically) {
-            Text(if (user != null) "你" else "Solvit", style = MaterialTheme.typography.labelSmall,
+            UiText(if (user != null) "你" else "Solvit", style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal=4.dp, vertical=4.dp))
             val anchor = user ?: row.messages.lastOrNull { it.role == Role.ASSISTANT }
             if (onBranch != null && !row.generating && anchor != null) {
                 var menu by rememberSaveable(row.id) { mutableStateOf(false) }
                 Box {
                     IconButton(onClick={ menu=true },modifier=Modifier.size(32.dp).testTag("message_actions_${anchor.id}")) {
-                        Icon(Icons.Default.MoreVert,"消息操作",Modifier.size(18.dp))
+                        UiIcon(Icons.Default.MoreVert,"消息操作",Modifier.size(18.dp))
                     }
                     DropdownMenu(expanded=menu,onDismissRequest={ menu=false }) {
-                        DropdownMenuItem(text={ Text(if (user != null) "编辑并分支" else "从这里分支") }, onClick={
+                        DropdownMenuItem(text={ UiText(if (user != null) "编辑并分支" else "从这里分支") }, onClick={
                             menu=false; onBranch(anchor, if (user != null) BranchMode.BEFORE_USER else BranchMode.AFTER_REPLY)
                         })
                     }
@@ -78,10 +78,10 @@ private fun AssistantContents(row: ChatRow) {
     }
     // A tool can enter confirming/running before its assistant transcript is delivered.
     row.activity.filter { it.call.id !in emitted }.forEach { ToolSection(it); hasContent = true }
-    if (!hasContent) Text(if (row.generating) "正在回复…" else if (row.messages.any { it.status == MessageStatus.INTERRUPTED }) "已停止生成" else "未收到回复",
+    if (!hasContent) UiText(if (row.generating) "正在回复…" else if (row.messages.any { it.status == MessageStatus.INTERRUPTED }) "已停止生成" else "未收到回复",
         color=MaterialTheme.colorScheme.onSurfaceVariant)
     if (!row.generating) row.messages.lastOrNull { it.status != MessageStatus.COMPLETE }?.let { message ->
-        Text(if (message.status == MessageStatus.INTERRUPTED) "已停止 · 此回复不参与后续上下文" else "回复失败 · 此回复不参与后续上下文",
+        UiText(if (message.status == MessageStatus.INTERRUPTED) "已停止 · 此回复不参与后续上下文" else "回复失败 · 此回复不参与后续上下文",
             style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -100,7 +100,7 @@ private fun ThinkingSection(thinking: String, generating: Boolean, id: String) {
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(vertical=4.dp).testTag("thinking_toggle"), verticalAlignment=Alignment.CenterVertically) {
             Icon(if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight, null, Modifier.size(18.dp))
-            Text(if (generating) "思考过程" else "查看思考过程", style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
+            UiText(if (generating) "思考过程" else "查看思考过程", style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (expanded) Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=RoundedCornerShape(6.dp)) {
             Column(Modifier.padding(10.dp).testTag("thinking_details")) { MarkdownBody(thinking) }
@@ -118,18 +118,18 @@ private fun ToolSection(activity: ModelChunk.ToolActivity) {
     Column(Modifier.fillMaxWidth().testTag("inline_tool")) {
         Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(vertical=5.dp).testTag("tool_toggle"), verticalAlignment=Alignment.CenterVertically) {
             Icon(if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight, null, Modifier.size(18.dp))
-            Text(title, style=MaterialTheme.typography.labelMedium, modifier=Modifier.weight(1f))
+            UiText(title, style=MaterialTheme.typography.labelMedium, modifier=Modifier.weight(1f))
             if (activity.stage == ToolStage.RUNNING) CircularProgressIndicator(Modifier.size(12.dp),strokeWidth=1.dp)
         }
         if (expanded) Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=RoundedCornerShape(6.dp)) {
             Column(Modifier.padding(10.dp).testTag("tool_details"),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                Text(when(activity.stage) {
+                UiText(when(activity.stage) {
                     ToolStage.CONFIRMING -> "等待确认"; ToolStage.RUNNING -> "执行中"; ToolStage.SUCCEEDED -> "已完成"
                     ToolStage.DENIED -> "已拒绝"; ToolStage.FAILED -> "执行失败"
                 },style=MaterialTheme.typography.labelSmall)
-                Text("参数",style=MaterialTheme.typography.labelSmall)
+                UiText("参数",style=MaterialTheme.typography.labelSmall)
                 SelectionContainer { Text(activity.call.argumentsJson,fontFamily=FontFamily.Monospace,style=MaterialTheme.typography.bodySmall) }
-                activity.result?.let { Text("结果",style=MaterialTheme.typography.labelSmall)
+                activity.result?.let { UiText("结果",style=MaterialTheme.typography.labelSmall)
                     SelectionContainer { Text(it,fontFamily=FontFamily.Monospace,style=MaterialTheme.typography.bodySmall) } }
             }
         }

@@ -26,7 +26,7 @@ fun AppUpdateCard(state: UpdateUiState, download: ApkDownloadState, onDismiss: (
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(when (state) {
+                UiText(when (state) {
                     UpdateUiState.Checking -> "正在检查更新…"
                     UpdateUiState.Current -> "已是最新版本 · ${BuildConfig.VERSION_NAME}"
                     is UpdateUiState.Available -> "Solvit ${state.release.version} 可更新"
@@ -34,36 +34,36 @@ fun AppUpdateCard(state: UpdateUiState, download: ApkDownloadState, onDismiss: (
                     UpdateUiState.Hidden -> "应用更新"
                 }, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
                 if (download == ApkDownloadState.Idle && state != UpdateUiState.Checking)
-                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, "关闭更新卡片") }
+                    IconButton(onClick = onDismiss) { UiIcon(Icons.Default.Close, "关闭更新卡片") }
             }
             if (state is UpdateUiState.Available) {
-                Text("当前版本 ${BuildConfig.VERSION_NAME} · 在应用内下载并安装", style = MaterialTheme.typography.bodySmall)
-                TextButton(onClick = { notesOpen = true }) { Text("查看版本说明") }
+                UiText("当前版本 ${BuildConfig.VERSION_NAME} · 在应用内下载并安装", style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { notesOpen = true }) { UiText("查看版本说明") }
             }
             when (download) {
                 is ApkDownloadState.Downloading -> {
                     val progress = if (download.total > 0) (download.bytes.toFloat() / download.total).coerceIn(0f, 1f) else null
-                    Text((if (download.waiting) "等待网络 · " else "下载中 · ") +
+                    UiText(uiString(if (download.waiting) "等待网络 · " else "下载中 · ") +
                         (if (progress == null) "${download.bytes / 1024} KiB" else "${(progress * 100).toInt()}% · ${download.bytes / 1024} / ${download.total / 1024} KiB"))
                     if (progress == null) LinearProgressIndicator(Modifier.fillMaxWidth())
                     else LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                    TextButton(onClick = onCancel) { Text("取消下载") }
+                    TextButton(onClick = onCancel) { UiText("取消下载") }
                 }
-                ApkDownloadState.Verifying -> { Text("正在校验安装包…"); LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                ApkDownloadState.Verifying -> { UiText("正在校验安装包…"); LinearProgressIndicator(Modifier.fillMaxWidth()) }
                 is ApkDownloadState.Ready -> {
-                    Text("下载和校验完成。若系统要求允许安装应用，授权后回来点安装。", style = MaterialTheme.typography.bodySmall)
-                    Row { Button(onClick = onInstall) { Text("安装更新") }; TextButton(onClick = onCancel) { Text("删除下载") } }
+                    UiText("下载和校验完成。若系统要求允许安装应用，授权后回来点安装。", style = MaterialTheme.typography.bodySmall)
+                    Row { Button(onClick = onInstall) { UiText("安装更新") }; TextButton(onClick = onCancel) { UiText("删除下载") } }
                 }
                 is ApkDownloadState.Failed -> {
-                    Text(download.message, color = MaterialTheme.colorScheme.error)
+                    UiText(download.message, color = MaterialTheme.colorScheme.error)
                     Row {
-                        if (state is UpdateUiState.Available) TextButton(onClick = { onDownload(state.release) }) { Text("重新下载") }
-                        TextButton(onClick = onCancel) { Text("清除任务") }
+                        if (state is UpdateUiState.Available) TextButton(onClick = { onDownload(state.release) }) { UiText("重新下载") }
+                        TextButton(onClick = onCancel) { UiText("清除任务") }
                     }
                 }
                 ApkDownloadState.Idle -> when (state) {
-                    is UpdateUiState.Available -> Button(onClick = { onDownload(state.release) }) { Text("下载更新") }
-                    is UpdateUiState.Failed -> { Text(state.message); TextButton(onClick = onRetry) { Text("重试") } }
+                    is UpdateUiState.Available -> Button(onClick = { onDownload(state.release) }) { UiText("下载更新") }
+                    is UpdateUiState.Failed -> { UiText(state.message); TextButton(onClick = onRetry) { UiText("重试") } }
                     UpdateUiState.Checking -> LinearProgressIndicator(Modifier.fillMaxWidth())
                     else -> Unit
                 }
@@ -71,8 +71,8 @@ fun AppUpdateCard(state: UpdateUiState, download: ApkDownloadState, onDismiss: (
         }
     }
     if (notesOpen && state is UpdateUiState.Available) AlertDialog(onDismissRequest = { notesOpen = false },
-        title = { Text("Solvit ${state.release.version} · 版本说明") },
-        text = { SelectionContainer { Text(state.release.notes.ifBlank { "此版本没有附带更新说明。" },
+        title = { UiText("Solvit ${state.release.version} · 版本说明") },
+        text = { SelectionContainer { Text(state.release.notes.ifBlank { LocalUiStrings.current.text("此版本没有附带更新说明。", LocalUiLanguage.current) },
             modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) } },
-        confirmButton = { TextButton(onClick = { notesOpen = false }) { Text("关闭") } })
+        confirmButton = { TextButton(onClick = { notesOpen = false }) { UiText("关闭") } })
 }
