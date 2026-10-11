@@ -9,6 +9,37 @@ import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
+    @Test fun receivingALargeDeltaDoesNotDelayReasoningOrToolStatus() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val providerWaiting = CompletableDeferred<Unit>()
+            val chat = object : ChatService {
+                override fun sessions() = flowOf(listOf(ChatSession("session", "Test", 0)))
+                override fun messages(sessionId: String) = flowOf(emptyList<ChatMessage>())
+                override suspend fun createSession() = ChatSession("session", "Test", 0)
+                override suspend fun deleteSession(sessionId: String) = Unit
+                override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization) = flow {
+                    emit(ModelChunk.Text("字".repeat(5_000)))
+                    emit(ModelChunk.Reasoning("next reasoning"))
+                    emit(ModelChunk.ToolActivity(ToolCall("call", "clock", "{}"), ToolStage.RUNNING))
+                    providerWaiting.complete(Unit)
+                    awaitCancellation()
+                }
+            }
+            val settings = object : SettingsStore {
+                override suspend fun load() = ModelConfig(apiKey = "fixture")
+                override suspend fun save(value: ModelConfig) = Unit
+            }
+            val vm = ChatViewModel(chat, settings)
+            runCurrent(); assertTrue(vm.send("hello")); advanceTimeBy(16); runCurrent()
+            assertTrue(providerWaiting.isCompleted, "Rendering must not block subsequent provider events")
+            assertEquals("next reasoning", vm.reasoning.value)
+            assertEquals(ToolStage.RUNNING, vm.toolActivity.value.single().stage)
+            assertTrue(vm.draft.value.length in 1 until 5_000)
+            vm.stop(); runCurrent(); assertFalse(vm.busy.value)
+            vm.viewModelScope.cancel()
+        } finally { Dispatchers.resetMain() }
+    }
     private class Chat(private val firstText: String = "first token") : ChatService {
         val list = MutableStateFlow(listOf(ChatSession("original","Original",0)))
         val continueReply = CompletableDeferred<Unit>()
