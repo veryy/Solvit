@@ -7,6 +7,29 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class ToolAgentRuntimeTest {
+    @Test fun everyStepRefreshesHookAfterToolsWithoutAccumulatingOldContext() = runTest {
+        val hooks = ContextHookRegistry()
+        var memory = "before"
+        hooks.register("test.memory", ContextHook { "memory=$memory" })
+        var round = 0
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                val system = request.messages.single { it.role == Role.SYSTEM }.content
+                assertEquals(1, Regex("base identity").findAll(system).count())
+                if (round++ == 0) {
+                    assertTrue(system.contains("memory=before"))
+                    return flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
+                }
+                assertTrue(system.contains("memory=after")); assertFalse(system.contains("memory=before"))
+                return flowOf(ModelChunk.Text("updated"), ModelChunk.Done)
+            }
+        }
+        ToolAgentRuntime(provider, registry { memory = "after"; "saved" }, hooks = hooks).run(
+            ModelRequest(ModelConfig(), listOf(ModelMessage(Role.SYSTEM, "base identity"), ModelMessage(Role.USER, "update memory")), authorization = allow)).toList()
+        assertEquals(2, round)
+    }
+
     @Test fun inspectionTracksActualFilteredToolsAndEveryPreparedRound() = runTest {
         val inspection = RequestInspectionService()
         var round = 0

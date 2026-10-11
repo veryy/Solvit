@@ -102,7 +102,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
                         if (field.kind == "boolean") {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                Text(field.label, Modifier.weight(1f))
+                                UiText(field.label, modifier = Modifier.weight(1f))
                                 Switch(checked = (values[field.key] ?: field.defaultValue ?: "false") == "true",
                                     onCheckedChange = { values = values + (field.key to it.toString()) }, enabled = !busy,
                                     modifier = Modifier.testTag("plugin_setting_${field.key}"))
