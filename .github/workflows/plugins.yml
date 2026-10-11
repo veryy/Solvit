@@ -30,3 +30,9 @@ jobs:
         working-directory: plugin-sdk
       - run: npm test
         working-directory: market-server
+      - name: Verify live HTTPS MCP demo
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: node scripts/check-live-mcp.mjs
+        working-directory: plugin-sdk
+        env:
+          SOLVIT_MCP_ENDPOINT: https://solvit.207.57.126.73.sslip.io/mcp-demo

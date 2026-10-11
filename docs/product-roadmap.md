@@ -10,6 +10,7 @@
 - 0.3.0：模型工具调用主体、SQLite 数据迁移与 HTTP→QuickJS 集成测试通过 [Actions 38104490115](https://github.com/veryy/Solvit/actions/runs/38104490115)，[0.3.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.3.0)，[标签构建与发布通过](https://github.com/veryy/Solvit/actions/runs/38104671862)。
 - 市场服务已部署 HTTPS，目录、下载校验测试与健康检查通过；当前目录包含时间与纯 TS 编写的记忆工具；记忆包已部署，服务器目录与下载校验测试通过。
 - 0.4.0：TS SDK、记忆插件、离线安装与宿主集成已实现；[Android Actions 38105286718](https://github.com/veryy/Solvit/actions/runs/38105286718) 和 [TS/市场验证 38105244171](https://github.com/veryy/Solvit/actions/runs/38105244171) 通过，[0.4.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.4.0)，[Android、TS、市场验证与发布通过](https://github.com/veryy/Solvit/actions/runs/38105586294)。
+- 0.5.0：TS MCP、加密插件配置、声明式配置页和 HTTPS 取消通知已实现；[Android 集成验证通过](https://github.com/veryy/Solvit/actions/runs/38106813268)，实际公网 HTTPS MCP 演示调用通过，标签发布中。
 - 尚未验证真机安装和真实模型调用。
 - 首版使用临时 CI debug 签名。后续构建改用 GitHub Actions Secret 中的固定签名，以保证后续版本可覆盖安装。0.1.0 与新签名不兼容，不能声称可以直接覆盖安装。
 
@@ -23,7 +24,7 @@
 | 附件、Markdown、分支、摘要、上下文管理 | 待实现 | 数据持久化、模型请求与原生 UI 联调 |
 | 多协议、多配置、任务模型选择、本地推理 | 待实现 | 每种协议及本地模型端到端调用 |
 | 工具调用、执行进度、结果回传、有界循环 | 主体测试、Lint 和 APK 已通过；SQLite 迁移与 HTTP→JS 集成测试通过 Actions 38104490115，真机/真实模型待验 | 实际模型调用工具；完整取消、授权和执行记录 |
-| 内置 MCP 插件、安装配置与角色绑定 | TS HTTPS 会话、分页发现、调用、加密配置和取消已提交；TS 测试通过，实际 HTTPS 演示调用已通过，Android 取消回归验证中；多服务器、角色绑定、OAuth、stdio 等待实现 | 真实 MCP 服务连接、发现和调用 |
+| 内置 MCP 插件、安装配置与角色绑定 | TS HTTPS 会话、分页发现、调用、加密配置和取消已提交；TS 测试通过，实际 HTTPS 演示调用已通过，Android HTTPS 与取消通知测试通过 Actions 38106813268，独立宿主取消回归随标签验证；多服务器、角色绑定、OAuth、stdio 等待实现 | 真实 MCP 服务连接、发现和调用 |
 | 内置 Skills 插件、按需加载与角色绑定 | 待实现 | 技能包导入、发现、上下文注入 |
 | 内置记忆插件、画像、抽取、合并、图、文档分块、混合检索 | TS 事实合并、候选批量抽取、画像、直接关系、文本分块和 BM25 已提交且 TS 测试通过；Android 宿主测试通过 Actions 38105286718，自动 Hook、向量混合检索待实现 | 持久化、检索、更新删除和上下文使用 |
 | Shell、Linux 环境、终端、SSH/SFTP、编辑器、项目管理 | 待实现 | 本地和远程执行、流式输出、取消及文件操作 |
