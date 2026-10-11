@@ -47,6 +47,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         "http.request" -> "network"
                         "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
+                        "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
                         "plugins.draft" -> "plugins"
                         "settings.get", "clock.now" -> null
                         else -> error("宿主未开放此操作")
@@ -54,6 +55,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
                     check(operation != "clock.now" || pkg.manifest.apiVersion >= 3) { "当前时间服务需要 API 3" }
                     check(!operation.startsWith("workspace.") && !operation.startsWith("plugins.") || pkg.manifest.apiVersion >= 4) { "工作区与插件开发需要 API 4" }
+                    check(!operation.startsWith("terminal.") || pkg.manifest.apiVersion >= 5) { "交互终端需要 API 5" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
@@ -76,6 +78,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
                           workspace: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspace.' + operation, JSON.stringify(args))) }),
+                          terminal: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('terminal.' + operation, JSON.stringify(args))) }),
                           plugins: Object.freeze({ draft: async args => JSON.parse(await __solvitHostCall('plugins.draft', JSON.stringify(args))) }),
                           clock: Object.freeze({ now: async () => JSON.parse(await __solvitHostCall('clock.now', '{}')) }),
                           settings: Object.freeze({ get: async key => JSON.parse(await __solvitHostCall('settings.get', JSON.stringify({key}))) }),
@@ -199,10 +202,12 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
         add(Services.Tools)
         if (pkg.manifest.hooks.isNotEmpty()) add(ContextHookServiceKey)
         if (pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }) add(WorkspaceServiceKey)
+        if (pkg.manifest.apiVersion >= 5 && "shell" in pkg.manifest.permissions) add(TerminalServiceKey)
     }
     override suspend fun enable(context: PluginContext) {
         val executor = ScriptExecutor(pkg, host)
         if (WorkspaceServiceKey in requires) context.own { context.require(WorkspaceServiceKey).cancelOwner(id) }
+        if (TerminalServiceKey in requires) context.own { context.require(TerminalServiceKey).cancelOwner(id) }
         context.own { executor.stop() }
         executor.start()
         if ("beforeModel" in pkg.manifest.hooks) {

@@ -29,6 +29,7 @@ class AndroidMarketplace(
     private val config: EncryptedPluginConfiguration = EncryptedPluginConfiguration(context),
     private val workspaces: WorkspaceService? = null,
     private val drafts: (() -> PluginDraftService)? = null,
+    private val terminals: TerminalService? = null,
 ) : MarketplaceService {
     private val directory = File(context.filesDir, "extensions").apply { mkdirs() }
     private val prefs = context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
@@ -113,7 +114,7 @@ class AndroidMarketplace(
     }
 
     override suspend fun catalog(): List<MarketEntry> {
-        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=4", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
+        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=5", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
         check(root.getValue("apiVersion").jsonPrimitive.int == 1) { "市场 API 版本不兼容" }
         val entries = root.getValue("plugins").jsonArray.map { element ->
             val m = element.jsonObject
@@ -245,12 +246,14 @@ class AndroidMarketplace(
             "http.request" -> "network"
             "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
             "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
+            "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
             "plugins.draft" -> "plugins"
             else -> error("未开放的宿主操作")
         }
         check(permission in manifest.permissions && permission in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty()) { "插件权限未授予" }
-        if (operation.startsWith("workspace.") || operation == "plugins.draft") {
+        if (operation.startsWith("workspace.") || operation.startsWith("terminal.") || operation == "plugins.draft") {
             check(manifest.apiVersion >= 4)
+            check(!operation.startsWith("terminal.") || manifest.apiVersion >= 5)
             val context = currentCoroutineContext()
             context.ensureActive()
             val invocation = context[ToolInvocationContext] ?: error("工作区操作必须通过工具授权")
@@ -264,6 +267,17 @@ class AndroidMarketplace(
             check(service.state.value.bindings[conversation.sessionId] == workspace) { "对话工作区已变化，请重新调用" }
             if (operation in setOf("workspace.write", "workspace.createShell", "workspace.start", "workspace.cancel", "plugins.draft")) invocation.claim(operation)
             fun string(key: String) = arguments.getValue(key).jsonPrimitive.content
+            if (operation.startsWith("terminal.")) {
+                val terminal = terminals ?: error("交互终端服务不可用")
+                return when (operation) {
+                    "terminal.open" -> terminalJson(terminal.open(workspace, string("shellId")))
+                    "terminal.status" -> terminalJson(terminal.status(workspace, string("id")))
+                    "terminal.input" -> terminalJson(terminal.input(workspace, string("id"), string("text")))
+                    "terminal.interrupt" -> terminalJson(terminal.interrupt(workspace, string("id")))
+                    "terminal.close" -> { terminal.close(workspace, string("id")); JsonNull }
+                    else -> error("未知终端操作")
+                }
+            }
             return when (operation) {
                 "workspace.info" -> buildJsonObject {
                     put("workspaceId", workspace)
@@ -403,10 +417,17 @@ class AndroidMarketplace(
     }
 }
 
+private fun terminalJson(session: TerminalSession): JsonObject = buildJsonObject {
+    put("id", session.id); put("shellId", session.shellId); put("active", session.active)
+    put("output", session.output); put("revision", session.revision); put("truncated", session.truncated)
+    put("mode", session.mode.name); put("exitCode", session.exitCode?.let(::JsonPrimitive) ?: JsonNull)
+    put("failure", session.failure?.let(::JsonPrimitive) ?: JsonNull)
+}
+
 class MarketplacePlugin(private val context: Context, private val manager: PluginManager,
     private val useWorkspaces: Boolean = false, private val drafts: (() -> PluginDraftService)? = null) : SolvitPlugin {
     override val id = "builtin.plugins.marketplace"
-    override val requires = buildSet { add(Services.Tools); if (useWorkspaces) add(WorkspaceServiceKey) }
+    override val requires = buildSet { add(Services.Tools); if (useWorkspaces) { add(WorkspaceServiceKey); add(TerminalServiceKey) } }
     override val provides = setOf(MarketplaceServiceKey)
     lateinit var service: AndroidMarketplace
         private set
@@ -415,7 +436,8 @@ class MarketplacePlugin(private val context: Context, private val manager: Plugi
             .callTimeout(30, TimeUnit.SECONDS).followRedirects(false).followSslRedirects(false).build()
         context.own { client.dispatcher.cancelAll(); client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown() }
         service = AndroidMarketplace(this.context, manager, client, context.require(Services.Tools),
-            workspaces = if (useWorkspaces) context.require(WorkspaceServiceKey) else null, drafts = drafts)
+            workspaces = if (useWorkspaces) context.require(WorkspaceServiceKey) else null, drafts = drafts,
+            terminals = if (useWorkspaces) context.require(TerminalServiceKey) else null)
         context.register(MarketplaceServiceKey, service)
     }
 }

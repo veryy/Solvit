@@ -1,0 +1,98 @@
+{
+  "id": "dev.solvit.terminal",
+  "name": "交互式终端",
+  "description": "持久 Android PTY：保留目录和环境，支持输入、Ctrl-C、状态读取和关闭。普通应用身份；不包含 Root PTY、Linux 发行版或完整 VT 屏幕。",
+  "version": "1.0.0",
+  "apiVersion": 5,
+  "permissions": [
+    "workspace",
+    "shell"
+  ],
+  "dependencies": [],
+  "tools": [
+    {
+      "name": "terminal_open",
+      "description": "打开或恢复当前工作区 Shell 的交互式 PTY，返回终端 ID。先通过工作区插件获取 shellId。目录与环境变量会在同一终端内保留。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "shellId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shellId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "terminal_status",
+      "description": "读取终端最新输出、运行状态和 revision；命令运行后轮询此工具。输出是终端原始文本，可能包含控制字符。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "terminal_input",
+      "description": "向终端发送精确文本。执行命令或回答交互提示时，必须在 text 末尾加换行符。输入以普通应用身份执行；不可访问其他插件或角色的终端。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "terminal_interrupt",
+      "description": "向终端发送 Ctrl-C，中断前台命令并保留 Shell 会话。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "terminal_close",
+      "description": "关闭终端及其前台进程；保留工作区文件和 Shell 名称。",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

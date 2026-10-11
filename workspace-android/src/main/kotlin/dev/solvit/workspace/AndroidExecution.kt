@@ -60,6 +60,16 @@ class AndroidExecution(context: Context, private val engine: ShellJobEngine, pri
     }.toMap())
     override val modes = selections.asStateFlow()
     override val jobs = engine.jobs
+    private val identityCleanups = mutableListOf<suspend (String) -> Unit>()
+    /** Registered by native process services; runs under the identity gate. */
+    suspend fun onIdentityInvalidated(cleanup: suspend (String) -> Unit): suspend () -> Unit = gate.withLock {
+        identityCleanups.add(cleanup)
+        return@withLock { gate.withLock { identityCleanups.remove(cleanup); Unit } }
+    }
+    private suspend fun cancelIdentity(owner: String) {
+        engine.cancelOwner(owner)
+        identityCleanups.forEach { it(owner) }
+    }
     override suspend fun refresh() = gate.withLock {
         val detected = rootAccess.detected()
         state.value = state.value.copy(rootDetected = detected,
@@ -71,13 +81,13 @@ class AndroidExecution(context: Context, private val engine: ShellJobEngine, pri
         val granted = rootAccess.granted()
         state.value = state.value.copy(rootDetected = rootAccess.detected() || granted, rootGranted = granted,
             rootStatus = if (granted) "已验证 UID 0" else "Root 未授权、不可用或请求超时")
-        if (!granted) selections.value.filterValues { it == ExecutionMode.ROOT }.keys.forEach { engine.cancelOwner(it) }
+        if (!granted) selections.value.filterValues { it == ExecutionMode.ROOT }.keys.forEach { cancelIdentity(it) }
     }
     override suspend fun setMode(owner: String, mode: ExecutionMode) = gate.withLock {
         require(owner.matches(Regex("[A-Za-z0-9_.-]{1,160}")))
         if (mode == ExecutionMode.ROOT) { probe(); check(state.value.rootGranted) { state.value.rootStatus } }
         // Cancel existing jobs before changing identity. Existing tool confirmations are invalidated.
-        if ((selections.value[owner] ?: ExecutionMode.APP) != mode) engine.cancelOwner(owner)
+        if ((selections.value[owner] ?: ExecutionMode.APP) != mode) cancelIdentity(owner)
         check(preferences.edit().putString(owner, mode.name).commit()) { "执行模式保存失败" }
         selections.value = selections.value + (owner to mode)
     }
@@ -101,5 +111,5 @@ class AndroidExecution(context: Context, private val engine: ShellJobEngine, pri
         engine.read(owner, currentCoroutineContext()[AgentRoleContext]?.role?.id, id, after)
     override suspend fun cancel(owner: String, id: String, userInitiated: Boolean) =
         engine.cancel(owner, currentCoroutineContext()[AgentRoleContext]?.role?.id, id, userInitiated)
-    override suspend fun cancelOwner(owner: String) = engine.cancelOwner(owner)
+    override suspend fun cancelOwner(owner: String) = gate.withLock { cancelIdentity(owner) }
 }

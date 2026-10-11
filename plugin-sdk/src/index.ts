@@ -2,6 +2,8 @@
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
 export interface PluginContext {
+  /** API 5: persistent Android PTY, scoped to the approved chat/plugin/role. */
+  readonly terminal?: { call(operation: 'open' | 'status' | 'input' | 'interrupt' | 'close', args: JsonObject): Promise<JsonValue> };
   /** Optional on hosts older than Solvit 0.7.0; use JS Date as a UTC fallback. */
   /** API 4; operations are bound to the active chat and the exact approved tool arguments. */
   readonly workspace?: { call(operation: 'info' | 'read' | 'write' | 'createShell' | 'start' | 'status' | 'cancel', args?: JsonObject): Promise<JsonValue> };
@@ -29,7 +31,7 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4;
+  apiVersion: 1 | 2 | 3 | 4 | 5;
   hooks?: ('beforeModel')[];
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret'; required?: boolean }[];
   permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins')[];

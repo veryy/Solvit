@@ -28,6 +28,7 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(project(":workspace-android"))
+    implementation(project(":terminal-android"))
     implementation(project(":provider-openai"))
     implementation(project(":storage-sqlite"))
     implementation(project(":chat-runtime"))
