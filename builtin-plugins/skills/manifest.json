@@ -1,0 +1,125 @@
+{
+  "id": "dev.solvit.skills",
+  "name": "Skills 技能库",
+  "description": "纯 TS 技能库：SKILL.md 与文本资源导入、角色绑定、元数据自动注入和按需加载。",
+  "version": "1.0.0",
+  "apiVersion": 3,
+  "permissions": [
+    "storage"
+  ],
+  "dependencies": [],
+  "hooks": [
+    "beforeModel"
+  ],
+  "tools": [
+    {
+      "name": "skills_list",
+      "description": "列出当前角色允许使用的技能元数据，不加载正文。",
+      "exposure": "chat",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "skills_load",
+      "description": "按名称加载技能正文；先读正文再执行相应任务。",
+      "exposure": "chat",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "skills_read",
+      "description": "按技能名称和相对路径读取引用的文本资源，脚本仅作为文本返回。",
+      "exposure": "chat",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "path"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "skills_import",
+      "description": "导入经过用户确认的 SKILL.md 和文本资源。",
+      "exposure": "management",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "directory": {
+            "type": "string"
+          },
+          "replace": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "skills_remove",
+      "description": "删除用户选择的技能。",
+      "exposure": "management",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "skills_export",
+      "description": "导出一个技能的文本文件包供备份。",
+      "exposure": "management",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}
