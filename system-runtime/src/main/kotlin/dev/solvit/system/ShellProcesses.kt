@@ -12,7 +12,8 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-data class ShellPaths(val shell: String, val setsid: String, val rootPrefix: List<String> = listOf("su", "-c"))
+data class ShellPaths(val shell: String, val setsid: String, val rootPrefix: List<String> = listOf("su", "-c"),
+    val setsidArguments: List<String> = emptyList())
 fun shellQuote(value: String) = "'" + value.replace("'", "'\\''") + "'"
 
 /** Dedicated process group; closing stdin stops the watchdog and its group. */
@@ -33,7 +34,7 @@ class ShellLauncher(private val paths: ShellPaths) {
     """.trimIndent()
 
     fun launch(request: ShellRequest, mode: ExecutionMode, cwd: File, workspace: File): Process {
-        val args = listOf(paths.setsid, paths.shell, "-c", script, "solvit-job", paths.shell, request.command, cwd.path)
+        val args = listOf(paths.setsid) + paths.setsidArguments + listOf(paths.shell, "-c", script, "solvit-job", paths.shell, request.command, cwd.path)
         val command = if (mode == ExecutionMode.ROOT) paths.rootPrefix + args.joinToString(" ", transform = ::shellQuote) else args
         return ProcessBuilder(command).directory(workspace).start()
     }

@@ -7,7 +7,8 @@ import kotlin.coroutines.CoroutineContext
 
 enum class ToolPolicy { ASK, ALLOW, DENY }
 fun toolPolicyKey(tool: ToolDescriptor): String {
-    val identity = listOf(tool.pluginId, tool.pluginVersion, tool.name, tool.description, tool.inputSchema, tool.capabilities.sorted().joinToString(",")).joinToString("\u0000")
+    val identity = listOf(tool.pluginId, tool.pluginVersion, tool.name, tool.description, tool.inputSchema,
+        tool.capabilities.sorted().joinToString(","), tool.executionMode?.name.orEmpty()).joinToString("\u0000")
     return MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 255) }
 }
 interface ToolPolicyService {
@@ -20,6 +21,8 @@ val ToolPolicyServiceKey = ServiceKey("tools.policies", ToolPolicyService::class
 /** Created only after the registry's role and authorization checks. */
 class ToolInvocationContext(val descriptor: ToolDescriptor, val call: ToolCall) : AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<ToolInvocationContext>
+    private val operations = mutableSetOf<String>()
+    @Synchronized fun claim(operation: String) { check(operations.add(operation)) { "此授权已经执行过该操作" } }
 }
 
 enum class ExecutionMode { APP, ROOT }
@@ -54,4 +57,5 @@ interface SystemExecutionService {
     suspend fun cancel(owner: String, id: String, userInitiated: Boolean = false)
     suspend fun cancelOwner(owner: String)
 }
+const val TERMINAL_OWNER = "builtin.terminal"
 val SystemExecutionServiceKey = ServiceKey("system.execution", SystemExecutionService::class)
