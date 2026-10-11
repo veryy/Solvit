@@ -4,7 +4,13 @@
 
 “聊天 → 工作区”提供‘Shell’和‘工作目录’两个标签，可查看实际目录、浏览子目录并编辑文本文件。每条命令从对应工作区根目录启动，默认以应用 UID 执行，当前是非交互式命令会话。Shell ID、工作区和对话绑定跨重启保存；运行任务与输出当前仅在进程生命周期内保留，进程关闭后不会恢复任务。
 
-当前没有 PTY 交互输入、持久 shell 环境、Shizuku、Linux 发行版、SSH/SFTP。`cd` 或环境变量只影响当前命令，不影响下一条命令。可使用 `cd subdirectory && command` 在同一条命令中切换目录。
+“普通命令”每次启动独立进程；`cd` 和环境变量只影响本条命令。“交互终端”使用真实 PTY，在同一进程内保留目录、环境和交互提示；发送输入自动追加换行，Ctrl-C 中断前台命令，关闭终端结束会话。选择插件创建的终端，可以查看其输出并手动输入。
+
+新增 `terminal-android` Kotlin 宿主插件 `builtin.pty`，提供可替换 `TerminalService`。API 5 的独立 JS/TS 插件 `dev.solvit.terminal` 提供 `terminal_open/status/input/interrupt/close` 工具；先用工作区插件获得 Shell ID。模型发送的输入是原始文本，执行命令或回答提示时须自行追加换行，然后轮询状态读取输出。
+
+PTY 按插件、角色、工作区、Shell 和执行身份隔离。同一个名字的 Shell 可以有不同插件拥有的进程；原生界面显示所属插件与角色。最多 8 个活动终端、16 条历史，每个保留最近 65536 个字符。进程不会跨重启恢复；同一会话内的目录和环境保留，重新打开关闭过的终端会创建新进程。取消本轮 Agent 执行会关闭本轮使用的终端；停用插件、执行身份变化会关闭该插件终端。
+
+当前 PTY 使用普通应用身份，Root 模式会明确拒绝 PTY 启动，可切回普通模式或使用原有 Root 非交互命令。尚无 Root PTY、Shizuku、Linux 发行版和 SSH/SFTP；输出界面是文本记录，尚无完整 VT 屏幕和全屏 TUI。
 
 `workspace-android` 是注册 `WorkspaceService` 的 Kotlin 宿主插件，负责本机文件与子进程能力。工具逻辑在 `dev.solvit.workspace` JS/TS 插件中。启用“工作区与 Shell”并授予权限后，AI 可发现当前工作区、读取/写入文本、创建 Shell 会话、启动命令、轮询输出与停止任务。
 
@@ -20,4 +26,4 @@
 
 Root 可以操作整个设备；普通文件 API 仍限定在工作区内。不同 Root 管理器与真机尚未验证。Shizuku、无障碍和其他设备操作接口仍待接入。
 
-工作区概念参考 [VS Code](https://code.visualstudio.com/docs/editing/workspaces/workspaces)：目录与运行上下文。终端会话接口参考 [Operit Terminal](https://github.com/AAswordman/OperitTerminal)，目前尚未达到其 Ubuntu/持久终端能力。
+工作区概念参考 [VS Code](https://code.visualstudio.com/docs/editing/workspaces/workspaces)：目录与运行上下文。终端会话接口参考 [Operit Terminal](https://github.com/AAswordman/OperitTerminal)；PTY 实现为独立编写的 POSIX/JNI 后端，未复制其代码。目前尚未提供其 Ubuntu 环境。

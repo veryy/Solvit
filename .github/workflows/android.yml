@@ -121,7 +121,7 @@ jobs:
           script: |
             const fs = require('fs');
             const tag = context.ref.replace('refs/tags/', '');
-            const body = `APK 由 GitHub Actions 构建，测试、Lint 和签名指纹检查通过。\n\n构建：https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n下载 solvit-debug.apk 安装。0.7.0 起明确使用固定签名；0.6.0 及之前的发布包证书不同，不能覆盖安装，请先保存旧配置。正常覆盖更新保留数据，卸载会删除数据。尚未进行真机和真实模型验证。`;
+            const body = `APK 由 GitHub Actions 构建，测试、Lint 和签名指纹检查通过。\n\n构建：https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n下载 solvit-debug.apk 安装。0.7.0 起明确使用固定签名；0.6.0 及之前的发布包证书不同，不能覆盖安装，请先保存旧配置。正常覆盖更新保留数据，卸载会删除数据。尚未进行真机及真实模型与 Android 工具的完整联动验证。`;
             const notesPath = `docs/release-${tag.slice(1)}.md`;
             const notes = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : '';
             const releaseBody = notes ? `${notes}\n\n${body}` : body;
