@@ -17,15 +17,17 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 
 class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
-    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 6) {
+    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 7) {
         override fun onConfigure(db: SQLiteDatabase) { db.setForeignKeyConstraintsEnabled(true) }
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT NOT NULL, updated_at INTEGER NOT NULL, origin_session_id TEXT, origin_message_id TEXT)")
             db.execSQL("CREATE TABLE messages (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, role TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL, tool_calls TEXT NOT NULL DEFAULT '[]', tool_call_id TEXT, reasoning TEXT NOT NULL DEFAULT '', tool_stage TEXT, provider_transcript TEXT)")
             db.execSQL("CREATE INDEX messages_session ON messages(session_id, sequence)")
             createSummaryTable(db)
+            createTurnTable(db)
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+            if (oldVersion < 7) createTurnTable(db)
             if (oldVersion < 6) createSummaryTable(db)
             if (oldVersion < 5) db.execSQL("ALTER TABLE messages ADD COLUMN provider_transcript TEXT")
             if (oldVersion < 2) {
@@ -154,14 +156,58 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     }
     override suspend fun append(message: ChatMessage) { appendBatch(listOf(message)) }
     override suspend fun appendBatch(messages: List<ChatMessage>) {
-        write { db -> messages.forEach { message ->
+        write { appendMessages(it, messages) }
+    }
+    override val supportsCompletedTurns = true
+    override suspend fun appendCompletedTurn(messages: List<ChatMessage>, turn: CompletedChatTurn) {
+        turn.validate()
+        require(messages.isNotEmpty() && messages.all { it.sessionId == turn.sessionId && it.status == MessageStatus.COMPLETE && it.role != Role.USER })
+        val final = messages.last()
+        require(final.id == turn.assistantMessageId && final.role == Role.ASSISTANT && final.toolCalls.isEmpty() && final.content.isNotBlank())
+        write { db ->
+            val source = db.rawQuery("SELECT id,status FROM messages WHERE session_id=? AND role='USER' ORDER BY sequence DESC LIMIT 1", arrayOf(turn.sessionId)).use { c ->
+                c.moveToFirst() && c.getString(0) == turn.userMessageId && c.getString(1) == MessageStatus.COMPLETE.name
+            }
+            require(source) { "Completed turn has no matching current user message" }
+            appendMessages(db, messages)
+            db.insertOrThrow("completed_turns", null, ContentValues().apply {
+                put("id", turn.id); put("session_id", turn.sessionId)
+                put("user_id", turn.userMessageId); put("assistant_id", turn.assistantMessageId)
+                put("payload", encodeTurn(turn).toString())
+            })
+        }
+    }
+    override suspend fun recordedTurns(afterSequence: Long, limit: Int): List<RecordedChatTurn> {
+        require(afterSequence >= 0 && limit in 1..100)
+        return read { db ->
+            db.rawQuery("SELECT sequence,payload FROM completed_turns WHERE sequence>? ORDER BY sequence LIMIT ?", arrayOf(afterSequence.toString(), limit.toString())).use { c ->
+                buildList { while (c.moveToNext()) add(RecordedChatTurn(c.getLong(0), decodeTurn(JSONObject(c.getString(1))))) }
+            }
+        }
+    }
+    private fun createTurnTable(db: SQLiteDatabase) {
+        db.execSQL("CREATE TABLE completed_turns (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE, assistant_id TEXT UNIQUE NOT NULL REFERENCES messages(id) ON DELETE CASCADE, payload TEXT NOT NULL)")
+    }
+    private fun encodeTurn(t: CompletedChatTurn) = JSONObject().put("id", t.id).put("session", t.sessionId)
+        .put("user", t.userMessageId).put("assistant", t.assistantMessageId)
+        .put("roleId", t.roleId ?: JSONObject.NULL).put("roleName", t.roleName ?: JSONObject.NULL)
+        .put("plugins", t.allowedPluginIds?.let { JSONArray(it.sorted()) } ?: JSONObject.NULL)
+        .put("profile", t.requestedProfileId ?: JSONObject.NULL).put("provider", t.requestedProviderId)
+        .put("model", t.requestedModel).put("created", t.createdAt)
+    private fun decodeTurn(j: JSONObject) = CompletedChatTurn(j.getString("id"), j.getString("session"),
+        j.getString("user"), j.getString("assistant"), if (j.isNull("roleId")) null else j.getString("roleId"),
+        if (j.isNull("roleName")) null else j.getString("roleName"),
+        if (j.isNull("plugins")) null else j.getJSONArray("plugins").let { a -> (0 until a.length()).map { a.getString(it) }.toSet() },
+        if (j.isNull("profile")) null else j.getString("profile"), j.getString("provider"), j.getString("model"), j.getLong("created")).also { it.validate() }
+    private fun appendMessages(db: SQLiteDatabase, messages: List<ChatMessage>) {
+        messages.forEach { message ->
             val first = db.rawQuery("SELECT COUNT(*) FROM messages WHERE session_id=?", arrayOf(message.sessionId)).use { it.moveToFirst(); it.getLong(0) == 0L }
             insertMessage(db, message)
             check(db.update("sessions", ContentValues().apply {
                 put("updated_at", System.currentTimeMillis())
                 if (first && message.role == Role.USER) put("title", message.content.replace('\n', ' ').take(40))
             }, "id=?", arrayOf(message.sessionId)) == 1) { "Conversation no longer exists" }
-        } }
+        }
     }
     private fun insertMessage(db: SQLiteDatabase, message: ChatMessage) {
         db.insertOrThrow("messages", null, ContentValues().apply {

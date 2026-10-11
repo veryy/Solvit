@@ -22,6 +22,7 @@ class DefaultChatService(
     private val events: EventBus,
     private val roles: RoleService? = null,
     private val workspaces: WorkspaceService? = null,
+    private val modelProfiles: ModelProfilesService? = null,
 ) : ChatService {
     // V1 permits one active turn. Deletion cannot race with a stream settlement.
     private val turn = Mutex()
@@ -43,6 +44,9 @@ class DefaultChatService(
         val transcript = mutableListOf<ModelMessage>()
         var settled = false
         var admitted = false
+        var sourceUserId: String? = null
+        var sourceRole: AgentRole? = null
+        var sourceProfileId: String? = null
         suspend fun persist(message: ChatMessage) {
             store.append(message)
             events.publish(CoreEvent.MessageStored(sessionId, message.id))
@@ -53,14 +57,23 @@ class DefaultChatService(
                 toolCalls = message.toolCalls, toolCallId = message.toolCallId,
                 reasoning = message.reasoning, toolStage = message.toolStage, providerTranscript = message.providerTranscript,
             ) } + ChatMessage(UUID.randomUUID().toString(), sessionId, Role.ASSISTANT, answer.toString(), status, reasoning = reasoning.toString(), providerTranscript = native)
-            store.appendBatch(batch)
+            if (status == MessageStatus.COMPLETE) {
+                val final = batch.last()
+                store.appendCompletedTurn(batch, CompletedChatTurn(final.id, sessionId, requireNotNull(sourceUserId), final.id,
+                    sourceRole?.id, sourceRole?.name, sourceRole?.pluginIds, sourceProfileId,
+                    config.providerId, config.model, System.currentTimeMillis()))
+            } else store.appendBatch(batch)
             batch.forEach { events.publish(CoreEvent.MessageStored(sessionId, it.id)) }
             settled = true
         }
         try {
             val role = roles?.selected(sessionId)
+            sourceRole = role?.copy(pluginIds = role.pluginIds.toSet(), skillIds = role.skillIds.toSet())
+            sourceProfileId = modelProfiles?.state?.value?.profiles?.firstOrNull { it.config === config }?.id
             val conversation = workspaces?.bound(sessionId)?.let { ConversationContext(sessionId, it.id) }
-            persist(ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim()))
+            val user = ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim())
+            sourceUserId = user.id
+            persist(user)
             admitted = true
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
             val sections = ChatContextComposer.sections(role, config.systemPrompt)
@@ -129,12 +142,13 @@ internal fun completeContext(history: List<ChatMessage>, trackSources: Boolean =
 
 class ChatServicePlugin(private val useWorkspaces: Boolean = false) : SolvitPlugin {
     override val id = "builtin.chat"
-    override val requires = buildSet { addAll(setOf(Services.Storage, Services.Agent, RoleServiceKey)); if (useWorkspaces) add(WorkspaceServiceKey) }
+    override val requires = buildSet { addAll(setOf(Services.Storage, Services.Agent, RoleServiceKey, ModelProfilesServiceKey)); if (useWorkspaces) add(WorkspaceServiceKey) }
     override val provides = setOf(Services.Chat)
     override suspend fun enable(context: PluginContext) {
         context.register(Services.Chat, DefaultChatService(
             context.require(Services.Storage), context.require(Services.Agent), context.events, context.require(RoleServiceKey),
             if (useWorkspaces) context.require(WorkspaceServiceKey) else null,
+            context.require(ModelProfilesServiceKey),
         ))
     }
 }

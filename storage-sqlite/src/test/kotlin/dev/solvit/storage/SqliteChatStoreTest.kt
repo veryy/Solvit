@@ -20,6 +20,56 @@ class SqliteChatStoreTest {
     @Before fun before() { context.deleteDatabase("solvit.db") }
     @After fun after() { context.deleteDatabase("solvit.db") }
 
+    @Test fun completedTurnAndReplyCommitAtomicallyAndSourcesSurviveRestart() = runBlocking<Unit> {
+        lateinit var session: ChatSession
+        lateinit var record: CompletedChatTurn
+        SqliteChatStore(context).use { store ->
+            session = store.createSession()
+            store.append(ChatMessage("user", session.id, Role.USER, "Remember my editor"))
+            record = CompletedChatTurn("answer", session.id, "user", "answer", "coder", "Coder",
+                setOf("dev.solvit.memory"), "primary", "openai-compatible", "fixture", 1)
+            val reply = ChatMessage("answer", session.id, Role.ASSISTANT, "Acknowledged")
+            SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("CREATE TRIGGER reject_turn BEFORE INSERT ON completed_turns BEGIN SELECT RAISE(ABORT,'fixture failure'); END")
+            }
+            assertFails { store.appendCompletedTurn(listOf(reply), record) }
+            assertEquals(listOf("user"), store.history(session.id).map { it.id })
+            assertTrue(store.recordedTurns(0).isEmpty())
+            SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { it.execSQL("DROP TRIGGER reject_turn") }
+            assertFailsWith<IllegalArgumentException> { store.appendCompletedTurn(listOf(reply), record.copy(userMessageId = "missing")) }
+            assertEquals(1, store.history(session.id).size)
+            store.appendCompletedTurn(listOf(reply), record)
+        }
+        SqliteChatStore(context).use { store ->
+            assertTrue(store.supportsCompletedTurns)
+            val saved = store.recordedTurns(0, 1).single()
+            assertEquals(record, saved.turn)
+            assertTrue(store.recordedTurns(saved.sequence).isEmpty())
+            assertFailsWith<IllegalArgumentException> { store.recordedTurns(-1) }
+            assertFailsWith<IllegalArgumentException> { store.recordedTurns(0, 101) }
+            val branch = store.forkSession(session.id, BranchPoint("answer", BranchMode.AFTER_REPLY))
+            assertEquals(2, store.history(branch.id).size)
+            assertEquals(listOf(record), store.recordedTurns(0).map { it.turn })
+            store.deleteSession(session.id)
+            assertTrue(store.recordedTurns(0).isEmpty())
+            assertEquals(2, store.history(branch.id).size)
+        }
+    }
+
+    @Test fun versionSixMigrationDoesNotInventMemoryWorkFromOldChats() = runBlocking<Unit> {
+        SqliteChatStore(context).use { store ->
+            val session = store.createSession()
+            store.appendBatch(listOf(ChatMessage("u", session.id, Role.USER, "old"), ChatMessage("a", session.id, Role.ASSISTANT, "reply")))
+        }
+        SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("DROP TABLE completed_turns"); db.version = 6
+        }
+        SqliteChatStore(context).use { store ->
+            assertEquals(2, store.history(store.sessions().first().single().id).size)
+            assertTrue(store.recordedTurns(0).isEmpty())
+        }
+    }
+
     @Test fun summaryCommitsAgainstExactPrefixSurvivesRestartAndLeavesOriginalHistory() = runBlocking<Unit> {
         lateinit var session: ChatSession
         lateinit var summary: ContextSummary

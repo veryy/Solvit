@@ -9,6 +9,12 @@ import kotlin.test.*
 /** A replacement ChatStore: runtime and UI need no SQLite implementation. */
 private class MemoryStore : ChatStore {
     val saved = mutableListOf<ChatMessage>()
+    val turns = mutableListOf<CompletedChatTurn>()
+    override val supportsCompletedTurns = true
+    override suspend fun appendCompletedTurn(messages: List<ChatMessage>, turn: CompletedChatTurn) {
+        super<ChatStore>.appendCompletedTurn(messages, turn)
+        turns += turn
+    }
     override fun sessions() = flowOf(listOf(ChatSession("session", "Test", 0)))
     override fun messages(sessionId: String) = flowOf(saved.toList())
     override suspend fun createSession() = ChatSession("session", "Test", 0)
@@ -18,6 +24,34 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun completedTurnKeepsOriginalRoleAndMessageSourcesWithoutPromptOrCredentials() = runTest {
+        val store = MemoryStore()
+        val bindings = mutableSetOf("dev.solvit.memory")
+        var selected = AgentRole("original", "Original", "private role prompt", pluginIds = bindings)
+        val roles = object : RoleService {
+            override fun roles() = flowOf(listOf(selected))
+            override suspend fun save(role: AgentRole) = Unit
+            override suspend fun delete(id: String) = Unit
+            override suspend fun selected(sessionId: String) = selected
+            override suspend fun select(sessionId: String, roleId: String?) = Unit
+        }
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest) = flow {
+                bindings.clear()
+                selected = AgentRole("next", "Next")
+                emit(ModelChunk.Text("private answer")); emit(ModelChunk.Done)
+            }
+        }
+        DefaultChatService(store, agent, EventBus(), roles).send("session", "private question", ModelConfig(apiKey = "private-key")).toList()
+        val record = store.turns.single()
+        assertEquals("original", record.roleId)
+        assertEquals(setOf("dev.solvit.memory"), record.allowedPluginIds)
+        assertEquals(store.saved.first().id, record.userMessageId)
+        assertEquals(store.saved.last().id, record.assistantMessageId)
+        assertEquals(record.id, record.assistantMessageId)
+        assertFalse(record.toString().contains("private"))
+        assertNull(record.requestedProfileId)
+    }
     @Test fun providerMetadataIsStoredAndReturnedInNextContextWithoutLeakingIntoText() = runTest {
         val store = MemoryStore()
         val native = ProviderTranscript("anthropic","test-model","""[{"type":"thinking","signature":"opaque"}]""")
@@ -165,6 +199,7 @@ class ChatServiceTest {
         assertFailsWith<IllegalStateException> { chat.deleteSession("session") }
         generation.cancelAndJoin()
         assertEquals(MessageStatus.INTERRUPTED, store.saved.last().status)
+        assertTrue(store.turns.isEmpty())
         assertEquals("partial", store.saved.last().content)
         val nextAgent = object : AgentRuntime {
             override fun run(request: ModelRequest): Flow<ModelChunk> {
@@ -186,6 +221,7 @@ class ChatServiceTest {
         val chat = DefaultChatService(store, agent, EventBus())
         assertFailsWith<ModelException> { chat.send("session", "first", ModelConfig()).toList() }
         assertEquals(MessageStatus.FAILED, store.saved.last().status)
+        assertTrue(store.turns.isEmpty())
         assertFailsWith<ModelException> { chat.send("session", "second", ModelConfig()).toList() }
         assertEquals(4, store.saved.size)
     }

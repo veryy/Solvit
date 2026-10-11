@@ -119,6 +119,8 @@ data class ModelErrorDetails(val endpoint: String, val httpStatus: Int? = null,
 }
 class ModelException(message: String, val details: ModelErrorDetails? = null) : IOException(message)
 interface ChatStore {
+    /** Only supporting stores promise atomic completed-turn anchors for background work. */
+    val supportsCompletedTurns: Boolean get() = false
     fun sessions(): Flow<List<ChatSession>>
     fun messages(sessionId: String): Flow<List<ChatMessage>>
     suspend fun createSession(): ChatSession
@@ -130,6 +132,11 @@ interface ChatStore {
     suspend fun saveContextSummary(sessionId: String, expected: ContextSummary?, replacement: ContextSummary): Boolean = false
     suspend fun append(message: ChatMessage)
     suspend fun appendBatch(messages: List<ChatMessage>) { messages.forEach { append(it) } }
+    suspend fun appendCompletedTurn(messages: List<ChatMessage>, turn: CompletedChatTurn) {
+        turn.validate()
+        appendBatch(messages)
+    }
+    suspend fun recordedTurns(afterSequence: Long, limit: Int = 20): List<RecordedChatTurn> = emptyList()
     suspend fun deleteSession(sessionId: String)
 }
 enum class ToolStage { CONFIRMING, RUNNING, SUCCEEDED, FAILED, DENIED }
