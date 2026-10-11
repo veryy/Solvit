@@ -111,4 +111,60 @@ class ChatLayoutTest {
             } finally { if (!old) app.marketplace.disable("dev.solvit.workspace") }
         }
     }
+    @Test fun javascriptPluginUsesPersistentPtyAndDisableClosesItsProcess() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        runBlocking(Dispatchers.IO) {
+            val plugin = "dev.solvit.terminal"
+            app.systemExecution.setMode(plugin, ExecutionMode.APP)
+            val old = app.marketplace.installed.value.single { it.id == plugin }.enabled
+            try {
+                if (!old) app.marketplace.enable(plugin, setOf("workspace", "shell"))
+                val workspace = app.workspaces.forChat("javascript-pty-emulator-test")
+                val shell = app.workspaces.state.value.shells.first { it.workspaceId == workspace.id }
+                val authorization = object : ToolAuthorization {
+                    override suspend fun authorize(descriptor: ToolDescriptor): Boolean {
+                        assertEquals(ExecutionMode.APP, descriptor.executionMode); return true
+                    }
+                }
+                withContext(ConversationContext("javascript-pty-emulator-test", workspace.id)) {
+                    suspend fun invoke(name: String, args: JSONObject) = JSONObject(app.marketplace.runTool("dev_solvit_terminal_$name", args.toString(), authorization))
+                    val id = invoke("terminal_open", JSONObject().put("shellId", shell.id)).getString("id")
+                    assertEquals(id, invoke("terminal_open", JSONObject().put("shellId", shell.id)).getString("id"))
+                    invoke("terminal_input", JSONObject().put("id",id).put("text","stty -echo; export JS_PTY_STATE=retained; printf '__JS_%s__\\n' READY\n"))
+                    withTimeout(8000) { app.terminals.sessions.first { list -> list.any { it.id == id && "__JS_READY__" in it.output } } }
+                    invoke("terminal_input", JSONObject().put("id",id).put("text","read answer; printf 'js-result:%s:%s\\n' \"\$JS_PTY_STATE\" \"\$answer\"\n"))
+                    invoke("terminal_input", JSONObject().put("id",id).put("text","interactive\n"))
+                    withTimeout(8000) { app.terminals.sessions.first { list -> list.any { it.id == id && "js-result:retained:interactive" in it.output } } }
+                    val status = invoke("terminal_status",JSONObject().put("id",id))
+                    assertTrue(status.getString("output").contains("js-result:retained:interactive"))
+                    assertTrue(status.getBoolean("active"))
+                    app.marketplace.disable(plugin)
+                    assertFalse(app.terminals.sessions.value.single { it.id == id }.active)
+                }
+            } finally {
+                if (app.marketplace.installed.value.single { it.id == plugin }.enabled) app.marketplace.disable(plugin)
+                if (old) app.marketplace.enable(plugin, setOf("workspace", "shell"))
+            }
+        }
+    }
+    @Test fun interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        runBlocking { app.systemExecution.setMode(TERMINAL_OWNER,ExecutionMode.APP) }
+        rule.waitUntil(15_000) { rule.onAllNodes(hasText("工作区：", substring = true) and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNode(hasText("工作区：", substring = true)).performClick()
+        rule.onNodeWithText("交互终端").performClick()
+        rule.onNodeWithTag("shell_command").performTextInput("stty -echo; export UI_PTY_STATE=retained; printf '__UI_%s__\\n' READY")
+        rule.onNodeWithText("发送输入").performClick()
+        rule.waitUntil(8000) { rule.onAllNodes(hasText("__UI_READY__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag("shell_command").performTextInput("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
+        rule.onNodeWithText("发送输入").performClick()
+        rule.waitUntil(8000) { rule.onAllNodes(hasText("ui-result:retained", substring=true)).fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag("terminal_output").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithText("Ctrl-C").assertIsDisplayed()
+        screenshot("workspace-interactive-pty")
+        rule.onNodeWithText("关闭终端").performClick()
+        rule.waitUntil(8000) { rule.onAllNodes(hasText("终端已关闭 ·", substring=true)).fetchSemanticsNodes().isNotEmpty() }
+    }
 }
