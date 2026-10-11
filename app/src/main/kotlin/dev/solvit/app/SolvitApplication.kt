@@ -31,6 +31,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var skills: SkillLibraryService
         private set
+    lateinit var modelCatalog: ModelCatalogService
+        private set
     override fun onCreate() {
         super.onCreate()
         settings = EncryptedSettingsStore(this)
@@ -48,6 +50,7 @@ class SolvitApplication : Application() {
                 marketplace = manager.registry.require(MarketplaceServiceKey)
                 roles = manager.registry.require(RoleServiceKey)
                 skills = manager.registry.require(SkillLibraryServiceKey)
+                modelCatalog = manager.registry.require(ModelCatalogServiceKey)
                 marketPlugin.service.restore()
                 mutableReady.value = Result.success(manager.registry.require(Services.Chat))
             } catch (e: Exception) {

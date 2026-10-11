@@ -8,7 +8,10 @@ import kotlinx.coroutines.flow.*
 import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null) : ViewModel() {
+class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null,
+    private val catalog: ModelCatalogService? = null) : ViewModel() {
+    suspend fun discoverModels(candidate: ModelConfig): List<AvailableModel> =
+        (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
     private val selected = MutableStateFlow<String?>(null)
     val sessionId = selected.asStateFlow()

@@ -20,7 +20,8 @@ private data class RestoredConfiguration(val model: ModelConfig, val roles: List
 
 private fun configurationJson(config: ModelConfig, roles: List<AgentRole>, theme: String, dynamic: Boolean): ByteArray = JSONObject()
     .put("format", 1).put("model", JSONObject().put("base", config.baseUrl).put("name", config.model)
-        .put("key", config.apiKey).put("prompt", config.systemPrompt))
+        .put("key", config.apiKey).put("prompt", config.systemPrompt)
+        .put("modelListUrl", config.modelListUrl).put("modelListUsesApiKey", config.modelListUsesApiKey))
     .put("roles", JSONArray(roles.map { role -> JSONObject().put("id", role.id).put("name", role.name).put("prompt", role.prompt)
         .put("plugins", JSONArray(role.pluginIds.sorted())).put("skills", JSONArray(role.skillIds.sorted())) }))
     .put("theme", theme).put("dynamic", dynamic).toString().toByteArray(Charsets.UTF_8)
@@ -29,7 +30,8 @@ private fun parseConfiguration(bytes: ByteArray): RestoredConfiguration {
     val root = JSONObject(bytes.toString(Charsets.UTF_8))
     require(root.getInt("format") == 1)
     val m = root.getJSONObject("model")
-    val model = ModelConfig(m.getString("base"), m.getString("name"), m.getString("key"), m.getString("prompt"))
+    val model = ModelConfig(m.getString("base"), m.getString("name"), m.getString("key"), m.getString("prompt"),
+        m.optString("modelListUrl", ""), m.optBoolean("modelListUsesApiKey", false))
     require(model.validate() == null)
     val entries = root.getJSONArray("roles")
     require(entries.length() <= 64)

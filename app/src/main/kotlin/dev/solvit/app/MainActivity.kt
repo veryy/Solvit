@@ -34,6 +34,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.solvit.core.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +55,7 @@ class MainActivity : ComponentActivity() {
                             val service = result!!.getOrThrow()
                             val factory = remember(service) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog) as T
                             } }
                             val vm: ChatViewModel = viewModel(factory = factory)
                             val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {
@@ -244,7 +246,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance)
     if (modelsOpen) ModelSettings(config, saving, error, onDismiss = { if (!saving) modelsOpen = false },
-        onSave = { vm.saveConfig(it) { modelsOpen = false } })
+        onSave = { vm.saveConfig(it) { modelsOpen = false } }, onFetchModels = vm::discoverModels)
     if (backupOpen) ConfigurationBackupDialog(vm, app.roles, app.appearance, onDismiss = { backupOpen = false })
     if (pluginsOpen) PluginMarketplaceDialog(marketplace, onDismiss = { pluginsOpen = false })
     if (agentsOpen) AgentLibraryDialog(agents, onDismiss = { agentsOpen = false })
@@ -277,14 +279,28 @@ private fun MessageCard(message: ChatMessage) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, onDismiss: () -> Unit, onSave: (ModelConfig) -> Unit) {
+private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, onDismiss: () -> Unit, onSave: (ModelConfig) -> Unit,
+    onFetchModels: suspend (ModelConfig) -> List<AvailableModel>) {
     // API keys deliberately do not use rememberSaveable / saved-instance state.
     var base by remember { mutableStateOf(config.baseUrl) }
     var model by remember { mutableStateOf(config.model) }
     var key by remember { mutableStateOf(config.apiKey) }
     var prompt by remember { mutableStateOf(config.systemPrompt) }
     var visible by remember { mutableStateOf(false) }
-    val candidate = ModelConfig(base.trim(), model.trim(), key.trim(), prompt)
+    var listUrl by remember { mutableStateOf(config.modelListUrl) }
+    var listAuth by remember { mutableStateOf(config.modelListUsesApiKey) }
+    var models by remember { mutableStateOf<List<AvailableModel>>(emptyList()) }
+    var fetching by remember { mutableStateOf(false) }
+    var fetchError by remember { mutableStateOf<String?>(null) }
+    var picker by remember { mutableStateOf(false) }
+    var search by remember { mutableStateOf("") }
+    var fetchJob by remember { mutableStateOf<Job?>(null) }
+    var fetchRevision by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(base, key, listUrl, listAuth) {
+        fetchRevision++; fetchJob?.cancel(); fetching = false; models = emptyList(); fetchError = null; picker = false
+    }
+    val candidate = ModelConfig(base.trim(), model.trim(), key.trim(), prompt, listUrl.trim(), listAuth)
     val invalid = candidate.validate()
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
@@ -304,6 +320,32 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
                     item { OutlinedTextField(model, { model = it }, label = { Text("模型名称") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
+                    item { OutlinedTextField(listUrl, { listUrl = it }, label = { Text("模型列表 / 订阅地址（可选）") },
+                        supportingText = { Text("留空时从 API 基础地址下的 /models 获取；也支持独立 JSON 模型列表地址。") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
+                    if (listUrl.isNotBlank()) item {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = listAuth, onCheckedChange = { listAuth = it }, enabled = !saving)
+                            Text("向这个独立列表地址发送当前 API Key", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilledTonalButton(enabled = !saving && !fetching && candidate.validateConnection() == null, onClick = {
+                            fetching = true; fetchError = null
+                            val revision = ++fetchRevision
+                            fetchJob = scope.launch {
+                                try { val result = onFetchModels(candidate); if (revision == fetchRevision) { models = result; search = ""; picker = true } }
+                                catch (e: CancellationException) { throw e }
+                                catch (e: ModelException) { if (revision == fetchRevision) fetchError = e.message }
+                                catch (e: Exception) { if (revision == fetchRevision) fetchError = "获取模型失败，请检查地址、密钥和网络" }
+                                finally { if (revision == fetchRevision) fetching = false }
+                            }
+                        }) { Text(if (fetching) "正在获取…" else "获取模型") }
+                        if (fetching) TextButton(onClick = { fetchRevision++; fetchJob?.cancel(); fetching = false }) { Text("取消") }
+                        else if (models.isNotEmpty()) TextButton(onClick = { picker = true }) { Text("选择模型 (${models.size})") }
+                    } }
+                    if (fetching) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
+                    if (fetchError != null) item { Text(fetchError!!, color = MaterialTheme.colorScheme.error) }
                     item { OutlinedTextField(key, { key = it }, label = { Text("API Key") }, modifier = Modifier.fillMaxWidth(),
                         singleLine = true, enabled = !saving, visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = { IconButton(onClick = { visible = !visible }) { Icon(if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (visible) "隐藏密钥" else "显示密钥") } },
@@ -316,6 +358,18 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
             }
         }
     }
+    if (picker) AlertDialog(onDismissRequest = { picker = false }, title = { Text("选择模型") }, text = {
+        Column {
+            OutlinedTextField(search, { search = it }, label = { Text("搜索模型名称") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+            LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                items(models.filter { it.id.contains(search, true) || it.name.contains(search, true) }, key = { it.id }) { item ->
+                    TextButton(onClick = { model = item.id; picker = false }, modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.fillMaxWidth()) { Text(item.name); if (item.name != item.id) Text(item.id, style = MaterialTheme.typography.bodySmall) }
+                    }
+                }
+            }
+        }
+    }, confirmButton = { TextButton(onClick = { picker = false }) { Text("关闭") } })
 }
 
 @Composable

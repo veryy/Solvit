@@ -35,28 +35,37 @@ class EncryptedSettingsStore(context: Context, private val keyProvider: (() -> S
         }.generateKey()
     }
     override suspend fun load(): ModelConfig = withContext(Dispatchers.IO) {
-        fun configuration(apiKey: String) = ModelConfig(
+        fun configuration(apiKey: String, listUrl: String = "") = ModelConfig(
             prefs.getString("base", "https://api.openai.com/v1")!!,
             prefs.getString("model", "gpt-4o-mini")!!,
             apiKey,
             prefs.getString("prompt", "你是 Solvit，一个认真、可靠的 AI 助手。")!!,
+            listUrl, prefs.getBoolean("modelsAuth", false),
         )
-        val encoded = prefs.getString("key", null)
-        val apiKey = if (encoded == null) "" else try {
-            val iv = Base64.decode(prefs.getString("iv", null) ?: error("Missing encryption IV"), Base64.NO_WRAP)
+        fun decrypt(valueName: String, ivName: String): String {
+            val encoded = prefs.getString(valueName, null) ?: return ""
+            val iv = Base64.decode(prefs.getString(ivName, null) ?: error("Missing encryption IV"), Base64.NO_WRAP)
             val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv)) }
-            String(cipher.doFinal(Base64.decode(encoded, Base64.NO_WRAP)), Charsets.UTF_8)
-        } catch (e: Exception) {
-            throw SettingsDecryptionException(configuration(""), e)
+            return String(cipher.doFinal(Base64.decode(encoded, Base64.NO_WRAP)), Charsets.UTF_8)
         }
-        configuration(apiKey)
+        var apiKey = ""
+        try {
+            apiKey = decrypt("key", "iv")
+            configuration(apiKey, decrypt("modelsUrlCipher", "modelsUrlIv"))
+        } catch (e: Exception) {
+            throw SettingsDecryptionException(configuration(apiKey), e)
+        }
     }
     override suspend fun save(config: ModelConfig) = withContext(Dispatchers.IO) {
         config.validate()?.let { error(it) }
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
         val encoded = Base64.encodeToString(cipher.doFinal(config.apiKey.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
+        val listCipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key()) }
+        val listEncoded = Base64.encodeToString(listCipher.doFinal(config.modelListUrl.toByteArray(Charsets.UTF_8)), Base64.NO_WRAP)
         check(prefs.edit().putString("base", config.baseUrl.trimEnd('/')).putString("model", config.model)
             .putString("prompt", config.systemPrompt).putString("key", encoded)
-            .putString("iv", Base64.encodeToString(cipher.iv, Base64.NO_WRAP)).commit()) { "保存配置失败" }
+            .putString("iv", Base64.encodeToString(cipher.iv, Base64.NO_WRAP))
+            .putString("modelsUrlCipher", listEncoded).putString("modelsUrlIv", Base64.encodeToString(listCipher.iv, Base64.NO_WRAP))
+            .putBoolean("modelsAuth", config.modelListUsesApiKey).commit()) { "保存配置失败" }
     }
 }

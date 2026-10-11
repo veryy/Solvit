@@ -19,13 +19,16 @@ class SettingsPersistenceTest {
     @Before fun reset() { context.getSharedPreferences("model", 0).edit().clear().commit() }
     @Test fun recreationKeepsModelPromptAndEncryptedApiKey() = runBlocking<Unit> {
         val secret = key()
-        val config = ModelConfig("https://api.example.com/v1", "configured-model", "PRIVATE_API_KEY", "原始提示词")
+        val config = ModelConfig("https://api.example.com/v1", "configured-model", "PRIVATE_API_KEY", "原始提示词",
+            "https://list.example.com/models?token=PRIVATE_SUBSCRIPTION", true)
         EncryptedSettingsStore(context) { secret }.save(config)
         val loaded = EncryptedSettingsStore(context) { secret }.load()
         assertEquals(config.baseUrl, loaded.baseUrl); assertEquals(config.model, loaded.model)
         assertEquals(config.apiKey, loaded.apiKey); assertEquals(config.systemPrompt, loaded.systemPrompt)
+        assertEquals(config.modelListUrl, loaded.modelListUrl); assertTrue(loaded.modelListUsesApiKey)
         val prefs = context.getSharedPreferences("model", 0)
         assertFalse(prefs.all.values.any { it.toString().contains(config.apiKey) })
+        assertFalse(prefs.all.values.any { it.toString().contains("PRIVATE_SUBSCRIPTION") })
     }
     @Test fun missingDeviceKeyPreservesOtherFieldsAndDoesNotResetPersistence() = runBlocking<Unit> {
         val old = key(); val replacement = key()

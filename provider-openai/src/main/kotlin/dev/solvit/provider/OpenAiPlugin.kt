@@ -188,7 +188,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
 
 class OpenAiPlugin : SolvitPlugin {
     override val id = "builtin.provider.openai"
-    override val provides = setOf(Services.Model)
+    override val provides = setOf(Services.Model, ModelCatalogServiceKey)
     override suspend fun enable(context: PluginContext) {
         val client = OkHttpClient.Builder()
             .connectTimeout(20, TimeUnit.SECONDS)
@@ -203,5 +203,6 @@ class OpenAiPlugin : SolvitPlugin {
             client.dispatcher.executorService.shutdown()
         }
         context.register(Services.Model, OpenAiProvider(client))
+        context.register(ModelCatalogServiceKey, OpenAiModelCatalog(client))
     }
 }

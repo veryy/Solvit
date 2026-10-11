@@ -30,19 +30,35 @@ class ModelConfig(
     val model: String = "gpt-4o-mini",
     val apiKey: String = "",
     val systemPrompt: String = "你是 Solvit，一个认真、可靠的 AI 助手。",
+    val modelListUrl: String = "",
+    val modelListUsesApiKey: Boolean = false,
 ) {
     fun validate(): String? {
+        validateConnection()?.let { return it }
+        if (model.isBlank()) return "请输入模型名称或获取模型列表后选择"
+        return null
+    }
+    fun validateConnection(): String? {
         val uri = runCatching { URI(baseUrl) }.getOrNull() ?: return "API 地址格式不正确"
         if (uri.host.isNullOrBlank() || uri.userInfo != null || uri.query != null || uri.fragment != null)
             return "API 地址需为不含账号、查询参数的基础地址"
         val local = uri.host in setOf("localhost", "127.0.0.1", "10.0.2.2", "[::1]", "::1")
         if (uri.scheme != "https" && !(uri.scheme == "http" && local)) return "请使用 HTTPS；本地模型可使用 HTTP"
-        if (model.isBlank()) return "请输入模型名称"
         if (apiKey.any { it == '\r' || it == '\n' }) return "API Key 格式不正确"
+        if (modelListUrl.isNotBlank()) {
+            val list = runCatching { URI(modelListUrl) }.getOrNull() ?: return "模型列表地址格式不正确"
+            val listLocal = list.host in setOf("localhost", "127.0.0.1", "10.0.2.2", "[::1]", "::1")
+            if (list.host.isNullOrBlank() || list.userInfo != null || list.fragment != null || modelListUrl.length > 8192 ||
+                (list.scheme != "https" && !(list.scheme == "http" && listLocal))) return "模型列表地址需为 HTTPS；本地服务可使用 HTTP"
+        }
         return null
     }
     override fun toString() = "ModelConfig(model=$model, apiKey=<redacted>)"
 }
+
+data class AvailableModel(val id: String, val name: String = id, val owner: String? = null)
+interface ModelCatalogService { suspend fun models(config: ModelConfig): List<AvailableModel> }
+val ModelCatalogServiceKey = ServiceKey("model.catalog", ModelCatalogService::class)
 
 data class ModelRequest(
     val config: ModelConfig,
