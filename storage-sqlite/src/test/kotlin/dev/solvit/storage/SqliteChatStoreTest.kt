@@ -20,6 +20,37 @@ class SqliteChatStoreTest {
     @Before fun before() { context.deleteDatabase("solvit.db") }
     @After fun after() { context.deleteDatabase("solvit.db") }
 
+    @Test fun recentTasksPageBeyondOneHundredWithoutChangingConsumerOrder() = runBlocking<Unit> {
+        val target = PostTurnTarget("dev.solvit.memory", "1.2.0", "a".repeat(64))
+        SqliteChatStore(context).use { store ->
+            val session = store.createSession()
+            repeat(105) { index ->
+                val suffix = index.toString().padStart(3, '0')
+                store.append(ChatMessage("user-$suffix", session.id, Role.USER, "Preference $suffix"))
+                val turn = CompletedChatTurn("answer-$suffix", session.id, "user-$suffix", "answer-$suffix",
+                    null, null, null, null, "openai-compatible", "fixture", 1, listOf(target))
+                store.appendCompletedTurn(listOf(ChatMessage(turn.id, session.id, Role.ASSISTANT, "Saved")), turn)
+            }
+            val first = store.recentPostTurnJobs(limit = 100)
+            assertEquals(100, first.size)
+            assertEquals("answer-104", first.first().turn.id)
+            val cursor = first.last().let { PostTurnJobCursor(it.updatedAt, it.id) }
+            val second = store.recentPostTurnJobs(cursor, 100)
+            assertEquals(5, second.size)
+            assertEquals(105, (first + second).map { it.id }.toSet().size)
+            assertEquals("answer-000", second.last().turn.id)
+            assertEquals("answer-000", store.postTurnJobs(setOf(PostTurnJobStatus.WAITING), 1).single().turn.id)
+            val oldest = second.last()
+            assertTrue(store.claimPostTurnJob(oldest.id, 0, 2))
+            assertEquals(oldest.id, store.recentPostTurnJobs(limit = 1).single().id)
+            assertFailsWith<IllegalArgumentException> { store.recentPostTurnJobs(limit = 101) }
+            assertTrue(store.recentPostTurnJobs(PostTurnJobCursor(0, "end")).isEmpty())
+        }
+        SqliteChatStore(context).use { store ->
+            assertEquals("answer-000", store.recentPostTurnJobs(limit = 1).single().turn.id)
+        }
+    }
+
     @Test fun completedTurnAndReplyCommitAtomicallyAndSourcesSurviveRestart() = runBlocking<Unit> {
         lateinit var session: ChatSession
         lateinit var record: CompletedChatTurn

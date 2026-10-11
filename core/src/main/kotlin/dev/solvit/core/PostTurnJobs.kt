@@ -21,3 +21,8 @@ data class PostTurnJob(
     val updatedAt: Long,
     val failure: PostTurnFailure?,
 )
+
+/** A live listing cursor; task updates can move records to the first page. */
+data class PostTurnJobCursor(val updatedAt: Long, val id: String) {
+    init { require(updatedAt >= 0 && id.isNotBlank() && id.length <= 256) }
+}

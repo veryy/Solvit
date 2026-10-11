@@ -44,7 +44,7 @@ class PostTurnWorker(
         }
     }
     fun cancelCurrent() { active?.cancel() }
-    suspend fun jobs(): List<PostTurnJob> = store.postTurnJobs(PostTurnJobStatus.entries.toSet(), 100)
+    suspend fun jobs(before: PostTurnJobCursor? = null, limit: Int = 20): List<PostTurnJob> = store.recentPostTurnJobs(before, limit)
     suspend fun retry(id: String, attempt: Int): Boolean = store.retryPostTurnJob(id, attempt, now())
 
     suspend fun runNext(): Boolean {

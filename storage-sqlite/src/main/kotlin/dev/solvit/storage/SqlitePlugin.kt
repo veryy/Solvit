@@ -219,9 +219,15 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         val ordered = statuses.sortedBy { it.name }
         return read { db -> loadJobs(db, "j.status IN (${ordered.joinToString(",") { "?" }})", ordered.map { it.name }, limit) }
     }
+    override suspend fun recentPostTurnJobs(before: PostTurnJobCursor?, limit: Int): List<PostTurnJob> {
+        require(limit in 1..100)
+        val condition = if (before == null) "1=1" else "(j.updated_at<? OR (j.updated_at=? AND j.id<?))"
+        val arguments = before?.let { listOf(it.updatedAt.toString(), it.updatedAt.toString(), it.id) }.orEmpty()
+        return read { db -> loadJobs(db, condition, arguments, limit, newestFirst = true) }
+    }
     override suspend fun postTurnJob(id: String): PostTurnJob? = read { loadJobs(it, "j.id=?", listOf(id), 1).singleOrNull() }
-    private fun loadJobs(db: SQLiteDatabase, condition: String, arguments: List<String>, limit: Int): List<PostTurnJob> =
-            db.rawQuery("SELECT j.id,t.payload,j.plugin_id,j.version,j.digest,j.status,j.attempt,j.updated_at,j.failure FROM post_turn_jobs j JOIN completed_turns t ON t.id=j.turn_id WHERE $condition ORDER BY j.updated_at,j.id LIMIT ?",
+    private fun loadJobs(db: SQLiteDatabase, condition: String, arguments: List<String>, limit: Int, newestFirst: Boolean = false): List<PostTurnJob> =
+            db.rawQuery("SELECT j.id,t.payload,j.plugin_id,j.version,j.digest,j.status,j.attempt,j.updated_at,j.failure FROM post_turn_jobs j JOIN completed_turns t ON t.id=j.turn_id WHERE $condition ORDER BY j.updated_at ${if (newestFirst) "DESC" else "ASC"},j.id ${if (newestFirst) "DESC" else "ASC"} LIMIT ?",
                 (arguments + limit.toString()).toTypedArray()).use { c ->
                 buildList { while (c.moveToNext()) add(PostTurnJob(c.getString(0), decodeTurn(JSONObject(c.getString(1))),
                     PostTurnTarget(c.getString(2), c.getString(3), c.getString(4)), PostTurnJobStatus.valueOf(c.getString(5)),
