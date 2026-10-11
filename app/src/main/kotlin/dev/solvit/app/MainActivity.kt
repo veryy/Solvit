@@ -145,6 +145,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val agentBusy by agents.busy.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var memoryTasksOpen by rememberSaveable { mutableStateOf(false) }
     var diagnosticsOpen by rememberSaveable { mutableStateOf(false) }
     var permissionsOpen by rememberSaveable { mutableStateOf(false) }
     var modelsOpen by rememberSaveable { mutableStateOf(false) }
@@ -320,7 +321,8 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     }
     if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution, createOnOpen=workspaceCreateRequested) { workspaceOpen = false }
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
-        { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true }, { diagnosticsOpen = true })
+        { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true }, { diagnosticsOpen = true }, { memoryTasksOpen = true })
+    if (memoryTasksOpen) MemoryTasksScreen(app.postTurnWorker) { memoryTasksOpen = false }
     if (diagnosticsOpen) RequestDiagnosticsDialog(app.requestInspection, vm, app.contextPreparation) { diagnosticsOpen = false }
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace, app.toolApprovals) { permissionsOpen = false }
     if (modelsOpen) ModelProfilesScreen(app.modelProfiles, busy, onDismiss = { modelsOpen = false }, onFetchModels = vm::discoverModels, providers = app.modelProviders)

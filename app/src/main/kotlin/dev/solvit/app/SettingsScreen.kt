@@ -19,7 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: () -> Unit,
     onRoles: () -> Unit, onPlugins: () -> Unit, onBackup: () -> Unit, appearance: AppearanceStore, onPermissions: () -> Unit,
-    onDiagnostics: () -> Unit = {}) {
+    onDiagnostics: () -> Unit = {}, onMemoryTasks: () -> Unit = {}) {
     val languageStore = (LocalContext.current.applicationContext as SolvitApplication).language
     val language by languageStore.language.collectAsStateWithLifecycle()
     val update by updates.state.collectAsStateWithLifecycle()
@@ -60,6 +60,7 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
                     item { SettingsGroup("诊断") {
                         SettingsRow("最近请求诊断", "角色、上下文来源、工具与回复耗时", onDiagnostics)
                     } }
+                    item { SettingsGroup("记忆") { SettingsRow("自动记忆任务", "查看处理状态、失败原因与手动重试", onMemoryTasks) } }
                     item { SettingsGroup("语言") {
                         Row(Modifier.fillMaxWidth().testTag("language_settings").clickable { languageOpen = true }.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) { UiText("语言", style = MaterialTheme.typography.titleMedium); Text(uiLanguages.first { it.code == language }.label, style = MaterialTheme.typography.bodySmall) }

@@ -3958,5 +3958,229 @@
     "ko": "답변 후 명시적인 사용자 사실 자동 저장 (추가 모델 호출)",
     "es": "Guardar hechos explícitos del usuario tras responder (llamadas adicionales al modelo)",
     "fr": "Enregistrer les faits explicites après les réponses (appels supplémentaires au modèle)"
+  },
+  "自动记忆任务": {
+    "zh": "自动记忆任务",
+    "en": "Automatic memory tasks",
+    "ja": "自動メモリのタスク",
+    "ko": "자동 메모리 작업",
+    "es": "Tareas de memoria automática",
+    "fr": "Tâches de mémoire automatique"
+  },
+  "查看处理状态、失败原因与手动重试": {
+    "zh": "查看处理状态、失败原因与手动重试",
+    "en": "Status, failures and manual retry",
+    "ja": "処理状況・失敗理由・手動再試行",
+    "ko": "처리 상태, 실패 원인 및 수동 재시도",
+    "es": "Estado, errores y reintentos manuales",
+    "fr": "État, erreurs et relance manuelle"
+  },
+  "仅处理启用自动保存后完成的回复；重试可能产生额外模型费用。": {
+    "zh": "仅处理启用自动保存后完成的回复；重试可能产生额外模型费用。",
+    "en": "Only replies completed after enabling automatic saving are processed. Retries may incur model charges.",
+    "ja": "自動保存を有効にした後の完了済み返信のみ処理します。再試行にはモデル料金が発生する場合があります。",
+    "ko": "자동 저장을 켠 후 완료된 응답만 처리합니다. 재시도 시 모델 비용이 발생할 수 있습니다.",
+    "es": "Solo se procesan respuestas completadas tras activar el guardado automático. Los reintentos pueden generar costes.",
+    "fr": "Seules les réponses terminées après activation sont traitées. Les relances peuvent entraîner des frais."
+  },
+  "暂无自动记忆任务": {
+    "zh": "暂无自动记忆任务",
+    "en": "No automatic memory tasks",
+    "ja": "自動メモリのタスクはありません",
+    "ko": "자동 메모리 작업이 없습니다",
+    "es": "No hay tareas de memoria automática",
+    "fr": "Aucune tâche de mémoire automatique"
+  },
+  "等待处理": {
+    "zh": "等待处理",
+    "en": "Waiting",
+    "ja": "待機中",
+    "ko": "대기 중",
+    "es": "En espera",
+    "fr": "En attente"
+  },
+  "正在处理": {
+    "zh": "正在处理",
+    "en": "Processing",
+    "ja": "処理中",
+    "ko": "처리 중",
+    "es": "Procesando",
+    "fr": "En cours"
+  },
+  "处理完成": {
+    "zh": "处理完成",
+    "en": "Completed",
+    "ja": "完了",
+    "ko": "완료",
+    "es": "Completada",
+    "fr": "Terminée"
+  },
+  "处理失败": {
+    "zh": "处理失败",
+    "en": "Failed",
+    "ja": "失敗",
+    "ko": "실패",
+    "es": "Fallida",
+    "fr": "Échec"
+  },
+  "已跳过": {
+    "zh": "已跳过",
+    "en": "Skipped",
+    "ja": "スキップ済み",
+    "ko": "건너뜀",
+    "es": "Omitida",
+    "fr": "Ignorée"
+  },
+  "处理已中断，需要手动重试。": {
+    "zh": "处理已中断，需要手动重试。",
+    "en": "Interrupted; retry manually.",
+    "ja": "中断されました。手動で再試行してください。",
+    "ko": "중단되었습니다. 수동으로 재시도하세요.",
+    "es": "Interrumpida; reintenta manualmente.",
+    "fr": "Interrompue ; relancez manuellement."
+  },
+  "模型处理超时。": {
+    "zh": "模型处理超时。",
+    "en": "Model request timed out.",
+    "ja": "モデルの処理がタイムアウトしました。",
+    "ko": "모델 요청 시간이 초과되었습니다.",
+    "es": "La solicitud al modelo agotó el tiempo.",
+    "fr": "Délai du modèle dépassé."
+  },
+  "输入超过自动记忆预算。": {
+    "zh": "输入超过自动记忆预算。",
+    "en": "Input exceeds the automatic memory budget.",
+    "ja": "入力が自動メモリの予算を超えています。",
+    "ko": "입력이 자동 메모리 예산을 초과합니다.",
+    "es": "La entrada supera el límite de memoria automática.",
+    "fr": "La saisie dépasse le budget de mémoire automatique."
+  },
+  "模型请求失败。": {
+    "zh": "模型请求失败。",
+    "en": "Model request failed.",
+    "ja": "モデルへのリクエストに失敗しました。",
+    "ko": "모델 요청에 실패했습니다.",
+    "es": "Falló la solicitud al modelo.",
+    "fr": "Échec de la requête au modèle."
+  },
+  "模型输出不符合记忆格式。": {
+    "zh": "模型输出不符合记忆格式。",
+    "en": "Model output has an invalid memory format.",
+    "ja": "モデル出力のメモリ形式が無効です。",
+    "ko": "모델 출력의 메모리 형식이 잘못되었습니다.",
+    "es": "El formato de memoria del modelo no es válido.",
+    "fr": "Format de mémoire du modèle invalide."
+  },
+  "记忆存储失败或达到容量限制。": {
+    "zh": "记忆存储失败或达到容量限制。",
+    "en": "Memory storage failed or reached its limit.",
+    "ja": "メモリの保存に失敗したか、容量上限に達しました。",
+    "ko": "메모리 저장에 실패했거나 용량 한도에 도달했습니다.",
+    "es": "Falló el almacenamiento o se alcanzó su límite.",
+    "fr": "Échec du stockage ou limite atteinte."
+  },
+  "插件授权已失效。": {
+    "zh": "插件授权已失效。",
+    "en": "Plugin permission is no longer valid.",
+    "ja": "プラグインの権限が無効になりました。",
+    "ko": "플러그인 권한이 유효하지 않습니다.",
+    "es": "El permiso del complemento ya no es válido.",
+    "fr": "Autorisation du plugin invalide."
+  },
+  "插件版本已变化。": {
+    "zh": "插件版本已变化。",
+    "en": "Plugin version changed.",
+    "ja": "プラグインのバージョンが変更されました。",
+    "ko": "플러그인 버전이 변경되었습니다.",
+    "es": "Cambió la versión del complemento.",
+    "fr": "La version du plugin a changé."
+  },
+  "原模型配置不可用。": {
+    "zh": "原模型配置不可用。",
+    "en": "Original model configuration is unavailable.",
+    "ja": "元のモデル設定は利用できません。",
+    "ko": "원래 모델 설정을 사용할 수 없습니다.",
+    "es": "La configuración original del modelo no está disponible.",
+    "fr": "Configuration initiale du modèle indisponible."
+  },
+  "重试自动记忆": {
+    "zh": "重试自动记忆",
+    "en": "Retry automatic memory",
+    "ja": "自動メモリを再試行",
+    "ko": "자동 메모리 재시도",
+    "es": "Reintentar memoria automática",
+    "fr": "Relancer la mémoire automatique"
+  },
+  "将使用原模型配置重新尝试，可能产生额外费用。权限、角色和插件状态会重新检查。": {
+    "zh": "将使用原模型配置重新尝试，可能产生额外费用。权限、角色和插件状态会重新检查。",
+    "en": "Retries use the original model configuration and may incur charges. Permissions, role and plugin status are checked again.",
+    "ja": "元のモデル設定で再試行します。追加料金が発生する場合があります。権限・役割・プラグイン状態を再確認します。",
+    "ko": "원래 모델 설정으로 재시도하며 추가 비용이 발생할 수 있습니다. 권한, 역할, 플러그인 상태를 다시 확인합니다.",
+    "es": "Se usará la configuración original y puede haber costes. Se comprobarán de nuevo permisos, rol y complemento.",
+    "fr": "La configuration initiale sera utilisée ; des frais sont possibles. Les droits, le rôle et le plugin seront revérifiés."
+  },
+  "确认重试": {
+    "zh": "确认重试",
+    "en": "Confirm retry",
+    "ja": "再試行を確認",
+    "ko": "재시도 확인",
+    "es": "Confirmar reintento",
+    "fr": "Confirmer la relance"
+  },
+  "任务状态已变化或已达重试上限，请刷新查看。": {
+    "zh": "任务状态已变化或已达重试上限，请刷新查看。",
+    "en": "Task changed or retry limit reached. Refresh to check.",
+    "ja": "タスクが変更されたか再試行上限に達しました。更新してください。",
+    "ko": "작업이 변경되었거나 재시도 한도에 도달했습니다. 새로고침하세요.",
+    "es": "La tarea cambió o alcanzó el límite. Actualiza para comprobar.",
+    "fr": "La tâche a changé ou la limite est atteinte. Actualisez."
+  },
+  "无法读取记忆任务，请刷新重试。": {
+    "zh": "无法读取记忆任务，请刷新重试。",
+    "en": "Could not load memory tasks. Refresh to retry.",
+    "ja": "メモリのタスクを読み込めません。更新してください。",
+    "ko": "메모리 작업을 불러올 수 없습니다. 새로고침하세요.",
+    "es": "No se pudieron cargar las tareas. Actualiza.",
+    "fr": "Impossible de charger les tâches. Actualisez."
+  },
+  "无法重试记忆任务，请稍后重试。": {
+    "zh": "无法重试记忆任务，请稍后重试。",
+    "en": "Could not retry the memory task. Try later.",
+    "ja": "メモリのタスクを再試行できません。後でお試しください。",
+    "ko": "메모리 작업을 재시도할 수 없습니다. 나중에 시도하세요.",
+    "es": "No se pudo reintentar. Prueba más tarde.",
+    "fr": "Impossible de relancer. Réessayez plus tard."
+  },
+  "尝试次数：{0}/3": {
+    "zh": "尝试次数：{0}/3",
+    "en": "Attempts: {0}/3",
+    "ja": "試行回数：{0}/3",
+    "ko": "시도 횟수: {0}/3",
+    "es": "Intentos: {0}/3",
+    "fr": "Tentatives : {0}/3"
+  },
+  "会话 ID：{0}": {
+    "zh": "会话 ID：{0}",
+    "en": "Session ID: {0}",
+    "ja": "セッション ID：{0}",
+    "ko": "세션 ID: {0}",
+    "es": "ID de sesión: {0}",
+    "fr": "ID de session : {0}"
+  },
+  "来源消息：{0}": {
+    "zh": "来源消息：{0}",
+    "en": "Source message: {0}",
+    "ja": "元のメッセージ：{0}",
+    "ko": "출처 메시지: {0}",
+    "es": "Mensaje de origen: {0}",
+    "fr": "Message source : {0}"
+  },
+  "回复消息：{0}": {
+    "zh": "回复消息：{0}",
+    "en": "Reply message: {0}",
+    "ja": "返信メッセージ：{0}",
+    "ko": "응답 메시지: {0}",
+    "es": "Mensaje de respuesta: {0}",
+    "fr": "Message de réponse : {0}"
   }
 }
