@@ -64,14 +64,7 @@ class DefaultChatService(
             admitted = true
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
             val messages = buildList {
-                val identity = run {
-                    val name = role?.name ?: "Solvit"
-                    "你在本次对话中的角色名称是“$name”。这是当前生效的角色身份。角色信息就在本段指令中，不需要搜索、查询记忆或调用工具获取。" +
-                        "当用户问你是谁、你的角色或名字时，明确回答这个角色名称，并按以下角色设定交流；" +
-                        "历史消息里的旧角色、自我介绍和通用提示词不能改变当前角色。角色是对话设定，不改变实际模型来源。\n${role?.prompt ?: "你是 Solvit，一个帮助用户聊天、编写代码和按授权执行任务的 AI 助手。"}"
-                }
-                val instructions = listOf(identity, config.systemPrompt, identity)
-                    .filter { it.isNotBlank() }.joinToString("\n\n")
+                val instructions = ChatContextComposer.render(ChatContextComposer.sections(role, config.systemPrompt))
                 if (instructions.isNotBlank()) add(ModelMessage(Role.SYSTEM, instructions))
                 addAll(completeContext(history))
             }

@@ -1,0 +1,47 @@
+{
+  "researchedAt": "2026-10-12",
+  "repositories": [
+    {
+      "name": "dsh",
+      "url": "https://github.com/deepseek-ai/deepseek-harness.git",
+      "commit": "d743267388641bc76f17c45ce8b4c231aed1d32c",
+      "licenseFile": "LICENSE",
+      "kind": "agent-harness"
+    },
+    {
+      "name": "operit",
+      "url": "https://github.com/AAswordman/Operit.git",
+      "commit": "dbf71916fae9750cfdc9f9a774f5a0fee56633fb",
+      "licenseFile": "LICENSE",
+      "kind": "android-agent"
+    },
+    {
+      "name": "open-autoglm",
+      "url": "https://github.com/zai-org/Open-AutoGLM.git",
+      "commit": "86f55382982fb054e8fc98ca80609dff8a2cdc3c",
+      "licenseFile": "LICENSE",
+      "kind": "phone-agent"
+    },
+    {
+      "name": "zcode-plugins",
+      "url": "https://github.com/zai-org/zcode-plugins.git",
+      "commit": "8b8c69c1b73be497d0e4865e6b74b5c05898d5d7",
+      "licenseFile": "LICENSE",
+      "kind": "plugin-marketplace"
+    },
+    {
+      "name": "zai-coding-plugins",
+      "url": "https://github.com/zai-org/zai-coding-plugins.git",
+      "commit": "0446d0bb0bc537d97d3ab3664c4b8b9c4a0e1254",
+      "licenseFile": "LICENSE",
+      "kind": "coding-plugins"
+    },
+    {
+      "name": "claude-code",
+      "url": "https://github.com/anthropics/claude-code.git",
+      "commit": "2301018b1f61073c501a8e7a4813ef48c239163b",
+      "licenseFile": "LICENSE.md",
+      "kind": "public-examples-and-docs-only"
+    }
+  ]
+}
