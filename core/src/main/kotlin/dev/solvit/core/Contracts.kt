@@ -17,7 +17,8 @@ data class ChatMessage(
     val reasoning: String = "",
     val toolStage: ToolStage? = null,
 )
-data class ChatSession(val id: String, val title: String, val updatedAt: Long)
+data class ChatSession(val id: String, val title: String, val updatedAt: Long,
+    val originSessionId: String? = null, val originMessageId: String? = null)
 data class ToolCall(val id: String, val name: String, val argumentsJson: String)
 data class ModelMessage(
     val role: Role,
@@ -100,6 +101,8 @@ interface ChatStore {
     fun sessions(): Flow<List<ChatSession>>
     fun messages(sessionId: String): Flow<List<ChatMessage>>
     suspend fun createSession(): ChatSession
+    /** Implementations must copy a stable prefix atomically, with fresh message IDs. */
+    suspend fun forkSession(sessionId: String, point: BranchPoint): ChatSession = error("当前存储不支持聊天分支")
     suspend fun history(sessionId: String): List<ChatMessage>
     suspend fun append(message: ChatMessage)
     suspend fun appendBatch(messages: List<ChatMessage>) { messages.forEach { append(it) } }
