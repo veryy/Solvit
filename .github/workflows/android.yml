@@ -57,6 +57,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: solvit-debug-apk
@@ -67,13 +68,16 @@ jobs:
             const fs = require('fs');
             const tag = context.ref.replace('refs/tags/', '');
             const body = `APK 由 GitHub Actions 构建，测试与 Lint 通过。\n\n构建：https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n下载 solvit-debug.apk 安装。0.1.1 起使用固定签名；早期 0.1.0 的临时签名不能覆盖安装。尚未进行真机和真实模型验证。`;
+            const notesPath = `docs/release-${tag.slice(1)}.md`;
+            const notes = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : '';
+            const releaseBody = notes ? `${notes}\n\n${body}` : body;
             let release;
             try {
               release = (await github.rest.repos.getReleaseByTag({...context.repo, tag})).data;
             } catch (error) {
               if (error.status !== 404) throw error;
               release = (await github.rest.repos.createRelease({...context.repo, tag_name: tag,
-                name: `Solvit ${tag}`, body, draft: true, prerelease: false})).data;
+                name: `Solvit ${tag}`, body: releaseBody, draft: true, prerelease: false})).data;
             }
             const bytes = fs.readFileSync('apk/app-debug.apk');
             const assets = (await github.rest.repos.listReleaseAssets({...context.repo, release_id: release.id})).data;

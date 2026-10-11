@@ -60,7 +60,7 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 ## 当前边界
 
-当前已发布版本提供基础聊天和更新检查。当前源码已接入 [插件市场](https://solvit.207.57.126.73.sslip.io/)、JS 包下载校验、安装启停、权限授予和手动工具试运行；新版仍在远程构建验证，尚未发布为 APK。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
+当前已发布版本提供基础聊天和更新检查。0.2.0 已接入 [插件市场](https://solvit.207.57.126.73.sslip.io/)、JS 包下载校验、安装启停、权限授予和手动工具试运行；测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
 
 Shell、手机控制、模型工具调用循环、MCP、向量记忆、附件、Markdown 排版和后台持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
 
