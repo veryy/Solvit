@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -245,15 +246,19 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                     Text(if (missingRole) "角色已删除 · 重新选择" else "角色：${activeRole?.name ?: "默认"} · 管理角色与 Skills")
                 }
             if (messages.isEmpty() && !busy) {
-                Column(Modifier.weight(1f).fillMaxWidth().padding(32.dp), verticalArrangement = Arrangement.Center) {
-                    Icon(Icons.Default.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
-                    Spacer(Modifier.height(20.dp))
-                    Text("从一个想法开始", style = MaterialTheme.typography.headlineLarge)
-                    Spacer(Modifier.height(12.dp))
-                    Text("一起整理思路、解答问题，\n让复杂的事情变得清晰。", style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(Modifier.height(24.dp))
-                    OutlinedButton(onClick = { settingsOpen = true }) { Text("配置你的模型") }
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    val expanded = maxHeight >= 240.dp
+                    Column(Modifier.padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(if (expanded) 12.dp else 4.dp)) {
+                        Icon(painterResource(R.drawable.ic_solvit_monochrome), null,
+                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(if (expanded) 80.dp else 48.dp))
+                        if (maxHeight >= 100.dp) Text("从一个想法开始", style = if (expanded) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleMedium)
+                        if (expanded) {
+                            Text("一起整理思路、解答问题", style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            OutlinedButton(onClick = { hideInput(); modelsOpen = true }) { Text("配置你的模型") }
+                        }
+                    }
                 }
             } else {
                 LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth(),
