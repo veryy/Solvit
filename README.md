@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.17.0](https://github.com/veryy/Solvit/releases/tag/v0.17.0) 新增已保存记忆的自动检索、原生开关与每步上下文刷新；保留浏览器搜索、实际请求诊断、角色和流式修复。验证范围见 [版本说明](docs/release-0.17.0.md)，未完成范围见 [完整产品进度](docs/product-roadmap.md)。
+[0.18.0](https://github.com/veryy/Solvit/releases/tag/v0.18.0) 新增全请求上下文预算、输出预留、工具结果投影裁剪和可查看的持久历史摘要；保留已保存记忆自动检索、浏览器搜索与流式诊断。验证范围见 [版本说明](docs/release-0.18.0.md)，未完成范围见 [完整产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 

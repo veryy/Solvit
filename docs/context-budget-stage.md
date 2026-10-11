@@ -20,3 +20,10 @@
 ## 验证状态
 
 仅使用 GitHub Actions 远程构建与测试。新增规划边界、原始转录/工具成本、摘要保存与重启、分批、失败/过大/并发变更、取消、原始输出保留、加密配置/备份及实际 Android 模型请求回归。候选提交 `74e9046` 的 [远程验证](https://github.com/veryy/Solvit/actions/runs/38171706314) 通过：179 个单元测试、31 个模拟器测试（均无失败、错误或跳过）、Lint、APK 和固定签名检查。标签发布及插件/公网搜索门禁另行记录；不能据此宣称真实模型摘要质量、真机性能或后台长期记忆已验证。
+
+
+## 0.18.0 发布证据
+
+[标签运行 38172527497](https://github.com/veryy/Solvit/actions/runs/38172527497) completed/success，提交 `a24386c6b11c17dbfdf420edaa01eb8b9d4f6640`。已下载标签报告核对 179 个单元及 31 个模拟器测试，均无失败、错误或跳过；Lint、APK、固定签名、TS/市场、公网搜索及发布门禁全部通过。
+
+[Release](https://github.com/veryy/Solvit/releases/tag/v0.18.0) 与 [APK](https://github.com/veryy/Solvit/releases/download/v0.18.0/solvit-debug.apk) 已实际核对：非草稿，APK HTTP 200、22,694,707 字节，与 Release 资产一致，SHA-256 为 `702794d25a34f473a963dd578b240e2c0f2f1c5e2fe40c4d5265448cc0691a88`。固定证书和旧 APK 覆盖升级门禁通过，`gradlew` 仍为 100755。真实模型摘要质量、真机性能、后台长期记忆及工作区执行日志继续推进。

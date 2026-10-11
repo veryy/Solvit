@@ -111,3 +111,8 @@ TS 插件接口按阶段增加提示段贡献、受限的 `afterTurn`、工具�
 - Operit：[上下文与角色组装](https://github.com/AAswordman/Operit/blob/dbf71916fae9750cfdc9f9a774f5a0fee56633fb/app/src/main/java/com/ai/assistance/operit/api/chat/enhance/ConversationService.kt)、[记忆候选调度](https://github.com/AAswordman/Operit/blob/main/app/src/main/java/com/ai/assistance/operit/api/chat/library/MemoryAutoSaveScheduler.kt)、[渲染刷新协调器](https://github.com/AAswordman/Operit/blob/main/app/src/main/java/com/ai/assistance/operit/ui/common/markdown/RenderBatchCoordinator.kt)、[搜索脚本](https://github.com/AAswordman/Operit/blob/main/examples/various_search.ts)、[许可证](https://github.com/AAswordman/Operit/blob/main/LICENSE)。
 - Claude Code：[执行方式](https://code.claude.com/docs/en/how-claude-code-works)、[项目规则与自动记忆](https://code.claude.com/docs/en/memory)、[插件](https://code.claude.com/docs/en/plugins)、[仓库许可证](https://github.com/anthropics/claude-code/blob/main/LICENSE.md)。
 - 智谱：[Open-AutoGLM 步骤实现](https://github.com/zai-org/Open-AutoGLM/blob/86f55382982fb054e8fc98ca80609dff8a2cdc3c/phone_agent/agent.py)、[ZCode 插件市场](https://github.com/zai-org/zcode-plugins)、[官方编码插件](https://github.com/zai-org/zai-coding-plugins)。
+
+
+## 0.18.0 后的实施落点
+
+全请求预算和持久摘要已发布，证据见 [上下文阶段](context-budget-stage.md)。估计仍非 Provider 实测 usage，真实模型摘要质量未验收。下一步按 Operit 的持久候选、资料空间分组、受限批次与失败状态推进后台长期记忆；按 DSH 的步骤记录补齐工作区执行证据及进程中断后的状态。仍保留真实模型角色/流式、搜索回答引用和真机任务验收，不以这次门禁代替。完整动态 Hook 与 Claude 原生签名前缀的组合需要单独回归，不宣称现有预算保护已解决这项问题。
