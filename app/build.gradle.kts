@@ -28,6 +28,7 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(project(":workspace-android"))
+    implementation(project(":web-android"))
     implementation(project(":terminal-android"))
     implementation(project(":provider-openai"))
     implementation(project(":provider-anthropic"))

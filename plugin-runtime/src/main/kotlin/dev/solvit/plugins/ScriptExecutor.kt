@@ -42,7 +42,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     val arguments = Json.parseToJsonElement(args[1] as String).jsonObject
                     val permission = when (operation) {
                         "storage.get", "storage.set" -> "storage"
-                        "http.request" -> "network"
+                        "http.request", "web.visit" -> "network"
                         "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
                         "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
@@ -54,6 +54,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(operation != "clock.now" || pkg.manifest.apiVersion >= 3) { "当前时间服务需要 API 3" }
                     check(!operation.startsWith("workspace.") && !operation.startsWith("plugins.") || pkg.manifest.apiVersion >= 4) { "工作区与插件开发需要 API 4" }
                     check(!operation.startsWith("terminal.") || pkg.manifest.apiVersion >= 5) { "交互终端需要 API 5" }
+                    check(operation != "web.visit" || pkg.manifest.apiVersion >= 6) { "浏览器观察需要 API 6" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
@@ -78,6 +79,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             get: async key => JSON.parse(await __solvitHostCall('storage.get', JSON.stringify({key}))),
                             set: async (key,value) => JSON.parse(await __solvitHostCall('storage.set', JSON.stringify({key,value})))
                           }),
+                          web: Object.freeze({ visit: async url => JSON.parse(await __solvitHostCall('web.visit', JSON.stringify({url}))) }),
                           http: Object.freeze({
                             request: async options => JSON.parse(await __solvitHostCall('http.request', JSON.stringify(options)))
                           })
@@ -195,6 +197,7 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
         if (pkg.manifest.hooks.isNotEmpty()) add(ContextHookServiceKey)
         if (pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }) add(WorkspaceServiceKey)
         if (pkg.manifest.apiVersion >= 5 && "shell" in pkg.manifest.permissions) add(TerminalServiceKey)
+        if (pkg.manifest.apiVersion >= 6 && "network" in pkg.manifest.permissions) add(WebPageServiceKey)
     }
     override suspend fun enable(context: PluginContext) {
         val executor = ScriptExecutor(pkg, host)

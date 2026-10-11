@@ -7,10 +7,10 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class ScriptRuntimeTest {
-    private fun pkg(source: String, permissions: List<String> = emptyList(), hook: Boolean = false): ScriptPackage {
+    private fun pkg(source: String, permissions: List<String> = emptyList(), hook: Boolean = false, apiVersion: Int = if (hook) 3 else 1): ScriptPackage {
         val payload = buildJsonObject {
             putJsonObject("manifest") {
-                put("id", "test.plugin"); put("name", "Test"); put("description", "Runtime test"); put("version", "1.0.0"); put("apiVersion", if (hook) 3 else 1)
+                put("id", "test.plugin"); put("name", "Test"); put("description", "Runtime test"); put("version", "1.0.0"); put("apiVersion", apiVersion)
                 if (hook) put("hooks", JsonArray(listOf(JsonPrimitive("beforeModel"))))
                 put("permissions", JsonArray(permissions.map(::JsonPrimitive)))
                 put("dependencies", JsonArray(emptyList()))
@@ -24,6 +24,24 @@ class ScriptRuntimeTest {
     }
 
     private val deniedHost = ScriptHost { _, _, _ -> error("Host should not be called") }
+
+    @Test fun browserBridgeRequiresApiSixAndDeclaredNetworkPermission() = runBlocking<Unit> {
+        val source = "globalThis.solvitPlugin={tools:{echo:async(args,ctx)=>await ctx.web.visit(args.url)}};"
+        for ((api, permissions) in listOf(5 to listOf("network"), 6 to emptyList())) {
+            val executor = ScriptExecutor(pkg(source, permissions, apiVersion = api), deniedHost)
+            executor.start()
+            try { assertFailsWith<IllegalStateException> { executor.execute("echo", """{"url":"https://example.org"}""") } }
+            finally { executor.stop() }
+        }
+        val executor = ScriptExecutor(pkg(source, listOf("network"), apiVersion = 6), ScriptHost { _, operation, args ->
+            assertEquals("web.visit", operation)
+            assertEquals("https://example.org", args.getValue("url").jsonPrimitive.content)
+            buildJsonObject { put("text", "browser content") }
+        })
+        executor.start()
+        try { assertEquals("browser content", Json.parseToJsonElement(executor.execute("echo", """{"url":"https://example.org"}""")).jsonObject.getValue("text").jsonPrimitive.content) }
+        finally { executor.stop() }
+    }
 
     @Test fun executesAsyncJavaScriptAndPreservesArgumentsAsData() = runBlocking<Unit> {
         val executor = ScriptExecutor(pkg("globalThis.solvitPlugin={tools:{echo: async args => args}};"), deniedHost)

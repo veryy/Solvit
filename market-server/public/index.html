@@ -12,7 +12,7 @@ body{font:16px system-ui,sans-serif;background:#f6f8f2;color:#24351e;max-width:8
 <script type="module">
 const status=document.querySelector('#status');
 try {
- const response=await fetch('/api/v1/plugins?hostApi=5');
+ const response=await fetch('/api/v1/plugins?hostApi=6');
  if(!response.ok)throw new Error('HTTP '+response.status);
  const catalog=await response.json();
  status.textContent=`${catalog.plugins.length} 个插件`;

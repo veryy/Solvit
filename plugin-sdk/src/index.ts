@@ -2,6 +2,9 @@
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
 export interface PluginContext {
+  /** API 6: anonymous Android browser observation; requires network permission. */
+  readonly web?: { visit(url: string): Promise<{ url: string; title: string; text: string; truncated: boolean;
+    links: { url: string; title: string; snippet: string }[] }> };
   /** API 5: persistent Android PTY, scoped to the approved chat/plugin/role. */
   readonly terminal?: { call(operation: 'open' | 'status' | 'input' | 'interrupt' | 'close', args: JsonObject): Promise<JsonValue> };
   /** Optional on hosts older than Solvit 0.7.0; use JS Date as a UTC fallback. */
@@ -32,7 +35,7 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6;
   hooks?: ('beforeModel')[];
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret'; required?: boolean }[];
   permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins')[];
