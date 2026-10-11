@@ -16,6 +16,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import androidx.lifecycle.viewModelScope
 import dev.solvit.chat.DefaultChatService
 import org.json.JSONObject
@@ -71,7 +73,19 @@ class ChatLayoutTest {
         val app = rule.activity.application as SolvitApplication
         val advance = CompletableDeferred<Unit>()
         val finish = CompletableDeferred<Unit>()
-        val store = SqliteChatStore(app)
+        // A pending model must not hold a second helper on the app's shared database.
+        // The real runtime and UI still run; storage is replaced through its interface.
+        val store = object : ChatStore {
+            val stored = MutableStateFlow<List<ChatMessage>>(emptyList())
+            val session = ChatSession("stream-fixture", "Stream fixture", 0)
+            override fun sessions() = flow { emit(listOf(session)) }
+            override fun messages(sessionId: String) = stored.map { list -> list.filter { it.sessionId == sessionId } }
+            override suspend fun createSession() = session
+            override suspend fun history(sessionId: String) = stored.value.filter { it.sessionId == sessionId }
+            override suspend fun append(message: ChatMessage) { stored.value += message }
+            override suspend fun appendBatch(messages: List<ChatMessage>) { stored.value += messages }
+            override suspend fun deleteSession(sessionId: String) { stored.value = stored.value.filterNot { it.sessionId == sessionId } }
+        }
         val agent = object : AgentRuntime {
             override fun run(request: ModelRequest) = flow {
                 emit(ModelChunk.Text("live-first-token"))
@@ -118,9 +132,14 @@ class ChatLayoutTest {
             finish.complete(Unit)
             rule.waitUntil(8000) { !vm.busy.value }
             rule.onNodeWithTag("streaming_body").assertDoesNotExist()
+        } catch (e: Exception) {
+            screenshot("chat-live-stream-failure")
+            throw AssertionError(rule.onRoot().printToString(), e)
         } finally {
+            advance.complete(Unit); finish.complete(Unit)
+            rule.runOnUiThread { vm.stop() }
+            rule.waitUntil(8000) { !vm.busy.value }
             rule.runOnUiThread { listOf(vm,agents,workspaces,updates,market).forEach { it.viewModelScope.cancel() } }
-            store.close()
         }
     }
     @Test fun applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist() {
@@ -402,6 +421,8 @@ class ChatLayoutTest {
             throw AssertionError("PTY UI state=" + app.terminals.sessions.value.filter { it.owner == TERMINAL_OWNER } +
                 "\n" + rule.onRoot().printToString(), e)
         }
+        rule.onNodeWithTag("terminal_keys").performScrollTo().performTextInput("printf '__RAW_%s__\\n' KEYS\n")
+        rule.waitUntil(8000) { rule.onAllNodes(hasText("__RAW_KEYS__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("terminal_output").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("Ctrl-C").performScrollTo().assertIsDisplayed()
         screenshot("workspace-interactive-pty")

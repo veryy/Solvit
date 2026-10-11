@@ -37,6 +37,6 @@ fun ChatTimeline(rows: List<ChatRow>, sessionId: String?, modifier: Modifier = M
         contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         items(rows, key = { it.id }) { ChatBubble(it, onBranch) }
         if (footer != null) item(key = "create-workspace") { footer() }
-        item(key = "stream-tail") { Spacer(Modifier.height(1.dp).testTag("chat_tail")) }
+        item(key = "stream-tail") { Spacer(Modifier.fillMaxWidth().height(1.dp).testTag("chat_tail")) }
     }
 }

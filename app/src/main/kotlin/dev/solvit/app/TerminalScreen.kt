@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.*
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,13 +61,17 @@ fun TerminalScreen(session: TerminalSession, onKey: (String) -> Unit) {
                 }
             }
             // This sends keys immediately, without waiting for the line composer.
-            var keys by remember(session.id) { mutableStateOf("") }
+            var keys by remember(session.id) { mutableStateOf(TextFieldValue()) }
             BasicTextField(keys, onValueChange = { value ->
-                if (value.isNotEmpty()) onKey(value)
-                keys = ""
+                // Never send an IME's unfinished composition as shell input.
+                if (value.composition != null) keys = value
+                else {
+                    if (value.text.isNotEmpty()) onKey(value.text)
+                    keys = TextFieldValue()
+                }
             }, textStyle = TextStyle(color = Color.White, fontFamily = FontFamily.Monospace),
                 modifier = Modifier.fillMaxWidth().heightIn(min=36.dp).testTag("terminal_keys"),
-                decorationBox = { inner -> Box(Modifier.padding(6.dp)) { if (keys.isEmpty()) Text("点击直接输入按键", color = Color(0xffaaaaaa), fontSize = 12.sp); inner() } })
+                decorationBox = { inner -> Box(Modifier.padding(6.dp)) { if (keys.text.isEmpty()) Text("点击直接输入按键", color = Color(0xffaaaaaa), fontSize = 12.sp); inner() } })
         }
     }
 }
