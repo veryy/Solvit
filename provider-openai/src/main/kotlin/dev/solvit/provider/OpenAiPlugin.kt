@@ -50,6 +50,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
         val httpRequest = http.build()
         val diagnostics = ResponseDiagnostics(request.config, httpRequest.url)
         var lastResponse: ModelErrorDetails? = null
+        var hasText = false
         val call = client.newCall(httpRequest)
         coroutineScope {
             // Cancels the blocking SSE read when the collecting coroutine is cancelled.
@@ -76,7 +77,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                         checkFinishReason(reason)
                         val message = choice["message"]?.jsonObject ?: throw ModelException("响应缺少 message")
                         val text = message["content"]?.jsonPrimitive?.contentOrNull
-                        if (!text.isNullOrEmpty()) emit(ModelChunk.Text(text))
+                        if (!text.isNullOrEmpty()) { hasText = true; emit(ModelChunk.Text(text)) }
                         val calls = message["tool_calls"]?.jsonArray?.map { element ->
                             val call = element.jsonObject
                             val function = call.getValue("function").jsonObject
@@ -84,6 +85,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                                 function.getValue("arguments").jsonPrimitive.content)
                         }.orEmpty()
                         finishCalls(calls, reason)?.let { emit(it) }
+                        if (!hasText && calls.isEmpty()) throw ModelException("模型返回空内容，请查看详细信息")
                         emit(ModelChunk.Done)
                     } else {
                         val source = body.source()
@@ -113,7 +115,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                                 pending.add(part)
                             }
                             val content = delta?.get("content")?.jsonPrimitive?.contentOrNull
-                            if (!content.isNullOrEmpty()) emit(ModelChunk.Text(content))
+                            if (!content.isNullOrEmpty()) { hasText = true; emit(ModelChunk.Text(content)) }
                             if (reason != null) { finished = true; finishReason = reason }
                         }
                         while (!done) {
@@ -128,6 +130,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                         dispatch()
                         if (!done && !finished) throw ModelException("连接提前中断，请重试")
                         finishCalls(calls.values.map { it.complete() }, finishReason)?.let { emit(it) }
+                        if (!hasText && calls.isEmpty()) throw ModelException("模型流没有返回文本或工具调用，请查看详细信息")
                         emit(ModelChunk.Done)
                     }
                 }

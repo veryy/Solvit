@@ -9,11 +9,11 @@ import okhttp3.mockwebserver.MockWebServer
 import kotlin.test.*
 
 class OpenAiProviderTest {
-    private suspend fun withServer(body: String, status: Int = 200, block: suspend (OpenAiProvider, ModelRequest, MockWebServer) -> Unit) {
+    private suspend fun withServer(body: String, status: Int = 200, contentType: String = "text/event-stream", block: suspend (OpenAiProvider, ModelRequest, MockWebServer) -> Unit) {
         val server = MockWebServer()
         val client = OkHttpClient()
         server.start()
-        server.enqueue(MockResponse().setResponseCode(status).setHeader("Content-Type", "text/event-stream").setBody(body))
+        server.enqueue(MockResponse().setResponseCode(status).setHeader("Content-Type", contentType).setBody(body))
         try {
             block(OpenAiProvider(client), ModelRequest(ModelConfig(server.url("/v1").toString(), "test-model", "private-key"), listOf(ModelMessage(Role.USER, "hello"))), server)
         } finally { server.shutdown(); client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown() }
@@ -52,6 +52,14 @@ class OpenAiProviderTest {
             val details = assertNotNull(failure.details)
             assertTrue(details.response.contains("invalid_model"))
             assertTrue(details.response.contains("Model xyz is unavailable"))
+        }
+    }
+    @Test fun malformedAndEmptyJsonResponsesRemainAvailableInDetails() = runTest {
+        for (body in listOf("upstream gateway returned HTML", """{"choices":[{"message":{"content":""},"finish_reason":"stop"}],"provider_debug":"empty-result"}""")) {
+            withServer(body, contentType = "application/json") { provider, request, _ ->
+                val failure = assertFailsWith<ModelException> { provider.stream(request).toList() }
+                assertEquals(body, assertNotNull(failure.details).response)
+            }
         }
     }
 
