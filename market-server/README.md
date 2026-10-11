@@ -9,6 +9,8 @@ npm start
 
 默认只监听 `127.0.0.1:18765`，公开访问通过 HTTPS 反向代理。
 
+线上地址：[Solvit 插件市场](https://solvit.207.57.126.73.sslip.io/)。运行在用户提供的服务器 `207.57.126.73`，独立 systemd 服务、非 root 运行用户、只读目录和 TLS。OpenResty 配置与证书续期 timer 位于 `deploy/`；当前部署目录 `/opt/solvit-market`，内部端口 `18765`。
+
 - `GET /health`：健康检查。
 - `GET /api/v1/plugins`：目录、权限、依赖、包字节数和 SHA-256。
 - `GET /api/v1/packages/{id}/{version}`：下载对应包。

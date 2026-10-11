@@ -1,0 +1,9 @@
+[Unit]
+Description=Renew Solvit marketplace TLS certificate
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/docker run --rm -v /opt/1panel/data/www/solvit-market-acme:/var/www/acme -v /opt/1panel/apps/openresty/openresty/conf/ssl/solvit-market:/etc/letsencrypt certbot/certbot@sha256:f70ad0adbb7e117f0fe42a63c553f28ea451edabc0148757b6efcd9735acaa20 renew --quiet
+ExecStartPost=/usr/local/bin/docker exec 1Panel-openresty-OhQT /usr/local/openresty/nginx/sbin/nginx -t
+ExecStartPost=/usr/local/bin/docker exec 1Panel-openresty-OhQT /usr/local/openresty/nginx/sbin/nginx -s reload
