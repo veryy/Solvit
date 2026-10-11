@@ -164,8 +164,9 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     }
     LaunchedEffect(selected, branchInput) {
         branchInput?.takeIf { it.first == selected }?.let {
-            input=it.second; vm.branchInput.value=null
+            input=it.second
             withFrameNanos { }; inputFocus.requestFocus(); keyboard?.show()
+            if (vm.branchInput.value == it) vm.branchInput.value=null
         }
     }
     val list = rememberLazyListState()
