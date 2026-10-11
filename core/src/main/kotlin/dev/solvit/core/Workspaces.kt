@@ -5,6 +5,7 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 
 data class Workspace(val id: String, val name: String)
+data class WorkspaceFile(val name: String, val path: String, val directory: Boolean, val bytes: Long)
 data class ShellSession(val id: String, val workspaceId: String, val name: String)
 data class WorkspaceState(val workspaces: List<Workspace> = emptyList(),
     val bindings: Map<String, String> = emptyMap(), val shells: List<ShellSession> = emptyList())
@@ -20,6 +21,8 @@ interface WorkspaceService {
     suspend fun unbind(sessionId: String)
     suspend fun create(name: String): Workspace
     suspend fun createShell(workspaceId: String, name: String): ShellSession
+    suspend fun location(workspaceId: String): String { error("工作区目录服务不可用") }
+    suspend fun list(workspaceId: String, path: String = ""): List<WorkspaceFile> { error("工作区目录服务不可用") }
     suspend fun read(workspaceId: String, path: String): String
     suspend fun write(workspaceId: String, path: String, text: String)
     suspend fun run(workspaceId: String, shellId: String, command: String, timeoutMs: Long = 60_000): ShellJob

@@ -98,6 +98,17 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         val shell = ShellSession(UUID.randomUUID().toString(), workspaceId, name(name))
         save(state.value.copy(shells = state.value.shells + shell)); shell
     } }
+    override suspend fun location(workspaceId: String): String = withContext(Dispatchers.IO) { directory(workspaceId).canonicalPath }
+    override suspend fun list(workspaceId: String, path: String): List<WorkspaceFile> = withContext(Dispatchers.IO) { lock.withLock {
+        val base = directory(workspaceId).canonicalFile
+        val folder = if (path.isEmpty()) base else file(workspaceId, path)
+        require(folder.isDirectory) { "目录不存在" }
+        val entries = folder.listFiles() ?: error("目录无法读取")
+        require(entries.size <= 1000) { "目录超过 1000 项，请使用 Shell 筛选" }
+        entries.filter { it.canonicalFile.path.startsWith(base.path + File.separator) }.map {
+            WorkspaceFile(it.name, it.relativeTo(base).invariantSeparatorsPath, it.isDirectory, if (it.isDirectory) 0 else it.length())
+        }.sortedWith(compareBy<WorkspaceFile> { !it.directory }.thenBy { it.name })
+    } }
     override suspend fun read(workspaceId: String, path: String): String = withContext(Dispatchers.IO) {
         lock.withLock {
             val file = file(workspaceId, path)

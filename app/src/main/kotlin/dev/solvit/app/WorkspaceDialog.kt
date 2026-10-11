@@ -28,6 +28,9 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
     val busy by vm.busy.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
     val fileText by vm.fileText.collectAsStateWithLifecycle()
+    val location by vm.location.collectAsStateWithLifecycle()
+    val directory by vm.directory.collectAsStateWithLifecycle()
+    val files by vm.files.collectAsStateWithLifecycle()
     val drafts by vm.drafts.collectAsStateWithLifecycle()
     val preview by vm.preview.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
@@ -37,6 +40,8 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
     var shellId by rememberSaveable(id) { mutableStateOf<String?>(null) }
     var command by rememberSaveable(id, shellId) { mutableStateOf("") }
     var path by rememberSaveable(id) { mutableStateOf("notes.txt") }
+    var editor by rememberSaveable(id) { mutableStateOf(false) }
+    var showDrafts by rememberSaveable(id) { mutableStateOf(false) }
     val shells = state.shells.filter { it.workspaceId == id }
     val activeShell = shellId ?: shells.firstOrNull()?.id
     FullScreenPage(onDismissRequest = onDismiss) {
@@ -51,8 +56,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                 }
                 TabRow(selectedTabIndex = tab) {
                     Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Shell") })
-                    Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("文件") })
-                    Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("插件草稿") })
+                    Tab(selected = tab == 1, onClick = { tab = 1; vm.browse(directory) }, text = { Text("工作目录") })
                 }
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
@@ -85,18 +89,30 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                             vm.run(it, command); command = ""
                         } }, enabled = !busy && activeShell != null && command.isNotBlank()) { Text("运行") }
                     }
-                } else if (tab == 1) {
+                } else {
                     LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        item { SelectionContainer { Text(location + if (directory.isEmpty()) "" else "/$directory", style = MaterialTheme.typography.bodySmall) } }
+                        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (directory.isNotEmpty()) TextButton(onClick = { vm.browse(directory.substringBeforeLast('/', "")) }, enabled = !busy) { Text("上级目录") }
+                            TextButton(onClick = { vm.browse(directory) }, enabled = !busy) { Text("刷新") }
+                            TextButton(onClick = { path = if (directory.isEmpty()) "notes.txt" else "$directory/notes.txt"; editor = true }, enabled = !busy) { Text("新建文本") }
+                        } }
+                        if (files.isEmpty()) item { Text("目录为空", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                        items(files, key = { it.path }) { file ->
+                            OutlinedButton(onClick = { if (file.directory) vm.browse(file.path) else { path = file.path; editor = true; vm.read(file.path) } },
+                                enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text((if (file.directory) "目录  " else "文件  ") + file.name) }
+                        }
+                        if (editor) {
                         item { OutlinedTextField(path, { path = it }, label = { Text("工作区内相对路径") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
                         item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OutlinedButton(onClick = { vm.read(path) }, enabled = !busy && id != null) { Text("读取") }
                             Button(onClick = { vm.write(path) }, enabled = !busy && id != null) { Text("保存") }
                         } }
                         item { OutlinedTextField(fileText, { vm.fileText.value = it }, label = { Text("文本内容") }, minLines = 12, modifier = Modifier.fillMaxWidth()) }
-                    }
-                } else {
-                    LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        item { Text("启用‘插件开发’插件后，可让 AI 编写 JS 插件并生成草稿。查看代码和权限后安装；安装后到插件页单独启用。TS 需先在开发工具中编译为 JS。") }
+                        }
+                        item { TextButton(onClick = { showDrafts = !showDrafts }) { Text("插件草稿 (${drafts.count { it.workspaceId == id }})") } }
+                        if (showDrafts) {
+                        item { Text("AI 生成的 JS 插件包保存在此工作目录。查看代码和权限后安装；到插件页单独启用。") }
                         items(drafts.filter { it.workspaceId == id }.reversed(), key = { it.id }) { draft ->
                             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
                                 Text(draft.name, style = MaterialTheme.typography.titleMedium)
@@ -104,6 +120,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                                 Text("已通过启动校验 · 尚未自动安装", style = MaterialTheme.typography.bodySmall)
                                 TextButton(onClick = { vm.review(draft) }, enabled = !busy) { Text("查看代码并安装") }
                             } }
+                        }
                         }
                     }
                 }

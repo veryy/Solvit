@@ -30,6 +30,10 @@ class WorkspaceTest {
                 assertEquals(first, restored.forChat("chat-b"))
                 assertEquals(2, restored.state.value.shells.count { it.workspaceId == first.id })
                 assertEquals("hello", restored.read(first.id, "src/example.js"))
+                assertTrue(restored.location(first.id).endsWith(first.id))
+                assertEquals(listOf("src"), restored.list(first.id).map { it.name })
+                assertTrue(restored.list(first.id).single().directory)
+                assertEquals("src/example.js", restored.list(first.id, "src").single().path)
                 restored.unbind("chat-b")
                 assertEquals("hello", restored.read(first.id, "src/example.js"))
             } finally { restored.close() }
@@ -44,6 +48,11 @@ class WorkspaceTest {
             assertFailsWith<IllegalArgumentException> { service.read(b.id, "../${a.id}/private.txt") }
             assertFailsWith<IllegalArgumentException> { service.write(a.id, "../../settings.xml", "bad") }
             assertFailsWith<IllegalArgumentException> { service.read(a.id, "/etc/passwd") }
+            assertFailsWith<IllegalArgumentException> { service.list(a.id, "../${b.id}") }
+            val external = java.io.File(RuntimeEnvironment.getApplication().cacheDir, "external").apply { mkdirs() }
+            java.nio.file.Files.createSymbolicLink(java.io.File(service.location(a.id), "escape").toPath(), external.toPath())
+            assertTrue(service.list(a.id).none { it.name == "escape" })
+            assertFailsWith<IllegalArgumentException> { service.list(a.id, "escape") }
             assertFailsWith<IllegalArgumentException> { service.write(a.id, "large", "x".repeat(256 * 1024 + 1)) }
         } finally { service.close(); scope.cancel() }
     }
