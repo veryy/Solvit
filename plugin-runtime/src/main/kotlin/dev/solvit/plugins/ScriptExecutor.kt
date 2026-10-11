@@ -12,6 +12,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
+import kotlin.coroutines.CoroutineContext
 
 fun interface ScriptHost {
     suspend fun call(plugin: ScriptManifest, operation: String, arguments: JsonObject): JsonElement
@@ -22,6 +23,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
     private val mutex = Mutex()
     @Volatile private var engine: QuickJs? = null
     @Volatile private var executionJob: Job? = null
+    @Volatile private var executionContext: CoroutineContext? = null
     @Volatile private var readOnlyHost = false
 
     suspend fun start() = mutex.withLock {
@@ -43,13 +45,14 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         else -> error("宿主未开放此操作")
                     }
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
-                    val parent = executionJob ?: error("宿主调用没有活动的插件执行")
+                    val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
                     withContext(parent) { host.call(pkg.manifest, operation, arguments).toString() }
                 }
                 withTimeout(timeoutMs) {
                     executionJob = currentCoroutineContext().job
+                    executionContext = currentCoroutineContext()
                     try {
                     js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
@@ -74,7 +77,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         js.evaluate<Any?>("if (typeof solvitPlugin.beforeModel !== 'function') throw new Error('Missing beforeModel hook');")
                     }
                     js.evaluate<Any?>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
-                    } finally { executionJob = null }
+                    } finally { executionJob = null; executionContext = null }
                 }
                 engine = js
             } catch (e: Throwable) { js.close(); throw e }
@@ -115,6 +118,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
             // promises waiting on asynchronous host operations.
             withTimeout(timeoutMs + 1_000) {
                 executionJob = currentCoroutineContext().job
+                executionContext = currentCoroutineContext()
                 readOnlyHost = readOnly
                 try {
                     // Resolve the JS evaluation with an explicit result envelope.
@@ -135,7 +139,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         outcome.getValue("error").jsonPrimitive.content
                     }
                     outcome.getValue("result").jsonPrimitive.content
-                } finally { executionJob = null; readOnlyHost = false }
+                } finally { executionJob = null; executionContext = null; readOnlyHost = false }
             }
         }
     }
@@ -150,8 +154,9 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                 withContext(Dispatchers.Default) {
                     withTimeout(2_000) {
                         executionJob = currentCoroutineContext().job
+                        executionContext = currentCoroutineContext()
                         try { js.evaluate<Any?>("if (solvitPlugin.deactivate) await solvitPlugin.deactivate(ctx);") }
-                        finally { executionJob = null }
+                        finally { executionJob = null; executionContext = null }
                     }
                 }
             } finally { js.close(); engine = null }
@@ -181,6 +186,8 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
                     requiresConfirmation = true,
                     pluginId = id,
                     chatVisible = tool.chatVisible,
+                    pluginVersion = pkg.manifest.version,
+                    capabilities = pkg.manifest.permissions,
                 )
                 override suspend fun execute(argumentsJson: String): String = executor.execute(tool.name, argumentsJson)
             })

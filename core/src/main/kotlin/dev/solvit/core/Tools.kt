@@ -56,6 +56,7 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         val policy = policies?.policy(tool.descriptor) ?: ToolPolicy.ASK
         if (policy == ToolPolicy.DENY || (policy == ToolPolicy.ASK && !authorization.authorizeCall(tool.descriptor, call))) throw ToolDeniedException()
         currentCoroutineContext().ensureActive()
+        if (policies?.policy(tool.descriptor) == ToolPolicy.DENY) throw ToolDeniedException()
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
         onAuthorized()
         return withTimeout(60_000) { withContext(AgentRoleContext(role) + ToolInvocationContext(tool.descriptor, call)) { tool.execute(argumentsJson) } }
