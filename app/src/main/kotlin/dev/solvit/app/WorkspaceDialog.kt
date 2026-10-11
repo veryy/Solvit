@@ -77,6 +77,10 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
                 if (tab == 0) {
+                    // Keep the composer reachable when the IME leaves only a short viewport.
+                    // All selectors and transcript controls scroll in the remaining space.
+                    LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("terminal_transcript")) {
+                    item { Column {
                     if (executionModes[TERMINAL_OWNER] == ExecutionMode.ROOT) Text("手动终端：Root 模式", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 12.dp))
                     LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(shells, key = { it.id }) { shell -> FilterChip(selected = shell.id == activeShell,
@@ -87,15 +91,16 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                         FilterChip(selected = !interactive, onClick = { interactive = false }, label = { Text("普通命令") })
                         FilterChip(selected = interactive, onClick = { interactive = true }, label = { Text("交互终端") })
                     }
+                    } }
                     if (interactive) {
-                        LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        item { LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             item { FilterChip(selected = activeTerminal == null, onClick = { selectedTerminal = null }, label = { Text("手动 Shell") }) }
                             items(shellTerminals, key = { it.id }) { session -> FilterChip(selected = activeTerminal?.id == session.id,
                                 onClick = { selectedTerminal = session.id }, label = { Text((if (session.owner == TERMINAL_OWNER) "手动" else session.owner) +
                                     (session.roleId?.let { " · $it" } ?: "") + if (session.active) "" else " · 已关闭") }) }
                         }
-                        LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("terminal_transcript"), contentPadding = PaddingValues(12.dp)) {
-                            item {
+                        }
+                        item { Column(Modifier.padding(12.dp)) {
                                 Text("同一终端保留目录和环境。输入会直接发送给 Shell；支持交互提示和 Ctrl-C。", style = MaterialTheme.typography.bodySmall)
                                 if (activeTerminal == null) Text("输入命令后打开终端。", modifier = Modifier.padding(vertical = 16.dp))
                                 activeTerminal?.let { session ->
@@ -107,12 +112,11 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                                 }
                             }
                         }
-                        activeTerminal?.takeIf { it.active }?.let { session -> Row(Modifier.padding(horizontal = 12.dp)) {
+                        item { activeTerminal?.takeIf { it.active }?.let { session -> Row(Modifier.padding(horizontal = 12.dp)) {
                             TextButton(onClick = { vm.interrupt(session) }, enabled = !busy) { Text("Ctrl-C") }
                             TextButton(onClick = { vm.closeTerminal(session) }, enabled = !busy) { Text("关闭终端") }
-                        } }
+                        } } }
                     } else {
-                    LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         item { Text("以本应用身份运行非交互式命令，可访问本应用的文件和网络。每条命令从工作区目录启动。", style = MaterialTheme.typography.bodySmall) }
                         items(jobs.filter { it.workspaceId == id && it.shellSessionId == activeShell }.reversed(), key = { it.id }) { job ->
                             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
