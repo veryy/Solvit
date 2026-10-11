@@ -160,5 +160,8 @@ private fun permissionDescription(permissions: Set<String>): String = if (permis
     "所需权限：" + permissions.joinToString("、") { when (it) {
         "storage" -> "插件自己的持久化存储"
         "network" -> "访问 HTTPS 网络服务"
+        "workspace" -> "读取和修改当前对话工作区的文件与会话"
+        "shell" -> "以应用身份运行 Shell，可访问本应用文件和网络"
+        "plugins" -> "生成和校验插件草稿；安装与启用需单独操作"
         else -> it
     } }

@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity() {
                             val agentVm: AgentLibraryViewModel = viewModel(factory = agentFactory)
                             val workspaceFactory = remember(app.workspaces) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = WorkspaceViewModel(app.workspaces) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = WorkspaceViewModel(app.workspaces, app.pluginDrafts) as T
                             } }
                             val workspaceVm: WorkspaceViewModel = viewModel(factory = workspaceFactory)
                             ChatScreen(vm, updateVm, marketVm, agentVm, workspaceVm)

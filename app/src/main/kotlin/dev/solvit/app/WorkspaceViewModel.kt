@@ -6,13 +6,17 @@ import dev.solvit.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-class WorkspaceViewModel(val service: WorkspaceService) : ViewModel() {
+class WorkspaceViewModel(val service: WorkspaceService, private val plugins: PluginDraftService) : ViewModel() {
     val state = service.state
     val jobs = service.jobs
     val workspaceId = MutableStateFlow<String?>(null)
     val busy = MutableStateFlow(false)
     val error = MutableStateFlow<String?>(null)
     val fileText = MutableStateFlow("")
+    val drafts = plugins.drafts
+    val preview = MutableStateFlow<Pair<PluginDraft, String>?>(null)
+    fun review(draft: PluginDraft) = operation { preview.value = draft to plugins.payload(draft.id) }
+    fun install(draft: PluginDraft) = operation { plugins.install(draft.id, draft.sha256); preview.value = null }
     private var chatId: String? = null
     private var selection: Job? = null
     fun selectChat(id: String?) {

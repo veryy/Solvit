@@ -1,0 +1,39 @@
+{
+  "manifest": {
+    "id": "dev.solvit.authoring",
+    "name": "插件开发",
+    "description": "AI 可生成、校验 JS 插件草稿；用户在工作区查看并安装，安装后单独启用。",
+    "version": "1.0.0",
+    "apiVersion": 4,
+    "permissions": [
+      "workspace",
+      "plugins"
+    ],
+    "dependencies": [],
+    "tools": [
+      {
+        "name": "draft_plugin",
+        "description": "生成并启动校验一个 JS 插件草稿。manifestJson 必须为 Solvit 清单 JSON（id/name/description/version/apiVersion/permissions/dependencies/tools），source 为普通 JavaScript，设置 globalThis.solvitPlugin={tools:{工具名:async(args,ctx)=>结果}}。不能包含 TS 类型或 import/require；校验期间禁止宿主调用。仅创建草稿，不安装或启用。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "manifestJson": {
+              "type": "string",
+              "description": "完整清单 JSON 字符串"
+            },
+            "source": {
+              "type": "string",
+              "description": "完整 JavaScript 代码"
+            }
+          },
+          "required": [
+            "manifestJson",
+            "source"
+          ],
+          "additionalProperties": false
+        }
+      }
+    ]
+  },
+  "source": "var __solvitBundle = (() => {\n  var __defProp = Object.defineProperty;\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // ../builtin-plugins/authoring/index.ts\n  var index_exports = {};\n  __export(index_exports, {\n    default: () => index_default\n  });\n\n  // src/index.ts\n  function definePlugin(definition) {\n    return definition;\n  }\n  function textArgument(args, key, maxLength = 4e3) {\n    const value = args[key];\n    if (typeof value !== \"string\" || !value.trim() || value.length > maxLength) throw new Error(`Invalid ${key}`);\n    return value.trim();\n  }\n\n  // ../builtin-plugins/authoring/index.ts\n  var index_default = definePlugin({ tools: {\n    draft_plugin: async (args, ctx) => {\n      textArgument(args, \"manifestJson\", 32e3);\n      textArgument(args, \"source\", 2e5);\n      return ctx.plugins.draft({ manifestJson: args.manifestJson, source: args.source });\n    }\n  } });\n  return __toCommonJS(index_exports);\n})();\nglobalThis.solvitPlugin = __solvitBundle.default;\n"
+}

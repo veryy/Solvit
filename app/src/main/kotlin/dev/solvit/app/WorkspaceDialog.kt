@@ -25,6 +25,8 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
     val busy by vm.busy.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
     val fileText by vm.fileText.collectAsStateWithLifecycle()
+    val drafts by vm.drafts.collectAsStateWithLifecycle()
+    val preview by vm.preview.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var chooser by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(false) }
@@ -45,6 +47,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                 TabRow(selectedTabIndex = tab) {
                     Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Shell") })
                     Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("文件") })
+                    Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("插件草稿") })
                 }
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
@@ -74,7 +77,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                         OutlinedTextField(command, { command = it }, placeholder = { Text("输入命令") }, maxLines = 4, modifier = Modifier.weight(1f))
                         Button(onClick = { activeShell?.let { vm.run(it, command); command = "" } }, enabled = !busy && activeShell != null && command.isNotBlank()) { Text("运行") }
                     }
-                } else {
+                } else if (tab == 1) {
                     LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         item { OutlinedTextField(path, { path = it }, label = { Text("工作区内相对路径") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
                         item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -83,10 +86,34 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                         } }
                         item { OutlinedTextField(fileText, { vm.fileText.value = it }, label = { Text("文本内容") }, minLines = 12, modifier = Modifier.fillMaxWidth()) }
                     }
+                } else {
+                    LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        item { Text("启用‘插件开发’插件后，可让 AI 编写 JS 插件并生成草稿。查看代码和权限后安装；安装后到插件页单独启用。TS 需先在开发工具中编译为 JS。") }
+                        items(drafts.filter { it.workspaceId == id }.reversed(), key = { it.id }) { draft ->
+                            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
+                                Text(draft.name, style = MaterialTheme.typography.titleMedium)
+                                Text("${draft.pluginId} · ${draft.version}")
+                                Text("已通过启动校验 · 尚未自动安装", style = MaterialTheme.typography.bodySmall)
+                                TextButton(onClick = { vm.review(draft) }, enabled = !busy) { Text("查看代码并安装") }
+                            } }
+                        }
+                    }
                 }
             }
         }
     }
+    preview?.let { (draft, text) -> FullScreenPage(onDismissRequest = { if (!busy) vm.preview.value = null }) {
+        Scaffold(topBar = { TopAppBar(title = { Text("审阅 ${draft.name}") }, navigationIcon = {
+            IconButton(onClick = { vm.preview.value = null }, enabled = !busy) { Icon(Icons.Default.Close, "关闭草稿") }
+        }) }, bottomBar = { Button(onClick = { vm.install(draft) }, enabled = !busy,
+            modifier = Modifier.padding(16.dp).fillMaxWidth()) { Text(if (busy) "安装中…" else "安装为停用插件") } }) { padding ->
+            LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item { Text("所需权限：${draft.permissions.joinToString().ifBlank { "无" }}\n同 ID 的已安装插件会被替换并停用，启用时需重新授权。") }
+                error?.let { message -> item { Text(message, color = MaterialTheme.colorScheme.error) } }
+                item { SelectionContainer { Text(text, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall) } }
+            }
+        }
+    } }
     if (chooser) AlertDialog(onDismissRequest = { chooser = false }, title = { Text("绑定工作区") }, text = {
         LazyColumn(Modifier.heightIn(max = 360.dp)) {
             items(state.workspaces, key = { it.id }) { workspace -> TextButton(onClick = { vm.bind(workspace.id); chooser = false }, modifier = Modifier.fillMaxWidth()) {
