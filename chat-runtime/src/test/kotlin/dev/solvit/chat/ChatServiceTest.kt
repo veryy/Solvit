@@ -18,6 +18,32 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun changingRoleAffectsNextRequestAndDoesNotEraseTranscript() = runTest {
+        var role: AgentRole? = AgentRole("first", "First", "Speak briefly")
+        val roles = object : RoleService {
+            override fun roles() = flowOf(listOfNotNull(role))
+            override suspend fun save(role: AgentRole) = Unit
+            override suspend fun delete(id: String) = Unit
+            override suspend fun selected(sessionId: String) = role
+            override suspend fun select(sessionId: String, roleId: String?) = Unit
+        }
+        val store = MemoryStore()
+        val requests = mutableListOf<ModelRequest>()
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest): Flow<ModelChunk> { requests += request; return flowOf(ModelChunk.Text("reply"),ModelChunk.Done) }
+        }
+        val chat = DefaultChatService(store,agent,EventBus(),roles=roles)
+        chat.send("session","first question",ModelConfig()).toList()
+        role = AgentRole("coder","Coder","Answer as a Kotlin developer",pluginIds=setOf("test.code"))
+        chat.send("session","second question",ModelConfig()).toList()
+        val next = requests.last()
+        assertEquals("coder",next.agentRole!!.id)
+        assertEquals(1,next.messages.count { it.role == Role.SYSTEM })
+        assertTrue(next.messages.first().content.contains("Answer as a Kotlin developer"))
+        assertFalse(next.messages.first().content.contains("Speak briefly"))
+        assertTrue(next.messages.any { it.content == "first question" })
+        assertEquals(4,store.saved.size)
+    }
     @Test fun plainChatDoesNotCreateWorkspaceAndExplicitBindingIsUsedNextTurn() = runTest {
         val workspace = Workspace("workspace", "Explicit")
         val state = MutableStateFlow(WorkspaceState())

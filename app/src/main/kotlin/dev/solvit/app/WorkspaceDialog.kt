@@ -105,8 +105,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                                 if (activeTerminal == null) Text("输入命令后打开终端。", modifier = Modifier.padding(vertical = 16.dp))
                                 activeTerminal?.let { session ->
                                     if (session.truncated) Text("仅保留最近输出", style = MaterialTheme.typography.labelSmall)
-                                    SelectionContainer { Text(terminalDisplayText(session.output), fontFamily = FontFamily.Monospace,
-                                        style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth().testTag("terminal_output")) }
+                                    TerminalScreen(session) { vm.sendKeys(session, it) }
                                     session.failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                                     if (!session.active) Text("终端已关闭 · ${session.exitCode ?: "—"}")
                                 }
@@ -205,9 +204,3 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
         OutlinedTextField(name, { name = it }, label = { Text("名称") }, singleLine = true)
     }, confirmButton = { TextButton(onClick = { vm.create(name); creating = false; name = "" }, enabled = name.isNotBlank()) { Text("创建并绑定") } })
 }
-
-/** Transcript view deliberately strips terminal escape sequences; no VT screen is claimed. */
-private fun terminalDisplayText(text: String): String = text
-    .replace(Regex("\u001B\\[[0-?]*[ -/]*[@-~]"), "")
-    .replace(Regex("\u001B\\][^\u0007\u001B]*(?:\u0007|\u001B\\\\)"), "")
-    .replace("\r\n", "\n").replace("\r", "")

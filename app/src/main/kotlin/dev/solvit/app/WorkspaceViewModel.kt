@@ -70,6 +70,17 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
             terminals.input(workspace, session.id, text + "\n")
         }
     }
+    // Serialize raw keys so fast typing cannot reorder or lose PTY input.
+    private val keyQueue = kotlinx.coroutines.channels.Channel<Pair<TerminalSession,String>>(64)
+    init { viewModelScope.launch {
+        for ((session, text) in keyQueue) try { terminals.input(session.workspaceId, session.id, text) }
+        catch (e: CancellationException) { throw e }
+        catch (e: Exception) { error.value = "终端输入失败，请检查会话状态" }
+    } }
+    fun sendKeys(session: TerminalSession, text: String) {
+        if (keyQueue.trySend(session to text).isFailure) error.value = "输入过快，请稍后重试"
+    }
+    override fun onCleared() { keyQueue.close() }
     fun interrupt(session: TerminalSession) = operation { terminals.interrupt(session.workspaceId, session.id) }
     fun closeTerminal(session: TerminalSession) = operation { terminals.close(session.workspaceId, session.id) }
     fun read(path: String) {
