@@ -104,3 +104,5 @@ API 7 原包 包 SHA-256：`8845efcc0175c34995b8be576ef040d18bc05458003bf09770e6
 `4c44a003` 的 [Android 运行 38183963222](https://github.com/veryy/Solvit/actions/runs/38183963222) 的 build 作业 114602219601 completed/success。下载 `test-and-lint-reports`（11719350642）逐份核对 XML：207 个单元测试，失败/错误/跳过均为 0；其中内置人工管理 3 个及 SQLite 存储 11 个全部通过。Lint、APK 构建及固定证书核验通过，候选 `solvit-debug-apk` 产物为 11719290845。JSON 依赖修复已由原失败构建验证。
 
 模拟器作业 114603082551 仍在执行，新增编辑/删除及重试确认的 Android UI 回归尚未取得最终结果，因此整次运行和功能验收不能称为通过。没有发布新版本或部署 API 8 市场；下一步先取得界面结果，再继续任务/来源安全清理和协议组合兼容。
+
+模拟器作业 114603082551 已失败：`memoryManagementEditsAndDeletesWithPluginDisabled` 在调用市场停用时抛出 `Key dev.solvit.memory is missing in the map`，尚未进入编辑/删除断言。已安装且从未启用的包没有内核加载实例；市场停用错误地无条件调用内核。现按现有卸载路径的加载状态检查，仅对真实实例调用停用，仍保留配置保存与活动依赖检查；初始内置包回归增加重复停用及不扩大授权断言，原模拟器场景保留验证。原运行不能称为全部通过，修复后继续远程检查。

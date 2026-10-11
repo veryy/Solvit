@@ -185,7 +185,10 @@ class AndroidMarketplace(
 
     override suspend fun disable(id: String) = mutex.withLock {
         check(id in packages) { "插件未安装" }
-        try { manager.disable(id) }
+        try {
+            if (manager.states.value[id] in setOf(PluginState.LOADED, PluginState.INITIALIZED, PluginState.DISABLED, PluginState.ENABLED))
+                manager.disable(id)
+        }
         finally {
             if (manager.states.value[id] != PluginState.ENABLED) {
                 check(prefs.edit().putBoolean("enabled.$id", false).commit()) { "插件停用配置保存失败" }

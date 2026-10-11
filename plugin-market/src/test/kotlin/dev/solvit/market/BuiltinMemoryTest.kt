@@ -34,6 +34,12 @@ class BuiltinMemoryTest {
             val market = initial.second
             assertEquals(setOf("dev.solvit.memory", "dev.solvit.clock", "dev.solvit.mcp", "dev.solvit.skills", "dev.solvit.workspace", "dev.solvit.authoring", "dev.solvit.terminal", "dev.solvit.web-search"), market.installed.value.map { it.id }.toSet())
             assertTrue(market.installed.value.none { it.enabled })
+            // Installed, never-loaded packages have no PluginManager row to disable.
+            market.disable("dev.solvit.memory")
+            market.disable("dev.solvit.memory")
+            assertTrue(market.installed.value.none { it.enabled })
+            assertTrue(context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
+                .getStringSet("grants.dev.solvit.memory", emptySet()).orEmpty().isEmpty())
             assertFailsWith<IllegalStateException> { market.enable("dev.solvit.memory", emptySet()) }
             market.enable("dev.solvit.memory", setOf("storage", "model"))
             val saved = result(market.runTool("dev_solvit_memory_memory_put", """{"text":"喜欢星河旅行","category":"preference"}""", allow))
