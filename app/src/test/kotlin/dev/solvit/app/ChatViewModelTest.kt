@@ -9,7 +9,7 @@ import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
-    private class Chat : ChatService {
+    private class Chat(private val firstText: String = "first token") : ChatService {
         val list = MutableStateFlow(listOf(ChatSession("original","Original",0)))
         val continueReply = CompletableDeferred<Unit>()
         override fun sessions(): Flow<List<ChatSession>> = list
@@ -17,8 +17,26 @@ class ChatViewModelTest {
         override suspend fun createSession(): ChatSession = ChatSession("new-${list.value.size}","New",0).also { list.value += it }
         override suspend fun deleteSession(sessionId: String) = Unit
         override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization) = flow {
-            emit(ModelChunk.Text("first token")); continueReply.await(); emit(ModelChunk.Text(" second token")); emit(ModelChunk.Done)
+            emit(ModelChunk.Text(firstText)); continueReply.await(); emit(ModelChunk.Text(" second token")); emit(ModelChunk.Done)
         }
+    }
+    @Test fun aWholeResponseBlockIsRevealedByUnicodeCodePointAndCanBeStopped() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val settings = object : SettingsStore {
+                override suspend fun load() = ModelConfig(apiKey="fixture")
+                override suspend fun save(value: ModelConfig) = Unit
+            }
+            val chat = Chat("你好🙂abcdef"); val vm = ChatViewModel(chat, settings)
+            runCurrent(); assertTrue(vm.send("hello")); runCurrent()
+            assertEquals("你", vm.draft.value)
+            advanceTimeBy(24); runCurrent()
+            assertEquals("你好🙂", vm.draft.value)
+            assertFalse(vm.draft.value.contains("abcdef")); assertTrue(vm.busy.value)
+            vm.stop(); runCurrent()
+            assertFalse(vm.busy.value); assertFalse(chat.continueReply.isCompleted)
+            vm.viewModelScope.cancel()
+        } finally { Dispatchers.resetMain() }
     }
     @Test fun partialTextIsExposedWhileProviderIsStillWaitingAndNewChatInheritsRole() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))

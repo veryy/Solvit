@@ -3622,5 +3622,13 @@
     "ko": "모델: {0}\n문자: {1}\n\n는 현재 모델 및 모양 구성을 대체하고 문자를 병합합니다(동일한 ID는 덮어쓰게 됩니다). 플러그인을 다시 설치하고 승인해야 합니다.",
     "es": "Modelos: {0}\nCaracteres: {1}\n\nreemplazará el modelo actual y la configuración de apariencia, y fusionará caracteres (se sobrescribirán los mismos ID). Aún es necesario reinstalar y autorizar los complementos.",
     "fr": "Modèles : {0}\nCaractères : {1}\n\nremplacera le modèle et la configuration d'apparence actuels, et fusionnera les caractères (les mêmes identifiants seront écrasés). Les plugins doivent encore être réinstallés et autorisés."
+  },
+  "安装后可以在这里启用插件、管理权限和配置。": {
+    "zh": "安装后可以在这里启用插件、管理权限和配置。",
+    "en": "After installation, manage plugin activation, permissions and settings here.",
+    "ja": "インストール後、ここでプラグインの有効化、権限、設定を管理できます。",
+    "ko": "설치 후 여기에서 플러그인 활성화, 권한 및 설정을 관리할 수 있습니다.",
+    "es": "Después de instalar, administra aquí la activación, los permisos y la configuración de los complementos.",
+    "fr": "Après installation, gérez ici l’activation, les autorisations et les paramètres des extensions."
   }
 }

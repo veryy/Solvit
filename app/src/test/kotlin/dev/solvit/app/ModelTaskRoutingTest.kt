@@ -22,6 +22,44 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28],application=Application::class)
 class ModelTaskRoutingTest {
+    @Test fun persistedRoleReachesActualHttpRequestOnEveryTurnIncludingDefaultIdentity() = runBlocking {
+        val context = RuntimeEnvironment.getApplication()
+        val roles = dev.solvit.market.AndroidRoleService(context)
+        val selectedRole = AgentRole("identity-http", "星辰", "使用简洁中文回答")
+        roles.save(selectedRole)
+        val saved = mutableListOf<ChatMessage>()
+        val store = object : ChatStore {
+            override fun sessions() = kotlinx.coroutines.flow.flowOf(emptyList<ChatSession>())
+            override fun messages(sessionId: String) = kotlinx.coroutines.flow.flowOf(saved.toList())
+            override suspend fun history(sessionId: String) = saved.toList()
+            override suspend fun createSession() = ChatSession("identity-http", "Identity", 0)
+            override suspend fun append(message: ChatMessage) { saved += message }
+            override suspend fun appendBatch(messages: List<ChatMessage>) { saved += messages }
+            override suspend fun deleteSession(sessionId: String) = Unit
+        }
+        val server = MockWebServer(); server.start()
+        val client = OkHttpClient()
+        try {
+            val config = ModelConfig(server.url("/v1").toString(), "fixture", "fixture", systemPrompt="通用助手风格")
+            repeat(2) { server.enqueue(MockResponse().setHeader("Content-Type", "application/json")
+                .setBody("""{"choices":[{"message":{"content":"fixture answer"},"finish_reason":"stop"}]}""")) }
+            val chat = dev.solvit.chat.DefaultChatService(store, ToolAgentRuntime(OpenAiProvider(client), ToolRegistry(EventBus())), EventBus(), roles)
+            roles.select("identity-http", null)
+            chat.send("identity-http", "你是什么角色？", config).toList()
+            roles.select("identity-http", selectedRole.id)
+            chat.send("identity-http", "你现在是谁？", config).toList()
+            val first = JSONObject(server.takeRequest(2, TimeUnit.SECONDS)!!.body.readUtf8()).getJSONArray("messages")
+            val next = JSONObject(server.takeRequest(2, TimeUnit.SECONDS)!!.body.readUtf8()).getJSONArray("messages")
+            assertTrue(first.getJSONObject(0).getString("content").contains("角色名称是“Solvit”"))
+            assertTrue(next.getJSONObject(0).getString("content").contains("角色名称是“星辰”"))
+            assertTrue(next.getJSONObject(0).getString("content").contains("使用简洁中文回答"))
+            assertEquals(1, (0 until next.length()).count { next.getJSONObject(it).getString("role") == "system" })
+            assertEquals("你现在是谁？", next.getJSONObject(next.length()-1).getString("content"))
+        } finally {
+            roles.select("identity-http", null); roles.delete(selectedRole.id)
+            server.shutdown(); client.dispatcher.executorService.shutdown(); client.connectionPool.evictAll()
+        }
+    }
     @Test fun taskRoutingCanSwitchNativeProtocolToOpenAiAndKeepPortableToolSemantics()=runBlocking {
         val context=RuntimeEnvironment.getApplication()
         context.getSharedPreferences("model",0).edit().clear().commit()
