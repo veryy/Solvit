@@ -26,4 +26,6 @@ Solvit 的适配：提示段有名称和来源，身份贡献一次；原生 Flo
 
 回归先于修复提交。身份重复已在 [远程运行 38157737692](https://github.com/veryy/Solvit/actions/runs/38157737692) 复现：18 个 chat-runtime 测试中身份唯一性检查失败。Gradle 因此提前停止，尚不能据该次结果宣称流式阻塞测试已执行。
 
-角色修复后，[远程运行 38158102949](https://github.com/veryy/Solvit/actions/runs/38158102949) 继续到 App 测试并复现接收器阻塞：23 个 App 测试中，大段文本后的 Provider 进度检查失败。流式修复新增大段响应、细碎响应、工具回合顺序和提前结算显示回归，并参考 Operit `RenderBatchCoordinatorTest.kt` 的调度及末次更新检查。修复后的远程结果待记录，不能以这两次失败当作修复验证。
+角色修复后，[远程运行 38158102949](https://github.com/veryy/Solvit/actions/runs/38158102949) 继续到 App 测试并复现接收器阻塞：23 个 App 测试中，大段文本后的 Provider 进度检查失败。流式修复新增大段响应、细碎响应、工具回合顺序和提前结算显示回归，并参考 Operit `RenderBatchCoordinatorTest.kt` 的调度及末次更新检查。
+
+[修复后的远程运行 38158456320](https://github.com/veryy/Solvit/actions/runs/38158456320) 全部通过。下载 XML 核对 153 个单元测试无失败、错误或跳过；App 的 ChatViewModel 5 个及 ChatPresentation 4 个测试、ChatService 10 个测试通过。Lint、APK、固定签名和模拟器界面/覆盖升级检查通过。真实模型与真机验收仍待进行；下一步补充实际请求上下文及耗时诊断。

@@ -17,7 +17,9 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.15.1 修复版下载](https://github.com/veryy/Solvit/releases/tag/v0.15.1)。补齐默认与自定义角色身份，收到整块文本时也逐字显示；语言移到设置底部的弹窗入口，插件改成紧凑网格与详情弹窗，去掉试运行。联网搜索启用即可使用公开 Bing，无需配置密钥。包含 0.15.0 的全部功能；验证状态见 [版本说明](docs/release-0.15.1.md)，设计与未完成范围见 [完整产品进度](docs/product-roadmap.md)。
+[0.15.2 修复版](https://github.com/veryy/Solvit/releases/tag/v0.15.2)：模型接收与显示分离，大段回复按帧追赶；提前入库不跳出全文，工具状态及时更新，角色身份只注入一次。保留 0.15.1 的紧凑插件网格、底部语言弹窗和免配置搜索；验证状态见 [版本说明](docs/release-0.15.2.md)，未完成范围见 [完整产品进度](docs/product-roadmap.md)。
+
+后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
 **签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
 
