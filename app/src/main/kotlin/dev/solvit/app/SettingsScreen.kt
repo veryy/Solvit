@@ -27,7 +27,7 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
     val dynamic by appearance.dynamicColors.collectAsStateWithLifecycle()
     FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize()) {
-            Scaffold(topBar = { TopAppBar(title = { UiText("设置") }, navigationIcon = {
+            Scaffold(topBar = { TopAppBar(title = { UiText("设置", Modifier.testTag("settings_title")) }, navigationIcon = {
                 IconButton(onClick = onDismiss) { UiIcon(Icons.AutoMirrored.Filled.ArrowBack, "返回聊天") }
             }) }) { padding ->
                 LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding).testTag("settings_list"), contentPadding = PaddingValues(vertical = 16.dp),

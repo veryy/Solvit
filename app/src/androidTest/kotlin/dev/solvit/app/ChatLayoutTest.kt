@@ -407,15 +407,15 @@ class ChatLayoutTest {
         try {
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithTag("language_en").performScrollTo().performClick()
-            rule.onNodeWithText("Settings").assertIsDisplayed()
+            rule.onNodeWithTag("settings_title").assertTextEquals("Settings").assertIsDisplayed()
             rule.onNodeWithContentDescription("Back to chat").assertExists()
             assertEquals("en", LanguageStore(app).language.value)
             rule.onNodeWithTag("language_ja").performScrollTo().performClick()
-            rule.onNodeWithText("設定").assertIsDisplayed()
+            rule.onNodeWithTag("settings_title").assertTextEquals("設定").assertIsDisplayed()
             rule.activityRule.scenario.recreate()
             rule.waitUntil(10_000) { rule.onAllNodesWithContentDescription("設定").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithContentDescription("設定").performClick()
-            rule.onNodeWithText("設定").assertIsDisplayed()
+            rule.onNodeWithTag("settings_title").assertTextEquals("設定").assertIsDisplayed()
             assertEquals("ja", LanguageStore(app).language.value)
         } finally { rule.runOnIdle { app.language.set("zh") } }
     }
@@ -442,7 +442,8 @@ class ChatLayoutTest {
         rule.onNodeWithTag("terminal_keys").performScrollTo().performTextInput("printf '__RAW_%s__\\n' KEYS\n")
         rule.waitUntil(8000) { rule.onAllNodes(hasText("__RAW_KEYS__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("terminal_output").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Ctrl-C").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithTag("terminal_transcript").performScrollToNode(hasText("Ctrl-C"))
+        rule.onNodeWithText("Ctrl-C").assertIsDisplayed()
         screenshot("workspace-interactive-pty")
         rule.onNodeWithText("关闭终端").performScrollTo().performClick()
         rule.waitUntil(8000) { rule.onAllNodes(hasText("终端已关闭 ·", substring=true)).fetchSemanticsNodes().isNotEmpty() }
