@@ -12,6 +12,11 @@ const version = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/;
 
 export async function readCatalog(directory) {
   const files = (await readdir(directory)).filter(name => name.endsWith('.solvit.json')).sort();
+  const legacy = await readdir(join(directory, 'legacy')).catch(error => {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  });
+  files.push(...legacy.filter(name => name.endsWith('.solvit.json')).map(name => join('legacy', name)));
   const entries = [];
   const packages = new Map();
   for (const file of files) {
@@ -22,11 +27,12 @@ export async function readCatalog(directory) {
         typeof manifest.name !== 'string' || !manifest.name.trim() || typeof manifest.description !== 'string' ||
         typeof source !== 'string' || !source.trim() || !Array.isArray(manifest.permissions) ||
         !Array.isArray(manifest.dependencies) || !Array.isArray(manifest.tools)) throw new Error(`Invalid package: ${file}`);
-    if (packages.has(manifest.id)) throw new Error(`Duplicate plugin id: ${manifest.id}`);
+    const key = `${manifest.id}/${manifest.version}`;
+    if (packages.has(key)) throw new Error(`Duplicate plugin version: ${key}`);
     const sha256 = createHash('sha256').update(bytes).digest('hex');
     entries.push({ ...manifest, bytes: bytes.length, sha256,
       downloadPath: `/api/v1/packages/${manifest.id}/${manifest.version}` });
-    packages.set(manifest.id, { manifest, bytes, sha256 });
+    packages.set(key, { manifest, bytes, sha256 });
   }
   return { entries, packages };
 }
@@ -54,11 +60,17 @@ export function createMarketServer({ directory = join(root, 'packages') } = {}) 
         const { entries } = await readCatalog(directory);
         const requested = Number(url.searchParams.get('hostApi'));
         const supported = [1, 2, 3].includes(requested) ? requested : 1;
-        send(200, { apiVersion: 1, plugins: entries.filter(entry => entry.apiVersion <= supported) }); return;
+        const versions = entries.filter(entry => entry.apiVersion <= supported).sort((a, b) => {
+          const aa = a.version.split('.').map(Number), bb = b.version.split('.').map(Number);
+          for (let i = 0; i < 3; i++) if (aa[i] !== bb[i]) return bb[i] - aa[i];
+          return 0;
+        });
+        const plugins = [...new Map(versions.map(entry => entry.id).map(id => [id, versions.find(entry => entry.id === id)])).values()];
+        send(200, { apiVersion: 1, plugins }); return;
       }
       const match = /^\/api\/v1\/packages\/([a-z0-9.-]+)\/([0-9.]+)$/.exec(path);
       if (match && pluginId.test(match[1]) && version.test(match[2])) {
-        const entry = (await readCatalog(directory)).packages.get(match[1]);
+        const entry = (await readCatalog(directory)).packages.get(`${match[1]}/${match[2]}`);
         if (entry?.manifest.version === match[2]) {
           response.setHeader('Content-Disposition', `attachment; filename="${match[1]}-${match[2]}.solvit.json"`);
           response.setHeader('ETag', `"${entry.sha256}"`);

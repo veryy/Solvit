@@ -31,7 +31,10 @@ class AppUpdateDownloader(private val context: Context, private val scope: Corou
     private val mutableState = MutableStateFlow<ApkDownloadState>(ApkDownloadState.Idle)
     val state = mutableState.asStateFlow()
     private var watcher: Job? = null
-    init { if (prefs.contains("id")) monitor() }
+    init {
+        if (prefs.getString("version", null) == BuildConfig.VERSION_NAME) cancel()
+        else if (prefs.contains("id")) monitor()
+    }
 
     @Synchronized fun download(release: AppRelease) {
         if (mutableState.value is ApkDownloadState.Downloading || mutableState.value == ApkDownloadState.Verifying) return
@@ -50,7 +53,7 @@ class AppUpdateDownloader(private val context: Context, private val scope: Corou
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, relative))
             check(prefs.edit().putLong("id", id).putString("file", relative)
-                .putLong("bytes", release.apkBytes).putString("sha256", release.apkSha256).commit())
+                .putLong("bytes", release.apkBytes).putString("sha256", release.apkSha256).putString("version", release.version).commit())
             mutableState.value = ApkDownloadState.Downloading(0, release.apkBytes)
             monitor()
         } catch (e: Exception) { mutableState.value = ApkDownloadState.Failed("无法开始下载，请检查网络和可用空间") }

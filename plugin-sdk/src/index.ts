@@ -2,7 +2,8 @@
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
 export interface PluginContext {
-  readonly clock: { now(): Promise<{ utc: string; localTime: string; timezone: string; timezoneOffsetMinutes: number }> };
+  /** Optional on hosts older than Solvit 0.7.0; use JS Date as a UTC fallback. */
+  readonly clock?: { now(): Promise<{ utc: string; localTime: string; timezone: string; timezoneOffsetMinutes: number }> };
   readonly role?: { readonly id: string; readonly name: string; readonly skillIds: readonly string[] } | null;
   readonly settings: { get(key: string): Promise<string | null> };
   readonly storage: {

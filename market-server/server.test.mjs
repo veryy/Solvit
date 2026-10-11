@@ -12,11 +12,15 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(health.status, 'ok');
     const legacy = await (await fetch(base + '/api/v1/plugins')).json();
     assert.ok(legacy.plugins.every(plugin => plugin.apiVersion === 1));
+    assert.equal(legacy.plugins.find(plugin => plugin.id === 'dev.solvit.clock').version, '1.0.0');
     const catalog = await (await fetch(base + '/api/v1/plugins?hostApi=2')).json();
     assert.ok(catalog.plugins.length > 0);
     assert.ok(catalog.plugins.every(plugin => plugin.apiVersion <= 2));
     const latest = await (await fetch(base + '/api/v1/plugins?hostApi=3')).json();
     assert.ok(latest.plugins.some(plugin => plugin.id === 'dev.solvit.skills' && plugin.apiVersion === 3));
+    assert.equal(latest.plugins.find(plugin => plugin.id === 'dev.solvit.clock').version, '1.1.0');
+    assert.equal(new Set(latest.plugins.map(plugin => plugin.id)).size, latest.plugins.length);
+    assert.equal((await fetch(base + legacy.plugins.find(plugin => plugin.id === 'dev.solvit.clock').downloadPath)).status, 200);
     for (const plugin of latest.plugins) {
       const response = await fetch(base + plugin.downloadPath);
       assert.equal(response.status, 200);

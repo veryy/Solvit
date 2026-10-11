@@ -81,6 +81,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
                                         Text(extension.name, style = MaterialTheme.typography.titleMedium)
                                         Text("${extension.version} · ${if (extension.enabled) "已启用" else "已停用"}", style = MaterialTheme.typography.labelMedium)
                                         Text(permissionDescription(extension.permissions), style = MaterialTheme.typography.bodySmall)
+                                        if (extension.enabled) Text("AI 可发现 ${extension.tools.count { it.chatVisible }} 个工具；角色需允许此插件，执行时会请求确认。", style = MaterialTheme.typography.bodySmall)
                                         extension.failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                             Button(onClick = { if (extension.enabled) vm.disable(extension.id) else enableTarget = extension }, enabled = !busy) {
