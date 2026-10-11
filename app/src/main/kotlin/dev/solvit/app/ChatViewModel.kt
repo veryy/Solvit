@@ -146,7 +146,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         busy.value = true
         val snapshot = config.value
         val started = nowMillis()
-        replyTiming.value = ReplyTiming(id)
+        replyTiming.value = ReplyTiming(id, started)
         fun elapsed() = (nowMillis() - started).coerceAtLeast(0)
         generation = viewModelScope.launch {
             try {

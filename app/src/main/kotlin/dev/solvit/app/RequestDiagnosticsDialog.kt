@@ -34,7 +34,7 @@ fun RequestDiagnosticsDialog(inspection: RequestInspectionService, vm: ChatViewM
                 request.tools.forEach { tool -> item { UiText(tool) } }
             }
             val run = timing
-            if (run != null && (request == null || run.sessionId == request.sessionId)) {
+            if (run != null && (request == null || (run.sessionId == request.sessionId && request.preparedAtMs >= run.startedAtMs))) {
                 item { UiText("首段文本到达应用：${run.firstTextMs?.toString() ?: "—"} ms") }
                 item { UiText("首段思考到达应用：${run.firstReasoningMs?.toString() ?: "—"} ms") }
                 item { UiText("首段文字显示：${run.firstVisibleMs?.toString() ?: "—"} ms") }
