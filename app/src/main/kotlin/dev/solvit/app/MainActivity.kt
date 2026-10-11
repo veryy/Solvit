@@ -72,7 +72,12 @@ class MainActivity : ComponentActivity() {
                                 override fun <T : ViewModel> create(modelClass: Class<T>): T = AgentLibraryViewModel(app.roles, app.skills, app.marketplace) as T
                             } }
                             val agentVm: AgentLibraryViewModel = viewModel(factory = agentFactory)
-                            ChatScreen(vm, updateVm, marketVm, agentVm)
+                            val workspaceFactory = remember(app.workspaces) { object : ViewModelProvider.Factory {
+                                @Suppress("UNCHECKED_CAST")
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = WorkspaceViewModel(app.workspaces) as T
+                            } }
+                            val workspaceVm: WorkspaceViewModel = viewModel(factory = workspaceFactory)
+                            ChatScreen(vm, updateVm, marketVm, agentVm, workspaceVm)
                         }
                     }
                 }
@@ -99,7 +104,7 @@ private fun SolvitTheme(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace: MarketplaceViewModel, agents: AgentLibraryViewModel) {
+private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace: MarketplaceViewModel, agents: AgentLibraryViewModel, workspaces: WorkspaceViewModel) {
     val updateState by updates.state.collectAsStateWithLifecycle()
     val downloadState by updates.downloadState.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
@@ -123,12 +128,15 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     var modelsOpen by rememberSaveable { mutableStateOf(false) }
     var backupOpen by rememberSaveable { mutableStateOf(false) }
     var pluginsOpen by rememberSaveable { mutableStateOf(false) }
+    var workspaceOpen by rememberSaveable { mutableStateOf(false) }
+    val workspaceId by workspaces.workspaceId.collectAsStateWithLifecycle()
+    val workspaceState by workspaces.state.collectAsStateWithLifecycle()
     var agentsOpen by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<ChatSession?>(null) }
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val list = rememberLazyListState()
-    LaunchedEffect(selected) { agents.setSession(selected) }
+    LaunchedEffect(selected) { agents.setSession(selected); workspaces.selectChat(selected) }
     LaunchedEffect(messages.size, draft) {
         val count = list.layoutInfo.totalItemsCount
         if (count > 0) list.animateScrollToItem(count - 1)
@@ -205,6 +213,10 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
                 AppUpdateCard(updateState, downloadState, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)
+                TextButton(onClick = { workspaceOpen = true }, enabled = ready && !busy && workspaceId != null,
+                    modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
+                    Text("工作区：" + (workspaceState.workspaces.firstOrNull { it.id == workspaceId }?.name ?: "打开中…") + " · Shell / 文件")
+                }
                 OutlinedButton(onClick = { agentsOpen = true }, enabled = ready && !busy && !agentBusy,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth()) {
                     Text(if (missingRole) "角色已删除 · 重新选择" else "角色：${activeRole?.name ?: "默认"} · 管理角色与 Skills")
@@ -246,6 +258,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             confirmButton = { TextButton(onClick = { vm.approveTool(true) }) { Text("允许这一次") } },
             dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { Text("拒绝") } })
     }
+    if (workspaceOpen) WorkspaceDialog(workspaces) { workspaceOpen = false }
     val app = LocalContext.current.applicationContext as SolvitApplication
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance)
