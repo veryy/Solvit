@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装、真实模型连接和交互体验尚未验证。
 
-[0.9.1 已发布](https://github.com/veryy/Solvit/releases/tag/v0.9.1)，[94 个单元测试、6 个模拟器测试、Lint、APK、固定签名和插件验证通过](https://github.com/veryy/Solvit/actions/runs/38121549711)，[APK 构建产物](https://github.com/veryy/Solvit/actions/runs/38121549711/artifacts/11695701817)。修复兼容网关的空 `finish_reason` 首帧导致聊天失败；实际 HTTPS 验证了普通回复、工具调用及结果回传后的回复。本版桌面图标默认白底黑色线条，侧栏为四分之三屏，角色管理移入设置；工作区包含 Shell 和工作目录，新增按插件选择普通/Root 执行方式。Android 35 模拟器已验证 JS 插件创建 Shell 和实际命令执行，以及覆盖更新后配置与聊天记录保留。Root 真机仍待验证。设置分为模型配置、角色与 Skills、插件、外观、配置备份、应用更新和关于。启动时顶部显示更新检查进度，只有发现新版才显示卡片；手动检查在“设置 → 应用更新”。版本说明在应用内查看，APK 在应用内后台下载并显示进度，校验完成后打开 Android 系统安装程序。
+[0.10.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.10.0)，[远程测试、Lint、模拟器和 APK 验证通过](https://github.com/veryy/Solvit/actions/runs/38125183630)。新增原生 Android PTY 交互终端，支持 JS/TS 插件调用。当前开发版本 0.11.0 将工具调用与最终回复合并为同一聊天气泡，默认折叠工具及思考详情；新对话默认没有工作区，按需创建。设置包含模型、角色与 Skills、插件、外观、备份、更新和关于；更新说明、下载进度均在应用内显示。
 
 **签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
 
@@ -100,7 +100,7 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 ## 当前边界
 
-当前 0.9.1 提供流式聊天、多会话、JS/TS 插件、[插件市场](https://solvit.207.57.126.73.sslip.io/)、有界工具循环、MCP/Skills、角色、模型列表获取、配置备份和应用内更新。测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
+当前源码提供流式聊天、多会话、JS/TS 插件、[插件市场](https://solvit.207.57.126.73.sslip.io/)、有界工具循环、MCP/Skills、角色、模型列表获取、配置备份和应用内更新。测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
 
 当前 MCP 支持 HTTPS 工具发现、调用和按插件绑定角色；多服务器、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。工作区与 Shell 已接入 Android 宿主和终端 UI，当前为应用 UID 的非交互式命令；PTY、持久环境、Shizuku、Linux 发行版和 SSH/SFTP 尚未实现；手机控制、向量记忆、附件、Markdown 排版和后台 Agent 持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
 
