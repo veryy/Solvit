@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 export async function buildPlugin(entry, manifestFile, output) {
   const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
-  if (manifest.apiVersion !== 1 || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
+  if (![1, 2].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
   const result = await build({
     entryPoints: [entry], bundle: true, write: false, format: 'iife', globalName: '__solvitBundle',
     platform: 'neutral', target: 'es2020', legalComments: 'inline', minify: false,

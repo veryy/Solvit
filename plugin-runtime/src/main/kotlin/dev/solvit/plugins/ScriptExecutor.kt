@@ -33,14 +33,16 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     val permission = when (operation) {
                         "storage.get", "storage.set" -> "storage"
                         "http.request" -> "network"
+                        "settings.get" -> null
                         else -> error("宿主未开放此操作")
                     }
-                    check(permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
+                    check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
                     host.call(pkg.manifest, operation, arguments).toString()
                 }
                 withTimeout(timeoutMs) {
                     js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
+                          settings: Object.freeze({ get: async key => JSON.parse(await __solvitHostCall('settings.get', JSON.stringify({key}))) }),
                           storage: Object.freeze({
                             get: async key => JSON.parse(await __solvitHostCall('storage.get', JSON.stringify({key}))),
                             set: async (key,value) => JSON.parse(await __solvitHostCall('storage.set', JSON.stringify({key,value})))

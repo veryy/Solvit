@@ -17,7 +17,7 @@ export async function readCatalog(directory) {
     const bytes = await readFile(join(directory, file));
     if (bytes.length > MAX_PACKAGE_BYTES) throw new Error(`Oversized package: ${file}`);
     const { manifest, source } = JSON.parse(bytes.toString('utf8'));
-    if (!manifest || !pluginId.test(manifest.id) || !version.test(manifest.version) || manifest.apiVersion !== 1 ||
+    if (!manifest || !pluginId.test(manifest.id) || !version.test(manifest.version) || ![1, 2].includes(manifest.apiVersion) ||
         typeof manifest.name !== 'string' || !manifest.name.trim() || typeof manifest.description !== 'string' ||
         typeof source !== 'string' || !source.trim() || !Array.isArray(manifest.permissions) ||
         !Array.isArray(manifest.dependencies) || !Array.isArray(manifest.tools)) throw new Error(`Invalid package: ${file}`);
@@ -42,12 +42,14 @@ export function createMarketServer({ directory = join(root, 'packages') } = {}) 
       response.setHeader('Allow', 'GET, HEAD'); send(405, { error: 'Method not allowed' }); return;
     }
     try {
-      const path = new URL(request.url, 'http://localhost').pathname;
+      const url = new URL(request.url, 'http://localhost');
+      const path = url.pathname;
       if (path === '/health') { send(200, { status: 'ok', service: 'solvit-plugin-market' }); return; }
       if (path === '/') { send(200, await readFile(join(root, 'public/index.html')), 'text/html; charset=utf-8'); return; }
       if (path === '/api/v1/plugins') {
         const { entries } = await readCatalog(directory);
-        send(200, { apiVersion: 1, plugins: entries }); return;
+        const supported = url.searchParams.get('hostApi') === '2' ? 2 : 1;
+        send(200, { apiVersion: 1, plugins: entries.filter(entry => entry.apiVersion <= supported) }); return;
       }
       const match = /^\/api\/v1\/packages\/([a-z0-9.-]+)\/([0-9.]+)$/.exec(path);
       if (match && pluginId.test(match[1]) && version.test(match[2])) {

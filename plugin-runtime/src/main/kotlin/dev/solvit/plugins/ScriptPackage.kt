@@ -2,6 +2,7 @@ package dev.solvit.plugins
 
 import kotlinx.serialization.json.*
 import java.security.MessageDigest
+import dev.solvit.core.ExtensionSetting
 
 data class ScriptTool(val name: String, val description: String, val inputSchema: JsonObject)
 data class ScriptManifest(
@@ -12,6 +13,8 @@ data class ScriptManifest(
     val permissions: Set<String>,
     val dependencies: Set<String>,
     val tools: List<ScriptTool>,
+    val apiVersion: Int = 1,
+    val settings: List<ExtensionSetting> = emptyList(),
 )
 data class ScriptPackage(val manifest: ScriptManifest, val source: String, val payload: ByteArray) {
     companion object {
@@ -25,7 +28,8 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             }
             val root = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
             val m = root.getValue("manifest").jsonObject
-            require(m.getValue("apiVersion").jsonPrimitive.int == 1) { "插件需要其他版本的宿主 API" }
+            val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
+            require(apiVersion in 1..2) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -47,10 +51,20 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             }
             require(tools.map { it.name }.toSet().size == tools.size) { "工具名重复" }
             require(tools.size <= 64) { "插件工具过多" }
+            val settings = m["settings"]?.jsonArray?.map { element ->
+                val field = element.jsonObject
+                val key = field.getValue("key").jsonPrimitive.content
+                val kind = field.getValue("kind").jsonPrimitive.content
+                require(key.matches(Regex("[a-z][a-zA-Z0-9_]{0,39}")) && kind in setOf("text", "secret", "url")) { "插件配置字段无效" }
+                val label = field.getValue("label").jsonPrimitive.content
+                require(label.isNotBlank() && label.length <= 100)
+                ExtensionSetting(key, label, kind, field["required"]?.jsonPrimitive?.boolean ?: false)
+            }.orEmpty()
+            require(settings.size <= 16 && settings.map { it.key }.toSet().size == settings.size && (settings.isEmpty() || apiVersion >= 2))
             val source = root.getValue("source").jsonPrimitive.content
             require(source.isNotBlank()) { "插件缺少 JavaScript 代码" }
             return ScriptPackage(ScriptManifest(id, string("name"), string("description"), version,
-                permissions, dependencies, tools), source, bytes.copyOf())
+                permissions, dependencies, tools, apiVersion, settings), source, bytes.copyOf())
         }
     }
 }

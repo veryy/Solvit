@@ -2,12 +2,13 @@
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
 export interface PluginContext {
+  readonly settings: { get(key: string): Promise<string | null> };
   readonly storage: {
     get<T extends JsonValue = JsonValue>(key: string): Promise<T | null>;
     set(key: string, value: JsonValue): Promise<null>;
   };
   readonly http: {
-    request(options: { url: string }): Promise<{ body: string }>;
+    request(options: { url: string; method?: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string }): Promise<{ body: string; status: number; headers: Record<string, string> }>;
   };
 }
 export type ToolHandler = (arguments_: JsonObject, context: PluginContext) => JsonValue | Promise<JsonValue>;
@@ -21,7 +22,8 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1;
+  apiVersion: 1 | 2;
+  settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret'; required?: boolean }[];
   permissions: ('storage' | 'network')[];
   dependencies: string[];
   tools: { name: string; description: string; inputSchema: JsonObject }[];

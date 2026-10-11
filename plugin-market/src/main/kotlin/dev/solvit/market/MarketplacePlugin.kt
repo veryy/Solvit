@@ -10,6 +10,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import okio.Buffer
 import java.io.File
 import java.io.IOException
@@ -24,6 +26,7 @@ class AndroidMarketplace(
     private val manager: PluginManager,
     private val client: OkHttpClient,
     private val tools: ToolRegistry,
+    private val config: EncryptedPluginConfiguration = EncryptedPluginConfiguration(context),
 ) : MarketplaceService {
     private val directory = File(context.filesDir, "extensions").apply { mkdirs() }
     private val prefs = context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
@@ -79,7 +82,7 @@ class AndroidMarketplace(
     }
 
     override suspend fun catalog(): List<MarketEntry> {
-        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
+        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=2", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
         check(root.getValue("apiVersion").jsonPrimitive.int == 1) { "市场 API 版本不兼容" }
         val entries = root.getValue("plugins").jsonArray.map { element ->
             val m = element.jsonObject
@@ -128,6 +131,8 @@ class AndroidMarketplace(
         val pkg = packages[id] ?: error("插件未安装")
         check(grants == pkg.manifest.permissions) { "请确认插件所需权限" }
         check(pkg.manifest.dependencies.all { manager.states.value[it] == PluginState.ENABLED }) { "请先安装并启用依赖插件" }
+        val values = withContext(Dispatchers.IO) { config.read(id) }
+        check(pkg.manifest.settings.filter { it.required }.all { !values[it.key].isNullOrBlank() }) { "请先填写插件配置" }
         if (manager.states.value[id] == PluginState.ENABLED) return
         if (manager.states.value[id] in setOf(PluginState.LOADED, PluginState.INITIALIZED, PluginState.DISABLED)) manager.unload(id)
         prefs.edit().putStringSet("grants.$id", grants.toSet()).commit()
@@ -155,8 +160,29 @@ class AndroidMarketplace(
         if (manager.states.value[id] in setOf(PluginState.LOADED, PluginState.INITIALIZED, PluginState.DISABLED, PluginState.ENABLED)) manager.unload(id)
         withContext(Dispatchers.IO) { AtomicFile(File(directory, "$id.solvit.json")).delete() }
         prefs.edit().remove("enabled.$id").remove("grants.$id").commit()
+        withContext(Dispatchers.IO) { config.remove(id) }
         packages.remove(id); failures.remove(id)
         publish()
+    }
+
+    override suspend fun configuration(id: String): Map<String, String> = mutex.withLock {
+        val pkg = packages[id] ?: error("插件未安装")
+        withContext(Dispatchers.IO) { config.read(id) }.filterKeys { key -> pkg.manifest.settings.any { it.key == key } }
+    }
+    override suspend fun configure(id: String, values: Map<String, String>) = mutex.withLock {
+        val pkg = packages[id] ?: error("插件未安装")
+        check(manager.states.value[id] != PluginState.ENABLED) { "请先停用插件再修改配置" }
+        require(values.keys.all { key -> pkg.manifest.settings.any { it.key == key } })
+        pkg.manifest.settings.forEach { field ->
+            val value = values[field.key].orEmpty()
+            require(value.length <= 4096 && (!field.required || value.isNotBlank())) { "插件配置不完整" }
+            if (field.kind == "url" && value.isNotBlank()) {
+                val uri = URI(value)
+                require(uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null && uri.fragment == null) { "插件地址需要 HTTPS" }
+            }
+            if (field.kind == "secret") require(!value.contains('\n') && !value.contains('\r'))
+        }
+        withContext(Dispatchers.IO) { config.write(id, values) }
     }
 
     override suspend fun runTool(name: String, argumentsJson: String, authorization: ToolAuthorization): String =
@@ -168,11 +194,17 @@ class AndroidMarketplace(
             val prefix = pkg.manifest.id.replace('.', '_').replace('-', '_') + "_"
             val names = pkg.manifest.tools.map { prefix + it.name }.toSet()
             InstalledExtension(pkg.manifest.id, pkg.manifest.name, pkg.manifest.version, pkg.manifest.permissions,
-                enabled, if (enabled) tools.descriptors().filter { it.name in names } else emptyList(), failures[pkg.manifest.id])
+                enabled, if (enabled) tools.descriptors().filter { it.name in names } else emptyList(), failures[pkg.manifest.id], pkg.manifest.settings)
         }
     }
 
     private suspend fun hostCall(manifest: ScriptManifest, operation: String, arguments: JsonObject): JsonElement {
+        if (operation == "settings.get") {
+            check(manifest.apiVersion >= 2)
+            val key = arguments.getValue("key").jsonPrimitive.content
+            check(manifest.settings.any { it.key == key }) { "插件未声明此配置字段" }
+            return withContext(Dispatchers.IO) { config.read(manifest.id)[key]?.let(::JsonPrimitive) ?: JsonNull }
+        }
         val permission = if (operation.startsWith("storage.")) "storage" else if (operation == "http.request") "network" else error("未开放的宿主操作")
         check(permission in manifest.permissions && permission in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty()) { "插件权限未授予" }
         return when (operation) {
@@ -192,21 +224,49 @@ class AndroidMarketplace(
                 val url = arguments.getValue("url").jsonPrimitive.content
                 val uri = URI(url)
                 require(uri.scheme == "https" && !uri.host.isNullOrBlank() && uri.userInfo == null) { "插件网络请求需要 HTTPS" }
-                val bytes = getBytes(url, 1024 * 1024)
-                buildJsonObject { put("body", bytes.toString(Charsets.UTF_8)) }
+                val method = arguments["method"]?.jsonPrimitive?.content ?: "GET"
+                require(method in setOf("GET", "POST", "DELETE")) { "不支持的 HTTP 方法" }
+                val builder = Request.Builder().url(url)
+                val headers = arguments["headers"]?.jsonObject.orEmpty()
+                require(headers.size <= 16)
+                headers.forEach { (name, value) ->
+                    require(name.lowercase() !in setOf("host", "connection", "content-length", "transfer-encoding", "cookie"))
+                    val text = value.jsonPrimitive.content
+                    require(text.length <= 4096 && !text.contains('\r') && !text.contains('\n'))
+                    builder.header(name, text)
+                }
+                val payload = arguments["body"]?.jsonPrimitive?.content.orEmpty()
+                require(payload.toByteArray(Charsets.UTF_8).size <= 256 * 1024)
+                when (method) {
+                    "POST" -> builder.post(payload.toRequestBody("application/json; charset=utf-8".toMediaType()))
+                    "DELETE" -> builder.delete()
+                    else -> require(payload.isEmpty())
+                }
+                val response = request(builder.build(), 1024 * 1024, allowHttpError = true)
+                buildJsonObject {
+                    put("body", response.bytes.toString(Charsets.UTF_8)); put("status", response.status)
+                    putJsonObject("headers") { response.headers.forEach { (name, value) -> put(name, value) } }
+                }
             }
             else -> error("未开放的宿主操作")
         }
     }
 
     private suspend fun getBytes(url: String, maxBytes: Int): ByteArray {
-        val call = client.newCall(Request.Builder().url(url).build())
+        val response = request(Request.Builder().url(url).build(), maxBytes)
+        return response.bytes
+    }
+
+    private data class HttpResult(val bytes: ByteArray, val status: Int, val headers: Map<String, String>)
+
+    private suspend fun request(request: Request, maxBytes: Int, allowHttpError: Boolean = false): HttpResult {
+        val call = client.newCall(request)
         return coroutineScope {
             val cancellation = launch(start = CoroutineStart.UNDISPATCHED) {
                 try { awaitCancellation() } finally { call.cancel() }
             }
             try { call.await().use { response ->
-            if (!response.isSuccessful) throw IOException("请求失败（HTTP ${response.code}）")
+            if (!allowHttpError && !response.isSuccessful) throw IOException("请求失败（HTTP ${response.code}）")
             val body = response.body ?: throw IOException("服务返回空响应")
             if (body.contentLength() > maxBytes) throw IOException("服务返回内容过大")
             val bytes = withContext(Dispatchers.IO) {
@@ -220,7 +280,8 @@ class AndroidMarketplace(
                 }
                 buffer.readByteArray()
             }
-            bytes
+            HttpResult(bytes, response.code, listOf("content-type", "mcp-session-id", "mcp-protocol-version")
+                .mapNotNull { name -> response.header(name)?.let { name to it } }.toMap())
             } } finally { cancellation.cancelAndJoin(); call.cancel() }
         }
     }
