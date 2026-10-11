@@ -73,7 +73,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                         if (result["error"] != null) throw ModelException("模型服务返回错误")
                         val choice = result["choices"]?.jsonArray?.firstOrNull()?.jsonObject
                             ?: throw ModelException("响应中没有 choices")
-                        val reason = choice["finish_reason"]?.jsonPrimitive?.contentOrNull
+                        val reason = choice["finish_reason"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
                         checkFinishReason(reason)
                         val message = choice["message"]?.jsonObject ?: throw ModelException("响应缺少 message")
                         val text = message["content"]?.jsonPrimitive?.contentOrNull
@@ -103,7 +103,8 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                             val result = json.parseToJsonElement(event).jsonObject
                             if (result["error"] != null) throw ModelException("模型流返回错误")
                             val choice = result["choices"]?.jsonArray?.firstOrNull()?.jsonObject ?: return
-                            val reason = choice["finish_reason"]?.jsonPrimitive?.contentOrNull
+                            // Compatible gateways may use "" in unfinished chunks instead of null.
+                            val reason = choice["finish_reason"]?.jsonPrimitive?.contentOrNull?.takeIf { it.isNotBlank() }
                             checkFinishReason(reason)
                             val delta = choice["delta"]?.jsonObject
                             if (finished && delta?.isNotEmpty() == true) throw ModelException("模型在结束后继续发送数据")
