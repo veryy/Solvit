@@ -16,9 +16,13 @@ sealed interface UpdateUiState {
     data class Failed(val message: String) : UpdateUiState
 }
 
-class UpdateViewModel(private val service: UpdateService) : ViewModel() {
+class UpdateViewModel(private val service: UpdateService, private val downloader: AppUpdateDownloader) : ViewModel() {
     private val mutableState = MutableStateFlow<UpdateUiState>(UpdateUiState.Hidden)
     val state = mutableState.asStateFlow()
+    val downloadState = downloader.state
+    fun download(release: AppRelease) = downloader.download(release)
+    fun cancelDownload() = downloader.cancel()
+    fun install() = downloader.install()
     init { check(manual = false) }
 
     fun dismiss() { if (mutableState.value != UpdateUiState.Checking) mutableState.value = UpdateUiState.Hidden }
@@ -32,7 +36,7 @@ class UpdateViewModel(private val service: UpdateService) : ViewModel() {
                     UpdateResult.Current -> if (manual) UpdateUiState.Current else UpdateUiState.Hidden
                 }
             } catch (e: CancellationException) { throw e }
-            catch (e: Exception) { mutableState.value = UpdateUiState.Failed(e.message ?: "无法检查更新，请稍后重试") }
+            catch (e: Exception) { mutableState.value = if (manual) UpdateUiState.Failed(e.message ?: "无法检查更新，请稍后重试") else UpdateUiState.Hidden }
         }
     }
 }

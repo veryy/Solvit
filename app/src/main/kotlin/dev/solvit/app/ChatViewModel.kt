@@ -70,6 +70,13 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             finally { saving.value = false }
         }
     }
+    suspend fun restoreConfig(value: ModelConfig) {
+        check(!busy.value && !saving.value) { "请等待当前操作结束" }
+        value.validate()?.let { error(it) }
+        saving.value = true
+        try { settings.save(value); config.value = value; error.value = null }
+        finally { saving.value = false }
+    }
     fun send(text: String): Boolean {
         val id = selected.value ?: return false
         if (busy.value || !ready.value || text.isBlank()) return false

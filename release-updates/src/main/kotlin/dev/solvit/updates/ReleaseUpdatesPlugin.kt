@@ -55,8 +55,11 @@ class GitHubReleaseUpdates(
             } ?: throw IOException("新版本尚未提供 APK，请稍后检查")
             val apk = asset["browser_download_url"]?.jsonPrimitive?.contentOrNull ?: throw IOException("APK 下载地址缺失")
             checkGitHubUrl(apk, "/veryy/Solvit/releases/download/")
+            val digest = asset["digest"]?.jsonPrimitive?.contentOrNull
+            if (digest != null && !digest.matches(Regex("sha256:[a-f0-9]{64}"))) throw IOException("APK 校验摘要无效")
             UpdateResult.Available(AppRelease(tag.removePrefix("v"),
-                release["body"]?.jsonPrimitive?.contentOrNull.orEmpty(), page, apk))
+                release["body"]?.jsonPrimitive?.contentOrNull.orEmpty(), page, apk,
+                asset.getValue("size").jsonPrimitive.long, digest?.removePrefix("sha256:")))
         }
     }
 

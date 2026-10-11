@@ -19,6 +19,10 @@ class SolvitApplication : Application() {
     val ready = mutableReady.asStateFlow()
     lateinit var settings: SettingsStore
         private set
+    lateinit var updateDownloader: AppUpdateDownloader
+        private set
+    lateinit var appearance: AppearanceStore
+        private set
     lateinit var updates: UpdateService
         private set
     lateinit var marketplace: MarketplaceService
@@ -30,6 +34,8 @@ class SolvitApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         settings = EncryptedSettingsStore(this)
+        appearance = AppearanceStore(this)
+        updateDownloader = AppUpdateDownloader(this, scope)
         scope.launch {
             val manager = PluginManager(scope = scope)
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager)

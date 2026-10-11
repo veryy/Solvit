@@ -58,7 +58,7 @@ class MainActivity : ComponentActivity() {
                             val vm: ChatViewModel = viewModel(factory = factory)
                             val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = UpdateViewModel(app.updates) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = UpdateViewModel(app.updates, app.updateDownloader) as T
                             } }
                             val updateVm: UpdateViewModel = viewModel(factory = updateFactory)
                             val marketFactory = remember(app.marketplace) { object : ViewModelProvider.Factory {
@@ -82,11 +82,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun SolvitTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
     val context = LocalContext.current
+    val appearance = (context.applicationContext as SolvitApplication).appearance
+    val mode by appearance.theme.collectAsStateWithLifecycle()
+    val dynamic by appearance.dynamicColors.collectAsStateWithLifecycle()
+    val dark = when (mode) { "dark" -> true; "light" -> false; else -> isSystemInDarkTheme() }
     val colors = when {
-        Build.VERSION.SDK_INT >= 31 && dark -> dynamicDarkColorScheme(context)
-        Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
+        dynamic && Build.VERSION.SDK_INT >= 31 && dark -> dynamicDarkColorScheme(context)
+        dynamic && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
         dark -> darkColorScheme(primary = Color(0xFFBACDA8), secondary = Color(0xFFBBCAB4))
         else -> lightColorScheme(primary = Color(0xFF526743), secondary = Color(0xFF576350), tertiary = Color(0xFF38666B))
     }
@@ -97,6 +100,7 @@ private fun SolvitTheme(content: @Composable () -> Unit) {
 @Composable
 private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace: MarketplaceViewModel, agents: AgentLibraryViewModel) {
     val updateState by updates.state.collectAsStateWithLifecycle()
+    val downloadState by updates.downloadState.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
     val messages by vm.messages.collectAsStateWithLifecycle()
     val selected by vm.sessionId.collectAsStateWithLifecycle()
@@ -113,6 +117,8 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val agentBusy by agents.busy.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
+    var modelsOpen by rememberSaveable { mutableStateOf(false) }
+    var backupOpen by rememberSaveable { mutableStateOf(false) }
     var pluginsOpen by rememberSaveable { mutableStateOf(false) }
     var agentsOpen by rememberSaveable { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<ChatSession?>(null) }
@@ -161,11 +167,8 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                     navigationIcon = { IconButton(onClick = { scope.launch { drawer.open() } }) { Icon(Icons.Default.Menu, "对话历史") } },
                     actions = {
                         IconButton(onClick = { pluginsOpen = true }) { Icon(Icons.Default.Extension, "插件市场") }
-                        IconButton(onClick = { updates.check() }, enabled = updateState != UpdateUiState.Checking) {
-                            Icon(Icons.Default.SystemUpdate, "检查更新")
-                        }
                         IconButton(onClick = vm::newChat, enabled = ready && !busy) { Icon(Icons.Default.Add, "新对话") }
-                        IconButton(onClick = { settingsOpen = true }) { Icon(Icons.Default.Settings, "模型设置") }
+                        IconButton(onClick = { settingsOpen = true }) { Icon(Icons.Default.Settings, "设置") }
                     },
                 )
             },
@@ -197,7 +200,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             },
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
-                AppUpdateCard(updateState, onDismiss = updates::dismiss, onRetry = { updates.check() })
+                AppUpdateCard(updateState, downloadState, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)
                 OutlinedButton(onClick = { agentsOpen = true }, enabled = ready && !busy && !agentBusy,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp).fillMaxWidth()) {
                     Text(if (missingRole) "角色已删除 · 重新选择" else "角色：${activeRole?.name ?: "默认"} · 管理角色与 Skills")
@@ -237,8 +240,12 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             confirmButton = { TextButton(onClick = { vm.approveTool(true) }) { Text("允许这一次") } },
             dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { Text("拒绝") } })
     }
-    if (settingsOpen) ModelSettings(config, saving, error, onDismiss = { if (!saving) settingsOpen = false },
-        onSave = { vm.saveConfig(it) { settingsOpen = false } })
+    val app = LocalContext.current.applicationContext as SolvitApplication
+    if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
+        { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance)
+    if (modelsOpen) ModelSettings(config, saving, error, onDismiss = { if (!saving) modelsOpen = false },
+        onSave = { vm.saveConfig(it) { modelsOpen = false } })
+    if (backupOpen) ConfigurationBackupDialog(vm, app.roles, app.appearance, onDismiss = { backupOpen = false })
     if (pluginsOpen) PluginMarketplaceDialog(marketplace, onDismiss = { pluginsOpen = false })
     if (agentsOpen) AgentLibraryDialog(agents, onDismiss = { agentsOpen = false })
     deleteTarget?.let { session ->

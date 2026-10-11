@@ -1,6 +1,7 @@
 package dev.solvit.core
 
-data class AppRelease(val version: String, val notes: String, val pageUrl: String, val apkUrl: String)
+data class AppRelease(val version: String, val notes: String, val pageUrl: String, val apkUrl: String,
+    val apkBytes: Long = 0, val apkSha256: String? = null)
 
 sealed interface UpdateResult {
     data class Available(val release: AppRelease) : UpdateResult
