@@ -73,6 +73,7 @@ function upsert(db: Database, args: JsonObject, source?: MemorySource): { fact: 
     if (!source && existing.source) existing.modifiedByUser = true;
     existing.text = text; existing.category = category;
     existing.tags = [...new Set([...existing.tags, ...incomingTags])].slice(0, 12);
+    if (source) { existing.source = source; existing.modifiedByUser = false; }
     existing.updatedAt = now;
     return { fact: existing, merged: true };
   }
@@ -175,14 +176,30 @@ const plugin = definePlugin({
     const processed = (db: Database) => db.completedSources?.some(source => source.turnId === input.source.turnId && source.sessionId === input.source.sessionId) ?? false;
     if (processed(previous)) return;
     if ((previous.completedSources?.length ?? 0) >= MAX_PROCESSED_SOURCES) throw failure('STORAGE', 'Memory source quota reached');
+    const existing = previous.facts.filter(fact => fact.source?.roleId === input.source.roleId && !fact.modifiedByUser)
+      .sort((a,b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0,20);
     const raw = await ctx.model.complete({ instructions: EXTRACTION_INSTRUCTIONS,
-      input: JSON.stringify({ USER: input.userText, ASSISTANT: input.assistantText }) });
+      input: JSON.stringify({ USER: input.userText, ASSISTANT: input.assistantText,
+        EXISTING: existing.map(fact => ({ id: fact.id, text: fact.text, category: fact.category })) }) });
     const candidates = parseCandidates(raw, input.userText);
+    const replacements = candidates.filter(candidate => candidate.replaceId !== undefined);
+    if (new Set(replacements.map(candidate => candidate.replaceId)).size !== replacements.length ||
+        replacements.some(candidate => !existing.some(fact => fact.id === candidate.replaceId)))
+      throw failure('INVALID_OUTPUT', 'Memory replacement must target an advertised automatic fact');
     await transact(ctx, async local => {
       const db = await load(local);
       if (processed(db)) return;
-      const factIds = [...new Set(candidates.map(candidate => upsert(db, candidate as unknown as JsonObject,
-        { ...input.source, quote: candidate.quote }).fact.id))];
+      const factIds = [...new Set(candidates.map(candidate => {
+        if (candidate.replaceId) {
+          const original = existing.find(fact => fact.id === candidate.replaceId)!;
+          const current = db.facts.find(fact => fact.id === candidate.replaceId);
+          if (!current || JSON.stringify(current) !== JSON.stringify(original))
+            throw failure('STORAGE', 'Memory replacement target was edited or deleted');
+        }
+        return upsert(db, { text: candidate.text, category: candidate.category, tags: candidate.tags,
+          ...(candidate.replaceId ? { id: candidate.replaceId } : {}) },
+          { ...input.source, quote: candidate.quote }).fact.id;
+      }))];
       (db.completedSources ??= []).push({ ...input.source, factIds });
       await save(db, local);
     });

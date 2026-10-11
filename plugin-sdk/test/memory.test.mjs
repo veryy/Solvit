@@ -196,3 +196,46 @@ test('finite storage conflicts retain the original database and do not repeat ex
   await assert.rejects(()=>plugin.afterTurn(completed()),error=>error.solvitCode==='STORAGE');
   assert.equal(calls,1);assert.equal(data.get('memory.v1').facts.length,0);assert.equal(data.get('memory.v1').completedSources,undefined);
 });
+
+test('explicit preference correction replaces only an advertised automatic fact and refreshes its provenance',async()=>{
+  const data=new Map();const role={id:'role1',name:'Role',skillIds:[]};
+  const first=runtime(data,false,{role,model:{async complete(){return extraction}}});await first.afterTurn(completed());
+  const id=(await first.run('memory_list')).facts[0].id;
+  const next={...completed('reply3'),userText:'我现在更喜欢 Rust 编程。'};
+  const plugin=runtime(data,false,{role,model:{async complete(options){
+    assert.equal(JSON.parse(options.input).EXISTING[0].id,id);
+    return JSON.stringify({facts:[{text:'用户现在更喜欢 Rust 编程',category:'preference',tags:[],quote:next.userText,replaceId:id}]});
+  }}});
+  await plugin.afterTurn(next);const db=await plugin.run('memory_export');assert.equal(db.facts.length,1);
+  assert.equal(db.facts[0].id,id);assert.match(db.facts[0].text,/Rust/);assert.equal(db.facts[0].source.turnId,'reply3');
+  assert.equal(db.completedSources.length,2);
+});
+test('background correction cannot overwrite a manual edit or recreate a deleted target',async()=>{
+  for(const operation of ['edit','delete']){
+    const data=new Map();const role={id:'role1',name:'Role',skillIds:[]};
+    const first=runtime(data,false,{role,model:{async complete(){return extraction}}});await first.afterTurn(completed());
+    const id=(await first.run('memory_list')).facts[0].id;const next={...completed('reply4'),userText:'我现在更喜欢 Rust 编程。'};
+    let changed=false;
+    const plugin=runtime(data,false,{role,model:{async complete(){
+      return JSON.stringify({facts:[{text:'用户现在更喜欢 Rust 编程',category:'preference',tags:[],quote:next.userText,replaceId:id}]});
+    }},beforeCompare:async()=>{
+      if(changed)return;changed=true;
+      await first.run(operation==='edit'?'memory_put':'memory_delete',operation==='edit'?{id,text:'用户手动确认喜欢 Java'}:{id});
+    }});
+    await assert.rejects(()=>plugin.afterTurn(next),error=>error.solvitCode==='STORAGE');
+    const db=await first.run('memory_export');assert.equal(db.completedSources.length,1);
+    assert.equal(db.facts.length,operation==='edit'?1:0);
+    if(operation==='edit')assert.equal(db.facts[0].text,'用户手动确认喜欢 Java');
+  }
+});
+test('unknown replacement IDs and exhausted source quota fail without destructive updates',async()=>{
+  const plugin=runtime(new Map(),false,{model:{async complete(){return JSON.stringify({facts:[{
+    text:'用户喜欢 Kotlin 编程',category:'preference',tags:[],quote:completed().userText,replaceId:'other-role-record'
+  }]})}}});
+  await assert.rejects(()=>plugin.afterTurn(completed()),error=>error.solvitCode==='INVALID_OUTPUT');assert.equal(plugin.data.size,0);
+  const completedSources=Array.from({length:512},(_,i)=>({...completed('old'+i).source,factIds:[]}));
+  const data=new Map([['memory.v1',{format:1,sequence:0,facts:[],edges:[],chunks:[],profile:{},completedSources}]]);let calls=0;
+  const full=runtime(data,false,{model:{async complete(){calls++;return extraction}}});
+  await assert.rejects(()=>full.afterTurn(completed()),error=>error.solvitCode==='STORAGE');assert.equal(calls,0);
+  assert.equal(data.get('memory.v1').completedSources.length,512);
+});
