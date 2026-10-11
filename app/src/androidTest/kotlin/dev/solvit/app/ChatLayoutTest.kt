@@ -1,5 +1,7 @@
 package dev.solvit.app
 
+import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
 import android.os.ParcelFileDescriptor
 import android.view.WindowInsets
 import androidx.compose.ui.test.*
@@ -38,6 +40,25 @@ class ChatLayoutTest {
             rule.onNodeWithText("创建并绑定").performClick()
         }
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("shell_command").fetchSemanticsNodes().isNotEmpty() }
+    }
+    @Test fun toolsAndThinkingAreCollapsedInsideOneRenderedAssistantBubble() {
+        ready()
+        val call = ToolCall("clock-call", "dev_solvit_clock_current_time", "{}")
+        val messages = listOf(
+            ChatMessage("call", "s", Role.ASSISTANT, "", toolCalls = listOf(call), reasoning = "private reasoning details"),
+            ChatMessage("result", "s", Role.TOOL, "actual native clock result", toolCallId = call.id, toolStage = ToolStage.SUCCEEDED),
+            ChatMessage("answer", "s", Role.ASSISTANT, "**Rendered answer**"))
+        rule.runOnUiThread { rule.activity.setContent { MaterialTheme { ChatBubble(ChatRow("reply", messages = messages)) } } }
+        rule.onAllNodesWithTag("assistant_message").assertCountEquals(1)
+        rule.onNodeWithTag("tool_details").assertDoesNotExist()
+        rule.onNodeWithTag("thinking_details").assertDoesNotExist()
+        rule.onNodeWithText("Rendered answer").assertExists()
+        rule.onNodeWithText("**Rendered answer**").assertDoesNotExist()
+        rule.onNodeWithTag("tool_toggle").performClick()
+        rule.onNodeWithText("actual native clock result").assertIsDisplayed()
+        rule.onNodeWithTag("thinking_toggle").performClick()
+        rule.onNodeWithText("private reasoning details").assertExists()
+        screenshot("chat-inline-tools-thinking")
     }
     @Test fun configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation() {
         ready()
