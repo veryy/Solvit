@@ -3636,139 +3636,159 @@
     "ja": "診断",
     "ko": "진단",
     "es": "Diagnóstico",
-    "fr": "Diagnostic"
+    "fr": "Diagnostic",
+    "zh": "诊断"
   },
   "最近请求诊断": {
     "en": "Latest request diagnostics",
     "ja": "最新リクエストの診断",
     "ko": "최근 요청 진단",
     "es": "Diagnóstico de la última solicitud",
-    "fr": "Diagnostic de la dernière requête"
+    "fr": "Diagnostic de la dernière requête",
+    "zh": "最近请求诊断"
   },
   "角色、上下文来源、工具与回复耗时": {
     "en": "Role, context sources, tools and response timing",
     "ja": "ロール、コンテキストの出典、ツールと応答時間",
     "ko": "역할, 문맥 출처, 도구 및 응답 시간",
     "es": "Rol, fuentes de contexto, herramientas y tiempos",
-    "fr": "Rôle, sources du contexte, outils et délais"
+    "fr": "Rôle, sources du contexte, outils et délais",
+    "zh": "角色、上下文来源、工具与回复耗时"
   },
   "仅展示最近请求的元数据，不保存提示词、密钥或工具参数。": {
     "en": "Shows metadata only; does not store prompts, keys or tool arguments.",
     "ja": "メタデータのみ表示します。プロンプト、キー、ツール引数は保存しません。",
     "ko": "메타데이터만 표시하며 프롬프트, 키, 도구 인수는 저장하지 않습니다.",
     "es": "Solo muestra metadatos; no guarda instrucciones, claves ni argumentos.",
-    "fr": "Affiche uniquement les métadonnées, sans conserver les instructions, clés ou arguments."
+    "fr": "Affiche uniquement les métadonnées, sans conserver les instructions, clés ou arguments.",
+    "zh": "仅展示最近请求的元数据，不保存提示词、密钥或工具参数。"
   },
   "尚未组装模型请求": {
     "en": "No model request prepared yet",
     "ja": "モデルリクエストはまだありません",
     "ko": "준비된 모델 요청이 없습니다",
     "es": "Todavía no se preparó una solicitud",
-    "fr": "Aucune requête préparée"
+    "fr": "Aucune requête préparée",
+    "zh": "尚未组装模型请求"
   },
   "实际角色：{0}": {
     "en": "Effective role: {0}",
     "ja": "有効なロール：{0}",
     "ko": "실제 역할: {0}",
     "es": "Rol efectivo: {0}",
-    "fr": "Rôle effectif : {0}"
+    "fr": "Rôle effectif : {0}",
+    "zh": "实际角色：{0}"
   },
   "协议：{0}": {
     "en": "Protocol: {0}",
     "ja": "プロトコル：{0}",
     "ko": "프로토콜: {0}",
     "es": "Protocolo: {0}",
-    "fr": "Protocole : {0}"
+    "fr": "Protocole : {0}",
+    "zh": "协议：{0}"
   },
   "模型：{0}": {
     "en": "Model: {0}",
     "ja": "モデル：{0}",
     "ko": "모델: {0}",
     "es": "Modelo: {0}",
-    "fr": "Modèle : {0}"
+    "fr": "Modèle : {0}",
+    "zh": "模型：{0}"
   },
   "消息数：{0}": {
     "en": "Messages: {0}",
     "ja": "メッセージ数：{0}",
     "ko": "메시지 수: {0}",
     "es": "Mensajes: {0}",
-    "fr": "Messages : {0}"
+    "fr": "Messages : {0}",
+    "zh": "消息数：{0}"
   },
   "系统上下文字符数：{0}": {
     "en": "System context characters: {0}",
     "ja": "システムコンテキスト文字数：{0}",
     "ko": "시스템 문맥 문자 수: {0}",
     "es": "Caracteres del contexto de sistema: {0}",
-    "fr": "Caractères du contexte système : {0}"
+    "fr": "Caractères du contexte système : {0}",
+    "zh": "系统上下文字符数：{0}"
   },
   "来源：{0} · {1} · {2}": {
     "en": "Source: {0} · {1} · {2}",
     "ja": "出典：{0} · {1} · {2}",
     "ko": "출처: {0} · {1} · {2}",
     "es": "Fuente: {0} · {1} · {2}",
-    "fr": "Source : {0} · {1} · {2}"
+    "fr": "Source : {0} · {1} · {2}",
+    "zh": "来源：{0} · {1} · {2}"
   },
   "提供的工具数：{0}": {
     "en": "Available tools: {0}",
     "ja": "提供ツール数：{0}",
     "ko": "제공된 도구 수: {0}",
     "es": "Herramientas disponibles: {0}",
-    "fr": "Outils disponibles : {0}"
+    "fr": "Outils disponibles : {0}",
+    "zh": "提供的工具数：{0}"
   },
   "首段文本到达应用：{0} ms": {
     "en": "First text received by app: {0} ms",
     "ja": "最初のテキスト受信：{0} ms",
     "ko": "앱의 첫 텍스트 수신: {0} ms",
     "es": "Primer texto recibido: {0} ms",
-    "fr": "Premier texte reçu : {0} ms"
+    "fr": "Premier texte reçu : {0} ms",
+    "zh": "首段文本到达应用：{0} ms"
   },
   "首段思考到达应用：{0} ms": {
     "en": "First reasoning received by app: {0} ms",
     "ja": "最初の思考受信：{0} ms",
     "ko": "앱의 첫 추론 수신: {0} ms",
     "es": "Primer razonamiento recibido: {0} ms",
-    "fr": "Premier raisonnement reçu : {0} ms"
+    "fr": "Premier raisonnement reçu : {0} ms",
+    "zh": "首段思考到达应用：{0} ms"
   },
   "首段文字显示：{0} ms": {
     "en": "First text displayed: {0} ms",
     "ja": "最初のテキスト表示：{0} ms",
     "ko": "첫 텍스트 표시: {0} ms",
     "es": "Primer texto mostrado: {0} ms",
-    "fr": "Premier texte affiché : {0} ms"
+    "fr": "Premier texte affiché : {0} ms",
+    "zh": "首段文字显示：{0} ms"
   },
   "模型事件结束：{0} ms": {
     "en": "Model events ended: {0} ms",
     "ja": "モデルイベント終了：{0} ms",
     "ko": "모델 이벤트 종료: {0} ms",
     "es": "Fin de eventos del modelo: {0} ms",
-    "fr": "Fin des événements du modèle : {0} ms"
+    "fr": "Fin des événements du modèle : {0} ms",
+    "zh": "模型事件结束：{0} ms"
   },
   "显示结束：{0} ms": {
     "en": "Display ended: {0} ms",
     "ja": "表示終了：{0} ms",
     "ko": "표시 종료: {0} ms",
     "es": "Fin de visualización: {0} ms",
-    "fr": "Fin de l’affichage : {0} ms"
+    "fr": "Fin de l’affichage : {0} ms",
+    "zh": "显示结束：{0} ms"
   },
   "接收字符数：{0}": {
     "en": "Received characters: {0}",
     "ja": "受信文字数：{0}",
     "ko": "수신 문자 수: {0}",
     "es": "Caracteres recibidos: {0}",
-    "fr": "Caractères reçus : {0}"
+    "fr": "Caractères reçus : {0}",
+    "zh": "接收字符数：{0}"
   },
   "状态：{0}": {
     "en": "Status: {0}",
     "ja": "状態：{0}",
     "ko": "상태: {0}",
     "es": "Estado: {0}",
-    "fr": "État : {0}"
+    "fr": "État : {0}",
+    "zh": "状态：{0}"
   },
   "到达应用的时间包含网络、解析和执行等待，不能单独证明服务端缓冲。": {
     "en": "App receipt times include network, parsing and execution waits; they alone cannot prove server buffering.",
     "ja": "受信時間にはネットワーク、解析、実行待機が含まれ、これだけでサーバーのバッファリングは断定できません。",
     "ko": "앱 수신 시간에는 네트워크, 파싱, 실행 대기가 포함되며 서버 버퍼링을 단독으로 입증하지 않습니다.",
     "es": "Los tiempos incluyen red, análisis y esperas; por sí solos no prueban almacenamiento en búfer del servidor.",
-    "fr": "Les délais incluent réseau, analyse et attente ; ils ne prouvent pas à eux seuls une mise en tampon du serveur."
+    "fr": "Les délais incluent réseau, analyse et attente ; ils ne prouvent pas à eux seuls une mise en tampon du serveur.",
+    "zh": "到达应用的时间包含网络、解析和执行等待，不能单独证明服务端缓冲。"
   }
 }
