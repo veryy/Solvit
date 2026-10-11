@@ -149,10 +149,14 @@ class AndroidMarketplace(
 
     override suspend fun disable(id: String) = mutex.withLock {
         check(id in packages) { "插件未安装" }
-        manager.disable(id)
-        prefs.edit().putBoolean("enabled.$id", false).commit()
-        failures.remove(id)
-        publish()
+        try { manager.disable(id) }
+        finally {
+            if (manager.states.value[id] != PluginState.ENABLED) {
+                check(prefs.edit().putBoolean("enabled.$id", false).commit()) { "插件停用配置保存失败" }
+                failures.remove(id)
+            }
+            publish()
+        }
     }
 
     override suspend fun uninstall(id: String) = mutex.withLock {

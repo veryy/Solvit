@@ -10,7 +10,9 @@ test('catalog downloads match their declared integrity and expose no write API',
   try {
     const health = await (await fetch(base + '/health')).json();
     assert.equal(health.status, 'ok');
-    const catalog = await (await fetch(base + '/api/v1/plugins')).json();
+    const legacy = await (await fetch(base + '/api/v1/plugins')).json();
+    assert.ok(legacy.plugins.every(plugin => plugin.apiVersion === 1));
+    const catalog = await (await fetch(base + '/api/v1/plugins?hostApi=2')).json();
     assert.ok(catalog.plugins.length > 0);
     for (const plugin of catalog.plugins) {
       const response = await fetch(base + plugin.downloadPath);
