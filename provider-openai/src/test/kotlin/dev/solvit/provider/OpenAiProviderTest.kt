@@ -93,6 +93,7 @@ class OpenAiProviderTest {
 
     @Test fun assemblesInterleavedToolFragmentsAndSerializesResults() = runTest {
         val events = listOf(
+            """{"choices":[{"delta":{"role":"assistant","content":"","tool_calls":[]},"finish_reason":""}]}""",
             """{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_a","type":"function","function":{"name":"clock","arguments":"{\"tz\":"}},{"index":1,"id":"call_b","type":"function","function":{"name":"echo","arguments":"{"}}]}}]}""",
             """{"choices":[{"delta":{"tool_calls":[{"index":1,"function":{"arguments":"}"}},{"index":0,"function":{"arguments":"\"UTC\"}"}}]},"finish_reason":"tool_calls"}]}""",
         ).joinToString("\n\n") { "data: $it" } + "\n\ndata: [DONE]\n\n"

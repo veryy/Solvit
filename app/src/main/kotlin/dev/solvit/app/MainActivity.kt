@@ -286,8 +286,8 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             confirmButton = { TextButton(onClick = { vm.approveTool(true) }) { Text("允许这一次") } },
             dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { Text("拒绝") } })
     }
-    if (workspaceOpen) WorkspaceDialog(workspaces) { workspaceOpen = false }
     val app = LocalContext.current.applicationContext as SolvitApplication
+    if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution) { workspaceOpen = false }
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true })
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace) { permissionsOpen = false }

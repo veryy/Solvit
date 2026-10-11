@@ -21,7 +21,8 @@ import dev.solvit.core.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
+fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDismiss: () -> Unit) {
+    val executionModes by system.modes.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
     val jobs by vm.jobs.collectAsStateWithLifecycle()
     val id by vm.workspaceId.collectAsStateWithLifecycle()
@@ -61,6 +62,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
                 if (tab == 0) {
+                    if (executionModes[TERMINAL_OWNER] == ExecutionMode.ROOT) Text("手动终端：Root 模式", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 12.dp))
                     LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(shells, key = { it.id }) { shell -> FilterChip(selected = shell.id == activeShell,
                             onClick = { shellId = shell.id }, label = { Text(shell.name) }) }
@@ -75,6 +77,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, onDismiss: () -> Unit) {
                                     ShellStage.STARTING -> "启动中"; ShellStage.RUNNING -> "运行中"; ShellStage.COMPLETED -> "完成 · ${job.exitCode}"
                                     ShellStage.FAILED -> "失败 · ${job.exitCode ?: "无法启动"}"; ShellStage.CANCELLED -> "已停止"; ShellStage.TIMED_OUT -> "已超时"
                                 }, style = MaterialTheme.typography.labelSmall)
+                                Text(if (job.mode == ExecutionMode.ROOT) "Root" else "普通应用身份", style = MaterialTheme.typography.labelSmall)
                                 if (job.truncated) Text("仅保留最近输出", style = MaterialTheme.typography.labelSmall)
                                 SelectionContainer { Text(job.output.joinToString("") { it.text }, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall) }
                                 job.failure?.let { Text(it, color = MaterialTheme.colorScheme.error) }
