@@ -66,7 +66,7 @@ class GreetingPlugin : SolvitPlugin {
 
 ## 消息、事件与取消
 
-ChatService 在请求前持久化用户消息，通过 ChatStore 历史组装模型请求。一次 turn 仅执行一次 AgentRuntime；AgentRuntime 默认代理 ModelProvider.stream。回复片段是瞬态 Flow，完整回复在 Done 时写入 SQLite。没有 Done、网络失败、额度截断、取消分别结算为失败或中断；部分助手回复不会进入下一次上下文。
+ChatService 在请求前持久化用户消息，通过 ChatStore 历史组装模型请求。一次 turn 调用 AgentRuntime；默认 ToolAgentRuntime 向模型提供已启用插件的工具描述，组装完整工具调用后，逐次请求用户确认，再由 ToolRegistry 执行并回传结果。每轮最多 16 个调用，整次最多 8 轮、16 次执行；达到上限明确终止。回复片段是瞬态 Flow，调用记录、工具结果和最终回复在 Done 时通过 SQLite 事务统一写入；异常或取消也保留已有记录并标记状态。没有 Done、网络失败、额度截断、取消分别结算为失败或中断；部分助手回复不会进入下一次上下文。
 
 SQLite 将消息插入与会话标题/时间更新放进同一事务；参数绑定避免 SQL 拼接。会话删除通过外键级联。可观察 StateFlow 触发查询。CoreEvent 是尽力而为的进程内通知，不是消息持久化依据，不用它做授权决策或重放。UI 使用 ChatStore 的 Flow 获取记录。
 
@@ -81,7 +81,7 @@ ToolRegistry 提供描述、JSON 输入 schema、权限集合与确认要求。�
 ## 演进方向
 
 1. 多 Provider 注册与用户 profile，独立工具/模型选择，持久化组合配置。
-2. 有界 Agent Loop、结构化工具调用、执行预算和授权 UI。
+2. 工具循环已接入；后续完善角色工具范围、任务预算和后台执行策略。
 3. Skills、MCP、Memory 作为服务提供者；扩展工具 schema 加入模型上下文。
 4. 注册 UI 设置卡片和能力展示，逐步增加 scoped registration。
 5. 需要重放和恢复时引入版本化持久事件日志，区分事实与瞬态流。
