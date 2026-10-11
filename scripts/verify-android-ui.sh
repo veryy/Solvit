@@ -15,7 +15,7 @@ else
   # Fork PRs have no signing secret and cannot install over the signed release.
   solvit_exclusions="$solvit_exclusions,dev.solvit.app.UpgradePersistenceTest"
 fi
-timeout --signal=TERM --kill-after=30s 12m ./gradlew :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions" --stacktrace
+timeout --signal=TERM --kill-after=30s 12m ./gradlew :web-android:connectedDebugAndroidTest :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions" --stacktrace
 solvit_test_status=$?
 if [ "$solvit_test_status" -ne 0 ]; then
   timeout 15s adb logcat -d -t 1500 > ui-screenshots/emulator-logcat.txt || true

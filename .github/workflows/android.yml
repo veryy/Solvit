@@ -37,7 +37,7 @@ jobs:
             exit 1
           fi
       - name: Tests, lint and APK
-        run: ./gradlew :core:test :system-runtime:test :workspace-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest --stacktrace
+        run: ./gradlew :core:test :system-runtime:test :workspace-android:testDebugUnitTest :web-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest :web-android:assembleDebugAndroidTest --stacktrace
       - name: Verify published APK signing identity
         if: github.event_name != 'pull_request'
         run: |
@@ -88,7 +88,7 @@ jobs:
         timeout-minutes: 15
         run: |
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
-          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebug :terminal-android:assembleDebugAndroidTest --stacktrace
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebug :terminal-android:assembleDebugAndroidTest :web-android:assembleDebugAndroidTest --stacktrace
       - name: Download previous signed release
         if: github.event_name != 'pull_request'
         timeout-minutes: 4
@@ -117,6 +117,8 @@ jobs:
           path: |
             app/build/reports/androidTests/
             app/build/outputs/androidTest-results/
+            web-android/build/reports/androidTests/
+            web-android/build/outputs/androidTest-results/
             terminal-android/build/reports/androidTests/
             terminal-android/build/outputs/androidTest-results/
             ui-screenshots/

@@ -13,3 +13,4 @@ include(":workspace-android")
 include(":terminal-android")
 
 include(":provider-http", ":provider-anthropic")
+include(":web-android")
