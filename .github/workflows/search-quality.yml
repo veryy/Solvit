@@ -1,0 +1,29 @@
+name: Public search quality
+on:
+  workflow_dispatch:
+  push:
+    paths: ['builtin-plugins/web-search/**', 'plugin-sdk/scripts/check-browser-search-quality.mjs', 'market-server/packages/dev.solvit.web-search.solvit.json', 'web-android/**', '.github/workflows/search-quality.yml']
+permissions:
+  contents: read
+jobs:
+  public-search:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser verifier
+        run: |
+          npm install --prefix "$RUNNER_TEMP/solvit-search-browser" playwright@1.51.1
+          "$RUNNER_TEMP/solvit-search-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Check actual public result relevance and source bodies
+        working-directory: plugin-sdk
+        run: node scripts/check-browser-search-quality.mjs
+        env:
+          SOLVIT_BROWSER_PACKAGE: ${{ runner.temp }}/solvit-search-browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: solvit-public-search-evidence
+          path: plugin-sdk/browser-search-evidence.json
