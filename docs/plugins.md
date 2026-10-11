@@ -8,7 +8,7 @@ UTF-8 `.solvit.json` 包含 `manifest` 与 `source`。市场示例：[当前时�
 
 - `id`：稳定 ID，最长 40 字符，使用小写域名形式。
 - `version`：三段数字版本。
-- `apiVersion`：整数 `1` 或 `2`；v2 增加声明式私有配置和 HTTP 请求扩展。
+- `apiVersion`：整数 `1`、`2` 或 `3`；v2 增加声明式私有配置和 HTTP 请求扩展，v3 增加只读 beforeModel Hook、角色上下文和 management 工具。
 - `permissions`：`storage`、`network`，无权限插件填写空数组。
 - `dependencies`：先启用的插件 ID 集合。
 - `tools`：工具名、描述、JSON 对象输入 schema；工具名最长 20 字符。
@@ -36,7 +36,7 @@ globalThis.solvitPlugin = {
 
 ## 当前边界
 
-核心包解析、JS 执行、超时、权限检查、依赖启用和工具撤销测试已通过 GitHub Actions。Android 市场安装、用户权限授予、持久化配置与手动工具执行 UI 已通过远程编译与 Lint，包含在 0.2.0 源码中；尚未真机测试。当前源码已接入模型工具调用：启用的插件工具自动出现在模型请求中，逐次弹窗确认参数，显示执行状态与结果，默认最多 8 轮、16 次调用；跨模块 HTTP→QuickJS 集成测试已通过 GitHub Actions，真机与真实模型仍待验证。服务注册、事件 Hook 和声明式插件 UI 将继续增加；当前 API 不声称兼容 DSH/Cordis。
+核心包解析、JS 执行、超时、权限检查、依赖启用和工具撤销测试已通过 GitHub Actions。Android 市场安装、用户权限授予、持久化配置与手动工具执行 UI 已通过远程编译与 Lint，包含在 0.2.0 源码中；尚未真机测试。当前源码已接入模型工具调用：启用的插件工具自动出现在模型请求中，逐次弹窗确认参数，显示执行状态与结果，默认最多 8 轮、16 次调用；跨模块 HTTP→QuickJS 集成测试已通过 GitHub Actions，真机与真实模型仍待验证。源码已开放只读 beforeModel Hook、声明式配置 UI 和角色范围；更多服务注册、事件 Hook 和 UI 扩展继续增加；当前 API 不声称兼容 DSH/Cordis。
 
 ## 内置记忆
 

@@ -39,7 +39,7 @@ API v2 可以在 manifest `settings` 声明 text/url/secret 配置字段，由�
 
 `cancelBody` 仅用于 POST：请求被取消且 network 权限仍有效时，宿主最多用 1 秒向相同 URL/请求头发送该清理内容。MCP 用它发送取消通知；不要在这里安排新的业务操作。
 
-manifest `dependencies` 是其他已启用 Solvit 插件的 ID，用于运行时依赖排序；TS import 是打包依赖，两者用途不同。插件跨服务调用、事件 Hook、模型扩展和声明式 UI 还未开放。
+manifest `dependencies` 是其他已启用 Solvit 插件的 ID，用于运行时依赖排序；TS import 是打包依赖，两者用途不同。API 3 已开放只读 beforeModel Hook、角色上下文与管理工具。插件跨服务调用、其他事件 Hook、模型扩展和更多 UI 扩展继续实现。
 
 ## 内置包与远程验证
 
@@ -50,3 +50,20 @@ npm test
 ```
 
 build:builtins 同时更新市场包与 Android 离线 assets；不要只改生成的 JS。GitHub Actions 重新打包并检查两份产物与提交内容一致，执行 TS 和插件测试。Android 的实际 QuickJS 与存储集成由 Android Actions 验证。
+
+## API 3：角色与上下文
+
+manifest 声明 `apiVersion: 3` 与 `hooks: ["beforeModel"]`，插件实现：
+
+```ts
+beforeModel: async (input, ctx) => {
+  const directory = await ctx.storage.get('catalog');
+  return JSON.stringify(directory ?? []);
+}
+```
+
+Hook 只允许读取本插件存储，不允许 settings.get、storage.set 或 HTTP。每个最多 10 秒/32 KiB，合计最多 64 KiB。返回文本加入本轮模型上下文；角色未绑定时不执行，卸载会注销。
+
+普通工具与 Hook 都能通过 `ctx.role` 取得宿主提供的角色 ID、名称和 skillIds；默认角色为 null。插件 ID 由宿主用于工具发现及执行范围检查，管理参数不能伪造角色。`ctx.role` 的数据不可视为不同插件间存储隔离。
+
+manifest 工具设置 `exposure: "management"` 后，只出现在原生管理调用中，不向模型提供。默认值为 `chat`。Skills 导入、删除、导出使用 management；聊天正文/资源读取使用 chat。示例及限制见 [Skills](../docs/skills.md)。

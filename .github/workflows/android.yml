@@ -49,6 +49,7 @@ jobs:
           path: |
             **/build/reports/tests/
             **/build/test-results/test/
+            **/build/test-results/testDebugUnitTest/
             app/build/reports/lint-results-debug.html
   verify-plugins:
     if: startsWith(github.ref, 'refs/tags/v')

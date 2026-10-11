@@ -25,7 +25,9 @@ jobs:
         with:
           name: solvit-builtin-plugins
           path: market-server/packages/*.solvit.json
-      - run: git diff --exit-code -- market-server/packages plugin-market/src/main/assets/builtin-plugins
+      - run: |
+          git diff --exit-code -- market-server/packages plugin-market/src/main/assets/builtin-plugins
+          test -z "$(git ls-files --others --exclude-standard -- market-server/packages plugin-market/src/main/assets/builtin-plugins)"
       - run: npm run typecheck && npm test
         working-directory: plugin-sdk
       - run: npm test
