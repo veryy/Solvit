@@ -5,6 +5,8 @@ import com.dokar.quickjs.binding.asyncFunction
 import dev.solvit.core.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
@@ -132,7 +134,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
             // promises waiting on asynchronous host operations.
             withTimeout(timeoutMs + 1_000) {
                 executionJob = currentCoroutineContext().job
-                executionContext = currentCoroutineContext()
+                val nativeCalls = SupervisorJob(executionJob)
+                executionContext = currentCoroutineContext() + nativeCalls
                 readOnlyHost = readOnly
                 try {
                     // Resolve the JS evaluation with an explicit result envelope.
@@ -153,7 +156,12 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         outcome.getValue("error").jsonPrimitive.content
                     }
                     outcome.getValue("result").jsonPrimitive.content
-                } finally { executionJob = null; executionContext = null; readOnlyHost = false }
+                } finally {
+                    // QuickJS evaluation can return on cancellation before its
+                    // async binding has finished native HTTP/Shell cleanup.
+                    withContext(NonCancellable) { nativeCalls.cancel(); nativeCalls.join() }
+                    executionJob = null; executionContext = null; readOnlyHost = false
+                }
             }
         }
     }
