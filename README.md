@@ -33,10 +33,10 @@
 
 ## 构建
 
-需要 JDK 17、Android SDK Platform 35、Build Tools 36.0.0。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
+需要 JDK 17、Android SDK Platform 36、Build Tools 36.0.0。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
 
 ```sh
-./gradlew :core:test :provider-openai:test :chat-runtime:test :app:lintDebug :app:assembleDebug
+./gradlew :core:test :provider-openai:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :app:lintDebug :app:assembleDebug
 ```
 
 APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同命令并上传 APK 和测试报告。Gradle Wrapper 固定为 9.3.1，AGP 9.1.1 使用内置 Kotlin，项目 Kotlin 版本 2.4.10，以接入具有超时与取消能力的 QuickJS 插件引擎。
@@ -49,6 +49,9 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 | `provider-openai` | OkHttp 网络与 SSE，独立注册 ModelProvider |
 | `storage-sqlite` | ChatStore 的 Android SQLite 实现 |
 | `chat-runtime` | 单次模型 Agent、消息结算、上下文和 ChatService 插件 |
+| `release-updates` | GitHub Release 更新检查 |
+| `plugin-runtime` | QuickJS 引擎、JS 工具适配、依赖、权限与执行限制 |
+| `plugin-market` | HTTPS 目录、包校验、安装启停、独立存储和权限配置 |
 | `app` | 启动组合、加密设置、ViewModel、原生 UI |
 
 详细设计、参考源码、生命周期规则、扩展方式见 [架构说明](docs/architecture.md)。测试中的 Greeting 插件与 MemoryStore 演示服务扩展与存储替换。
@@ -57,6 +60,8 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 ## 当前边界
 
-第一版仅聊天，不执行 Shell、文件操作或手机控制。没有插件市场、动态加载、完整工具调用循环、MCP、向量记忆、附件、Markdown 排版或后台持续执行。第三方代码与内置插件目前没有进程级隔离；权限声明仅是未来工具执行的门禁契约。聊天记录在应用私有 SQLite 中，未做数据库加密。
+当前已发布版本提供基础聊天和更新检查。当前源码已接入 [插件市场](https://solvit.207.57.126.73.sslip.io/)、JS 包下载校验、安装启停、权限授予和手动工具试运行；新版仍在远程构建验证，尚未发布为 APK。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
+
+Shell、手机控制、模型工具调用循环、MCP、向量记忆、附件、Markdown 排版和后台持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
 
 停止或失败后的助手回复保留并标记，但不进入后续模型上下文；用户输入仍保留。进程被系统杀死时，未结算的流式片段可能丢失，已写入的用户消息和完整回复保留。完整上下文发送给配置的模型服务，较长对话目前需要新建对话。
