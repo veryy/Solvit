@@ -23,7 +23,7 @@
 
 “设置 → 配置备份与恢复”可使用密码加密导出模型/API Key、提示词、角色和外观；在重装或换机后导入，密钥会重新加密到本机 Keystore。备份文件应保存在应用之外。聊天记录、插件包、插件密钥和记忆暂不包含；卸载会删除数据，无法恢复此前未备份的配置。应用仍禁用自动云备份。
 
-安装 debug APK 后，点击右上角“设置 → 模型与连接”：
+安装 debug APK 后，打开侧栏底部“设置 → 模型配置 → 模型与连接”：
 
 | 服务 | API 基础地址 | 模型示例 |
 | --- | --- | --- |
@@ -87,7 +87,8 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 | `provider-openai` | OkHttp 网络与 SSE，独立注册 ModelProvider |
 | `storage-sqlite` | ChatStore 的 Android SQLite 实现 |
 | `chat-runtime` | 有界工具 Agent、消息结算、上下文和 ChatService 插件 |
-| `system-runtime` | Shell 作业、流式输出与取消引擎（尚未接入 Android/UI） |
+| `system-runtime` | Shell 作业、流式输出与取消引擎 |
+| `workspace-android` | 持久工作区绑定、文件操作、多 Shell 会话与原生进程执行 |
 | `release-updates` | GitHub Release 更新检查 |
 | `plugin-runtime` | QuickJS 引擎、JS 工具适配、依赖、权限与执行限制 |
 | `plugin-market` | HTTPS 目录、包校验、安装启停、独立存储和权限配置 |
