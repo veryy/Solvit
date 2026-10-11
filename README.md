@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.12.0 版本下载](https://github.com/veryy/Solvit/releases/tag/v0.12.0)，[109 个单元测试、Android 模拟器、Lint、APK 和固定签名验证通过](https://github.com/veryy/Solvit/actions/runs/38130101183)。消息菜单新增“从这里分支”和“编辑并分支”，原对话保持完整，完整工具轮次复制到独立记录；角色与已有工作区绑定继承。编辑问题会预填到新分支输入框，由用户发送。继续支持同一回复内折叠工具及思考、Markdown、按需工作区、键盘上方的输入区和 JS/TS 可调用的真实 PTY。设置包含模型、角色与 Skills、插件、外观、备份、更新和关于，更新说明与下载进度均在应用内显示。分支详情见 [聊天分支](docs/chat-branches.md)。
+[0.13.0 版本下载](https://github.com/veryy/Solvit/releases/tag/v0.13.0)，[119 个单元测试、23 个 Android 模拟器测试、Lint、APK 和固定签名验证通过](https://github.com/veryy/Solvit/actions/runs/38136155272)。新增六种界面语言、联网搜索插件和“允许且不再询问”；修正角色提示词在兼容网关中的合并，流式显示直接呈现首段文字并跟随长回复。交互终端提供 ANSI 字符屏幕、颜色、光标与直接按键。设置中管理模型、角色与 Skills、插件、语言、外观、备份和更新；更新说明与下载进度均在应用内显示。详情见 [版本说明](docs/release-0.13.0.md)、[界面语言](docs/localization.md)、[联网搜索](docs/web-search.md) 和 [聊天分支](docs/chat-branches.md)。
 
 **签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
 
