@@ -26,6 +26,8 @@ sealed interface ApkDownloadState {
 
 /** DownloadManager keeps transfers alive when the screen or process is closed. */
 class AppUpdateDownloader(private val context: Context, private val scope: CoroutineScope) {
+    private val strings by lazy { UiStrings.load(context) }
+    private fun ui(source: String): String = strings.text(source, (context.applicationContext as? SolvitApplication)?.language?.language?.value ?: "zh")
     private val manager = context.getSystemService(DownloadManager::class.java)
     private val prefs = context.getSharedPreferences("apk_update", Context.MODE_PRIVATE)
     private val mutableState = MutableStateFlow<ApkDownloadState>(ApkDownloadState.Idle)
@@ -48,7 +50,7 @@ class AppUpdateDownloader(private val context: Context, private val scope: Corou
             File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), relative).delete()
             val id = manager.enqueue(DownloadManager.Request(uri)
                 .setTitle("Solvit ${release.version}")
-                .setDescription("下载完成后返回 Solvit 安装更新")
+                .setDescription(ui("下载完成后返回 Solvit 安装更新"))
                 .setMimeType("application/vnd.android.package-archive")
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 .setDestinationInExternalFilesDir(context, Environment.DIRECTORY_DOWNLOADS, relative))

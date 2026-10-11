@@ -1,4 +1,12 @@
 {
+  "\n请求 ID：": {
+    "zh": "\n请求 ID：",
+    "en": "\nRequest ID:",
+    "ja": "\nリクエストID:",
+    "ko": "\n요청 ID:",
+    "es": "\nID de solicitud:",
+    "fr": "\nID de la demande :"
+  },
   " · 分支": {
     "zh": " · 分支",
     "en": "· Branch",
@@ -47,6 +55,14 @@
     "es": "La clave API no se puede descifrar; La dirección del modelo y la palabra de aviso se han reservado, restaure la copia de seguridad o rellene la clave.",
     "fr": "The API Key cannot be decrypted; l'adresse du modèle et le mot d'invite ont été réservés, veuillez restaurer la sauvegarde ou recharger la clé"
   },
+  "API Key 格式不正确": {
+    "zh": "API Key 格式不正确",
+    "en": "API Key format is incorrect",
+    "ja": "APIキーの形式が正しくありません",
+    "ko": "API 키 형식이 잘못되었습니다.",
+    "es": "El formato de la clave API es incorrecto",
+    "fr": "Le format de la clé API est incorrect"
+  },
   "API 地址、模型、密钥、系统提示词": {
     "zh": "API 地址、模型、密钥、系统提示词",
     "en": "API address, model, key, system prompt word",
@@ -55,6 +71,22 @@
     "es": "Dirección API, modelo, clave, palabra de aviso del sistema",
     "fr": "API address, model, key, system prompt word"
   },
+  "API 地址格式不正确": {
+    "zh": "API 地址格式不正确",
+    "en": "API address format is incorrect",
+    "ja": "APIアドレスの形式が正しくありません",
+    "ko": "API 주소 형식이 잘못되었습니다.",
+    "es": "El formato de la dirección API es incorrecto",
+    "fr": "Le format de l'adresse API est incorrect"
+  },
+  "API 地址需为不含账号、查询参数的基础地址": {
+    "zh": "API 地址需为不含账号、查询参数的基础地址",
+    "en": "The API address must be a basic address without account number and query parameters.",
+    "ja": "API アドレスは、アカウント番号やクエリ パラメータを含まない基本アドレスである必要があります。",
+    "ko": "API 주소는 계좌번호와 쿼리 파라미터가 없는 기본 주소여야 합니다.",
+    "es": "La dirección API debe ser una dirección básica sin número de cuenta ni parámetros de consulta.",
+    "fr": "L'adresse API doit être une adresse de base sans numéro de compte ni paramètres de requête."
+  },
   "API 基础地址": {
     "zh": "API 基础地址",
     "en": "API base address",
@@ -62,6 +94,30 @@
     "ko": "API 기본 주소",
     "es": "Dirección base API",
     "fr": "Adresse de base de l'API"
+  },
+  "APK 下载失败，请检查网络或存储空间后重试": {
+    "zh": "APK 下载失败，请检查网络或存储空间后重试",
+    "en": "APK download failed, please check the network or storage space and try again",
+    "ja": "APK のダウンロードに失敗しました。ネットワークまたはストレージ容量を確認して、もう一度お試しください。",
+    "ko": "APK 다운로드에 실패했습니다. 네트워크나 저장 공간을 확인한 후 다시 시도해 주세요.",
+    "es": "La descarga del APK falló, verifique la red o el espacio de almacenamiento e inténtelo nuevamente",
+    "fr": "Échec du téléchargement de l'APK, veuillez vérifier le réseau ou l'espace de stockage et réessayer"
+  },
+  "APK 完整性校验失败，请重新下载": {
+    "zh": "APK 完整性校验失败，请重新下载",
+    "en": "APK integrity check failed, please download again",
+    "ja": "APK の整合性チェックに失敗しました。もう一度ダウンロードしてください",
+    "ko": "APK 무결성 확인에 실패했습니다. 다시 다운로드하세요.",
+    "es": "Error en la verificación de integridad del APK; descárguelo nuevamente",
+    "fr": "La vérification de l'intégrité de l'APK a échoué. Veuillez télécharger à nouveau."
+  },
+  "APK 文件不完整，请重新下载": {
+    "zh": "APK 文件不完整，请重新下载",
+    "en": "APK file is incomplete, please download again",
+    "ja": "APK ファイルが不完全です。もう一度ダウンロードしてください",
+    "ko": "APK 파일이 불완전합니다. 다시 다운로드하세요.",
+    "es": "El archivo APK está incompleto, descárguelo nuevamente",
+    "fr": "Le fichier APK est incomplet, veuillez le télécharger à nouveau"
   },
   "Agent 暴露了未处理工具调用": {
     "zh": "Agent 暴露了未处理工具调用",
@@ -102,6 +158,14 @@
     "ko": "루트 명령은 장치 시스템 및 기타 응용 프로그램 데이터를 읽고 수정할 수 있습니다. 시스템은 su 인증을 요청하고 UID 0을 확인합니다. 인증이 실패하면 명령이 실행되지 않습니다. 플러그인의 일반 파일 인터페이스는 여전히 현재 작업공간으로 제한됩니다.",
     "es": "Los comandos raíz pueden leer y modificar el sistema del dispositivo y otros datos de la aplicación. El sistema solicitará su autorización y verificará UID 0; el comando no se ejecutará si falla la autorización. La interfaz de archivos normal del complemento todavía está limitada al espacio de trabajo actual.",
     "fr": "Les commandes racine peuvent lire et modifier le système de l'appareil et d'autres données d'application. Le système demandera votre autorisation et vérifiera l'UID 0 ; la commande ne sera pas exécutée si l'autorisation échoue. L'interface de fichier normale du plug-in est toujours limitée à l'espace de travail actuel."
+  },
+  "Root 未授权、不可用或请求超时": {
+    "zh": "Root 未授权、不可用或请求超时",
+    "en": "Root is not authorized, unavailable or request timeout",
+    "ja": "ルートが許可されていないか、使用できないか、リクエストがタイムアウトしました",
+    "ko": "루트가 승인되지 않았거나 사용할 수 없거나 시간 초과를 요청했습니다.",
+    "es": "Root no está autorizado, no está disponible o solicita tiempo de espera",
+    "fr": "Root n'est pas autorisé, indisponible ou demande un délai d'attente"
   },
   "Shell 执行方式": {
     "zh": "Shell 执行方式",
@@ -207,6 +271,22 @@
     "es": "Descargando ·",
     "fr": "Téléchargement ·"
   },
+  "下载任务不存在，请重新下载": {
+    "zh": "下载任务不存在，请重新下载",
+    "en": "The download task does not exist, please download again",
+    "ja": "ダウンロード タスクが存在しません。もう一度ダウンロードしてください。",
+    "ko": "다운로드 작업이 존재하지 않습니다. 다시 다운로드하십시오.",
+    "es": "La tarea de descarga no existe, descárgala nuevamente.",
+    "fr": "La tâche de téléchargement n'existe pas, veuillez télécharger à nouveau"
+  },
+  "下载包不属于 Solvit": {
+    "zh": "下载包不属于 Solvit",
+    "en": "Download package does not belong to Solvit",
+    "ja": "ダウンロード パッケージは Solvit に属していません",
+    "ko": "다운로드 패키지가 Solvit에 속하지 않습니다.",
+    "es": "El paquete de descarga no pertenece a Solvit",
+    "fr": "Le package de téléchargement n'appartient pas à Solvit"
+  },
   "下载和校验完成。若系统要求允许安装应用，授权后回来点安装。": {
     "zh": "下载和校验完成。若系统要求允许安装应用，授权后回来点安装。",
     "en": "Download and verification completed. If the system requires permission to install the application, come back and click Install after authorization.",
@@ -215,6 +295,38 @@
     "es": "Descarga y verificación completadas. Si el sistema requiere permiso para instalar la aplicación, regrese y haga clic en Instalar después de la autorización.",
     "fr": "Download and verification completed. Si le système nécessite une autorisation pour installer l'application, revenez et cliquez sur Installer après autorisation."
   },
+  "下载失败，请重试": {
+    "zh": "下载失败，请重试",
+    "en": "Download failed, please try again",
+    "ja": "ダウンロードに失敗しました。もう一度お試しください",
+    "ko": "다운로드에 실패했습니다. 다시 시도해 주세요.",
+    "es": "Error en la descarga, inténtelo de nuevo",
+    "fr": "Échec du téléchargement, veuillez réessayer"
+  },
+  "下载完成后返回 Solvit 安装更新": {
+    "zh": "下载完成后返回 Solvit 安装更新",
+    "en": "Once the download is complete return to Solvit to install the update",
+    "ja": "ダウンロードが完了したら、Solvit に戻ってアップデートをインストールします。",
+    "ko": "다운로드가 완료되면 Solvit으로 돌아가 업데이트를 설치하세요.",
+    "es": "Una vez completada la descarga, regrese a Solvit para instalar la actualización.",
+    "fr": "Une fois le téléchargement terminé, retournez sur Solvit pour installer la mise à jour"
+  },
+  "下载文件不存在": {
+    "zh": "下载文件不存在",
+    "en": "Download file does not exist",
+    "ja": "ダウンロードファイルが存在しません",
+    "ko": "다운로드 파일이 존재하지 않습니다",
+    "es": "El archivo de descarga no existe",
+    "fr": "Le fichier de téléchargement n'existe pas"
+  },
+  "下载文件不是有效 APK": {
+    "zh": "下载文件不是有效 APK",
+    "en": "Download file is not a valid APK",
+    "ja": "ダウンロード ファイルは有効な APK ではありません",
+    "ko": "다운로드 파일이 유효한 APK가 아닙니다.",
+    "es": "El archivo descargado no es un APK válido",
+    "fr": "Le fichier téléchargé n’est pas un APK valide"
+  },
   "下载更新": {
     "zh": "下载更新",
     "en": "Download updates",
@@ -222,6 +334,14 @@
     "ko": "업데이트 다운로드",
     "es": "Descargar actualizaciones",
     "fr": "Télécharger les mises à jour"
+  },
+  "下载版本不高于当前版本，请重新检查更新": {
+    "zh": "下载版本不高于当前版本，请重新检查更新",
+    "en": "The downloaded version is not higher than the current version, please check again for updates",
+    "ja": "ダウンロードしたバージョンは現在のバージョンよりも新しいものではありません。アップデートがないかもう一度確認してください。",
+    "ko": "다운로드한 버전이 현재 버전보다 높지 않습니다. 업데이트를 다시 확인하세요.",
+    "es": "La versión descargada no es superior a la versión actual; verifique nuevamente si hay actualizaciones.",
+    "fr": "La version téléchargée n'est pas supérieure à la version actuelle, veuillez vérifier à nouveau les mises à jour"
   },
   "不再询问仅用于此角色和当前版本的此工具，后续不同参数也可执行。可在设置 → 权限与执行方式清除。": {
     "zh": "不再询问仅用于此角色和当前版本的此工具，后续不同参数也可执行。可在设置 → 权限与执行方式清除。",
@@ -326,6 +446,14 @@
     "ko": "당신",
     "es": "Tu",
     "fr": "Vous"
+  },
+  "你是 Solvit，一个认真、可靠的 AI 助手。": {
+    "zh": "你是 Solvit，一个认真、可靠的 AI 助手。",
+    "en": "You are Solvit, a serious, reliable AI assistant.",
+    "ja": "あなたはソルビット、真面目で信頼できる AI アシスタントです。",
+    "ko": "당신은 진지하고 믿음직한 AI 비서 솔빛입니다.",
+    "es": "Eres Solvit, un asistente de IA serio y confiable.",
+    "fr": "Vous êtes Solvit, un assistant IA sérieux et fiable."
   },
   "使用默认角色": {
     "zh": "使用默认角色",
@@ -863,6 +991,14 @@
     "es": "Respuesta fallida · Esta respuesta no participa en el contexto posterior",
     "fr": "Échec de la réponse · Cette réponse ne participe pas au contexte ultérieur"
   },
+  "地址：": {
+    "zh": "地址：",
+    "en": "Address:",
+    "ja": "住所:",
+    "ko": "주소:",
+    "es": "Dirección:",
+    "fr": "Adresse :"
+  },
   "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。": {
     "zh": "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。",
     "en": "The backup contains model address, API Key, prompt words, role, language and appearance settings. Files are encrypted with a password and can be restored after reinstalling or changing machines.",
@@ -1047,6 +1183,14 @@
     "es": "Exportar copia de seguridad",
     "fr": "Exporter la sauvegarde"
   },
+  "尚未请求 Root": {
+    "zh": "尚未请求 Root",
+    "en": "Root not requested yet",
+    "ja": "ルートはまだ要求されていません",
+    "ko": "아직 루트가 요청되지 않았습니다.",
+    "es": "Root aún no solicitado",
+    "fr": "Root pas encore demandé"
+  },
   "工作区": {
     "zh": "工作区",
     "en": "Workspace",
@@ -1206,6 +1350,14 @@
     "ko": "시작 확인 통과 · 아직 자동으로 설치되지 않음",
     "es": "Pasó la verificación de inicio · Aún no se instala automáticamente",
     "fr": "Vérification de démarrage réussie · Pas encore installé automatiquement"
+  },
+  "已验证 UID 0": {
+    "zh": "已验证 UID 0",
+    "en": "Verified UID 0",
+    "ja": "検証済みUID 0",
+    "ko": "확인된 UID 0",
+    "es": "UID verificado 0",
+    "fr": "UID vérifié 0"
   },
   "市场": {
     "zh": "市场",
@@ -1374,6 +1526,22 @@
     "ko": "실행 실패",
     "es": "La ejecución falló",
     "fr": "L'exécution a échoué"
+  },
+  "执行模式保存失败": {
+    "zh": "执行模式保存失败",
+    "en": "Execution mode save failed",
+    "ja": "実行モードの保存に失敗しました",
+    "ko": "실행 모드 저장 실패",
+    "es": "Error al guardar en modo de ejecución",
+    "fr": "L'enregistrement en mode exécution a échoué"
+  },
+  "执行模式已变化，请重新确认": {
+    "zh": "执行模式已变化，请重新确认",
+    "en": "The execution mode has changed, please reconfirm",
+    "ja": "実行モードが変更されました。再確認してください",
+    "ko": "실행 모드가 변경되었습니다. 다시 확인해 주세요.",
+    "es": "El modo de ejecución ha cambiado, vuelva a confirmar",
+    "fr": "Le mode d'exécution a changé, veuillez reconfirmer"
   },
   "执行身份：Root（设备最高权限）": {
     "zh": "执行身份：Root（设备最高权限）",
@@ -1551,6 +1719,14 @@
     "es": "Nuevo texto",
     "fr": "Nouveau texte"
   },
+  "新版签名与已安装版本不同，无法覆盖安装。请先备份配置；不要直接卸载。": {
+    "zh": "新版签名与已安装版本不同，无法覆盖安装。请先备份配置；不要直接卸载。",
+    "en": "The signature of the new version is different from the installed version and cannot be overwritten and installed. Please back up the configuration first; do not uninstall directly.",
+    "ja": "新しいバージョンの署名はインストールされているバージョンとは異なるため、上書きしてインストールすることはできません。まず設定をバックアップしてください。直接アンインストールしないでください。",
+    "ko": "새 버전의 서명은 설치된 버전과 다르므로 덮어쓰거나 설치할 수 없습니다. 먼저 구성을 백업하십시오. 직접 제거하지 마십시오.",
+    "es": "La firma de la nueva versión es diferente de la versión instalada y no se puede sobrescribir ni instalar. Primero haga una copia de seguridad de la configuración; no lo desinstale directamente.",
+    "fr": "La signature de la nouvelle version est différente de la version installée et ne peut pas être écrasée ni installée. Veuillez d'abord sauvegarder la configuration ; ne désinstallez pas directement."
+  },
   "无法写入备份": {
     "zh": "无法写入备份",
     "en": "Unable to write backup",
@@ -1582,6 +1758,30 @@
     "ko": "플러그인 마켓을 로드할 수 없습니다",
     "es": "No se puede cargar el mercado de complementos",
     "fr": "Impossible de charger le marché des plugins"
+  },
+  "无法开始下载，请检查网络和可用空间": {
+    "zh": "无法开始下载，请检查网络和可用空间",
+    "en": "Unable to start download, please check network and available space",
+    "ja": "ダウンロードを開始できません。ネットワークと空き容量を確認してください。",
+    "ko": "다운로드를 시작할 수 없습니다. 네트워크 및 사용 가능한 공간을 확인하세요.",
+    "es": "No se puede iniciar la descarga. Verifique la red y el espacio disponible.",
+    "fr": "Impossible de démarrer le téléchargement, veuillez vérifier le réseau et l'espace disponible"
+  },
+  "无法打开安装程序": {
+    "zh": "无法打开安装程序",
+    "en": "Can't open installer",
+    "ja": "インストーラーを開けません",
+    "ko": "설치 프로그램을 열 수 없습니다",
+    "es": "No puedo abrir el instalador",
+    "fr": "Impossible d'ouvrir le programme d'installation"
+  },
+  "无法打开安装设置，请在系统设置允许 Solvit 安装应用": {
+    "zh": "无法打开安装设置，请在系统设置允许 Solvit 安装应用",
+    "en": "Unable to open the installation settings, please allow Solvit to install applications in the system settings",
+    "ja": "インストール設定を開けません。システム設定で Solvit にアプリケーションのインストールを許可してください。",
+    "ko": "설치 설정을 열 수 없습니다. 시스템 설정에서 Solvit이 애플리케이션을 설치할 수 있도록 허용해 주세요.",
+    "es": "No se pueden abrir los ajustes de instalación, permita que Solvit instale aplicaciones en los ajustes del sistema",
+    "fr": "Impossible d'ouvrir les paramètres d'installation, veuillez autoriser Solvit à installer des applications dans les paramètres système"
   },
   "无法打开工作区": {
     "zh": "无法打开工作区",
@@ -1727,6 +1927,14 @@
     "es": "Comprobación de actualización no completada",
     "fr": "Vérification de la mise à jour non terminée"
   },
+  "服务未返回响应正文": {
+    "zh": "服务未返回响应正文",
+    "en": "Service did not return response body",
+    "ja": "サービスが応答本文を返しませんでした",
+    "ko": "서비스가 응답 본문을 반환하지 않았습니다.",
+    "es": "El servicio no devolvió el cuerpo de respuesta",
+    "fr": "Le service n'a pas renvoyé le corps de la réponse"
+  },
   "未收到回复": {
     "zh": "未收到回复",
     "en": "No reply received",
@@ -1742,6 +1950,14 @@
     "ko": "감지되지 않음",
     "es": "No detectado",
     "fr": "Su non détecté"
+  },
+  "未检测到 su；可手动请求确认": {
+    "zh": "未检测到 su；可手动请求确认",
+    "en": "Su not detected; confirmation can be requested manually",
+    "ja": "su は検出されません。確認は手動でリクエストできます",
+    "ko": "감지되지 않았습니다. 확인은 수동으로 요청할 수 있습니다",
+    "es": "Su no detectado; la confirmación se puede solicitar manualmente",
+    "fr": "Su non détecté ; la confirmation peut être demandée manuellement"
   },
   "权限与执行": {
     "zh": "权限与执行",
@@ -1830,6 +2046,22 @@
     "ko": "모델 목록/구독 주소(선택 사항)",
     "es": "Lista de modelos/dirección de suscripción (opcional)",
     "fr": "Liste de modèles/adresse d'abonnement (facultatif)"
+  },
+  "模型列表地址格式不正确": {
+    "zh": "模型列表地址格式不正确",
+    "en": "The model list address format is incorrect",
+    "ja": "モデルリストのアドレス形式が正しくありません",
+    "ko": "모델 목록 주소 형식이 잘못되었습니다.",
+    "es": "El formato de dirección de la lista de modelos es incorrecto",
+    "fr": "Le format de l'adresse de la liste de modèles est incorrect"
+  },
+  "模型列表地址需为 HTTPS；本地服务可使用 HTTP": {
+    "zh": "模型列表地址需为 HTTPS；本地服务可使用 HTTP",
+    "en": "The model list address needs to be HTTPS; local services can use HTTP",
+    "ja": "モデル リストのアドレスは HTTPS である必要があります。ローカルサービスはHTTPを使用できます",
+    "ko": "모델 목록 주소는 HTTPS여야 합니다. 로컬 서비스는 HTTP를 사용할 수 있습니다",
+    "es": "La dirección de la lista de modelos debe ser HTTPS; Los servicios locales pueden usar HTTP.",
+    "fr": "L'adresse de la liste de modèles doit être HTTPS ; les services locaux peuvent utiliser HTTP"
   },
   "模型列表服务不可用": {
     "zh": "模型列表服务不可用",
@@ -1926,6 +2158,22 @@
     "ko": "이 대화의 문자를 읽을 수 없습니다. 새 문자를 선택하세요.",
     "es": "El carácter de esta conversación no se puede leer, elija un nuevo personaje",
     "fr": "Le caractère de cette conversation ne peut pas être lu, veuillez en choisir un nouveau."
+  },
+  "此工具没有 Shell 权限": {
+    "zh": "此工具没有 Shell 权限",
+    "en": "This tool does not have shell permissions",
+    "ja": "このツールにはシェル権限がありません",
+    "ko": "이 도구에는 셸 권한이 없습니다.",
+    "es": "Esta herramienta no tiene permisos de shell",
+    "fr": "Cet outil n'a pas d'autorisations shell"
+  },
+  "此授权已经执行过该操作": {
+    "zh": "此授权已经执行过该操作",
+    "en": "This authorization has already performed this operation",
+    "ja": "この承認はすでにこの操作を実行しています",
+    "ko": "이 승인은 이미 이 작업을 수행했습니다.",
+    "es": "Esta autorización ya ha realizado esta operación.",
+    "fr": "Cette autorisation a déjà effectué cette opération"
   },
   "此版本没有附带更新说明。": {
     "zh": "此版本没有附带更新说明。",
@@ -2287,6 +2535,14 @@
     "es": "Idioma",
     "fr": "Langue"
   },
+  "请使用 HTTPS；本地模型可使用 HTTP": {
+    "zh": "请使用 HTTPS；本地模型可使用 HTTP",
+    "en": "Please use HTTPS; local models can use HTTP",
+    "ja": "HTTPS を使用してください。ローカルモデルはHTTPを使用できます",
+    "ko": "HTTPS를 사용하세요. 로컬 모델은 HTTP를 사용할 수 있습니다",
+    "es": "Utilice HTTPS; Los modelos locales pueden usar HTTP.",
+    "fr": "Veuillez utiliser HTTPS ; les modèles locaux peuvent utiliser HTTP"
+  },
   "请先创建对话": {
     "zh": "请先创建对话",
     "en": "Please create a conversation first",
@@ -2334,6 +2590,14 @@
     "ko": "현재 작업이 끝날 때까지 기다려 주십시오.",
     "es": "Espere a que finalice la operación actual.",
     "fr": "Veuillez attendre la fin de l'opération en cours"
+  },
+  "请输入模型名称或获取模型列表后选择": {
+    "zh": "请输入模型名称或获取模型列表后选择",
+    "en": "Please enter the model name or get the model list and select",
+    "ja": "モデル名を入力するか、モデルリストを取得して選択してください",
+    "ko": "모델명을 입력하거나 모델 목록을 받아 선택하세요.",
+    "es": "Ingrese el nombre del modelo u obtenga la lista de modelos y seleccione",
+    "fr": "Veuillez entrer le nom du modèle ou obtenir la liste des modèles et sélectionner"
   },
   "读取": {
     "zh": "读取",

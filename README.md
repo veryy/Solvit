@@ -1,6 +1,6 @@
 # Solvit
 
-轻量 Android AI 聊天 App，也是可组合 Agent 平台的第一步。Kotlin + Jetpack Compose + Material 3，Android 8.0+；Android 12+ 使用 Material You 动态配色，可选择跟随系统、浅色或深色主题。
+轻量 Android AI 聊天 App，也是可组合 Agent 平台的第一步。Kotlin + Jetpack Compose + Material 3，Android 8.0+；Android 12+ 使用 Material You 动态配色，可选择跟随系统、浅色或深色主题。界面默认中文，可在设置中切换英文、日文、韩文、西班牙文和法文，立即生效并保存。
 
 ## 第一版功能
 
@@ -21,7 +21,7 @@
 
 **签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
 
-“设置 → 配置备份与恢复”可使用密码加密导出模型/API Key、提示词、角色和外观；在重装或换机后导入，密钥会重新加密到本机 Keystore。备份文件应保存在应用之外。聊天记录、插件包、插件密钥和记忆暂不包含；卸载会删除数据，无法恢复此前未备份的配置。应用仍禁用自动云备份。
+“设置 → 配置备份与恢复”可使用密码加密导出模型/API Key、提示词、角色、语言和外观；在重装或换机后导入，密钥会重新加密到本机 Keystore。备份文件应保存在应用之外。聊天记录、插件包、插件密钥和记忆暂不包含；卸载会删除数据，无法恢复此前未备份的配置。应用仍禁用自动云备份。
 
 安装 debug APK 后，打开侧栏底部“设置 → 模型配置 → 模型与连接”：
 
@@ -67,9 +67,9 @@
 
 ## Skills 与角色
 
-[0.6.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.6.0)，[完整远程验证与发布通过](https://github.com/veryy/Solvit/actions/runs/38109369009)。纯 TS Skills 技能库支持：SKILL.md、文本资源 ZIP 和 JSON 包导入，原生查看、删除、导出；每轮自动提供角色允许的元数据，正文及引用文件按需加载。使用入口是聊天顶部“角色”按钮；先在插件页启用 Skills，再创建角色绑定插件和技能。详细格式、权限和当前边界见 [Skills 与角色](docs/skills.md)。
+[0.6.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.6.0)，[完整远程验证与发布通过](https://github.com/veryy/Solvit/actions/runs/38109369009)。纯 TS Skills 技能库支持：SKILL.md、文本资源 ZIP 和 JSON 包导入，原生查看、删除、导出；每轮自动提供角色允许的元数据，正文及引用文件按需加载。使用入口是“设置 → 角色管理与 Skills”；先在插件页启用 Skills，再创建角色绑定插件和技能。详细格式、权限和当前边界见 [Skills 与角色](docs/skills.md)。
 
-角色提示词和插件绑定按对话保存，新对话继承当前角色。MCP、记忆和其他工具按插件绑定；模型工具仍需逐次确认。API 3 的 beforeModel Hook 只允许读插件存储和当前时间。
+角色提示词和插件绑定按对话保存，新对话继承当前角色。MCP、记忆和其他工具按插件绑定；模型工具支持逐次确认或记住当前角色与工具的授权。API 3 的 beforeModel Hook 只允许读插件存储和当前时间。
 
 ## 构建
 
