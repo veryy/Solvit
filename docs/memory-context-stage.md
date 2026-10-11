@@ -28,3 +28,9 @@ API 1 旧包保留给旧客户端；已安装 1.0.0 不静默替换为含自动�
 - 市场服务已部署 API 7，服务器两项目录/完整性与 MCP 测试通过，服务为 active、健康接口返回 ok。公网 HTTPS 实际核对 API 1/2/5/6 继续返回记忆 1.0.0，API 7 返回 1.1.0；API 2/5 搜索 1.1.0、API 6/7 搜索 1.2.0。下载字节数、SHA-256 与仓库包逐字节一致。
 
 [修复后运行 38167002200](https://github.com/veryy/Solvit/actions/runs/38167002200) 的构建任务已通过：单元测试、Lint、APK、测试 APK 和固定签名检查成功。下载 XML 再次确认 163 个单元测试，以及 29 个模拟器测试，无失败、错误或跳过。新增原生记忆开关和实际 Android 插件→应用 Agent→Provider 请求回归通过，覆盖升级后的配置与聊天保留检查通过。真实模型及真机仍待验收。
+
+## 0.17.0 发布
+
+[标签运行 38167779375](https://github.com/veryy/Solvit/actions/runs/38167779375) completed/success，提交 `768397f48dc039f3d5f33a79e1824f75312aee08`。Android 构建、固定签名、模拟器、TS/市场与公网搜索门禁全部通过，Release 发布成功。下载标签 XML 核对 163 个单元及 29 个模拟器测试，无失败、错误或跳过；公网三组搜索证据包括英文 Kotlin、中文 Python 与官方最新版本正文核对。
+
+[发布入口](https://github.com/veryy/Solvit/releases/tag/v0.17.0)，[APK 下载](https://github.com/veryy/Solvit/releases/download/v0.17.0/solvit-debug.apk)。实际下载 HTTP 200、22,643,059 字节，与 Release 资产大小一致。Gradle Wrapper 保留 100755；APK 使用已有固定证书，覆盖升级及配置/聊天保留回归通过。后台抽取、全请求 Token 预算、自动摘要及真实模型/真机验收继续推进。

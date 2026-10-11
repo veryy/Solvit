@@ -8,6 +8,8 @@
 
 0.15.2 已分离事件接收与展示，角色身份只注入一次；[153 个单元测试、Lint、APK、签名和模拟器检查通过](https://github.com/veryy/Solvit/actions/runs/38158456320)。0.15.3 新增实际请求和接收/显示耗时诊断，[远程验证通过](https://github.com/veryy/Solvit/actions/runs/38160317381)。已实际克隆六个参考仓库并锁定版本，阶段参考规则与证据见 [源码参考](upstream-reference.md)。[0.16.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.16.0)：159 个单元测试、27 个模拟器测试、Lint、APK、签名、TS/市场、公网来源与官方版本时效检查通过，详见 [阶段记录](browser-search-stage.md)。上下文预算、自动记忆及真实模型/真机验收继续推进，远程通过不能替代这些验收。
 
+[0.17.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.17.0)：已保存记忆自动检索、原生开关、每步上下文刷新与 API 7 非密钥配置；[标签验证](https://github.com/veryy/Solvit/actions/runs/38167779375) 的单元、模拟器、Lint、APK、固定签名、TS/市场和公网搜索通过。具体边界见 [记忆阶段记录](memory-context-stage.md)，后台自动抽取、全请求预算与摘要仍未完成。
+
 ## 当前验证
 
 - 0.1.0：基础文本聊天、流式取消、多会话、加密密钥设置；15 个单元测试、Lint 和 APK 构建通过 GitHub Actions。
