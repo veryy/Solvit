@@ -15,7 +15,7 @@ class ScriptRuntimeTest {
                 if (settings.isNotEmpty()) putJsonArray("settings") { settings.forEach { field -> add(buildJsonObject {
                     put("key", field.key); put("label", field.label); put("kind", field.kind)
                     field.defaultValue?.let { put("defaultValue", it) }
-                }) }
+                }) } }
                 put("permissions", JsonArray(permissions.map(::JsonPrimitive)))
                 put("dependencies", JsonArray(emptyList()))
                 putJsonArray("tools") { add(buildJsonObject {
