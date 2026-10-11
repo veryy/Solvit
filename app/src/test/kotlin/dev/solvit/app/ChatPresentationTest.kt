@@ -32,4 +32,16 @@ class ChatPresentationTest {
         val example="Example:\n```xml\n<think>literal</think>\n```"
         assertEquals(ThinkingText(example,""),splitThinking(example))
     }
+    @Test fun persistedFullAnswerStaysHiddenUntilPlaybackFinishes() {
+        val history = listOf(message("old", Role.USER), message("old-a", Role.ASSISTANT, "old answer"),
+            message("new", Role.USER, "question"), message("new-a", Role.ASSISTANT, "complete answer"))
+        val playing = presentChat(history, true, "old-a", draft = "com", holdSettlement = true)
+        assertEquals(4, playing.size)
+        assertEquals("old answer", playing[1].messages.single().content)
+        assertEquals("com", playing.last().messages.single().content)
+        assertTrue(playing.last().generating)
+        val finished = presentChat(history, false, "old-a", holdSettlement = false)
+        assertEquals("complete answer", finished.last().messages.single().content)
+        assertFalse(finished.last().generating)
+    }
 }

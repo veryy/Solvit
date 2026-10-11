@@ -25,3 +25,5 @@ python3 scripts/fetch-upstreams.py --verify-only
 Solvit 的适配：提示段有名称和来源，身份贡献一次；原生 Flow 接收与平滑显示分离，有界队列按帧刷新，并保持停止与工具回合边界。此阶段采用结构和行为参考，没有直接复制上游实现代码；完整上下文预算、每步动态注册和自动记忆仍按方向文档推进。
 
 回归先于修复提交。身份重复已在 [远程运行 38157737692](https://github.com/veryy/Solvit/actions/runs/38157737692) 复现：18 个 chat-runtime 测试中身份唯一性检查失败。Gradle 因此提前停止，尚不能据该次结果宣称流式阻塞测试已执行。
+
+角色修复后，[远程运行 38158102949](https://github.com/veryy/Solvit/actions/runs/38158102949) 继续到 App 测试并复现接收器阻塞：23 个 App 测试中，大段文本后的 Provider 进度检查失败。流式修复新增大段响应、细碎响应、工具回合顺序和提前结算显示回归，并参考 Operit `RenderBatchCoordinatorTest.kt` 的调度及末次更新检查。修复后的远程结果待记录，不能以这两次失败当作修复验证。

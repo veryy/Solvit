@@ -138,7 +138,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val saving by vm.saving.collectAsStateWithLifecycle()
     val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
     val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
-    val chatRows = presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity)
+    val chatRows = presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity,holdSettlement=busy)
     val missingRole by agents.missingRole.collectAsStateWithLifecycle()
     val agentBusy by agents.busy.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }

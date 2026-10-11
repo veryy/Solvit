@@ -9,7 +9,7 @@ import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
-    @Test fun receivingALargeDeltaDoesNotDelayReasoningOrToolStatus() = runTest {
+    @Test fun receivingALargeDeltaDoesNotDelayProviderOrToolStatus() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
             val providerWaiting = CompletableDeferred<Unit>()
@@ -33,9 +33,73 @@ class ChatViewModelTest {
             val vm = ChatViewModel(chat, settings)
             runCurrent(); assertTrue(vm.send("hello")); advanceTimeBy(16); runCurrent()
             assertTrue(providerWaiting.isCompleted, "Rendering must not block subsequent provider events")
-            assertEquals("next reasoning", vm.reasoning.value)
             assertEquals(ToolStage.RUNNING, vm.toolActivity.value.single().stage)
             assertTrue(vm.draft.value.length in 1 until 5_000)
+            vm.stop(); runCurrent(); assertFalse(vm.busy.value)
+            vm.viewModelScope.cancel()
+        } finally { Dispatchers.resetMain() }
+    }
+    @Test fun aCompletedProviderDoesNotSkipPlaybackAndToolRoundsStayOrdered() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val received = CompletableDeferred<Unit>()
+            val call = ToolCall("call", "clock", "{}")
+            val chat = object : ChatService {
+                override fun sessions() = flowOf(listOf(ChatSession("session", "Test", 0)))
+                override fun messages(sessionId: String) = flowOf(emptyList<ChatMessage>())
+                override suspend fun createSession() = ChatSession("session", "Test", 0)
+                override suspend fun deleteSession(sessionId: String) = Unit
+                override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization) = flow {
+                    emit(ModelChunk.Text("before tool"))
+                    emit(ModelChunk.Transcript(ModelMessage(Role.ASSISTANT, "before tool", listOf(call))))
+                    emit(ModelChunk.Transcript(ModelMessage(Role.TOOL, "result", toolCallId = call.id)))
+                    emit(ModelChunk.Reasoning("second round"))
+                    emit(ModelChunk.Text("后".repeat(5_000)))
+                    received.complete(Unit)
+                    emit(ModelChunk.Done)
+                }
+            }
+            val settings = object : SettingsStore {
+                override suspend fun load() = ModelConfig(apiKey = "fixture")
+                override suspend fun save(value: ModelConfig) = Unit
+            }
+            val vm = ChatViewModel(chat, settings)
+            runCurrent(); assertTrue(vm.send("hello")); runCurrent()
+            assertTrue(received.isCompleted)
+            assertTrue(vm.busy.value, "Playback is still active even after model completion")
+            assertEquals("b", vm.draft.value)
+            advanceTimeBy(100); runCurrent()
+            assertEquals(listOf(Role.ASSISTANT, Role.TOOL), vm.liveTranscript.value.map { it.role })
+            assertEquals("before tool", vm.liveTranscript.value.first().content)
+            assertEquals("second round", vm.reasoning.value)
+            assertTrue(vm.draft.value.all { it == '后' })
+            assertTrue(vm.draft.value.length in 1 until 5_000)
+            advanceTimeBy(5_000); runCurrent()
+            assertFalse(vm.busy.value, "A large delta must not impose 20 seconds of artificial latency")
+            vm.viewModelScope.cancel()
+        } finally { Dispatchers.resetMain() }
+    }
+    @Test fun adjacentTinyDeltasAreBatchedWithoutRevealingTheWholeBurst() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val chat = object : ChatService {
+                override fun sessions() = flowOf(listOf(ChatSession("session", "Test", 0)))
+                override fun messages(sessionId: String) = flowOf(emptyList<ChatMessage>())
+                override suspend fun createSession() = ChatSession("session", "Test", 0)
+                override suspend fun deleteSession(sessionId: String) = Unit
+                override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization) = flow {
+                    repeat(100) { emit(ModelChunk.Text("字")) }
+                    awaitCancellation()
+                }
+            }
+            val settings = object : SettingsStore {
+                override suspend fun load() = ModelConfig(apiKey = "fixture")
+                override suspend fun save(value: ModelConfig) = Unit
+            }
+            val vm = ChatViewModel(chat, settings)
+            runCurrent(); assertTrue(vm.send("hello")); runCurrent()
+            assertEquals("字", vm.draft.value)
+            advanceTimeBy(16); runCurrent(); assertEquals(5, vm.draft.value.length)
             vm.stop(); runCurrent(); assertFalse(vm.busy.value)
             vm.viewModelScope.cancel()
         } finally { Dispatchers.resetMain() }
@@ -61,8 +125,8 @@ class ChatViewModelTest {
             val chat = Chat("你好🙂abcdef"); val vm = ChatViewModel(chat, settings)
             runCurrent(); assertTrue(vm.send("hello")); runCurrent()
             assertEquals("你", vm.draft.value)
-            advanceTimeBy(8); runCurrent()
-            assertEquals("你好🙂", vm.draft.value)
+            advanceTimeBy(16); runCurrent()
+            assertEquals("你好🙂ab", vm.draft.value)
             assertFalse(vm.draft.value.contains("abcdef")); assertTrue(vm.busy.value)
             vm.stop(); runCurrent()
             assertFalse(vm.busy.value); assertFalse(chat.continueReply.isCompleted)
@@ -88,8 +152,8 @@ class ChatViewModelTest {
             runCurrent()
             assertTrue(vm.send("hello")); runCurrent()
             assertTrue(vm.busy.value); assertEquals("f",vm.draft.value)
-            advanceTimeBy(8); runCurrent()
-            assertEquals("fir",vm.draft.value)
+            advanceTimeBy(16); runCurrent()
+            assertEquals("first",vm.draft.value)
             advanceTimeBy(200); runCurrent()
             assertEquals("first token",vm.draft.value)
             assertFalse(chat.continueReply.isCompleted)

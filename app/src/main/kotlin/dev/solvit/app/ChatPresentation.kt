@@ -9,7 +9,8 @@ data class ChatRow(val id: String, val user: ChatMessage? = null,
 
 fun presentChat(history: List<ChatMessage>, busy: Boolean = false, baseline: String? = null,
     sendingText: String = "", transcript: List<ModelMessage> = emptyList(), draft: String = "",
-    reasoning: String = "", activity: List<ModelChunk.ToolActivity> = emptyList()): List<ChatRow> {
+    reasoning: String = "", activity: List<ModelChunk.ToolActivity> = emptyList(),
+    holdSettlement: Boolean = false): List<ChatRow> {
     val rows = mutableListOf<ChatRow>()
     var anchor = "orphan"
     var pending = mutableListOf<ChatMessage>()
@@ -24,7 +25,10 @@ fun presentChat(history: List<ChatMessage>, busy: Boolean = false, baseline: Str
     val baselineIndex = baseline?.let { id -> history.indexOfFirst { it.id == id } } ?: -1
     val userIndex = history.indexOfLast { it.role == Role.USER }.takeIf { it > baselineIndex }
     // Atomic settlement can reach the history Flow before the Done event reaches the UI.
-    if (userIndex != null && history.drop(userIndex + 1).any { it.role == Role.ASSISTANT }) return rows
+    if (userIndex != null && history.drop(userIndex + 1).any { it.role == Role.ASSISTANT }) {
+        if (!holdSettlement) return rows
+        rows.removeAll { it.id == "reply-${history[userIndex].id}" }
+    }
     val userId = userIndex?.let { history[it].id } ?: "pending-user"
     if (userIndex == null) rows += ChatRow(userId, user = ChatMessage(userId, "", Role.USER, sendingText))
     val live = transcript.mapIndexed { index, message -> ChatMessage("live-$index", "", message.role, message.content,
