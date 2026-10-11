@@ -218,6 +218,7 @@ class ChatLayoutTest {
         rule.waitUntil(8000) { rule.onAllNodes(hasText("__UI_READY__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("shell_command").performClick().performTextInput("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
         rule.waitUntil(8000) { rule.onAllNodes(hasText("发送输入") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        rule.waitUntil(8000) { rule.onNodeWithText("发送输入").isDisplayed() }
         rule.onNodeWithText("发送输入").assertIsDisplayed().performClick()
         try {
             rule.waitUntil(8000) { rule.onAllNodes(hasText("ui-result:retained", substring=true)).fetchSemanticsNodes().isNotEmpty() }

@@ -34,6 +34,10 @@ fun FullScreenPage(onDismissRequest: () -> Unit, content: @Composable () -> Unit
             val window = (parent as? DialogWindowProvider)?.window
             if (window != null) {
                 WindowCompat.setDecorFitsSystemWindows(window, false)
+                // Dialog windows do not inherit the activity's adjustResize mode.
+                // Required for IME inset delivery to the Compose page below.
+                @Suppress("DEPRECATION")
+                window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
                 // Older Compose Dialog implementations leave floating-window fit flags enabled.
                 // On SDK 35 this produces zero Compose insets and clips content behind navigation.
                 @Suppress("DEPRECATION")
