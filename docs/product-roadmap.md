@@ -10,7 +10,7 @@
 - 0.3.0：模型工具调用主体、SQLite 数据迁移与 HTTP→QuickJS 集成测试通过 [Actions 38104490115](https://github.com/veryy/Solvit/actions/runs/38104490115)，[0.3.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.3.0)，[标签构建与发布通过](https://github.com/veryy/Solvit/actions/runs/38104671862)。
 - 市场服务已部署 HTTPS，目录、下载校验测试与健康检查通过；当前目录包含时间与纯 TS 编写的记忆工具；记忆包已部署，服务器目录与下载校验测试通过。
 - 0.4.0：TS SDK、记忆插件、离线安装与宿主集成已实现；[Android Actions 38105286718](https://github.com/veryy/Solvit/actions/runs/38105286718) 和 [TS/市场验证 38105244171](https://github.com/veryy/Solvit/actions/runs/38105244171) 通过，[0.4.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.4.0)，[Android、TS、市场验证与发布通过](https://github.com/veryy/Solvit/actions/runs/38105586294)。
-- 0.5.0：TS MCP、加密插件配置、声明式配置页和 HTTPS 取消通知已实现；[Android 集成验证通过](https://github.com/veryy/Solvit/actions/runs/38106813268)，实际公网 HTTPS MCP 演示调用通过，标签发布中。
+- 0.5.0：TS MCP、加密插件配置、声明式配置页和 HTTPS 取消通知已实现；[Android 集成验证通过](https://github.com/veryy/Solvit/actions/runs/38106813268)，实际公网 HTTPS MCP 演示调用通过；0.5.0 标签被新增取消回归阻止发布，已提交修复，0.5.1 待验证。
 - 尚未验证真机安装和真实模型调用。
 - 首版使用临时 CI debug 签名。后续构建改用 GitHub Actions Secret 中的固定签名，以保证后续版本可覆盖安装。0.1.0 与新签名不兼容，不能声称可以直接覆盖安装。
 

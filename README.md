@@ -49,7 +49,7 @@
 
 当前源码已内置 TS MCP 插件和声明式配置页。进入“插件 → 已安装 → MCP 连接”，先配置 HTTPS 端点及可选 Bearer 令牌，再启用 network 权限。聊天可发现并调用服务器工具，每次执行需确认。
 
-实际可测试的只读演示地址：`https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空，提供回显和服务器时间。协议支持与边界见 [MCP 插件说明](docs/mcp.md)。Android HTTPS 集成和取消测试已通过，0.5.0 标签构建将发布 APK；角色绑定、OAuth、stdio 和完整服务接入继续实现。
+实际可测试的只读演示地址：`https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空，提供回显和服务器时间。协议支持与边界见 [MCP 插件说明](docs/mcp.md)。Android HTTPS 集成和取消测试已通过，0.5.0 标签被新增取消回归测试阻止发布；修复后通过 0.5.1 标签验证并发布 APK；角色绑定、OAuth、stdio 和完整服务接入继续实现。
 
 ## 构建
 
