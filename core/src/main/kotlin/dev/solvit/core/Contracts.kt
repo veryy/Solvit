@@ -148,6 +148,10 @@ interface ChatStore {
     /** Failed jobs retry only through an explicit action, with at most three claims. */
     suspend fun retryPostTurnJob(id: String, expectedAttempt: Int, now: Long): Boolean = false
     suspend fun recoverInterruptedPostTurnJobs(now: Long): Int = 0
+    /** Explicit retirement only; stale controls cannot remove retried or running work. */
+    suspend fun deletePostTurnJob(id: String, expectedAttempt: Int, expectedStatus: PostTurnJobStatus): Boolean = false
+    /** Bounded removal of completed/skipped jobs, preserving retryable work and source history. */
+    suspend fun deleteFinishedPostTurnJobs(pluginId: String, limit: Int = 100): Int = 0
     suspend fun deleteSession(sessionId: String)
 }
 enum class ToolStage { CONFIRMING, RUNNING, SUCCEEDED, FAILED, DENIED }

@@ -253,6 +253,18 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
             put("status", PostTurnJobStatus.WAITING.name); put("updated_at", now); putNull("failure")
         }, "id=? AND status=? AND attempt=?", arrayOf(id, PostTurnJobStatus.FAILED.name, expectedAttempt.toString())) == 1 }
     }
+    override suspend fun deletePostTurnJob(id: String, expectedAttempt: Int, expectedStatus: PostTurnJobStatus): Boolean {
+        require(id.isNotBlank() && id.length <= 256 && expectedAttempt in 0..3)
+        require(expectedStatus != PostTurnJobStatus.RUNNING)
+        return write { db -> db.delete("post_turn_jobs", "id=? AND attempt=? AND status=?",
+            arrayOf(id, expectedAttempt.toString(), expectedStatus.name)) == 1 }
+    }
+    override suspend fun deleteFinishedPostTurnJobs(pluginId: String, limit: Int): Int {
+        require(pluginId.matches(Regex("[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+")) && pluginId.length <= 40 && limit in 1..100)
+        return write { db -> db.delete("post_turn_jobs",
+            "id IN (SELECT id FROM post_turn_jobs WHERE plugin_id=? AND status IN (?,?) ORDER BY updated_at,id LIMIT ?)",
+            arrayOf(pluginId, PostTurnJobStatus.SUCCEEDED.name, PostTurnJobStatus.SKIPPED.name, limit.toString())) }
+    }
     override suspend fun recoverInterruptedPostTurnJobs(now: Long): Int {
         require(now >= 0)
         return write { db -> db.update("post_turn_jobs", ContentValues().apply {

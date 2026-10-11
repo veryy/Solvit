@@ -46,6 +46,13 @@ class PostTurnWorker(
     fun cancelCurrent() { active?.cancel() }
     suspend fun jobs(before: PostTurnJobCursor? = null, limit: Int = 20): List<PostTurnJob> = store.recentPostTurnJobs(before, limit)
     suspend fun retry(id: String, attempt: Int): Boolean = store.retryPostTurnJob(id, attempt, now())
+    suspend fun delete(job: PostTurnJob): Boolean = store.deletePostTurnJob(job.id, job.attempt, job.status)
+    suspend fun cleanupFinished(pluginId: String): Int = store.deleteFinishedPostTurnJobs(pluginId, 100)
+    /** An absent durable job cannot be claimed or explicitly retried later. */
+    suspend fun sourceRetired(pluginId: String, turnId: String): Boolean {
+        check(store.supportsCompletedTurns)
+        return store.postTurnJob("$turnId:$pluginId") == null
+    }
 
     suspend fun runNext(): Boolean {
         if (!store.supportsCompletedTurns || !mutex.tryLock()) return false

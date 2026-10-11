@@ -20,6 +20,40 @@ class SqliteChatStoreTest {
     @Before fun before() { context.deleteDatabase("solvit.db") }
     @After fun after() { context.deleteDatabase("solvit.db") }
 
+    @Test fun taskRetirementPreservesActiveAndRetryableWorkAndOriginalMessages() = runBlocking<Unit> {
+        SqliteChatStore(context).use { store ->
+            val session = store.createSession()
+            val target = PostTurnTarget("dev.solvit.memory", "1.2.0", "a".repeat(64))
+            val jobs = (0..4).map { index ->
+                store.append(ChatMessage("user-$index", session.id, Role.USER, "Preference $index"))
+                val turn = CompletedChatTurn("answer-$index", session.id, "user-$index", "answer-$index",
+                    null, null, null, null, "openai-compatible", "fixture", 1, listOf(target))
+                store.appendCompletedTurn(listOf(ChatMessage(turn.id, session.id, Role.ASSISTANT, "Saved")), turn)
+                store.postTurnJob("${turn.id}:${target.pluginId}")!!
+            }
+            jobs.drop(1).forEach { assertTrue(store.claimPostTurnJob(it.id, 0, 2)) }
+            assertTrue(store.finishPostTurnJob(jobs[2].id, 1, PostTurnJobStatus.SUCCEEDED, null, 3))
+            assertTrue(store.finishPostTurnJob(jobs[3].id, 1, PostTurnJobStatus.FAILED, PostTurnFailure.MODEL, 3))
+            assertTrue(store.finishPostTurnJob(jobs[4].id, 1, PostTurnJobStatus.SKIPPED, null, 3))
+            assertEquals(1, store.deleteFinishedPostTurnJobs(target.pluginId, 1))
+            assertEquals(1, store.deleteFinishedPostTurnJobs(target.pluginId, 100))
+            assertEquals(0, store.deleteFinishedPostTurnJobs(target.pluginId, 100))
+            assertEquals(PostTurnJobStatus.RUNNING, store.postTurnJob(jobs[1].id)!!.status)
+            assertEquals(PostTurnJobStatus.FAILED, store.postTurnJob(jobs[3].id)!!.status)
+            assertTrue(store.retryPostTurnJob(jobs[3].id, 1, 4))
+            assertFalse(store.deletePostTurnJob(jobs[3].id, 1, PostTurnJobStatus.FAILED))
+            assertTrue(store.claimPostTurnJob(jobs[3].id, 1, 5))
+            assertFalse(store.deletePostTurnJob(jobs[3].id, 1, PostTurnJobStatus.WAITING))
+            assertFailsWith<IllegalArgumentException> { store.deletePostTurnJob(jobs[1].id, 1, PostTurnJobStatus.RUNNING) }
+            assertTrue(store.deletePostTurnJob(jobs[0].id, 0, PostTurnJobStatus.WAITING))
+            assertFalse(store.claimPostTurnJob(jobs[0].id, 0, 6))
+            assertFalse(store.retryPostTurnJob(jobs[2].id, 1, 6))
+            assertEquals(10, store.history(session.id).size)
+            assertEquals(5, store.recordedTurns(0).size)
+            assertFailsWith<IllegalArgumentException> { store.deleteFinishedPostTurnJobs(target.pluginId, 101) }
+        }
+    }
+
     @Test fun recentTasksPageBeyondOneHundredWithoutChangingConsumerOrder() = runBlocking<Unit> {
         val target = PostTurnTarget("dev.solvit.memory", "1.2.0", "a".repeat(64))
         SqliteChatStore(context).use { store ->
