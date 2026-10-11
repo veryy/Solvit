@@ -9,7 +9,7 @@
 - JS 插件宿主和原生市场：测试、Lint 和 APK 构建通过 [Actions 38103439870](https://github.com/veryy/Solvit/actions/runs/38103439870)。QuickJS 使用 compileSdk 36。0.2.0 已发布 APK。
 - 0.3.0：模型工具调用主体、SQLite 数据迁移与 HTTP→QuickJS 集成测试通过 [Actions 38104490115](https://github.com/veryy/Solvit/actions/runs/38104490115)，[0.3.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.3.0)，[标签构建与发布通过](https://github.com/veryy/Solvit/actions/runs/38104671862)。
 - 市场服务已部署 HTTPS，目录、下载校验测试与健康检查通过；当前目录包含时间与纯 TS 编写的记忆工具；记忆包已部署，服务器目录与下载校验测试通过。
-- 0.4.0：TS SDK、记忆插件、离线安装与宿主集成已实现；[Android Actions 38105286718](https://github.com/veryy/Solvit/actions/runs/38105286718) 和 [TS/市场验证 38105244171](https://github.com/veryy/Solvit/actions/runs/38105244171) 通过，标签发布中。
+- 0.4.0：TS SDK、记忆插件、离线安装与宿主集成已实现；[Android Actions 38105286718](https://github.com/veryy/Solvit/actions/runs/38105286718) 和 [TS/市场验证 38105244171](https://github.com/veryy/Solvit/actions/runs/38105244171) 通过，[0.4.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.4.0)，[Android、TS、市场验证与发布通过](https://github.com/veryy/Solvit/actions/runs/38105586294)。
 - 尚未验证真机安装和真实模型调用。
 - 首版使用临时 CI debug 签名。后续构建改用 GitHub Actions Secret 中的固定签名，以保证后续版本可覆盖安装。0.1.0 与新签名不兼容，不能声称可以直接覆盖安装。
 
