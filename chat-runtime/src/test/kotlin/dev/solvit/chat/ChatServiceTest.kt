@@ -24,6 +24,29 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun enablingAfterTurnStartsCannotRetroactivelyAdmitThatConversation() = runTest {
+        val store = MemoryStore()
+        val registry = PostTurnHookRegistry()
+        var enabled = false
+        val target = PostTurnTarget("dev.solvit.memory", "1.2.0", "a".repeat(64))
+        registry.register(object : PostTurnHook {
+            override val target = target
+            override suspend fun enabled() = enabled
+            override suspend fun process(input: PostTurnInput, model: PostTurnModel) = Unit
+        })
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest) = flow {
+                enabled = !enabled
+                emit(ModelChunk.Text("reply")); emit(ModelChunk.Done)
+            }
+        }
+        val chat = DefaultChatService(store, agent, EventBus(), postTurnHooks = registry)
+        chat.send("session", "first", ModelConfig()).toList()
+        assertTrue(store.turns[0].targets.isEmpty())
+        chat.send("session", "second", ModelConfig()).toList()
+        assertEquals(listOf(target), store.turns[1].targets)
+        assertFalse(enabled)
+    }
     @Test fun completedTurnKeepsOriginalRoleAndMessageSourcesWithoutPromptOrCredentials() = runTest {
         val store = MemoryStore()
         val bindings = mutableSetOf("dev.solvit.memory")
