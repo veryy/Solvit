@@ -20,6 +20,20 @@ class SqliteChatStoreTest {
     @Before fun before() { context.deleteDatabase("solvit.db") }
     @After fun after() { context.deleteDatabase("solvit.db") }
 
+    @Test fun chunkedHistoryPreservesUnicodeAcrossByteBoundariesAndEmbeddedNuls() = runBlocking<Unit> {
+        val text="a".repeat(16*1024-1)+"🚀中文\u0000"+"尾".repeat(30_000)
+        val native=ProviderTranscript("anthropic","test",org.json.JSONArray().put(org.json.JSONObject().put("type","text").put("text",text)).toString())
+        lateinit var session:ChatSession
+        SqliteChatStore(context).use { store ->
+            session=store.createSession()
+            store.append(ChatMessage("a",session.id,Role.ASSISTANT,text,reasoning=text,providerTranscript=native))
+        }
+        SqliteChatStore(context).use { store ->
+            val loaded=store.history(session.id).single()
+            assertEquals(text,loaded.content);assertEquals(text,loaded.reasoning);assertEquals(native,loaded.providerTranscript)
+        }
+    }
+
     @Test fun nativeContentSurvivesReopeningAndBranchingWithoutChangingOpaqueData() = runBlocking<Unit> {
         val native = ProviderTranscript("anthropic", "test-model",
             """[{"type":"thinking","thinking":"reason","signature":"opaque+/=="},{"type":"text","text":"answer"}]""",

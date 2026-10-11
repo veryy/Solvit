@@ -585,11 +585,11 @@
   },
   "例如 https://api.anthropic.com/v1；无需填写 /messages": {
     "zh": "例如 https://api.anthropic.com/v1；无需填写 /messages",
-    "en": "For example https://api.anthropic.com/v1; no need to fill in /messages",
-    "ja": "たとえば、https://api.anthropic.com/v1; /messages に記入する必要はありません",
-    "ko": "예를 들어 https://api.anthropic.com/v1; /messages를 입력할 필요가 없습니다.",
-    "es": "Por ejemplo https://api.anthropic.com/v1; no es necesario completar /mensajes",
-    "fr": "Par exemple https://api.anthropic.com/v1 ; pas besoin de remplir /messages"
+    "en": "For example, https://api.anthropic.com/v1; omit /messages",
+    "ja": "例：https://api.anthropic.com/v1（/messages は不要）",
+    "ko": "예: https://api.anthropic.com/v1 (/messages 제외)",
+    "es": "Por ejemplo, https://api.anthropic.com/v1; omite /messages",
+    "fr": "Par exemple, https://api.anthropic.com/v1 ; omettez /messages"
   },
   "依赖：{0}": {
     "zh": "依赖：{0}",

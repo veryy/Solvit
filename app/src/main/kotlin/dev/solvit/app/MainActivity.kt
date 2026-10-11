@@ -371,7 +371,7 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
                     UiText(if (saving) "保存中…" else "保存配置")
                 }
             }) { padding ->
-                LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                LazyColumn(Modifier.padding(padding).consumeWindowInsets(padding).testTag("model_settings_list"), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
                     if (profileName != null) item { OutlinedTextField(profileName,onProfileNameChanged,label={ UiText("配置名称") },singleLine=true,enabled=!saving,modifier=Modifier.fillMaxWidth().testTag("model_profile_name")) }
                     item { UiText("连接你选择的模型", style = MaterialTheme.typography.headlineSmall) }
                     item { Box {

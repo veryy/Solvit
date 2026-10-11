@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
+import android.database.Cursor
 import dev.solvit.core.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -13,6 +14,7 @@ import kotlinx.coroutines.withContext
 import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 
 class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 5) {
@@ -41,7 +43,12 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     private val lock = Mutex()
     private val revision = MutableStateFlow(0L)
     private suspend fun <T> read(block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
-        lock.withLock { block(helper.readableDatabase) }
+        lock.withLock {
+            val db=helper.readableDatabase
+            // A stable snapshot also covers additional chunks of a large message.
+            db.beginTransactionNonExclusive()
+            try { block(db).also { db.setTransactionSuccessful() } } finally { db.endTransaction() }
+        }
     }
     private suspend fun <T> write(block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
         lock.withLock {
@@ -60,9 +67,37 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     override fun messages(sessionId: String): Flow<List<ChatMessage>> = revision.map { history(sessionId) }.distinctUntilChanged()
     override suspend fun history(sessionId: String): List<ChatMessage> = read { history(it, sessionId) }
     private fun history(db: SQLiteDatabase, sessionId: String): List<ChatMessage> =
-        db.rawQuery("SELECT id,role,content,status,tool_calls,tool_call_id,reasoning,tool_stage,provider_transcript FROM messages WHERE session_id=? ORDER BY sequence", arrayOf(sessionId)).use { c ->
-            buildList { while (c.moveToNext()) add(ChatMessage(c.getString(0), sessionId, Role.valueOf(c.getString(1)), c.getString(2), MessageStatus.valueOf(c.getString(3)), decodeCalls(c.getString(4)), if (c.isNull(5)) null else c.getString(5), c.getString(6), if (c.isNull(7)) null else ToolStage.valueOf(c.getString(7)), if(c.isNull(8)) null else decodeTranscript(c.getString(8)))) }
+        db.rawQuery("""SELECT id,role,substr(CAST(content AS BLOB),1,$READ_CHUNK),status,
+            substr(CAST(tool_calls AS BLOB),1,$READ_CHUNK),tool_call_id,
+            substr(CAST(reasoning AS BLOB),1,$READ_CHUNK),tool_stage,
+            substr(CAST(provider_transcript AS BLOB),1,$READ_CHUNK),
+            length(CAST(content AS BLOB)),length(CAST(tool_calls AS BLOB)),
+            length(CAST(reasoning AS BLOB)),length(CAST(provider_transcript AS BLOB))
+            FROM messages WHERE session_id=? ORDER BY sequence""", arrayOf(sessionId)).use { c ->
+            buildList { while (c.moveToNext()) {
+                val id=c.getString(0)
+                add(ChatMessage(id,sessionId,Role.valueOf(c.getString(1)),readText(db,c,id,"content",2,9),
+                    MessageStatus.valueOf(c.getString(3)),decodeCalls(readText(db,c,id,"tool_calls",4,10)),
+                    if(c.isNull(5)) null else c.getString(5),readText(db,c,id,"reasoning",6,11),
+                    if(c.isNull(7)) null else ToolStage.valueOf(c.getString(7)),
+                    if(c.isNull(8)) null else decodeTranscript(readText(db,c,id,"provider_transcript",8,12))))
+            } }
         }
+    /** Read UTF-8 as bytes, so chunk boundaries and embedded NULs do not alter text. */
+    private fun readText(db:SQLiteDatabase,cursor:Cursor,id:String,column:String,prefixIndex:Int,lengthIndex:Int):String {
+        val prefix=cursor.getBlob(prefixIndex);val length=cursor.getInt(lengthIndex)
+        if(prefix.size==length) return prefix.toString(Charsets.UTF_8)
+        val data=ByteArrayOutputStream(length);data.write(prefix)
+        var offset=prefix.size+1
+        while(offset<=length) {
+            db.rawQuery("SELECT substr(CAST($column AS BLOB),?,$READ_CHUNK) FROM messages WHERE id=?",arrayOf(offset.toString(),id)).use {
+                check(it.moveToFirst()) { "Conversation changed while reading" }
+                val chunk=it.getBlob(0);check(chunk.isNotEmpty()) { "Incomplete message data" }
+                data.write(chunk);offset+=chunk.size
+            }
+        }
+        return data.toByteArray().toString(Charsets.UTF_8)
+    }
     override suspend fun createSession(): ChatSession {
         val session = ChatSession(UUID.randomUUID().toString(), "新对话", System.currentTimeMillis())
         write { db -> db.insertOrThrow("sessions", null, ContentValues().apply {
@@ -123,6 +158,7 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
             options.keys().asSequence().associateWith { options.getString(it) },root.optString("prefix",""))
     }
     override fun close() { helper.close() }
+    private companion object { const val READ_CHUNK=16*1024 }
 }
 
 class SqliteStoragePlugin(private val androidContext: Context) : SolvitPlugin {

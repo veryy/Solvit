@@ -413,9 +413,12 @@ class ChatLayoutTest {
             rule.onNodeWithTag("model_protocol").performScrollTo().performClick()
             rule.onNodeWithTag("model_protocol_anthropic").performClick()
             rule.onNodeWithTag("save_model_profile").assertIsNotEnabled()
-            rule.onNodeWithTag("model_name").performScrollTo().performTextInput("native-test-model")
-            rule.onNodeWithTag("provider_option_max_tokens").performScrollTo().performTextReplacement("16384")
-            rule.onNodeWithTag("provider_option_thinking_mode").performScrollTo().performClick()
+            rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("model_name"))
+            rule.onNodeWithTag("model_name").performTextInput("native-test-model")
+            rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("provider_option_max_tokens"))
+            rule.onNodeWithTag("provider_option_max_tokens").performTextReplacement("16384")
+            rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("provider_option_thinking_mode"))
+            rule.onNodeWithTag("provider_option_thinking_mode").performClick()
             rule.onNodeWithText("自适应思考").performClick()
             rule.onNodeWithTag("save_model_profile").assertIsEnabled().performClick()
             rule.waitUntil(8000) { app.modelProfiles.state.value.profiles.any { it.name=="Native UI model" } }
@@ -427,8 +430,35 @@ class ChatLayoutTest {
             rule.onNodeWithTag("model_profiles_list").performScrollToNode(hasTestTag("edit_model_${profile.id}"))
             rule.onNodeWithTag("edit_model_${profile.id}").performClick()
             rule.onNodeWithTag("model_protocol").assertTextContains("Claude / Anthropic")
-            rule.onNodeWithTag("provider_option_max_tokens").performScrollTo().assertTextContains("16384")
+            rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("provider_option_max_tokens"))
+            rule.onNodeWithTag("provider_option_max_tokens").assertTextContains("16384")
         } finally { runBlocking { app.modelProfiles.replace(previous) } }
+    }
+    @Test fun largeNativeTranscriptReopensAndBranchesThroughRealAndroidCursorWindows() = runBlocking<Unit> {
+        val app=rule.activity.application as SolvitApplication
+        val text="🚀中文".repeat(125_000)
+        val native=ProviderTranscript("anthropic","test",org.json.JSONArray().put(JSONObject().put("type","text").put("text",text)).toString())
+        lateinit var session:ChatSession
+        SqliteChatStore(app).use { store ->
+            session=store.createSession()
+            store.append(ChatMessage("large-native-user",session.id,Role.USER,"large native record"))
+            store.append(ChatMessage("large-native-assistant",session.id,Role.ASSISTANT,text,providerTranscript=native))
+        }
+        // Prove the ordinary whole-row cursor cannot carry this valid transcript.
+        android.database.sqlite.SQLiteDatabase.openDatabase(app.getDatabasePath("solvit.db").path,null,android.database.sqlite.SQLiteDatabase.OPEN_READONLY).use { db ->
+            db.rawQuery("SELECT content,provider_transcript FROM messages WHERE id=?",arrayOf("large-native-assistant")).use { cursor ->
+                (cursor as android.database.sqlite.SQLiteCursor).window=android.database.CursorWindow("bounded-native-row",256*1024L)
+                assertThrows(android.database.sqlite.SQLiteBlobTooBigException::class.java) { cursor.moveToFirst() }
+            }
+        }
+        SqliteChatStore(app).use { store ->
+            try {
+                val loaded=store.history(session.id).last()
+                assertEquals(text,loaded.content);assertEquals(native,loaded.providerTranscript)
+                val branch=store.forkSession(session.id,BranchPoint("large-native-assistant",BranchMode.AFTER_REPLY))
+                try { assertEquals(native,store.history(branch.id).last().providerTranscript) } finally { store.deleteSession(branch.id) }
+            } finally { store.deleteSession(session.id) }
+        }
     }
     @Test fun modelProfilesUiSavesAndAssignsASeparateToolModel() {
         ready()
