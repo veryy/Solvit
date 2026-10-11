@@ -32,6 +32,9 @@ jobs:
       - run: |
           git diff --exit-code -- market-server/packages plugin-market/src/main/assets/builtin-plugins
           test -z "$(git ls-files --others --exclude-standard -- market-server/packages plugin-market/src/main/assets/builtin-plugins)"
+      - name: Verify no-configuration public web search
+        run: node scripts/check-live-web-search.mjs
+        working-directory: plugin-sdk
       - name: Verify live HTTPS MCP demo
         if: startsWith(github.ref, 'refs/tags/v')
         run: node scripts/check-live-mcp.mjs

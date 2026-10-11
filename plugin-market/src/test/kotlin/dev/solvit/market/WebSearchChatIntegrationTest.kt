@@ -6,6 +6,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.*
 import okhttp3.OkHttpClient
+import okhttp3.ResponseBody.Companion.toResponseBody
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.tls.HandshakeCertificates
@@ -21,6 +22,43 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class WebSearchChatIntegrationTest {
+    @Test fun bundledSearchUpgradePreservesActivationAndWorksWithoutProviderConfiguration() = runBlocking<Unit> {
+        val context = RuntimeEnvironment.getApplication()
+        val path = java.io.File(context.filesDir, "extensions/dev.solvit.web-search.solvit.json")
+        path.parentFile!!.mkdirs()
+        path.writeBytes(javaClass.classLoader!!.getResourceAsStream("web-search-1.0.0.solvit.json")!!.use { it.readBytes() })
+        context.getSharedPreferences("extension_permissions",0).edit()
+            .putBoolean("seeded.dev.solvit.web-search.solvit.json", true)
+            .putBoolean("enabled.dev.solvit.web-search", true)
+            .putStringSet("grants.dev.solvit.web-search", setOf("network")).commit()
+        var searched = false
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val outgoing = chain.request()
+            assertEquals("cn.bing.com", outgoing.url.host)
+            assertEquals("Solvit", outgoing.url.queryParameter("q"))
+            assertNull(outgoing.header("Authorization")); searched = true
+            okhttp3.Response.Builder().request(outgoing).protocol(okhttp3.Protocol.HTTP_1_1).code(200).message("OK")
+                .body("<rss><channel><item><title>Solvit source</title><link>https://github.com/veryy/Solvit</link><description>Actual source link</description></item></channel></rss>".toResponseBody()).build()
+        }.build()
+        val scope = CoroutineScope(SupervisorJob()+Dispatchers.Default)
+        val manager = PluginManager(scope=scope)
+        try {
+            manager.load(ToolsPlugin()); manager.enableAll()
+            val tools = manager.registry.require(Services.Tools)
+            val config = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32), "AES") }
+            val market = AndroidMarketplace(context, manager, client, tools, config)
+            market.restore()
+            val upgraded = market.installed.value.single { it.id == "dev.solvit.web-search" }
+            assertEquals("1.1.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertTrue(market.configuration(upgraded.id).isEmpty())
+            val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
+            val result = tools.executeCall(ToolCall("search-default", "dev_solvit_web_search_search", """{"query":"Solvit"}"""), allow)
+            assertTrue(searched); assertTrue(result.contains("https://github.com/veryy/Solvit"))
+            assertFalse(result.contains("API Key"))
+        } finally {
+            manager.shutdown(); scope.cancel(); client.dispatcher.executorService.shutdown(); client.connectionPool.evictAll()
+        }
+    }
     @Test fun actualJsSearchUsesEncryptedConfigAndFeedsHttpsSourcesBackWithoutLeakingKeyToPages() = runBlocking<Unit> {
         val context = RuntimeEnvironment.getApplication()
         val certificate = HeldCertificate.Builder().addSubjectAlternativeName("localhost").build()
