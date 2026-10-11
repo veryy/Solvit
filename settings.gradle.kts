@@ -6,3 +6,4 @@ dependencyResolutionManagement {
 rootProject.name = "Solvit"
 include(":core", ":provider-openai", ":chat-runtime", ":storage-sqlite", ":app")
 include(":release-updates")
+include(":plugin-runtime")

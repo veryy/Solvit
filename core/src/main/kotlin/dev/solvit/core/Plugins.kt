@@ -48,6 +48,7 @@ enum class PluginState { LOADED, INITIALIZED, ENABLED, DISABLED, UNLOADED }
 
 interface SolvitPlugin {
     val id: String
+    val dependencies: Set<String> get() = emptySet()
     val requires: Set<ServiceKey<*>> get() = emptySet()
     val provides: Set<ServiceKey<*>> get() = emptySet()
     /** Prepare metadata only; acquire resources in enable and own them in context. */
@@ -126,7 +127,8 @@ class PluginManager(
         try {
             val pending = plugins.values.filter { it.context == null }.toMutableList()
             while (pending.isNotEmpty()) {
-                val ready = pending.firstOrNull { row -> row.plugin.requires.all(registry::contains) }
+                val ready = pending.firstOrNull { row -> row.plugin.requires.all(registry::contains) &&
+                    row.plugin.dependencies.all { plugins[it]?.context != null } }
                     ?: error("Missing or cyclic dependencies: ${pending.joinToString { it.plugin.id }}")
                 activate(ready)
                 started += ready
@@ -174,7 +176,7 @@ class PluginManager(
 
     private fun requireNoConsumers(row: Loaded) {
         val consumers = plugins.values.filter { it !== row && it.context != null &&
-            it.plugin.requires.any { key -> key in row.plugin.provides } }
+            (row.plugin.id in it.plugin.dependencies || it.plugin.requires.any { key -> key in row.plugin.provides }) }
         check(consumers.isEmpty()) { "Enabled dependents: ${consumers.joinToString { it.plugin.id }}" }
     }
 
@@ -200,7 +202,8 @@ class PluginManager(
             while (plugins.isNotEmpty()) {
                 val row = plugins.values.first { candidate -> plugins.values.none {
                     it !== candidate && it.context != null &&
-                        it.plugin.requires.any { key -> key in candidate.plugin.provides }
+                        (candidate.plugin.id in it.plugin.dependencies ||
+                            it.plugin.requires.any { key -> key in candidate.plugin.provides })
                 } }
                 try { deactivate(row) } catch (e: Throwable) {
                     if (failure == null) failure = e else failure!!.addSuppressed(e)
