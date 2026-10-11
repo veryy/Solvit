@@ -12,6 +12,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -26,6 +29,8 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
     val busy by vm.busy.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
     val output by vm.output.collectAsStateWithLifecycle()
+    val configuring by vm.configuring.collectAsStateWithLifecycle()
+    val configurationValues by vm.configurationValues.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var enableTarget by remember { mutableStateOf<InstalledExtension?>(null) }
     var deleteTarget by remember { mutableStateOf<InstalledExtension?>(null) }
@@ -83,6 +88,9 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
                                             }
                                             TextButton(onClick = { deleteTarget = extension }, enabled = !busy) { Text("卸载") }
                                         }
+                                        if (extension.settings.isNotEmpty()) TextButton(
+                                            onClick = { vm.openConfiguration(extension) }, enabled = !busy && !extension.enabled,
+                                        ) { Text(if (extension.enabled) "停用后可配置" else "配置插件") }
                                         extension.tools.forEach { tool ->
                                             OutlinedButton(onClick = { toolTarget = tool; arguments = "{}" }, enabled = !busy) { Text("试运行：${tool.description}") }
                                         }
@@ -99,6 +107,29 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
                     }
                 }
             }
+        }
+    }
+    configuring?.let { extension ->
+        var values by remember(extension.id) { mutableStateOf(configurationValues) }
+        val valid = extension.settings.filter { it.required }.all { !values[it.key].isNullOrBlank() }
+        Dialog(onDismissRequest = { if (!busy) vm.closeConfiguration() }, properties = DialogProperties(securePolicy = SecureFlagPolicy.SecureOn)) {
+            Surface(shape = MaterialTheme.shapes.large) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("配置 ${extension.name}", style = MaterialTheme.typography.titleLarge)
+                Text("配置只提供给此插件，密钥加密保存在本机。")
+                LazyColumn(Modifier.heightIn(max = 400.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(extension.settings, key = { it.key }) { field ->
+                        OutlinedTextField(value = values[field.key].orEmpty(), onValueChange = { values = values + (field.key to it) },
+                            label = { Text(field.label + if (field.required) " *" else "") }, singleLine = true, enabled = !busy,
+                            visualTransformation = if (field.kind == "secret") PasswordVisualTransformation() else VisualTransformation.None,
+                            modifier = Modifier.fillMaxWidth())
+                    }
+                }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = vm::closeConfiguration, enabled = !busy) { Text("取消") }
+                    Button(onClick = { vm.saveConfiguration(extension.id, values) }, enabled = !busy && valid) { Text("保存") }
+                }
+            } }
         }
     }
     enableTarget?.let { extension ->

@@ -13,6 +13,16 @@ class MarketplaceViewModel(private val service: MarketplaceService) : ViewModel(
     val busy = MutableStateFlow(false)
     val error = MutableStateFlow<String?>(null)
     val output = MutableStateFlow<String?>(null)
+    val configuring = MutableStateFlow<InstalledExtension?>(null)
+    val configurationValues = MutableStateFlow<Map<String, String>>(emptyMap())
+    fun openConfiguration(extension: InstalledExtension) = operation {
+        configurationValues.value = service.configuration(extension.id)
+        configuring.value = extension
+    }
+    fun closeConfiguration() { configuring.value = null; configurationValues.value = emptyMap() }
+    fun saveConfiguration(id: String, values: Map<String, String>) = operation {
+        service.configure(id, values); closeConfiguration()
+    }
     init { refresh() }
 
     fun refresh() {
