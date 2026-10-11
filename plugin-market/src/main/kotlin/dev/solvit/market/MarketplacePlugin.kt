@@ -36,6 +36,23 @@ class AndroidMarketplace(
 
     suspend fun restore() = mutex.withLock {
         withContext(Dispatchers.IO) {
+            // Ship useful JS packages offline, but require explicit permission
+            // grants before activation. Never resurrect a user-uninstalled seed.
+            context.assets.list("builtin-plugins").orEmpty().filter { it.endsWith(".solvit.json") }.forEach { name ->
+                if (!prefs.getBoolean("seeded.$name", false)) {
+                    val payload = context.assets.open("builtin-plugins/$name").use { it.readBytes() }
+                    val pkg = ScriptPackage.parse(payload)
+                    check(name == "${pkg.manifest.id}.solvit.json")
+                    val base = File(directory, name)
+                    if (!base.exists()) {
+                        val file = AtomicFile(base)
+                        val stream = file.startWrite()
+                        try { stream.write(payload); file.finishWrite(stream) }
+                        catch (e: Throwable) { file.failWrite(stream); throw e }
+                    }
+                    check(prefs.edit().putBoolean("seeded.$name", true).commit()) { "内置插件配置保存失败" }
+                }
+            }
             directory.listFiles()?.filter { it.name.endsWith(".solvit.json") }?.forEach { file ->
                 try {
                     check(file.length() <= ScriptPackage.MAX_BYTES) { "插件文件过大" }

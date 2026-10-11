@@ -1,0 +1,17 @@
+{
+  "manifest": {
+    "id": "dev.solvit.clock",
+    "name": "当前时间",
+    "description": "获取当前时间。用纯 JavaScript 编写的示例工具插件。",
+    "version": "1.0.0",
+    "apiVersion": 1,
+    "permissions": [],
+    "dependencies": [],
+    "tools": [{
+      "name": "current_time",
+      "description": "获取当前 UTC 时间和设备时区。",
+      "inputSchema": {"type": "object", "properties": {}, "additionalProperties": false}
+    }]
+  },
+  "source": "globalThis.solvitPlugin = { tools: { current_time: async function(args, ctx) { return { utc: new Date().toISOString(), timezoneOffsetMinutes: new Date().getTimezoneOffset() }; } } };"
+}
