@@ -4,6 +4,9 @@ import com.dokar.quickjs.QuickJs
 import com.dokar.quickjs.binding.asyncFunction
 import dev.solvit.core.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.job
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.sync.Mutex
@@ -18,6 +21,7 @@ fun interface ScriptHost {
 class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHost, private val timeoutMs: Long = 30_000) {
     private val mutex = Mutex()
     @Volatile private var engine: QuickJs? = null
+    @Volatile private var executionJob: Job? = null
 
     suspend fun start() = mutex.withLock {
         check(engine == null) { "插件已启用" }
@@ -37,9 +41,14 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         else -> error("宿主未开放此操作")
                     }
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
-                    host.call(pkg.manifest, operation, arguments).toString()
+                    val parent = executionJob ?: error("宿主调用没有活动的插件执行")
+                    // QuickJS async bindings have their own scope. Explicitly
+                    // parent native work to this invocation, including cleanup.
+                    withContext(parent) { host.call(pkg.manifest, operation, arguments).toString() }
                 }
                 withTimeout(timeoutMs) {
+                    executionJob = currentCoroutineContext().job
+                    try {
                     js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
                           settings: Object.freeze({ get: async key => JSON.parse(await __solvitHostCall('settings.get', JSON.stringify({key}))) }),
@@ -60,6 +69,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         js.evaluate<Any?>("if (typeof solvitPlugin.tools[${JsonPrimitive(tool.name)}] !== 'function') throw new Error('Missing tool handler');")
                     }
                     js.evaluate<Any?>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
+                    } finally { executionJob = null }
                 }
                 engine = js
             } catch (e: Throwable) { js.close(); throw e }
@@ -74,19 +84,27 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
             // Let the native execution deadline fire first; this also bounds
             // promises waiting on asynchronous host operations.
             withTimeout(timeoutMs + 1_000) {
-                js.evaluate<String>("JSON.stringify(await solvitPlugin.tools[${JsonPrimitive(tool)}](JSON.parse(${JsonPrimitive(input.toString())}), ctx))")
+                executionJob = currentCoroutineContext().job
+                try {
+                    js.evaluate<String>("JSON.stringify(await solvitPlugin.tools[${JsonPrimitive(tool)}](JSON.parse(${JsonPrimitive(input.toString())}), ctx))")
+                } finally { executionJob = null }
             }
         }
     }
 
     suspend fun stop() {
         // Interrupt before taking the mutex, so an infinite loop cannot block unload.
+        executionJob?.cancel()
         engine?.interruptEvaluation()
         mutex.withLock {
             val js = engine ?: return@withLock
             try {
                 withContext(Dispatchers.Default) {
-                    withTimeout(2_000) { js.evaluate<Any?>("if (solvitPlugin.deactivate) await solvitPlugin.deactivate(ctx);") }
+                    withTimeout(2_000) {
+                        executionJob = currentCoroutineContext().job
+                        try { js.evaluate<Any?>("if (solvitPlugin.deactivate) await solvitPlugin.deactivate(ctx);") }
+                        finally { executionJob = null }
+                    }
                 }
             } finally { js.close(); engine = null }
         }
