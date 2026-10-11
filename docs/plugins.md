@@ -1,6 +1,6 @@
 # Solvit JS/TS 插件 API v1
 
-插件宿主使用 QuickJS，执行 JavaScript。TypeScript 在发布前编译并打包为 JS；没有 Node.js 或 npm 模块运行时。
+插件宿主使用 QuickJS，执行 JavaScript。[TS SDK](../plugin-sdk/README.md) 提供工具、生命周期、存储与网络接口类型；TypeScript 在发布前编译并打包为 JS；没有 Node.js 或 npm 模块运行时。
 
 ## 插件包
 
@@ -37,3 +37,7 @@ globalThis.solvitPlugin = {
 ## 当前边界
 
 核心包解析、JS 执行、超时、权限检查、依赖启用和工具撤销测试已通过 GitHub Actions。Android 市场安装、用户权限授予、持久化配置与手动工具执行 UI 已通过远程编译与 Lint，包含在 0.2.0 源码中；尚未真机测试。当前源码已接入模型工具调用：启用的插件工具自动出现在模型请求中，逐次弹窗确认参数，显示执行状态与结果，默认最多 8 轮、16 次调用；跨模块 HTTP→QuickJS 集成测试已通过 GitHub Actions，真机与真实模型仍待验证。服务注册、事件 Hook 和声明式插件 UI 将继续增加；当前 API 不声称兼容 DSH/Cordis。
+
+## 内置记忆
+
+[本地记忆插件](memory.md) 采用同样的包与宿主 API，提供事实、画像、关系、文本分块和关键词检索。首次启动离线安装但保持停用，启用时授权。插件被用户卸载后不会自动恢复安装。
