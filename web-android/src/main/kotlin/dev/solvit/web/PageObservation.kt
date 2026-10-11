@@ -38,7 +38,8 @@ internal object PageObservation {
         (() => {
           const root = document.querySelector('main,article,[role="main"]') || document.body;
           if (!root) return JSON.stringify({url:location.href,title:document.title,text:'',links:[]});
-          const links = Array.from(root.querySelectorAll('a[href]')).slice(0,120).map(a => {
+          const searchLinks = root.querySelectorAll('li.b_algo h2 a[href],a.result__a[href]');
+          const links = Array.from(searchLinks.length ? searchLinks : root.querySelectorAll('a[href]')).slice(0,120).map(a => {
             const block = a.closest('li.b_algo,.result,article,section') || a.parentElement;
             return {url:a.href,title:(a.innerText || a.textContent || '').trim().slice(0,160),
               snippet:(block?.innerText || block?.textContent || '').trim().slice(0,400)};

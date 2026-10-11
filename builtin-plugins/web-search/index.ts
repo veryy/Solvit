@@ -19,14 +19,19 @@ function xmlText(value: string): string {
 }
 async function publicSearch(query: string, limit: number, ctx: PluginContext): Promise<JsonValue> {
   if (ctx.web) {
-    for (const origin of ['https://cn.bing.com', 'https://html.duckduckgo.com']) {
+    for (const origin of ['https://www.bing.com', 'https://html.duckduckgo.com']) {
       try {
         const page = await ctx.web.visit(origin + (origin.includes('duckduckgo') ? '/html/?q=' : '/search?q=') + encodeURIComponent(query));
+        // Public engines can redirect to a home/captcha page with valid unrelated links.
+        const searchPage = origin.includes('duckduckgo')
+          ? /^https:\/\/(?:[a-z0-9-]+\.)?duckduckgo\.com\/html\//i.test(page.url)
+          : /^https:\/\/(?:[a-z0-9-]+\.)?bing\.com\/search(?:[?\/]|$)/i.test(page.url);
+        if (!searchPage) continue;
         const results: { index: number; title: string; url: string; snippet: string }[] = [];
         const seen = new Set<string>();
         for (const link of page.links) {
           const url = searchTarget(link.url);
-          if (!url || seen.has(url) || link.title.trim().length < 3) continue;
+          if (!url || seen.has(url) || link.title.trim().length < 3 || !relevantToQuery(query, link.title + ' ' + link.snippet + ' ' + url)) continue;
           seen.add(url);
           results.push({ index: results.length + 1, title: link.title.trim().slice(0, 300), url, snippet: link.snippet.slice(0, 1200) });
           if (results.length >= limit) break;

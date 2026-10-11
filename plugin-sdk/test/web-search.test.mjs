@@ -55,7 +55,7 @@ test('browser search unwraps engine redirects, bounds and deduplicates safe sour
   const target='https://example.com/中文?q=1';
   const encoded=Buffer.from(target).toString('base64url');
   const {tools,ctx}=await plugin({apiKey:'PRIVATE'},undefined,async (...args) => {
-    assert.equal(args.length,1); assert.equal(args[0],'https://cn.bing.com/search?q=Solvit');
+    assert.equal(args.length,1); assert.equal(args[0],'https://www.bing.com/search?q=Solvit');
     return {url:args[0],title:'Search',text:'',truncated:false,links:[
       {url:'https://cn.bing.com/settings',title:'Settings',snippet:''},
       {url:'https://www.bing.com/ck/a?u=a1'+encoded,title:'Solvit 中文',snippet:'Useful source'},
@@ -75,7 +75,7 @@ test('browser denial falls back to DuckDuckGo and unwraps its source URL',async 
   const {tools,ctx}=await plugin({},undefined,async url => {
     visits.push(url); if(visits.length===1) throw new Error('blocked');
     return {url,title:'Search',text:'',truncated:false,links:[
-      {url:'https://duckduckgo.com/l/?uddg='+encodeURIComponent('https://example.com/guide'),title:'Guide title',snippet:'Guide body'},
+      {url:'https://duckduckgo.com/l/?uddg='+encodeURIComponent('https://example.com/guide'),title:'中文 question guide',snippet:'Guide body'},
     ]};
   });
   const result=await tools.search({query:'中文 question'},ctx);
@@ -100,4 +100,15 @@ test('page reading preserves browser-observed dynamic text and final source URL'
   const result=await tools.read_page({url:'https://example.com/start'},ctx);
   assert.equal(result.url,'https://example.com/final'); assert.equal(result.text,'Dynamically rendered article');
   assert.equal(result.truncated,true); assert.equal(result.links[0].url,'https://example.com/source');
+});
+
+test('a redirected engine home page is never treated as search results',async () => {
+  let visits=0;
+  const {tools,ctx}=await plugin({},async () => ({status:503,headers:{},body:''}),async () => {
+    visits++;
+    return {url:'https://www.bing.com/?q=Solvit',title:'Home',text:'',truncated:false,
+      links:[{url:'https://example.com/privacy',title:'Solvit privacy',snippet:'Footer'}]};
+  });
+  const result=await tools.search({query:'Solvit'},ctx);
+  assert.equal(visits,2); assert.equal(result.results.length,0); assert.ok(result.error);
 });

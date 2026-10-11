@@ -131,7 +131,7 @@ class WebSearchChatIntegrationTest {
         val browser = object : WebPageService {
             override suspend fun visit(url: String): WebPage {
                 visits += url
-                return if (url.startsWith("https://cn.bing.com/search?"))
+                return if (url.startsWith("https://www.bing.com/search?"))
                     WebPage(url, "Search", "", listOf(WebPageLink(source, "Solvit source", "Relevant source")))
                 else { assertEquals(source, url); WebPage(source, "Solvit article", "Observed dynamic page evidence") }
             }
