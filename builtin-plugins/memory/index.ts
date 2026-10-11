@@ -70,6 +70,7 @@ function upsert(db: Database, args: JsonObject, source?: MemorySource): { fact: 
   if (id && !existing) throw new Error('Memory ID does not exist');
   const now = new Date().toISOString();
   if (existing) {
+    if (source && existing.modifiedByUser) return { fact: existing, merged: true };
     if (!source && existing.source) existing.modifiedByUser = true;
     existing.text = text; existing.category = category;
     existing.tags = [...new Set([...existing.tags, ...incomingTags])].slice(0, 12);

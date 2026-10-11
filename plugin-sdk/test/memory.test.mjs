@@ -239,3 +239,13 @@ test('unknown replacement IDs and exhausted source quota fail without destructiv
   await assert.rejects(()=>full.afterTurn(completed()),error=>error.solvitCode==='STORAGE');assert.equal(calls,0);
   assert.equal(data.get('memory.v1').completedSources.length,512);
 });
+
+test('repeated extraction preserves ownership and provenance of a manually confirmed record',async()=>{
+  const role={id:'role1',name:'Role',skillIds:[]};const data=new Map();
+  const plugin=runtime(data,false,{role,model:{async complete(){return extraction}}});
+  await plugin.afterTurn(completed());const id=(await plugin.run('memory_list')).facts[0].id;
+  await plugin.run('memory_put',{id,text:'用户喜欢 Kotlin 编程',tags:['用户确认']});
+  const before=(await plugin.run('memory_list')).facts[0];assert.equal(before.modifiedByUser,true);
+  await plugin.afterTurn(completed('reply5'));
+  const db=await plugin.run('memory_export');assert.deepEqual(db.facts[0],before);assert.equal(db.completedSources.length,2);
+});
