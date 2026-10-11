@@ -17,6 +17,8 @@ interface WorkspaceService {
     val state: StateFlow<WorkspaceState>
     val jobs: StateFlow<List<ShellJob>>
     suspend fun forChat(sessionId: String): Workspace
+    /** Lookup only: a normal chat must not silently create a workspace. */
+    suspend fun bound(sessionId: String): Workspace? = state.value.bindings[sessionId]?.let { id -> state.value.workspaces.firstOrNull { it.id == id } }
     suspend fun bind(sessionId: String, workspaceId: String)
     suspend fun unbind(sessionId: String)
     suspend fun create(name: String): Workspace

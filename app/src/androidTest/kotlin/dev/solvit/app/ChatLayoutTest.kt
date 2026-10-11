@@ -27,6 +27,18 @@ class ChatLayoutTest {
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
+    private fun openWorkspace() {
+        rule.waitUntil(10_000) { rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty() ||
+            rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
+        if (rule.onAllNodes(hasText("工作区：",substring=true)).fetchSemanticsNodes().isNotEmpty()) {
+            rule.onNode(hasText("工作区：",substring=true)).performClick()
+        } else {
+            rule.onNodeWithText("新建工作区").performClick()
+            rule.onNode(hasSetTextAction()).performTextInput("测试工作区")
+            rule.onNodeWithText("创建并绑定").performClick()
+        }
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag("shell_command").fetchSemanticsNodes().isNotEmpty() }
+    }
     @Test fun startupFocusesInputAndFloatingComposerStaysAboveRealKeyboard() {
         ready()
         rule.onNode(hasSetTextAction()).assertIsFocused()
@@ -75,8 +87,7 @@ class ChatLayoutTest {
     }
     @Test fun workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace() {
         ready()
-        rule.waitUntil(15_000) { rule.onAllNodes(hasText("工作区：", substring = true) and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
-        rule.onNode(hasText("工作区：", substring = true)).performClick()
+        openWorkspace()
         rule.onNodeWithTag("shell_command").performClick().performTextInput("printf hello-solvit")
         rule.onNodeWithText("运行").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("hello-solvit").fetchSemanticsNodes().isNotEmpty() }
@@ -159,8 +170,7 @@ class ChatLayoutTest {
         ready()
         val app = rule.activity.application as SolvitApplication
         runBlocking { app.systemExecution.setMode(TERMINAL_OWNER,ExecutionMode.APP) }
-        rule.waitUntil(15_000) { rule.onAllNodes(hasText("工作区：", substring = true) and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
-        rule.onNode(hasText("工作区：", substring = true)).performClick()
+        openWorkspace()
         rule.onNodeWithText("交互终端").performClick()
         rule.onNodeWithTag("shell_command").performTextInput("stty -echo; export UI_PTY_STATE=retained; printf '__UI_%s__\\n' READY")
         rule.onNodeWithText("发送输入").performClick()

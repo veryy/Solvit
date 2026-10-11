@@ -16,6 +16,7 @@ import javax.crypto.spec.GCMParameterSpec
 interface SettingsStore {
     suspend fun load(): ModelConfig
     suspend fun save(config: ModelConfig)
+    suspend fun isConfigured(): Boolean = false
 }
 class SettingsDecryptionException(val partial: ModelConfig, cause: Exception) :
     Exception("API Key 无法解密，其他模型配置已保留", cause)
@@ -24,6 +25,7 @@ class SettingsDecryptionException(val partial: ModelConfig, cause: Exception) :
 class EncryptedSettingsStore(context: Context, private val keyProvider: (() -> SecretKey)? = null) : SettingsStore {
     private val prefs = context.applicationContext.getSharedPreferences("model", Context.MODE_PRIVATE)
     private val alias = "solvit.model-key.v1"
+    override suspend fun isConfigured(): Boolean = withContext(Dispatchers.IO) { prefs.contains("base") && prefs.contains("model") }
     @Synchronized private fun key(): SecretKey {
         keyProvider?.let { return it() }
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }

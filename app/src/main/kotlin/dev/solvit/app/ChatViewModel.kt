@@ -24,6 +24,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
     val config = MutableStateFlow(ModelConfig())
     val ready = MutableStateFlow(false)
+    val modelConfigured = MutableStateFlow(false)
     val busy = MutableStateFlow(false)
     val draft = MutableStateFlow("")
     val reasoning = MutableStateFlow("")
@@ -44,6 +45,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             try { config.value = settings.load() }
             catch (e: SettingsDecryptionException) { config.value = e.partial; error.value = "API Key 无法解密；模型地址和提示词已保留，请恢复备份或重新填写密钥" }
             catch (e: Exception) { error.value = "模型配置无法解密，请在设置中重新保存 API Key" }
+            modelConfigured.value = settings.isConfigured()
             try {
                 selected.value = chat.sessions().first().firstOrNull()?.id ?: chat.createSession().id
                 ready.value = true
@@ -77,7 +79,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         value.validate()?.let { error.value = it; return }
         saving.value = true
         viewModelScope.launch {
-            try { settings.save(value); config.value = value; error.value = null; onSaved() }
+            try { settings.save(value); config.value = value; modelConfigured.value = true; error.value = null; onSaved() }
             catch (e: Exception) { error.value = "保存模型配置失败" }
             finally { saving.value = false }
         }
@@ -86,7 +88,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         check(!busy.value && !saving.value) { "请等待当前操作结束" }
         value.validate()?.let { error(it) }
         saving.value = true
-        try { settings.save(value); config.value = value; error.value = null }
+        try { settings.save(value); config.value = value; modelConfigured.value = true; error.value = null }
         finally { saving.value = false }
     }
     fun send(text: String): Boolean {

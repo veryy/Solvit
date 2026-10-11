@@ -21,7 +21,7 @@ import dev.solvit.core.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDismiss: () -> Unit) {
+fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, createOnOpen: Boolean = false, onDismiss: () -> Unit) {
     val executionModes by system.modes.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
     val jobs by vm.jobs.collectAsStateWithLifecycle()
@@ -37,7 +37,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDi
     val preview by vm.preview.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var chooser by remember { mutableStateOf(false) }
-    var creating by remember { mutableStateOf(false) }
+    var creating by remember { mutableStateOf(createOnOpen) }
     var name by remember { mutableStateOf("") }
     var shellId by rememberSaveable(id) { mutableStateOf<String?>(null) }
     var command by rememberSaveable(id, shellId) { mutableStateOf("") }
@@ -59,6 +59,14 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDi
             IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, "关闭工作区") }
         }) }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
+                if (id == null) {
+                    Column(Modifier.weight(1f).fillMaxWidth(),horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
+                        Text("此对话尚未绑定工作区")
+                        TextButton(onClick = { creating = true }) { Text("新建工作区") }
+                        TextButton(onClick = { chooser = true }) { Text("绑定已有工作区") }
+                        error?.let { Text(it,color=MaterialTheme.colorScheme.error) }
+                    }
+                } else {
                 TextButton(onClick = { chooser = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
                     Text(state.workspaces.firstOrNull { it.id == id }?.name ?: "打开工作区…")
                 }
@@ -164,6 +172,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, onDi
                         }
                         }
                     }
+                }
                 }
             }
         }

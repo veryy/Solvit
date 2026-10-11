@@ -27,7 +27,10 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
         if (id == chatId) return
         selection?.cancel(); chatId = id; workspaceId.value = null; fileText.value = ""; error.value = null
         if (id != null) selection = viewModelScope.launch {
-            try { val value = service.forChat(id); if (chatId == id) { workspaceId.value = value.id; loadDirectory(value.id, "") } }
+            try { val value = service.bound(id); if (chatId == id) {
+                workspaceId.value = value?.id
+                if (value != null) loadDirectory(value.id, "") else { location.value = ""; directory.value = ""; files.value = emptyList() }
+            } }
             catch (e: CancellationException) { throw e }
             catch (e: Exception) { error.value = "无法打开工作区" }
         }
@@ -48,7 +51,7 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
     }
     fun create(name: String) {
         val chat = chatId ?: return
-        operation { val value = service.create(name); service.bind(chat, value.id); if (chatId == chat) { workspaceId.value = value.id; fileText.value = ""; loadDirectory(value.id, "") } }
+        operation { val value = service.create(name); service.createShell(value.id,"Shell 1"); service.bind(chat, value.id); if (chatId == chat) { workspaceId.value = value.id; fileText.value = ""; loadDirectory(value.id, "") } }
     }
     fun createShell() {
         val id = workspaceId.value ?: return

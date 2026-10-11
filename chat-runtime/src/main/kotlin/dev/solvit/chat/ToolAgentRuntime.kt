@@ -17,7 +17,8 @@ class ToolAgentRuntime(
     override fun run(request: ModelRequest): Flow<ModelChunk> = flow {
         val execution = AgentExecutionContext()
         try {
-        val advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false }.take(64)
+        val advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false &&
+            (request.conversation != null || it.capabilities.none { permission -> permission in setOf("workspace","shell","plugins") }) }.take(64)
         val allowed = advertised.map { it.name }.toSet()
         val messages = request.messages.toMutableList()
         if (advertised.isNotEmpty()) messages.add(0, ModelMessage(Role.SYSTEM,

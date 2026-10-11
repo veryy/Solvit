@@ -58,7 +58,7 @@ class DefaultChatService(
         }
         try {
             val role = roles?.selected(sessionId)
-            val conversation = workspaces?.forChat(sessionId)?.let { ConversationContext(sessionId, it.id) }
+            val conversation = workspaces?.bound(sessionId)?.let { ConversationContext(sessionId, it.id) }
             persist(ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim()))
             admitted = true
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }

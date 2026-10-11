@@ -119,6 +119,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     val config by vm.config.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val ready by vm.ready.collectAsStateWithLifecycle()
+    val modelConfigured by vm.modelConfigured.collectAsStateWithLifecycle()
     val draft by vm.draft.collectAsStateWithLifecycle()
     val reasoning by vm.reasoning.collectAsStateWithLifecycle()
     val transcript by vm.liveTranscript.collectAsStateWithLifecycle()
@@ -138,6 +139,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
     var backupOpen by rememberSaveable { mutableStateOf(false) }
     var pluginsOpen by rememberSaveable { mutableStateOf(false) }
     var workspaceOpen by rememberSaveable { mutableStateOf(false) }
+    var workspaceCreateRequested by rememberSaveable { mutableStateOf(false) }
     val workspaceId by workspaces.workspaceId.collectAsStateWithLifecycle()
     val workspaceState by workspaces.state.collectAsStateWithLifecycle()
     var agentsOpen by rememberSaveable { mutableStateOf(false) }
@@ -240,7 +242,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
         ) { padding ->
             Column(Modifier.fillMaxSize().padding(padding)) {
                 AppUpdateCard(updateState, downloadState, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)
-                TextButton(onClick = { hideInput(); workspaceOpen = true }, enabled = ready && !busy && workspaceId != null,
+                if (workspaceId != null) TextButton(onClick = { hideInput(); workspaceCreateRequested = false; workspaceOpen = true }, enabled = ready && !busy,
                     modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth()) {
                     Text("工作区：" + (workspaceState.workspaces.firstOrNull { it.id == workspaceId }?.name ?: "打开中…") + " · Shell / 文件")
                 }
@@ -256,14 +258,18 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                         if (expanded) {
                             Text("一起整理思路、解答问题", style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            OutlinedButton(onClick = { hideInput(); modelsOpen = true }) { Text("配置你的模型") }
+                            if (!modelConfigured) OutlinedButton(onClick = { hideInput(); modelsOpen = true }) { Text("配置你的模型") }
                         }
+                        if (workspaceId == null && showTitle) OutlinedButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true },enabled=ready) { Text("新建工作区") }
                     }
                 }
             } else {
                 LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(chatRows, key = { it.id }) { ChatBubble(it) }
+                    if (workspaceId == null && !busy) item(key="create-workspace") {
+                        TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { Text("新建工作区") }
+                    }
                 }
             }
             }
@@ -285,7 +291,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { Text("拒绝") } })
     }
     val app = LocalContext.current.applicationContext as SolvitApplication
-    if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution) { workspaceOpen = false }
+    if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution, createOnOpen=workspaceCreateRequested) { workspaceOpen = false }
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true })
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace) { permissionsOpen = false }
