@@ -23,7 +23,7 @@ jobs:
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Android SDK
-        run: sdkmanager 'platforms;android-35' 'build-tools;36.0.0'
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Restore stable APK signing key
         env:
           SOLVIT_KEYSTORE: ${{ secrets.SOLVIT_DEBUG_KEYSTORE }}

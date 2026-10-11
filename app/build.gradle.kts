@@ -1,7 +1,7 @@
 plugins { id("com.android.application"); id("org.jetbrains.kotlin.plugin.compose") }
 android {
     namespace = "dev.solvit.app"
-    compileSdk = 35
+    compileSdk = 36
     defaultConfig {
         applicationId = "dev.solvit.app"
         minSdk = 26
