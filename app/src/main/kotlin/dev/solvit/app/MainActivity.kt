@@ -110,7 +110,7 @@ private fun SolvitTheme(content: @Composable () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace: MarketplaceViewModel, agents: AgentLibraryViewModel, workspaces: WorkspaceViewModel) {
+internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace: MarketplaceViewModel, agents: AgentLibraryViewModel, workspaces: WorkspaceViewModel) {
     val updateState by updates.state.collectAsStateWithLifecycle()
     val downloadState by updates.downloadState.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()

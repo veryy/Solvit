@@ -14,6 +14,10 @@ import dev.solvit.core.*
 import dev.solvit.storage.SqliteChatStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import androidx.lifecycle.viewModelScope
+import dev.solvit.chat.DefaultChatService
 import org.json.JSONObject
 
 
@@ -61,6 +65,63 @@ class ChatLayoutTest {
         rule.onNodeWithContentDescription("对话历史").performClick()
         rule.onNodeWithText("branch original question").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("later answer").fetchSemanticsNodes().isNotEmpty() }
+    }
+    @Test fun actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        val advance = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+        val store = SqliteChatStore(app)
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest) = flow {
+                emit(ModelChunk.Text("live-first-token"))
+                advance.await()
+                emit(ModelChunk.Text("\n" + (1..45).joinToString("\n") { "stream line $it" } + "\nlive-last-token"))
+                finish.await()
+                emit(ModelChunk.Done)
+            }
+        }
+        lateinit var vm: ChatViewModel
+        lateinit var agents: AgentLibraryViewModel
+        lateinit var workspaces: WorkspaceViewModel
+        lateinit var updates: UpdateViewModel
+        lateinit var market: MarketplaceViewModel
+        rule.runOnUiThread {
+            val settings = object : SettingsStore {
+                override suspend fun load() = ModelConfig(apiKey="fixture")
+                override suspend fun save(config: ModelConfig) = Unit
+                override suspend fun isConfigured() = true
+            }
+            vm = ChatViewModel(DefaultChatService(store,agent,EventBus()),settings)
+            agents = AgentLibraryViewModel(app.roles,app.skills,app.marketplace)
+            workspaces = WorkspaceViewModel(app.workspaces,app.pluginDrafts,app.terminals)
+            updates = UpdateViewModel(app.updates,app.updateDownloader)
+            market = MarketplaceViewModel(app.marketplace)
+            rule.activity.setContent { MaterialTheme { ChatScreen(vm,updates,market,agents,workspaces) } }
+        }
+        try {
+            ready()
+            rule.onNode(hasSetTextAction()).performTextInput("stream test")
+            rule.onNodeWithContentDescription("发送").performClick()
+            rule.waitUntil(8000) { rule.onAllNodesWithText("live-first-token").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithText("live-first-token").assertIsDisplayed()
+            assertTrue(vm.busy.value); assertFalse(finish.isCompleted)
+            advance.complete(Unit)
+            rule.waitUntil(8000) { vm.draft.value.contains("live-last-token") }
+            rule.waitUntil(8000) { rule.onNodeWithTag("chat_tail").isDisplayed() }
+            rule.onNodeWithTag("chat_tail").assertIsDisplayed()
+            val composer = rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
+            val tail = rule.onNodeWithTag("chat_tail").fetchSemanticsNode().boundsInRoot
+            assertTrue(tail.bottom <= composer.top)
+            assertTrue(vm.busy.value); assertFalse(finish.isCompleted)
+            screenshot("chat-live-stream-before-done")
+            finish.complete(Unit)
+            rule.waitUntil(8000) { !vm.busy.value }
+            rule.onNodeWithTag("streaming_body").assertDoesNotExist()
+        } finally {
+            rule.runOnUiThread { listOf(vm,agents,workspaces,updates,market).forEach { it.viewModelScope.cancel() } }
+            store.close()
+        }
     }
     @Test fun replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal() {
         ready()

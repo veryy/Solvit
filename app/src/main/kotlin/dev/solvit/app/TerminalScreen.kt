@@ -52,8 +52,8 @@ fun TerminalScreen(session: TerminalSession, onKey: (String) -> Unit) {
                 modifier = Modifier.testTag("terminal_output"))
         }
         if (session.active) {
-            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                listOf("Esc" to "\u001b", "Tab" to "\t", "↑" to "\u001b[A", "↓" to "\u001b[B", "←" to "\u001b[D", "→" to "\u001b[C", "Ctrl-D" to "\u0004").forEach { (label, key) ->
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                listOf("Enter" to "\r", "⌫" to "\u007f", "Esc" to "\u001b", "Tab" to "\t", "↑" to "\u001b[A", "↓" to "\u001b[B", "←" to "\u001b[D", "→" to "\u001b[C", "Ctrl-D" to "\u0004").forEach { (label, key) ->
                     TextButton(onClick = { onKey(key) }, contentPadding = PaddingValues(3.dp), modifier = Modifier.defaultMinSize(minWidth = 28.dp)) { Text(label, color = Color.White, fontSize = 11.sp) }
                 }
             }
