@@ -22,7 +22,7 @@ fun interface ScriptHost {
 
 /** One engine per enabled plugin; no Java reflection or implicit OS access. */
 class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHost, private val timeoutMs: Long = 30_000,
-    private val background: Boolean = false) {
+    private val background: Boolean = false, private val invokeLifecycle: Boolean = true) {
     private val mutex = Mutex()
     @Volatile private var engine: QuickJs? = null
     @Volatile private var executionJob: Job? = null
@@ -108,7 +108,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         js.evaluate<Any?>("if (typeof solvitPlugin.beforeModel !== 'function') throw new Error('Missing beforeModel hook');")
                     }
                     if ("afterTurn" in pkg.manifest.hooks) js.evaluate<Any?>("if (typeof solvitPlugin.afterTurn !== 'function') throw new Error('Missing afterTurn hook');")
-                    if (!background) js.evaluate<Any?>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
+                    if (!background && invokeLifecycle) js.evaluate<Any?>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
                     } finally { executionJob = null; executionContext = null }
                 }
                 engine = js
@@ -230,7 +230,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     withTimeout(2_000) {
                         executionJob = currentCoroutineContext().job
                         executionContext = currentCoroutineContext()
-                        try { if (!background) js.evaluate<Any?>("if (solvitPlugin.deactivate) await solvitPlugin.deactivate(ctx);") }
+                        try { if (!background && invokeLifecycle) js.evaluate<Any?>("if (solvitPlugin.deactivate) await solvitPlugin.deactivate(ctx);") }
                         finally { executionJob = null; executionContext = null }
                     }
                 }
