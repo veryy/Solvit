@@ -16,7 +16,7 @@ else
   # Fork PRs have no signing secret and cannot install over the signed release.
   solvit_exclusions="$solvit_exclusions,dev.solvit.app.UpgradePersistenceTest"
 fi
-./gradlew :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions" --stacktrace
+./gradlew :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions" --stacktrace
 solvit_test_status=$?
 adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
 exit "$solvit_test_status"
