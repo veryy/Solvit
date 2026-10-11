@@ -13,7 +13,7 @@
 
 ## 开始使用
 
-从 [GitHub Releases 下载最新 APK](https://github.com/veryy/Solvit/releases/latest)。展开发布页的 **Assets**，下载 `solvit-debug.apk` 并在 Android 手机上安装。
+[直接下载最新 APK](https://github.com/veryy/Solvit/releases/latest/download/solvit-debug.apk)，在 Android 手机上安装。版本说明见 [最新 Release](https://github.com/veryy/Solvit/releases/latest)。
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装、真实模型连接和交互体验尚未验证。
 
@@ -49,7 +49,7 @@
 
 当前源码已内置 TS MCP 插件和声明式配置页。进入“插件 → 已安装 → MCP 连接”，先配置 HTTPS 端点及可选 Bearer 令牌，再启用 network 权限。聊天可发现并调用服务器工具，每次执行需确认。
 
-实际可测试的只读演示地址：`https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空，提供回显和服务器时间。协议支持与边界见 [MCP 插件说明](docs/mcp.md)。Android HTTPS 集成和取消测试已通过，0.5.0 标签被新增取消回归测试阻止发布；修复后通过 0.5.1 标签验证并发布 APK；角色绑定、OAuth、stdio 和完整服务接入继续实现。
+实际可测试的只读演示地址：`https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空，提供回显和服务器时间。协议支持与边界见 [MCP 插件说明](docs/mcp.md)。[0.5.1 APK 已发布](https://github.com/veryy/Solvit/releases/tag/v0.5.1)，[45 个 Android 测试、Lint、APK、TS、市场和实际 HTTPS MCP 验证通过](https://github.com/veryy/Solvit/actions/runs/38107628413)。角色绑定、OAuth、stdio 和完整服务接入继续实现。
 
 ## 构建
 
@@ -82,6 +82,6 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 当前已发布版本提供基础聊天和更新检查。0.2.0 已接入 [插件市场](https://solvit.207.57.126.73.sslip.io/)、JS 包下载校验、安装启停、权限授予和手动工具试运行；测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
 
-Shell、手机控制、MCP、向量记忆、附件、Markdown 排版和后台持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
+当前 MCP 支持 HTTPS 工具发现和调用；多服务器、角色绑定及完整资源/提示词能力仍待实现。Shell、手机控制、向量记忆、附件、Markdown 排版和后台持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
 
 停止或失败后的助手回复保留并标记，但不进入后续模型上下文；用户输入仍保留。进程被系统杀死时，未结算的流式片段可能丢失，已写入的用户消息和完整回复保留。完整上下文发送给配置的模型服务，较长对话目前需要新建对话。
