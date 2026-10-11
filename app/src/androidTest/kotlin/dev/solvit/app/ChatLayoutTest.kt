@@ -62,6 +62,38 @@ class ChatLayoutTest {
         }
     }
 
+    @Test fun memoryManagementEditsAndDeletesWithPluginDisabled() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        val manager = dev.solvit.market.BuiltinMemoryManager(app)
+        val id = runBlocking {
+            app.marketplace.disable("dev.solvit.memory")
+            manager.save("memory-ui-original", "fact", emptyList()).getValue("fact").let {
+                kotlinx.serialization.json.Json.parseToJsonElement(it.toString()).let { element ->
+                    (element as kotlinx.serialization.json.JsonObject).getValue("id").toString().trim('"')
+                }
+            }
+        }
+        try {
+            rule.runOnUiThread { rule.activity.setContent { MaterialTheme { MemoryManagementScreen(manager) {} } } }
+            rule.waitUntil(10_000) { rule.onAllNodesWithText("memory-ui-original").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNode(hasText("修改") and hasAnyAncestor(hasTestTag("memory_fact_$id"))).performClick()
+            rule.onNodeWithTag("memory_edit_text").performTextReplacement("memory-ui-edited")
+            rule.onNodeWithText("保存").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithText("memory-ui-edited").fetchSemanticsNodes().isNotEmpty() }
+            assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
+            rule.onNode(hasText("删除") and hasAnyAncestor(hasTestTag("memory_fact_$id"))).performClick()
+            rule.onNodeWithText("取消").performClick()
+            rule.onNodeWithText("memory-ui-edited").assertIsDisplayed()
+            rule.onNode(hasText("删除") and hasAnyAncestor(hasTestTag("memory_fact_$id"))).performClick()
+            rule.onNodeWithText("确认删除").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("memory_fact_$id").fetchSemanticsNodes().isEmpty() }
+            screenshot("memory-management-disabled-plugin")
+        } finally {
+            runBlocking { runCatching { manager.delete(id) } }
+        }
+    }
+
     @Test fun memoryTaskRetryRequiresConfirmationAndDisplaysSource() {
         ready()
         val target = PostTurnTarget("dev.solvit.memory", "1.2.0", "a".repeat(64))

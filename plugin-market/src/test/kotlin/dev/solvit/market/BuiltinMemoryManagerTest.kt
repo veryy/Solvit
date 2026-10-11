@@ -33,6 +33,32 @@ class BuiltinMemoryManagerTest {
         assertFailsWith<Exception> { reopened.save("Do not recreate", "fact", emptyList(), id) }
         assertTrue(context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).all.isEmpty())
     }
+    @Test fun editingAutomaticFactPreservesOriginAndDeletionKeepsReplayProtection() = runBlocking<Unit> {
+        val manager = BuiltinMemoryManager(context)
+        val created = manager.save("Prefer Kotlin", "preference", emptyList())
+        val fact = created.getValue("fact").jsonObject
+        val id = fact.getValue("id").jsonPrimitive.content
+        val source = buildJsonObject {
+            put("turnId", "answer"); put("sessionId", "session"); put("userMessageId", "user")
+            put("assistantMessageId", "answer"); put("roleId", "coder"); put("roleName", "Coder")
+        }
+        val provenance = JsonObject(source + ("quote" to JsonPrimitive("Prefer Kotlin")))
+        val receipt = JsonObject(source + ("factIds" to JsonArray(listOf(JsonPrimitive(id)))))
+        val snapshot = manager.snapshot()
+        val seeded = JsonObject(snapshot + mapOf(
+            "facts" to JsonArray(listOf(JsonObject(fact + ("source" to provenance)))),
+            "completedSources" to JsonArray(listOf(receipt))))
+        PluginDataStore(context).set("dev.solvit.memory", "memory.v1", seeded, true) {}
+        manager.save("Prefer TypeScript", "preference", emptyList(), id)
+        val edited = manager.snapshot().getValue("facts").jsonArray.single().jsonObject
+        assertEquals(provenance, edited["source"])
+        assertEquals(JsonPrimitive(true), edited["modifiedByUser"])
+        manager.delete(id)
+        val deleted = manager.snapshot()
+        assertTrue(deleted.getValue("facts").jsonArray.isEmpty())
+        assertEquals(JsonArray(listOf(receipt)), deleted["completedSources"])
+    }
+
     @Test fun invalidStoredDataIsPreservedInsteadOfOverwritten() = runBlocking<Unit> {
         val prefs = context.getSharedPreferences("extension_data.dev.solvit.memory", Context.MODE_PRIVATE)
         prefs.edit().putString("memory.v1", "{\"format\":99}").commit()
