@@ -87,4 +87,32 @@ class ChatServiceTest {
         }
         assertEquals(MessageStatus.FAILED, store.saved.last().status)
     }
+
+    @Test fun successfulToolTranscriptSurvivesNextTurnAndInterruptedTraceIsExcluded() = runTest {
+        for (finish in listOf(true, false)) {
+            val store = MemoryStore()
+            val call = ToolCall("call", "clock", "{}")
+            val agent = object : AgentRuntime {
+                override fun run(request: ModelRequest) = flow {
+                    emit(ModelChunk.Transcript(ModelMessage(Role.ASSISTANT, "", listOf(call))))
+                    emit(ModelChunk.Transcript(ModelMessage(Role.TOOL, "UTC", toolCallId = call.id)))
+                    emit(ModelChunk.Text("answer"))
+                    if (finish) emit(ModelChunk.Done) else throw ModelException("disconnected")
+                }
+            }
+            val chat = DefaultChatService(store, agent, EventBus())
+            if (finish) chat.send("session", "question", ModelConfig()).toList()
+            else assertFailsWith<ModelException> { chat.send("session", "question", ModelConfig()).toList() }
+            assertEquals(listOf(Role.USER, Role.ASSISTANT, Role.TOOL, Role.ASSISTANT), store.saved.map { it.role })
+            assertEquals(if (finish) MessageStatus.COMPLETE else MessageStatus.FAILED, store.saved[1].status)
+            val next = object : AgentRuntime {
+                override fun run(request: ModelRequest): Flow<ModelChunk> {
+                    assertEquals(finish, request.messages.any { it.toolCalls.isNotEmpty() })
+                    assertEquals(finish, request.messages.any { it.role == Role.TOOL && it.toolCallId == call.id })
+                    return flowOf(ModelChunk.Text("next"), ModelChunk.Done)
+                }
+            }
+            DefaultChatService(store, next, EventBus()).send("session", "continue", ModelConfig()).toList()
+        }
+    }
 }
