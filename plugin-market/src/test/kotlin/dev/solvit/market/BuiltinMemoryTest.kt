@@ -23,7 +23,7 @@ class BuiltinMemoryTest {
         val client = OkHttpClient()
         suspend fun setup(): Pair<PluginManager, AndroidMarketplace> {
             val manager = PluginManager(scope = scope)
-            manager.load(ToolsPlugin()); manager.enableAll()
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.enableAll()
             val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools))
             market.restore()
             return manager to market

@@ -1,4 +1,4 @@
-# Solvit JS/TS 插件 API 1–6
+# Solvit JS/TS 插件 API 1–7
 
 插件宿主使用 QuickJS，执行 JavaScript。[TS SDK](../plugin-sdk/README.md) 提供工具、生命周期、存储与网络接口类型；TypeScript 在发布前编译并打包为 JS；没有 Node.js 或 npm 模块运行时。
 
@@ -8,7 +8,7 @@ UTF-8 `.solvit.json` 包含 `manifest` 与 `source`。市场示例：[当前时�
 
 - `id`：稳定 ID，最长 40 字符，使用小写域名形式。
 - `version`：三段数字版本。
-- `apiVersion`：整数 `1`–`6`；API 2 增加配置，API 3 增加 Hook 和角色，API 4 增加工作区与插件草稿，API 5 增加交互 PTY，API 6 增加匿名浏览器观察与单次 HTTP 超时。
+- `apiVersion`：整数 `1`–`7`；API 2 增加配置，API 3 增加 Hook 和角色，API 4 增加工作区与插件草稿，API 5 增加交互 PTY，API 6 增加匿名浏览器观察与单次 HTTP 超时，API 7 增加布尔配置及 Hook 公共配置快照。
 - `permissions`：`storage`、`network`；API 4 起还支持 `workspace`、`shell`、`plugins`。无权限插件填写空数组。
 - `dependencies`：先启用的插件 ID 集合。
 - `tools`：工具名、描述、JSON 对象输入 schema；工具名最长 20 字符。
@@ -67,3 +67,11 @@ globalThis.solvitPlugin = {
 `ctx.http.request` 可额外传 `timeoutMs`（200–20,000 毫秒），仅 API 6 接受，限制该次调用，超时后允许工具执行受限的后备逻辑；未提供则沿用宿主默认期限。网页与工具返回内容属于外部资料，不能覆盖角色、用户意图或宿主权限。
 
 新宿主查询市场使用 `hostApi=6`。搜索包 1.2.0 使用这些接口；旧客户端仍获取兼容包。完整示例见 `builtin-plugins/web-search/index.ts`。
+
+## API 7：公共配置与布尔开关
+
+`settings` 支持 `kind: "boolean"`，可声明字符串 `defaultValue: "true"` 或 `"false"`，由原生 Switch 编辑并校验。只有布尔配置可声明默认值，密钥字段不能提供默认值。
+
+`beforeModel(input, ctx)` 的 `input.settings` 是该插件声明为非 `secret` 的配置副本，值为字符串或 null；旧 API 不提供此字段。Hook 仍不能调用 `ctx.settings.get` 读取密钥，也不能写入、联网、运行工具或 Shell。Boolean 例子见记忆插件的 `autoRecall`。
+
+模型每个步骤重新读取 Hook，并以原始身份/规则重建提示词。不要在 Hook 内写入、调用模型或持续累积文本；不启用或角色未绑定的插件不提供上下文。新版宿主查询市场使用 `hostApi=7`，旧客户端过滤不兼容包。

@@ -7,11 +7,15 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class ScriptRuntimeTest {
-    private fun pkg(source: String, permissions: List<String> = emptyList(), hook: Boolean = false, apiVersion: Int = if (hook) 3 else 1): ScriptPackage {
+    private fun pkg(source: String, permissions: List<String> = emptyList(), hook: Boolean = false, apiVersion: Int = if (hook) 3 else 1, settings: List<ExtensionSetting> = emptyList()): ScriptPackage {
         val payload = buildJsonObject {
             putJsonObject("manifest") {
                 put("id", "test.plugin"); put("name", "Test"); put("description", "Runtime test"); put("version", "1.0.0"); put("apiVersion", apiVersion)
                 if (hook) put("hooks", JsonArray(listOf(JsonPrimitive("beforeModel"))))
+                if (settings.isNotEmpty()) putJsonArray("settings") { settings.forEach { field -> add(buildJsonObject {
+                    put("key", field.key); put("label", field.label); put("kind", field.kind)
+                    field.defaultValue?.let { put("defaultValue", it) }
+                }) } }
                 put("permissions", JsonArray(permissions.map(::JsonPrimitive)))
                 put("dependencies", JsonArray(emptyList()))
                 putJsonArray("tools") { add(buildJsonObject {
@@ -24,6 +28,31 @@ class ScriptRuntimeTest {
     }
 
     private val deniedHost = ScriptHost { _, _, _ -> error("Host should not be called") }
+
+    @Test fun hookReceivesOnlyDeclaredPublicSettingsAndCannotReadSecrets() = runBlocking<Unit> {
+        val calls = mutableListOf<String>()
+        val source = """globalThis.solvitPlugin={tools:{echo:args=>args},beforeModel:async(input,ctx)=>{
+          if(input.userText==='secret') return await ctx.settings.get('token');
+          return JSON.stringify(input.settings);
+        }};"""
+        val executor = ScriptExecutor(pkg(source, hook = true, apiVersion = 7, settings = listOf(
+            ExtensionSetting("autoRecall", "Recall", "boolean", defaultValue = "true"),
+            ExtensionSetting("token", "Secret", "secret"))), ScriptHost { _, operation, args ->
+            assertEquals("settings.get", operation)
+            val key = args.getValue("key").jsonPrimitive.content; calls += key
+            assertEquals("autoRecall", key); JsonPrimitive("false")
+        })
+        executor.start()
+        try {
+            assertEquals("""{"autoRecall":"false"}""", executor.beforeModel(ContextInput(null, "read")))
+            assertFailsWith<IllegalStateException> { executor.beforeModel(ContextInput(null, "secret")) }
+            assertEquals(listOf("autoRecall", "autoRecall"), calls)
+        } finally { executor.stop() }
+        assertFailsWith<IllegalArgumentException> { pkg(source, hook = true, apiVersion = 6,
+            settings = listOf(ExtensionSetting("autoRecall", "Recall", "boolean"))) }
+        assertFailsWith<IllegalArgumentException> { pkg(source, hook = true, apiVersion = 7,
+            settings = listOf(ExtensionSetting("token", "Secret", "secret", defaultValue = "true"))) }
+    }
 
     @Test fun browserBridgeRequiresApiSixAndDeclaredNetworkPermission() = runBlocking<Unit> {
         val source = "globalThis.solvitPlugin={tools:{echo:async(args,ctx)=>await ctx.web.visit(args.url)}};"

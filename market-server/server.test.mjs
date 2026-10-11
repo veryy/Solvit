@@ -30,6 +30,11 @@ test('catalog downloads match their declared integrity and expose no write API',
     const api6 = await (await fetch(base + '/api/v1/plugins?hostApi=6')).json();
     assert.ok(api6.plugins.some(plugin => plugin.id === 'dev.solvit.terminal' && plugin.apiVersion === 5));
     assert.ok(api6.plugins.every(plugin => plugin.apiVersion <= 6));
+    const api7 = await (await fetch(base + '/api/v1/plugins?hostApi=7')).json();
+    assert.ok(api7.plugins.every(plugin => plugin.apiVersion <= 7));
+    assert.ok(api7.plugins.length >= api6.plugins.length);
+    assert.equal(api7.plugins.find(plugin => plugin.id === 'dev.solvit.memory').version, '1.1.0');
+    assert.equal(api6.plugins.find(plugin => plugin.id === 'dev.solvit.memory').version, '1.0.0');
     assert.equal(api6.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.2.0');
     assert.equal(api5.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.1.0');
     assert.ok(api4.plugins.every(plugin => plugin.apiVersion <= 4));

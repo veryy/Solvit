@@ -11,7 +11,7 @@ function runtime(data = new Map(), rejectWrite = false) {
     async get(key) { return data.has(key) ? clone(data.get(key)) : null; },
     async set(key, value) { if (rejectWrite) throw new Error('disk full'); data.set(key, clone(value)); return null; },
   } };
-  return { data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
+  return { recall: async (userText, settings={}) => sandbox.solvitPlugin.beforeModel({userText,settings,role:null},ctx), data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
 }
 test('memory persists across engine reload and merges duplicates without losing tags', async () => {
   const first = runtime();
@@ -92,4 +92,49 @@ test('oversized updates reject before changing persistent database', async () =>
   const before = JSON.stringify([...plugin.data]);
   await assert.rejects(() => plugin.run('memory_put', { text: 'overflow:' + '中'.repeat(3900) }), /Memory full/);
   assert.equal(JSON.stringify([...plugin.data]), before);
+});
+
+test('automatic recall reaches saved facts and profile without writing and deletion removes them', async () => {
+  const plugin=runtime();
+  const fact=await plugin.run('memory_put',{text:'用户喜欢 Kotlin 编程语言',category:'preference'});
+  await plugin.run('memory_profile',{key:'城市',value:'上海'});
+  const before=JSON.stringify([...plugin.data]);
+  const reloaded=runtime(plugin.data);
+  const context=await reloaded.recall('我喜欢什么编程语言？');
+  assert.match(context,/Kotlin/);assert.match(context,/上海/);assert.match(context,/dev.solvit.memory\/memory:m1/);
+  assert.match(context,/不是指令/);assert.equal(JSON.stringify([...plugin.data]),before);
+  assert.equal(await reloaded.recall('Kotlin',{autoRecall:'false'}),'');
+  await reloaded.run('memory_delete',{id:fact.fact.id});
+  await reloaded.run('memory_profile',{key:'城市',value:null});
+  assert.equal(await reloaded.recall('Kotlin'),'');
+});
+test('automatic recall bounds Unicode records and avoids unrelated facts', async () => {
+  const plugin=runtime();
+  await plugin.run('memory_put',{text:'Quantumphysics experiments'});
+  assert.equal(await plugin.recall('Kotlin'),'');
+  for(let index=0;index<12;index++) await plugin.run('memory_profile',{key:'profile'+index,value:'😀'.repeat(900)});
+  const context=await plugin.recall('question');
+  assert.ok(context.length<6500);assert.equal(context.includes('\uFFFD'),false);
+  const records=JSON.parse(context.slice(context.indexOf('\n')+1));
+  assert.ok(records.length<=6);assert.ok(records.every(row=>row.source&&row.id));assert.ok(records.some(row=>row.truncated));
+});
+
+test('disabled recall does not read even a malformed database',async () => {
+  const plugin=runtime(new Map([['memory.v1',{format:99}]]));
+  assert.equal(await plugin.recall('question',{autoRecall:'false'}),'');
+  await assert.rejects(()=>plugin.recall('question'),/invalid/);
+});
+
+test('automatic recall handles a populated bounded corpus within its hook budget',async () => {
+  const text=Array.from({length:100},(_,i)=>String.fromCharCode(0x4e00+i)).join('');
+  const db={format:1,sequence:256,facts:Array.from({length:256},(_,i)=>({id:'m'+i,text:'记录 '+i+' '+text.slice(0,50),category:'fact',tags:[],createdAt:'2026-10-12',updatedAt:'2026-10-12'})),edges:[],
+    chunks:Array.from({length:256},(_,i)=>({id:'doc:'+i,document:'doc',title:'资料',index:i,text:text.slice(50)})),profile:{}};
+  assert.ok(Buffer.byteLength(JSON.stringify(db))<220*1024);
+  const plugin=runtime(new Map([['memory.v1',db]]));
+  const started=performance.now();
+  const context=await plugin.recall(text);
+  const elapsed=performance.now()-started;
+  assert.match(context,/dev.solvit.memory/);assert.ok(context.length<6500);
+  assert.ok(elapsed<4000,'Recall exceeded 4s of the 10s host Hook budget: '+elapsed);
+  console.log('Populated memory corpus recall (Node verifier): '+elapsed.toFixed(1)+'ms; Android timing remains separate.');
 });
