@@ -8,7 +8,7 @@ export interface PluginContext {
     set(key: string, value: JsonValue): Promise<null>;
   };
   readonly http: {
-    request(options: { url: string; method?: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string }): Promise<{ body: string; status: number; headers: Record<string, string> }>;
+    request(options: { url: string; method?: 'GET' | 'POST' | 'DELETE'; headers?: Record<string, string>; body?: string; cancelBody?: string }): Promise<{ body: string; status: number; headers: Record<string, string> }>;
   };
 }
 export type ToolHandler = (arguments_: JsonObject, context: PluginContext) => JsonValue | Promise<JsonValue>;

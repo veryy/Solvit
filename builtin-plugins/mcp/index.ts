@@ -30,7 +30,10 @@ function messages(body: string, contentType: string): JsonObject[] {
 }
 class ExpiredSession extends Error {}
 async function post(state: Session, ctx: PluginContext, payload: JsonObject) {
-  const result = await ctx.http.request({ url: state.url, method: 'POST', headers: headers(state), body: JSON.stringify(payload) });
+  const cancelBody = payload.method === 'tools/call' ? JSON.stringify({
+    jsonrpc: '2.0', method: 'notifications/cancelled', params: { requestId: payload.id, reason: 'Client stopped the tool call' },
+  }) : undefined;
+  const result = await ctx.http.request({ url: state.url, method: 'POST', headers: headers(state), body: JSON.stringify(payload), cancelBody });
   if (result.status === 404 && state.id) { session = null; throw new ExpiredSession('MCP session expired; reconnect before retrying'); }
   if (result.status < 200 || result.status >= 300) throw new Error(`MCP HTTP ${result.status}`);
   return result;

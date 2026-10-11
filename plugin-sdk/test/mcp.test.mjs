@@ -36,6 +36,8 @@ test('negotiates sessions, pages tool discovery, executes calls and closes sessi
   const tools = await plugin.run('mcp_tools',{offset:1,limit:1}); assert.equal(tools.tools[0].name,'other');
   const result = await plugin.run('mcp_call',{name:'echo',arguments:{text:'你好'}});
   assert.equal(result.content[0].text,'你好');
+  const cancel = JSON.parse(plugin.requests.find(request => request.body?.includes('tools/call')).cancelBody);
+  assert.equal(cancel.method, 'notifications/cancelled'); assert.equal(cancel.params.requestId, 4);
   await plugin.stop(); assert.equal(plugin.requests.at(-1).method,'DELETE');
   assert.equal(JSON.stringify(connected).includes('private-token'),false);
 });

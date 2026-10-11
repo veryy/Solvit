@@ -246,7 +246,17 @@ class AndroidMarketplace(
                     "DELETE" -> builder.delete()
                     else -> require(payload.isEmpty())
                 }
-                val response = request(builder.build(), 1024 * 1024, allowHttpError = true)
+                val outgoing = builder.build()
+                val cancellationBody = arguments["cancelBody"]?.jsonPrimitive?.content
+                val onCancelled: (suspend () -> Unit)? = cancellationBody?.let { body ->
+                    require(method == "POST" && body.toByteArray(Charsets.UTF_8).size <= 16 * 1024)
+                    val cancellationRequest = outgoing.newBuilder().post(body.toRequestBody("application/json; charset=utf-8".toMediaType())).build()
+                    suspend {
+                        if ("network" in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty())
+                            client.newCall(cancellationRequest).await().use { }
+                    }
+                }
+                val response = request(outgoing, 1024 * 1024, allowHttpError = true, onCancelled = onCancelled)
                 buildJsonObject {
                     put("body", response.bytes.toString(Charsets.UTF_8)); put("status", response.status)
                     putJsonObject("headers") { response.headers.forEach { (name, value) -> put(name, value) } }
@@ -263,7 +273,7 @@ class AndroidMarketplace(
 
     private data class HttpResult(val bytes: ByteArray, val status: Int, val headers: Map<String, String>)
 
-    private suspend fun request(request: Request, maxBytes: Int, allowHttpError: Boolean = false): HttpResult {
+    private suspend fun request(request: Request, maxBytes: Int, allowHttpError: Boolean = false, onCancelled: (suspend () -> Unit)? = null): HttpResult {
         val call = client.newCall(request)
         return coroutineScope {
             val cancellation = launch(start = CoroutineStart.UNDISPATCHED) {
@@ -286,7 +296,13 @@ class AndroidMarketplace(
             }
             HttpResult(bytes, response.code, listOf("content-type", "mcp-session-id", "mcp-protocol-version")
                 .mapNotNull { name -> response.header(name)?.let { name to it } }.toMap())
-            } } finally { cancellation.cancelAndJoin(); call.cancel() }
+            } } catch (e: CancellationException) {
+                call.cancel()
+                if (onCancelled != null) withContext(NonCancellable) {
+                    try { withTimeout(1_000) { onCancelled() } } catch (_: Exception) { /* Cleanup must not prevent stopping. */ }
+                }
+                throw e
+            } finally { cancellation.cancelAndJoin(); call.cancel() }
         }
     }
 
