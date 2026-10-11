@@ -84,7 +84,7 @@ class TerminalGrid(val columns: Int = 80, val rows: Int = 24) {
             'u' -> { x = savedX; y = savedY }
             'r' -> { top = (arg() - 1).coerceIn(0, rows - 2); bottom = (arg(1, rows) - 1).coerceIn(top + 1, rows - 1); x = 0; y = top }
             'P' -> repeat(arg().coerceAtMost(columns)) { screen[y].removeAt(x.coerceAtMost(columns - 1)); screen[y].add(Cell()) }
-            '@' -> repeat(arg().coerceAtMost(columns)) { screen[y].add(x.coerceAtMost(columns - 1), Cell()); screen[y].removeLast() }
+            '@' -> repeat(arg().coerceAtMost(columns)) { screen[y].add(x.coerceAtMost(columns - 1), Cell()); screen[y].removeAt(screen[y].lastIndex) }
             'L' -> repeat(arg().coerceAtMost(rows)) { if (y in top..bottom) { screen.add(y, blank()); screen.removeAt(bottom + 1) } }
             'M' -> repeat(arg().coerceAtMost(rows)) { if (y in top..bottom) { screen.removeAt(y); screen.add(bottom, blank()) } }
             'h', 'l' -> if (privateMode) args.forEach { when (it) {
