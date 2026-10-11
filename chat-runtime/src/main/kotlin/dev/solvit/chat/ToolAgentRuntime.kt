@@ -63,8 +63,8 @@ class ToolAgentRuntime(
                 emit(ModelChunk.ToolActivity(call, ToolStage.CONFIRMING))
                 val gate = object : ToolAuthorization {
                     override suspend fun authorize(descriptor: ToolDescriptor) = false
-                    override suspend fun authorizeCall(descriptor: ToolDescriptor, actual: ToolCall): Boolean {
-                        return request.authorization.authorizeCall(descriptor, actual)
+                    override suspend fun authorizeCallForRole(descriptor: ToolDescriptor, actual: ToolCall, role: AgentRole?): Boolean {
+                        return request.authorization.authorizeCallForRole(descriptor, actual, role)
                     }
                 }
                 val outcome = try {

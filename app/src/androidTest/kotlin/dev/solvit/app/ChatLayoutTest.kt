@@ -132,7 +132,7 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithText("角色管理与 Skills").performClick()
             rule.onNodeWithText(role.name).performScrollTo()
-            rule.onNode(hasText("用于此对话") and hasAnyAncestor(hasAnyDescendant(hasText(role.name)))).performClick()
+            rule.onNodeWithTag("apply_role_${role.id}").performClick()
             rule.waitUntil(8000) { rule.onAllNodes(hasText("已应用UI role switch",substring=true)).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithContentDescription("关闭").performClick()
             rule.onNodeWithContentDescription("返回聊天").performClick()

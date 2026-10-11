@@ -134,10 +134,9 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         val snapshot = config.value
         generation = viewModelScope.launch {
             try {
-                val role = roles?.selected(id)
                 val gate = object : ToolAuthorization {
                     override suspend fun authorize(descriptor: ToolDescriptor) = false
-                    override suspend fun authorizeCall(descriptor: ToolDescriptor, call: ToolCall): Boolean {
+                    override suspend fun authorizeCallForRole(descriptor: ToolDescriptor, call: ToolCall, role: AgentRole?): Boolean {
                         val pending = ToolApproval(descriptor, call, role, CompletableDeferred())
                         toolApproval.value = pending
                         return try { pending.decision.await() }

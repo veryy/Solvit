@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.solvit.core.*
@@ -83,7 +84,7 @@ fun AgentLibraryDialog(vm: AgentLibraryViewModel, onDismiss: () -> Unit) {
                                     Text(role.name, style = MaterialTheme.typography.titleMedium)
                                     Text("${role.pluginIds.size} 个插件 · ${role.skillIds.size} 个技能", style = MaterialTheme.typography.bodySmall)
                                     Row {
-                                        TextButton(onClick = { vm.selectRole(role.id) }, enabled = !busy) { Text(if (active?.id == role.id) "✓ 当前使用" else "用于此对话") }
+                                        TextButton(onClick = { vm.selectRole(role.id) }, enabled = !busy, modifier = Modifier.testTag("apply_role_${role.id}")) { Text(if (active?.id == role.id) "✓ 当前使用" else "用于此对话") }
                                         TextButton(onClick = { editing = role }, enabled = !busy) { Text("编辑") }
                                         TextButton(onClick = { deleteRole = role }, enabled = !busy) { Text("删除") }
                                     }

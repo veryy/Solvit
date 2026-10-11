@@ -26,6 +26,7 @@ interface ToolAuthorization {
     /** Recheck OS permissions and user approval at execution time; deny by default. */
     suspend fun authorize(descriptor: ToolDescriptor): Boolean
     suspend fun authorizeCall(descriptor: ToolDescriptor, call: ToolCall): Boolean = authorize(descriptor)
+    suspend fun authorizeCallForRole(descriptor: ToolDescriptor, call: ToolCall, role: AgentRole?): Boolean = authorizeCall(descriptor, call)
 }
 object DenyTools : ToolAuthorization {
     override suspend fun authorize(descriptor: ToolDescriptor) = false
@@ -62,7 +63,7 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         val descriptor = snapshot(tool)
         if (role != null && !role.allows(descriptor.pluginId)) throw ToolDeniedException()
         val policy = policies?.policy(descriptor, role) ?: ToolPolicy.ASK
-        if (policy == ToolPolicy.DENY || (policy == ToolPolicy.ASK && !authorization.authorizeCall(descriptor, call))) throw ToolDeniedException()
+        if (policy == ToolPolicy.DENY || (policy == ToolPolicy.ASK && !authorization.authorizeCallForRole(descriptor, call, role))) throw ToolDeniedException()
         currentCoroutineContext().ensureActive()
         if (policies?.policy(descriptor, role) == ToolPolicy.DENY) throw ToolDeniedException()
         check(snapshot(tool).executionMode == descriptor.executionMode) { "执行模式已变化，请重新确认" }
