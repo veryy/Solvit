@@ -49,7 +49,7 @@ class AndroidRoleService(context: Context) : RoleService {
             read().firstOrNull { it.id == id } ?: error("此对话的角色已删除，请重新选择角色")
         }
     }
-    override suspend fun select(sessionId: String, roleId: String?) = withContext(Dispatchers.IO) {
+    override suspend fun select(sessionId: String, roleId: String?): Unit = withContext(Dispatchers.IO) {
         require(sessionId.isNotBlank() && sessionId.length <= 128)
         mutex.withLock {
             require(roleId == null || read().any { it.id == roleId }) { "角色不存在" }
@@ -57,6 +57,7 @@ class AndroidRoleService(context: Context) : RoleService {
                 if (roleId == null) remove("session.$sessionId") else putString("session.$sessionId", roleId)
             }.commit()) { "角色选择保存失败" }
             revision.value++
+            Unit
         }
     }
 }
