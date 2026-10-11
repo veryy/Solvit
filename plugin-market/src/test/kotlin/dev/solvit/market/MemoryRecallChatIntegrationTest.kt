@@ -6,6 +6,7 @@ import dev.solvit.storage.SqliteChatStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import okhttp3.OkHttpClient
+import kotlinx.serialization.json.*
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -16,6 +17,41 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class MemoryRecallChatIntegrationTest {
+    @Test fun populatedCorpusRunsInActualQuickJsWithinMemoryAndHookLimits() = runBlocking<Unit> {
+        val context = RuntimeEnvironment.getApplication()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val manager = PluginManager(scope = scope)
+        val client = OkHttpClient()
+        val text = (0 until 100).map { (0x4e00 + it).toChar() }.joinToString("")
+        val corpus = buildJsonObject {
+            put("format", 1); put("sequence", 256)
+            putJsonArray("facts") { repeat(256) { index -> add(buildJsonObject {
+                put("id", "m$index"); put("text", "记录 $index ${text.take(50)}"); put("category", "fact")
+                put("tags", JsonArray(emptyList())); put("createdAt", "2026-10-12"); put("updatedAt", "2026-10-12")
+            }) } }
+            put("edges", JsonArray(emptyList()))
+            putJsonArray("chunks") { repeat(256) { index -> add(buildJsonObject {
+                put("id", "doc:$index"); put("document", "doc"); put("title", "资料"); put("index", index); put("text", text.drop(50))
+            }) } }
+            put("profile", buildJsonObject {})
+        }.toString()
+        assertTrue(corpus.toByteArray().size < 220 * 1024)
+        try {
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.enableAll()
+            val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools))
+            market.restore()
+            context.getSharedPreferences("extension_data.dev.solvit.memory", 0).edit().putString("memory.v1", corpus).commit()
+            market.enable("dev.solvit.memory", setOf("storage"))
+            val started = System.nanoTime()
+            val result = manager.registry.require(ContextHookServiceKey).prepare(ContextInput(null, text)).single()
+            val elapsedMs = (System.nanoTime() - started) / 1_000_000
+            assertTrue(result.contains("dev.solvit.memory/")); assertTrue(result.length < 6500)
+            assertTrue(elapsedMs < 8000, "Native QuickJS recall consumed the Hook deadline: $elapsedMs ms")
+        } finally {
+            manager.shutdown(); scope.cancel(); client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown()
+        }
+    }
+
     @Test fun savedPreferenceReachesNextStepAndNewSessionAfterRestartThenHonorsDeleteSwitchAndRole() = runBlocking<Unit> {
         val context = RuntimeEnvironment.getApplication()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

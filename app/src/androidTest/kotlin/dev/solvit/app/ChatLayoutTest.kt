@@ -14,6 +14,7 @@ import dev.solvit.core.*
 import dev.solvit.storage.SqliteChatStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,6 +71,57 @@ class ChatLayoutTest {
         rule.onNodeWithText("branch original question").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("later answer").fetchSemanticsNodes().isNotEmpty() }
     }
+    @Test fun actualAndroidJsMemoryReachesPreparedModelRequestWithoutSearchToolCalls() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        runBlocking {
+            val id = "dev.solvit.memory"
+            val original = java.io.File(app.filesDir, "extensions/$id.solvit.json").readBytes()
+            val wasEnabled = app.marketplace.installed.value.single { it.id == id }.enabled
+            val configuration = app.marketplace.configuration(id)
+            val chat = app.ready.value!!.getOrThrow()
+            val role = AgentRole("memory-" + java.util.UUID.randomUUID(), "Recall fixture", pluginIds = setOf(id))
+            val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
+            var session: ChatSession? = null
+            var record: String? = null
+            var unregister: (() -> Unit)? = null
+            try {
+                if (wasEnabled) app.marketplace.disable(id)
+                app.marketplace.installLocal(app.assets.open("builtin-plugins/$id.solvit.json").use { it.readBytes() })
+                app.marketplace.configure(id, mapOf("autoRecall" to "true"))
+                app.marketplace.enable(id, setOf("storage"))
+                record = JSONObject(app.marketplace.runTool("dev_solvit_memory_memory_put",
+                    """{"text":"My preferred editor is Emacs","category":"preference"}""", allow)).getJSONObject("fact").getString("id")
+                var requests = 0
+                val provider = object : ModelProvider {
+                    override val id = "android-memory-fixture"
+                    override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                        requests++
+                        assertTrue(request.messages.single { it.role == Role.SYSTEM }.content.contains("My preferred editor is Emacs"))
+                        assertTrue(request.promptSources.any { it.source.contains("dev.solvit.memory") })
+                        assertFalse(app.requestInspection.latest.value.toString().contains("Emacs"))
+                        return kotlinx.coroutines.flow.flowOf(ModelChunk.Text("You prefer Emacs"), ModelChunk.Done)
+                    }
+                }
+                unregister = app.modelProviders.register(ModelProviderInfo(provider.id, "Memory fixture", "https://example.com", "fixture"), provider)
+                app.roles.save(role)
+                session = chat.createSession(); app.roles.select(session!!.id, role.id)
+                val chunks = chat.send(session!!.id, "What is my preferred editor?", ModelConfig(providerId = provider.id), allow).toList()
+                assertEquals(1, requests)
+                assertTrue(chunks.none { it is ModelChunk.ToolActivity })
+                assertTrue(chunks.filterIsInstance<ModelChunk.Text>().single().value.contains("Emacs"))
+            } finally {
+                unregister?.invoke()
+                session?.let { chat.deleteSession(it.id) }; app.roles.delete(role.id)
+                if (record != null && app.marketplace.installed.value.single { it.id == id }.enabled)
+                    app.marketplace.runTool("dev_solvit_memory_memory_delete", JSONObject().put("id", record).toString(), allow)
+                if (app.marketplace.installed.value.single { it.id == id }.enabled) app.marketplace.disable(id)
+                app.marketplace.installLocal(original); app.marketplace.configure(id, configuration)
+                if (wasEnabled) app.marketplace.enable(id, setOf("storage"))
+            }
+        }
+    }
+
     @Test fun nativeMemoryRecallSwitchSavesAndReopensWithoutTextEntry() {
         ready()
         val extension = InstalledExtension("dev.solvit.memory", "本地记忆", "1.1.0", setOf("storage"), emptySet(), false, emptyList(),
