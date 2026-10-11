@@ -3950,5 +3950,13 @@
     "ko": "백그라운드 모델 호출에 서비스 요금이 발생할 수 있습니다",
     "es": "Las llamadas al modelo en segundo plano pueden generar cargos",
     "fr": "Les appels au modèle en arrière-plan peuvent entraîner des frais"
+  },
+  "回复完成后自动保存明确的用户事实（额外模型调用）": {
+    "zh": "回复完成后自动保存明确的用户事实（额外模型调用）",
+    "en": "Automatically save explicit user facts after replies (additional model calls)",
+    "ja": "返信後にユーザーの明示的な事実を自動保存（追加のモデル呼び出し）",
+    "ko": "답변 후 명시적인 사용자 사실 자동 저장 (추가 모델 호출)",
+    "es": "Guardar hechos explícitos del usuario tras responder (llamadas adicionales al modelo)",
+    "fr": "Enregistrer les faits explicites après les réponses (appels supplémentaires au modèle)"
   }
 }
