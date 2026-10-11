@@ -7,6 +7,7 @@ import kotlinx.serialization.json.*
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.HeldCertificate
 import org.junit.runner.RunWith
@@ -14,6 +15,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import javax.crypto.spec.SecretKeySpec
+import java.util.concurrent.TimeUnit
 import kotlin.test.*
 
 @RunWith(RobolectricTestRunner::class)
@@ -56,9 +58,20 @@ class McpHostIntegrationTest {
             val called = server.takeRequest()
             assertEquals("2025-11-25", called.getHeader("MCP-Protocol-Version"))
             assertEquals("你好", Json.parseToJsonElement(called.body.readUtf8()).jsonObject.getValue("params").jsonObject.getValue("arguments").jsonObject.getValue("text").jsonPrimitive.content)
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))
+            val pending = launch(Dispatchers.Default) {
+                market.runTool("dev_solvit_mcp_mcp_call", """{"name":"echo","arguments":{"text":"wait"}}""", allow)
+            }
+            assertNotNull(server.takeRequest(5, TimeUnit.SECONDS))
+            server.enqueue(MockResponse().setResponseCode(202))
+            withTimeout(5_000) { pending.cancelAndJoin() }
+            val cancelled = assertNotNull(server.takeRequest(5, TimeUnit.SECONDS))
+            val notification = Json.parseToJsonElement(cancelled.body.readUtf8()).jsonObject
+            assertEquals("notifications/cancelled", notification.getValue("method").jsonPrimitive.content)
+            assertEquals(4, notification.getValue("params").jsonObject.getValue("requestId").jsonPrimitive.int)
             context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).edit().putStringSet("grants.dev.solvit.mcp", emptySet()).commit()
             assertFailsWith<Exception> { market.runTool("dev_solvit_mcp_mcp_call", """{"name":"echo","arguments":{}}""", allow) }
-            assertEquals(4, server.requestCount)
+            assertEquals(6, server.requestCount)
             context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).edit().putStringSet("grants.dev.solvit.mcp", setOf("network")).commit()
             server.enqueue(MockResponse().setResponseCode(405))
             market.disable("dev.solvit.mcp")
