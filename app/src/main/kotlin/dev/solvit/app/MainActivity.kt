@@ -318,15 +318,17 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
                     item { OutlinedTextField(base, { base = it }, label = { Text("API 基础地址") },
                         supportingText = { Text("例如 https://api.deepseek.com/v1；无需填写 /chat/completions") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
-                    item { OutlinedTextField(model, { model = it }, label = { Text("模型名称") },
-                        modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
+                    item { OutlinedTextField(key, { key = it }, label = { Text("API Key") }, modifier = Modifier.fillMaxWidth(),
+                        singleLine = true, enabled = !saving, visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = { IconButton(onClick = { visible = !visible }) { Icon(if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (visible) "隐藏密钥" else "显示密钥") } },
+                        supportingText = { Text("密钥加密保存在本机；无需认证的本地模型可留空。") }) }
                     item { OutlinedTextField(listUrl, { listUrl = it }, label = { Text("模型列表 / 订阅地址（可选）") },
                         supportingText = { Text("留空时从 API 基础地址下的 /models 获取；也支持独立 JSON 模型列表地址。") },
                         modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
                     if (listUrl.isNotBlank()) item {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(checked = listAuth, onCheckedChange = { listAuth = it }, enabled = !saving)
-                            Text("向这个独立列表地址发送当前 API Key", style = MaterialTheme.typography.bodySmall)
+                            Text("不同站点的列表也使用此 API Key（同站点默认使用）", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -346,10 +348,8 @@ private fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?, 
                     } }
                     if (fetching) item { LinearProgressIndicator(Modifier.fillMaxWidth()) }
                     if (fetchError != null) item { Text(fetchError!!, color = MaterialTheme.colorScheme.error) }
-                    item { OutlinedTextField(key, { key = it }, label = { Text("API Key") }, modifier = Modifier.fillMaxWidth(),
-                        singleLine = true, enabled = !saving, visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = { IconButton(onClick = { visible = !visible }) { Icon(if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility, if (visible) "隐藏密钥" else "显示密钥") } },
-                        supportingText = { Text("密钥加密保存在本机；无需认证的本地模型可留空。") }) }
+                    item { OutlinedTextField(model, { model = it }, label = { Text("模型名称") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true, enabled = !saving) }
                     item { OutlinedTextField(prompt, { prompt = it }, label = { Text("系统提示词") },
                         minLines = 3, maxLines = 8, enabled = !saving, modifier = Modifier.fillMaxWidth()) }
                     if (invalid != null) item { Text(invalid, color = MaterialTheme.colorScheme.error) }
