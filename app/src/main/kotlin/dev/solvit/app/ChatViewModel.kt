@@ -156,7 +156,16 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                 }
                 chat.send(id, text, snapshot, gate).collect { chunk -> when (chunk) {
                     is ModelChunk.NativeTranscript -> Unit
-                    is ModelChunk.Text -> draft.value += chunk.value
+                    is ModelChunk.Text -> {
+                        // Gate every Unicode code point, including a single large gateway delta.
+                        // StateFlow may coalesce frames, but never reveals the whole block at once.
+                        val points = chunk.value.codePoints().toArray()
+                        for (point in points) {
+                            ensureActive()
+                            draft.value += String(Character.toChars(point))
+                            delay(12)
+                        }
+                    }
                     is ModelChunk.Reasoning -> reasoning.value += chunk.value
                     is ModelChunk.ToolCalls -> error("Agent 暴露了未处理工具调用")
                     is ModelChunk.Transcript -> {

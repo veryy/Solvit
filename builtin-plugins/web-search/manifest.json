@@ -1,8 +1,8 @@
 {
   "id": "dev.solvit.web-search",
   "name": "联网搜索",
-  "description": "搜索网页并按需读取正文，返回可引用的来源链接。支持 Tavily、SearXNG 和智谱；启用后在配置中填写搜索来源和密钥/地址。",
-  "version": "1.0.0",
+  "description": "启用即可搜索，无需密钥或地址。默认访问公开 Bing 搜索，返回标题、摘要和来源；也支持自选 Tavily、SearXNG 和智谱。",
+  "version": "1.1.0",
   "apiVersion": 2,
   "permissions": [
     "network"
@@ -11,7 +11,7 @@
   "settings": [
     {
       "key": "provider",
-      "label": "搜索来源：tavily / searxng / zhipu（默认 tavily）",
+      "label": "搜索来源：bing（默认免配置）/ tavily / searxng / zhipu",
       "kind": "text",
       "required": false
     },

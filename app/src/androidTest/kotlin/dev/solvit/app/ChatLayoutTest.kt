@@ -121,7 +121,7 @@ class ChatLayoutTest {
             rule.onNodeWithText("live-first-token").assertIsDisplayed()
             assertTrue(vm.busy.value); assertFalse(finish.isCompleted)
             advance.complete(Unit)
-            rule.waitUntil(8000) { vm.draft.value.contains("live-last-token") }
+            rule.waitUntil(20000) { vm.draft.value.contains("live-last-token") }
             rule.waitUntil(8000) { rule.onNodeWithTag("chat_tail").isDisplayed() }
             rule.onNodeWithTag("chat_tail").assertIsDisplayed()
             val composer = rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
@@ -315,7 +315,10 @@ class ChatLayoutTest {
         val last = (rule.activity.application as SolvitApplication).marketplace.installed.value.last().name
         rule.onNodeWithTag("plugins_list").performScrollToNode(hasText(last))
         rule.onNodeWithText(last).assertIsDisplayed()
-        rule.onAllNodesWithText("卸载").onLast().assertIsDisplayed()
+        rule.onNodeWithText(last).performClick()
+        rule.onNodeWithText("卸载").assertIsDisplayed()
+        rule.onAllNodes(hasText("试运行", substring = true)).assertCountEquals(0)
+        rule.onNodeWithText("关闭").performClick()
         screenshot("plugins-bottom-insets")
         rule.onNodeWithContentDescription("关闭插件页面").performClick()
         rule.onNodeWithTag("chat_composer").assertIsDisplayed()
@@ -488,11 +491,15 @@ class ChatLayoutTest {
         val app = rule.activity.application as SolvitApplication
         try {
             rule.onNodeWithContentDescription("设置").performClick()
-            rule.onNodeWithTag("language_en").performScrollTo().performClick()
+            rule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("language_settings"))
+            rule.onNodeWithTag("language_en").assertDoesNotExist()
+            rule.onNodeWithTag("language_settings").performClick()
+            rule.onNodeWithTag("language_en").performClick()
             rule.onNodeWithTag("settings_title").assertTextEquals("Settings").assertIsDisplayed()
             rule.onNodeWithContentDescription("Back to chat").assertExists()
             assertEquals("en", LanguageStore(app).language.value)
-            rule.onNodeWithTag("language_ja").performScrollTo().performClick()
+            rule.onNodeWithTag("language_settings").performClick()
+            rule.onNodeWithTag("language_ja").performClick()
             rule.onNodeWithTag("settings_title").assertTextEquals("設定").assertIsDisplayed()
             rule.activityRule.scenario.recreate()
             rule.waitUntil(10_000) { rule.onAllNodesWithContentDescription("設定").fetchSemanticsNodes().isNotEmpty() }

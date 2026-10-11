@@ -7,8 +7,22 @@ async function plugin(settings = {}, request = async () => { throw new Error('un
   const sandbox = vm.createContext({}); vm.runInContext(pkg.source,sandbox);
   return { tools:sandbox.solvitPlugin.tools, ctx:{settings:{get:async key => settings[key] ?? null},http:{request}} };
 }
-test('search reports missing setup without fake results or network',async () => {
-  const {tools,ctx} = await plugin(); assert.match((await tools.search({query:'test'},ctx)).error,/API Key/);
+test('default public search needs no settings and never forwards stored keys',async () => {
+  const {tools,ctx}=await plugin({apiKey:'PRIVATE'},async options => {
+    assert.equal(options.headers.Authorization,undefined);
+    assert.match(options.url,/^https:\/\/cn\.bing\.com\/search\?format=rss&q=a%20%26%20b$/);
+    return {status:200,headers:{},body:'<rss><channel><item><title>A &amp; B</title><link>https://example.com/a?x=1&amp;y=2</link><description>&lt;b&gt;Useful&lt;/b&gt;</description></item><item><title>Unsafe</title><link>javascript:alert(1)</link></item></channel></rss>'};
+  });
+  const result=await tools.search({query:'a & b'},ctx);
+  assert.equal(result.provider,'bing'); assert.equal(result.results.length,1);
+  assert.equal(result.results[0].title,'A & B'); assert.equal(result.results[0].snippet,'Useful');
+  assert.equal(result.results[0].url,'https://example.com/a?x=1&y=2');
+});
+test('public search retries the second origin and distinguishes blocking from results',async () => {
+  let calls=0;
+  const {tools,ctx}=await plugin({},async () => { calls++; return {status:200,headers:{},body:'<html>captcha</html>'}; });
+  const result=await tools.search({query:'test'},ctx);
+  assert.equal(calls,2); assert.equal(result.results.length,0); assert.match(result.error,/不可用/);
 });
 test('Tavily and Zhipu use the configured secret and return bounded attributable results',async () => {
   for (const provider of ['tavily','zhipu']) {

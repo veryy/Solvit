@@ -38,6 +38,18 @@ class ChatServiceTest {
         assertEquals(native,store.saved.last().providerTranscript)
         chat.send("session","second",ModelConfig()).toList()
     }
+    @Test fun defaultRoleIdentityIsAlwaysPresentWithoutAnyRoleBinding() = runTest {
+        var observed: ModelRequest? = null
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest): Flow<ModelChunk> { observed = request; return flowOf(ModelChunk.Text("Solvit"), ModelChunk.Done) }
+        }
+        DefaultChatService(MemoryStore(), agent, EventBus()).send("session", "你是谁？", ModelConfig(systemPrompt="Be brief")).toList()
+        val instructions = observed!!.messages.single { it.role == Role.SYSTEM }.content
+        assertTrue(instructions.contains("角色名称是“Solvit”"))
+        assertTrue(instructions.contains("不需要搜索"))
+        assertTrue(instructions.indexOf("角色名称") < instructions.indexOf("Be brief"))
+        assertTrue(instructions.lastIndexOf("角色名称") > instructions.indexOf("Be brief"))
+    }
     @Test fun changingRoleAffectsNextRequestAndDoesNotEraseTranscript() = runTest {
         var role: AgentRole? = AgentRole("first", "First", "Speak briefly")
         val roles = object : RoleService {

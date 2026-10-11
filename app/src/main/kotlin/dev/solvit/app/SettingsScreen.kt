@@ -25,6 +25,7 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
     val download by updates.downloadState.collectAsStateWithLifecycle()
     val theme by appearance.theme.collectAsStateWithLifecycle()
     val dynamic by appearance.dynamicColors.collectAsStateWithLifecycle()
+    var languageOpen by remember { mutableStateOf(false) }
     FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize()) {
             Scaffold(topBar = { TopAppBar(title = { UiText("设置", Modifier.testTag("settings_title")) }, navigationIcon = {
@@ -36,15 +37,6 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
                     item { SettingsGroup("角色与能力") {
                         SettingsRow("角色管理与 Skills", "提示词、角色绑定、技能导入和管理", onRoles)
                         SettingsRow("插件管理", "安装、启用、权限与插件配置", onPlugins)
-                    } }
-                    item { SettingsGroup("语言") {
-                        UiText("默认中文；切换后立即生效", Modifier.padding(16.dp), style = MaterialTheme.typography.bodySmall)
-                        uiLanguages.forEach { option ->
-                            Row(Modifier.fillMaxWidth().testTag("language_${option.code}").clickable { languageStore.set(option.code) }.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(selected = language == option.code, onClick = { languageStore.set(option.code) })
-                                Text(option.label)
-                            }
-                        }
                     } }
                     item { SettingsGroup("外观") {
                         UiText("主题", Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
@@ -64,6 +56,12 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
                         SettingsRow("检查更新", "当前版本 ${BuildConfig.VERSION_NAME} · 启动时自动检查", { updates.check() }, update != UpdateUiState.Checking)
                         AppUpdateCard(update, download, updates::dismiss, { updates.check() }, updates::download, updates::cancelDownload, updates::install)
                     } }
+                    item { SettingsGroup("语言") {
+                        Row(Modifier.fillMaxWidth().testTag("language_settings").clickable { languageOpen = true }.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) { UiText("语言", style = MaterialTheme.typography.titleMedium); Text(uiLanguages.first { it.code == language }.label, style = MaterialTheme.typography.bodySmall) }
+                            UiIcon(Icons.Default.ChevronRight, null)
+                        }
+                    } }
                     item { SettingsGroup("关于 Solvit") {
                         UiText("轻量、可组合的 Android AI 助手", Modifier.padding(16.dp))
                         UiText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。", style = MaterialTheme.typography.bodySmall,
@@ -73,6 +71,16 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
             }
         }
     }
+    if (languageOpen) AlertDialog(onDismissRequest = { languageOpen = false }, title = { UiText("语言") },
+        text = { Column {
+            uiLanguages.forEach { option ->
+                Row(Modifier.fillMaxWidth().testTag("language_${option.code}").clickable { languageStore.set(option.code); languageOpen = false }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(selected = language == option.code, onClick = { languageStore.set(option.code); languageOpen = false })
+                    Text(option.label)
+                }
+            }
+        } }, confirmButton = { TextButton(onClick = { languageOpen = false }) { UiText("关闭") } })
+
 }
 
 @Composable

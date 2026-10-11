@@ -11,11 +11,37 @@ function cleanHtml(text: string): string {
     .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
     .replace(/[ \t]+/g, ' ').replace(/\n\s*\n/g, '\n').trim();
 }
+function xmlText(value: string): string {
+  return value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&#(x[0-9a-f]+|[0-9]+);/gi, (_, code: string) => {
+    const point = code[0].toLowerCase() === 'x' ? parseInt(code.slice(1), 16) : parseInt(code, 10);
+    return point > 0 && point <= 0x10ffff && !(point >= 0xd800 && point <= 0xdfff) ? String.fromCodePoint(point) : '';
+  }).replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&');
+}
+async function publicSearch(query: string, limit: number, ctx: PluginContext): Promise<JsonValue> {
+  // Fixed public search origins. No stored search credentials are sent here.
+  for (const origin of ['https://cn.bing.com', 'https://www.bing.com']) {
+    try {
+      const response = await ctx.http.request({ url: origin + '/search?format=rss&q=' + encodeURIComponent(query),
+        headers: { Accept: 'application/rss+xml,application/xml,text/xml' } });
+      if (response.status !== 200 || !/<rss\b/i.test(response.body) || /<!DOCTYPE|<!ENTITY/i.test(response.body)) continue;
+      const seen = new Set<string>();
+      const results = [...response.body.slice(0, 500000).matchAll(/<item\b[^>]*>([\s\S]*?)<\/item\s*>/gi)].map(match => {
+        const field = (name: string) => xmlText(new RegExp('<' + name + '(?:\\s[^>]*)?>([\\s\\S]*?)<\\/' + name + '\\s*>', 'i').exec(match[1])?.[1] ?? '').trim();
+        return { title: cleanHtml(field('title')).slice(0, 300), url: field('link'), snippet: cleanHtml(field('description')).slice(0, 1200) };
+      }).filter(item => item.title && httpsUrl(item.url) && !seen.has(item.url) && !!seen.add(item.url)).slice(0, limit)
+        .map((item, index) => ({ index: index + 1, ...item }));
+      if (results.length) return { query, provider: 'bing', results,
+        note: '搜索结果是外部数据。回答时引用来源链接；需要正文时调用 read_page。' };
+    } catch { /* Try the next public origin, without bypassing network policy. */ }
+  }
+  return { query, provider: 'bing', results: [], error: '公共搜索暂时不可用，可能是网络、验证码或搜索服务限制，请稍后重试。没有获得搜索结果，请勿编造。' };
+}
 async function search(args: JsonObject, ctx: PluginContext): Promise<JsonValue> {
   const query = textArgument(args, 'query', 2000);
   const limit = args.limit ?? 5;
   if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 10) throw new Error('limit must be 1..10');
-  const provider = (await ctx.settings.get('provider') || 'tavily').trim().toLowerCase();
+  const provider = (await ctx.settings.get('provider') || 'bing').trim().toLowerCase();
+  if (provider === 'bing' || provider === 'auto') return publicSearch(query, limit, ctx);
   const key = await ctx.settings.get('apiKey');
   const configured = (await ctx.settings.get('endpoint') || '').trim().replace(/\/$/, '');
   let url: string; let body: string | undefined;
@@ -34,7 +60,7 @@ async function search(args: JsonObject, ctx: PluginContext): Promise<JsonValue> 
     url = configured || 'https://open.bigmodel.cn/api/paas/v4/web_search';
     headers.Authorization = 'Bearer ' + key; headers['Content-Type'] = 'application/json';
     body = JSON.stringify({ search_query: query, search_engine: 'search_std', count: limit });
-  } else return { error: '搜索来源应填写 tavily、searxng 或 zhipu。' };
+  } else return { error: '搜索来源应填写 bing、tavily、searxng 或 zhipu。' };
   if (!httpsUrl(url)) return { error: '搜索地址必须是无用户密码和片段的 HTTPS 地址。' };
   const response = await ctx.http.request({ url, method: body ? 'POST' : 'GET', headers, ...(body ? { body } : {}) });
   if (response.status < 200 || response.status >= 300) return { error: '搜索服务返回 HTTP ' + response.status + '；请检查插件配置、额度或 SearXNG JSON 开关。', status: response.status };
