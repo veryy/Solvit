@@ -275,7 +275,7 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
                     }
                 }
             } else {
-                LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth(),
+                LazyColumn(state = list, modifier = Modifier.weight(1f).fillMaxWidth().testTag("chat_messages"),
                     contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(chatRows, key = { it.id }) { row -> ChatBubble(row,
                         onBranch = if (busy || branching) null else { message, mode ->

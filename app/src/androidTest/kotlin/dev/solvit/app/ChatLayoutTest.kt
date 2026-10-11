@@ -11,6 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.*
 import dev.solvit.core.*
+import dev.solvit.storage.SqliteChatStore
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import org.json.JSONObject
@@ -40,6 +41,87 @@ class ChatLayoutTest {
             rule.onNodeWithText("创建并绑定").performClick()
         }
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("shell_command").fetchSemanticsNodes().isNotEmpty() }
+    }
+    private fun seedBranchConversation(app: SolvitApplication): ChatSession = runBlocking {
+        val session = SqliteChatStore(app).use { store ->
+            val value = store.createSession()
+            store.appendBatch(listOf(
+                ChatMessage("branch-user",value.id,Role.USER,"branch original question"),
+                ChatMessage("branch-tool-call",value.id,Role.ASSISTANT,"",toolCalls=listOf(ToolCall("branch-call","clock","{}")),reasoning="branch thought"),
+                ChatMessage("branch-result",value.id,Role.TOOL,"clock result",toolCallId="branch-call",toolStage=ToolStage.SUCCEEDED),
+                ChatMessage("branch-final",value.id,Role.ASSISTANT,"branch original answer"),
+                ChatMessage("branch-later-user",value.id,Role.USER,"later question"),
+                ChatMessage("branch-later-answer",value.id,Role.ASSISTANT,"later answer")))
+            value
+        }
+        app.ready.value!!.getOrThrow().createSession() // Refresh the application's storage Flow.
+        session
+    }
+    private fun selectBranchFixture() {
+        rule.onNodeWithContentDescription("对话历史").performClick()
+        rule.onNodeWithText("branch original question").performClick()
+        rule.waitUntil(10_000) { rule.onAllNodesWithText("later answer").fetchSemanticsNodes().isNotEmpty() }
+    }
+    @Test fun replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal() {
+        ready()
+        val app=rule.activity.application as SolvitApplication
+        val source=seedBranchConversation(app)
+        val workspace=runBlocking {
+            app.roles.save(AgentRole("branch-role","Branch role",pluginIds=emptySet()))
+            app.roles.select(source.id,"branch-role")
+            app.workspaces.create("Branch workspace").also {
+                app.workspaces.createShell(it.id,"Shell 1"); app.workspaces.bind(source.id,it.id)
+            }
+        }
+        try {
+            selectBranchFixture()
+            rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_branch-final"))
+            rule.onNodeWithTag("message_actions_branch-final").performClick()
+            rule.onNodeWithText("从这里分支").performClick()
+            rule.onNodeWithText("创建分支").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithText("branch original answer").fetchSemanticsNodes().isNotEmpty() &&
+                rule.onAllNodesWithText("later answer").fetchSemanticsNodes().isEmpty() }
+            val branch=runBlocking { SqliteChatStore(app).use { store ->
+                val copy=store.sessions().first().single { it.originSessionId == source.id }
+                assertEquals(4,store.history(copy.id).size); assertEquals(6,store.history(source.id).size)
+                assertEquals("branch thought",store.history(copy.id)[1].reasoning)
+                assertEquals("branch-call",store.history(copy.id)[2].toolCallId)
+                assertEquals("branch-role",app.roles.selected(copy.id)!!.id)
+                assertEquals(workspace.id,app.workspaces.bound(copy.id)!!.id)
+                app.ready.value!!.getOrThrow().deleteSession(source.id)
+                assertEquals(4,store.history(copy.id).size)
+                copy
+            } }
+            rule.activityRule.scenario.recreate()
+            ready()
+            rule.waitUntil(10_000) { rule.onAllNodesWithText("branch original answer").fetchSemanticsNodes().isNotEmpty() }
+            screenshot("chat-reply-branch")
+            runBlocking { app.ready.value!!.getOrThrow().deleteSession(branch.id) }
+        } finally {
+            runBlocking { app.ready.value!!.getOrThrow().deleteSession(source.id); app.roles.delete("branch-role") }
+        }
+    }
+    @Test fun editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending() {
+        ready()
+        val app=rule.activity.application as SolvitApplication
+        val source=seedBranchConversation(app)
+        try {
+            selectBranchFixture()
+            rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_branch-user"))
+            rule.onNodeWithTag("message_actions_branch-user").performClick()
+            rule.onNodeWithText("编辑并分支").performClick()
+            rule.onNodeWithTag("branch_edit").performTextReplacement("edited branch question")
+            rule.onNodeWithText("创建分支").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasSetTextAction() and hasText("edited branch question")).fetchSemanticsNodes().isNotEmpty() }
+            rule.onNode(hasSetTextAction()).assertTextEquals("edited branch question")
+            runBlocking { SqliteChatStore(app).use { store ->
+                val branch=store.sessions().first().single { it.originSessionId == source.id }
+                assertTrue(store.history(branch.id).isEmpty())
+                assertNull(app.workspaces.bound(branch.id))
+                assertEquals(6,store.history(source.id).size)
+                app.ready.value!!.getOrThrow().deleteSession(branch.id)
+            } }
+        } finally { runBlocking { app.ready.value!!.getOrThrow().deleteSession(source.id) } }
     }
     @Test fun toolsAndThinkingAreCollapsedInsideOneRenderedAssistantBubble() {
         ready()
