@@ -100,6 +100,8 @@ class ContextPreparationTest {
         val result = "HEAD" + "中🚀".repeat(5_000) + "TAIL"
         val input = request(rows).copy(messages = request(rows).messages + ModelMessage(Role.ASSISTANT, "", listOf(call)) + ModelMessage(Role.TOOL, result, toolCallId = "c"))
         val service = DefaultContextPreparation(provider, store, BalancedContextBudgetPlanner())
+        val small = input.copy(messages = input.messages.dropLast(1) + input.messages.last().copy(content = "complete output"))
+        assertEquals("complete output", service.prepare(small).messages.last().content)
         val prepared = service.prepare(input)
         assertTrue(prepared.messages.last().content.startsWith("HEAD")); assertTrue(prepared.messages.last().content.endsWith("TAIL"))
         assertTrue(prepared.messages.last().content.contains("截断")); assertFalse(prepared.messages.last().content.contains('\uFFFD'))

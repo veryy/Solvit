@@ -32,9 +32,7 @@ class DefaultContextPreparation(
             prefix.size == s.messageCount && prefix.lastOrNull()?.id == s.throughMessageId && contextPrefixDigest(prefix) == s.prefixDigest
         }
         val prefixIds = previous?.let { history.take(it.messageCount).map { message -> message.id }.toSet() }.orEmpty()
-        var messages = request.messages.filterNot { it.sourceMessageId in prefixIds }.map { message ->
-            if (message.role == Role.TOOL) message.copy(content = clipToolResult(message.content, minOf(8_192, policy.inputTokens / 8))) else message
-        }
+        var messages = request.messages.filterNot { it.sourceMessageId in prefixIds }
         if (previous != null) {
             val insertion = messages.indexOfFirst { it.role != Role.SYSTEM }.let { if (it < 0) messages.size else it }
             messages = messages.toMutableList().apply { add(insertion, ModelMessage(Role.USER, frame(previous.text))) }
@@ -42,7 +40,14 @@ class DefaultContextPreparation(
         var projected = request.copy(messages = messages, promptSources = request.promptSources + listOfNotNull(previous?.let {
             PromptSourceInfo("history-summary", it.id, it.text.length)
         }))
-        val plan = planner.plan(projected, policy)
+        var plan = planner.plan(projected, policy)
+        if (plan.measurement.fits) return projected.copy(contextMeasurement = plan.measurement)
+        // Keep complete tool output whenever it fits; pruning is a response to actual pressure.
+        messages = messages.map { message ->
+            if (message.role == Role.TOOL) message.copy(content = clipToolResult(message.content, minOf(8_192, policy.inputTokens / 8))) else message
+        }
+        projected = projected.copy(messages = messages)
+        plan = planner.plan(projected, policy)
         if (plan.measurement.fits) return projected.copy(contextMeasurement = plan.measurement)
         val region = plan.region ?: throw ModelException("上下文超过配置预算，当前任务、规则或工具定义无法整体压缩；请缩小输入、减少工具或调整上下文窗口")
         if (sessionId == null) throw ModelException("当前请求没有会话，无法保存上下文摘要")

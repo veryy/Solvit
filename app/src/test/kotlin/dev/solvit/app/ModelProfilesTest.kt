@@ -26,6 +26,11 @@ class ModelProfilesTest {
         assertEquals(budget, decodeModelProfiles(backup).selected(ModelTask.CHAT)!!.config.contextBudget)
         backup.getJSONArray("profiles").getJSONObject(0).getJSONObject("config").remove("context")
         assertEquals(ContextBudgetPolicy(), decodeModelProfiles(backup).selected(ModelTask.CHAT)!!.config.contextBudget)
+        val legacy = backup.getJSONArray("profiles").getJSONObject(0).getJSONObject("config")
+        legacy.put("options", org.json.JSONObject().put("max_tokens", "1000000"))
+        val migrated = decodeModelProfiles(backup).selected(ModelTask.CHAT)!!.config
+        assertEquals(1_000_000, migrated.contextBudget.outputTokens)
+        assertNull(migrated.validate())
     }
     @Test fun nativeProtocolOptionsSurviveEncryptedSettingsAndBackupWithLegacyDefault()=runBlocking {
         val key=KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()

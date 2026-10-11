@@ -134,6 +134,10 @@ internal fun decodeProviderOptions(config:JSONObject):Map<String,String> {
 internal fun encodeContextBudget(policy: ContextBudgetPolicy): JSONObject = JSONObject()
     .put("window", policy.windowTokens).put("output", policy.outputTokens).put("headroom", policy.headroomTokens).put("automatic", policy.automaticSummary)
 internal fun decodeContextBudget(config: JSONObject): ContextBudgetPolicy {
-    val value = config.optJSONObject("context") ?: return ContextBudgetPolicy()
+    val value = config.optJSONObject("context") ?: run {
+        // Existing explicit output limits must remain loadable when the new budget is absent.
+        val output = maxOf(8_192, config.optJSONObject("options")?.optString("max_tokens")?.toIntOrNull() ?: 0)
+        return ContextBudgetPolicy(maxOf(65_536, output + 18_432), output)
+    }
     return ContextBudgetPolicy(value.getInt("window"), value.getInt("output"), value.getInt("headroom"), value.getBoolean("automatic")).also { it.validate() }
 }
