@@ -44,6 +44,10 @@ class DefaultChatService(
             events.publish(CoreEvent.MessageStored(sessionId, message.id))
         }
         suspend fun settle(status: MessageStatus) {
+            transcript.forEach { message -> persist(ChatMessage(
+                UUID.randomUUID().toString(), sessionId, message.role, message.content, status,
+                toolCalls = message.toolCalls, toolCallId = message.toolCallId,
+            )) }
             persist(ChatMessage(UUID.randomUUID().toString(), sessionId, Role.ASSISTANT, answer.toString(), status))
             settled = true
         }
@@ -68,10 +72,6 @@ class DefaultChatService(
                     is ModelChunk.ToolActivity -> emit(chunk)
                     ModelChunk.Done -> {
                         check(answer.isNotBlank()) { "模型没有返回文本回复" }
-                        transcript.forEach { message -> persist(ChatMessage(
-                            UUID.randomUUID().toString(), sessionId, message.role, message.content,
-                            toolCalls = message.toolCalls, toolCallId = message.toolCallId,
-                        )) }
                         settle(MessageStatus.COMPLETE)
                         done = true
                         emit(chunk)
