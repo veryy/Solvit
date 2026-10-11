@@ -248,11 +248,12 @@ private fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace:
             if (messages.isEmpty() && !busy) {
                 BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     val expanded = maxHeight >= 240.dp
+                    val showTitle = maxHeight >= 100.dp
                     Column(Modifier.padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(if (expanded) 12.dp else 4.dp)) {
                         Icon(painterResource(R.drawable.ic_solvit_monochrome), null,
                             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(if (expanded) 80.dp else 48.dp))
-                        if (maxHeight >= 100.dp) Text("从一个想法开始", style = if (expanded) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleMedium)
+                        if (showTitle) Text("从一个想法开始", style = if (expanded) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleMedium)
                         if (expanded) {
                             Text("一起整理思路、解答问题", style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
