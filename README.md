@@ -102,6 +102,6 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 当前源码提供流式聊天、多会话、JS/TS 插件、[插件市场](https://solvit.207.57.126.73.sslip.io/)、有界工具循环、MCP/Skills、角色、模型列表获取、配置备份和应用内更新。测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
 
-当前 MCP 支持 HTTPS 工具发现、调用和按插件绑定角色；多服务器、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。工作区与 Shell 已接入 Android 宿主和终端 UI，当前为应用 UID 的非交互式命令；PTY、持久环境、Shizuku、Linux 发行版和 SSH/SFTP 尚未实现；手机控制、向量记忆、附件、Markdown 排版和后台 Agent 持续执行尚未实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
+当前 MCP 支持 HTTPS 工具发现、调用和按插件绑定角色；多服务器、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。工作区与 Shell 已接入 Android 宿主和终端 UI，支持普通命令、真实 PTY 和同一进程的持久环境；Shizuku、Linux 发行版和 SSH/SFTP 仍待实现。Markdown 富文本和折叠思考已发布，聊天分支正在接入；手机控制、向量记忆、附件、摘要、上下文管理和后台 Agent 持续执行仍待实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
 
 停止或失败后的助手回复保留并标记，但不进入后续模型上下文；用户输入仍保留。进程被系统杀死时，未结算的流式片段可能丢失，已写入的用户消息和完整回复保留。完整上下文发送给配置的模型服务，较长对话目前需要新建对话。

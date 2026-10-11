@@ -79,7 +79,8 @@ class ChatLayoutTest {
             rule.onNodeWithTag("message_actions_branch-final").performClick()
             rule.onNodeWithText("从这里分支").performClick()
             rule.onNodeWithText("创建分支").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodesWithText("branch original answer").fetchSemanticsNodes().isNotEmpty() &&
+            rule.waitUntil(10_000) { rule.onAllNodesWithText("从这条回复创建分支").fetchSemanticsNodes().isEmpty() &&
+                rule.onAllNodesWithText("branch original answer").fetchSemanticsNodes().isNotEmpty() &&
                 rule.onAllNodesWithText("later answer").fetchSemanticsNodes().isEmpty() }
             val branch=runBlocking { SqliteChatStore(app).use { store ->
                 val copy=store.sessions().first().single { it.originSessionId == source.id }

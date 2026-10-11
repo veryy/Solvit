@@ -12,11 +12,15 @@
 - 0.4.0：TS SDK、记忆插件、离线安装与宿主集成已实现；[Android Actions 38105286718](https://github.com/veryy/Solvit/actions/runs/38105286718) 和 [TS/市场验证 38105244171](https://github.com/veryy/Solvit/actions/runs/38105244171) 通过，[0.4.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.4.0)，[Android、TS、市场验证与发布通过](https://github.com/veryy/Solvit/actions/runs/38105586294)。
 - 0.5.1：TS MCP、加密插件配置、声明式配置页、HTTPS 取消通知与取消后插件复用已发布；[45 个 Android 测试、Lint、APK、TS、市场、实际公网 HTTPS MCP 与发布通过](https://github.com/veryy/Solvit/actions/runs/38107628413)，[下载 0.5.1 APK](https://github.com/veryy/Solvit/releases/tag/v0.5.1)。0.5.0 标签被新增取消回归阻止发布，修复保留在后续提交中。
 - 0.6.0：Skills 文本包导入/导出、角色绑定、只读 JS beforeModel Hook 已发布；[55 个 Android 测试、23 个 TS 测试、Lint、APK、市场、公网 MCP/Skills 与发布通过](https://github.com/veryy/Solvit/actions/runs/38109369009)，[下载 0.6.0 APK](https://github.com/veryy/Solvit/releases/tag/v0.6.0)。市场已上线含 ISC 署名的 Skills 1.0.1，旧客户端过滤验证通过。
-- 尚未验证真机安装、文件选择和真实模型调用。
+- 尚未验证真机安装、文件选择和真实模型与 Android 工具的完整联动。
 - 已验证旧发布包证书实际不一致：0.1.1 为 `38e4509c12faf87d88884164d3ff6c3917c56f5084c9b491147abd567462c0a1`，0.6.0 为 `2e19f1533b57158d82700f975cee433b6cd6dc64effa6f210a7c7b8431a8be66`。0.7.0 明确指定 CI 密钥路径，并强制校验固定证书；旧版无法承诺覆盖安装。正常同签名覆盖保留数据，卸载后的配置需预先导出的备份恢复。
 - 0.7.0 设置分组、主题、模型列表/订阅 JSON 获取、应用内更新/进度/说明、密码加密配置备份、每轮时间上下文已发布；[73 个 Android/JVM 测试、26 个 TS 测试、2 个市场测试、Lint、APK、证书指纹、公网 MCP/Skills 和发布通过](https://github.com/veryy/Solvit/actions/runs/38112413032)，[下载 0.7.0](https://github.com/veryy/Solvit/releases/tag/v0.7.0)。公网 API 1/2/3 目录和全部包字节与仓库一致。
 
 - 0.8.1 与 0.9.1 已发布：工作区、多 Shell、AI JS 插件草稿与原生审阅安装、白底线条图标和目录浏览。0.9.1 修复兼容网关空结束原因，并加入按插件选择 App/Root 身份；[94 个单元测试、6 个 Android 35 模拟器测试、TS/市场、Lint、APK、签名和发布通过](https://github.com/veryy/Solvit/actions/runs/38121549711)。真实 HTTPS 普通聊天、工具请求与结果回传后回复通过；模拟器实际 JS→Android Shell、覆盖更新后的加密配置和旧聊天保留通过。Root 真机及完整真实模型手机交互仍待验证。
+
+- 0.10.0：原生 Android PTY、JS/TS 终端插件、输入/Ctrl-C/关闭、身份与资源回收已发布，通过真实模拟器检查。
+- 0.11.0：原生 Markdown 富文本、独立折叠思考、同一回复内的工具详情、按需工作区已发布；[102 个单元测试、18 个模拟器测试、Lint、APK、TS/市场和签名检查通过](https://github.com/veryy/Solvit/actions/runs/38128744679)。
+- 当前开发版本 0.12.0：聊天分支服务插件、原子 SQLite 快照、编辑旧问题和回复分支已提交；验证进行中。
 
 ## 工作清单
 
@@ -25,13 +29,13 @@
 | Release 更新检查、顶部下载通知、手动检查 | 0.7.0 已发布：设置手动检查、顶部自动检查、应用内说明和后台下载、进度/取消/安装前校验；远程编译和 Lint 通过，真机待验 | 版本比较、错误处理、可信 APK 地址测试；真机更新卡片和下载验证 |
 | JS 宿主、TS SDK、插件包、依赖与资源回收 | JS 宿主和测试已通过远程构建；TS SDK 和打包、TS 测试已通过远程验证 | Android 上加载执行 JS；依赖、取消、卸载测试 |
 | 插件市场与服务器部署 | HTTPS 服务已上线；原生安装启停和权限已通过编译与 Lint；真机待验 | 真实目录 API、插件下载校验、安装启停与设置；部署健康检查 |
-| 附件、Markdown、分支、摘要、上下文管理 | 待实现 | 数据持久化、模型请求与原生 UI 联调 |
+| 附件、Markdown、分支、摘要、上下文管理 | Markdown 与折叠思考 0.11.0 已发布；分支 0.12.0 正在验证；附件、摘要、上下文管理待实现 | 数据持久化、模型请求与原生 UI 联调 |
 | 多协议、多配置、任务模型选择、本地推理 | 0.7.0 已实现模型列表和 JSON 订阅获取、搜索选择；其余目标待实现 | 每种协议及本地模型端到端调用 |
 | 工具调用、执行进度、结果回传、有界循环 | 主体测试、Lint 和 APK 已通过；SQLite 迁移与 HTTP→JS 集成测试通过 Actions 38104490115，真机/真实模型待验 | 实际模型调用工具；完整取消、授权和执行记录 |
 | 内置 MCP 插件、安装配置与角色绑定 | 0.5.1 已发布；TS、公网 HTTPS 演示、Android HTTPS 与取消通知、宿主取消后复用及停用回归通过 Actions 38107628413；0.6.0 已实现按角色绑定 MCP 插件；多服务器、每工具绑定、OAuth、stdio 等待实现 | 真实 MCP 服务连接、发现和调用 |
 | 内置 Skills 插件、按需加载与角色绑定 | 0.6.0 已发布，55 个 Android/23 个 TS 测试通过；真实 QuickJS→角色→Agent→SQLite 集成验证、公网目录与下载校验通过；真机/真实模型待验 | 技能包导入、发现、上下文注入 |
 | 内置记忆插件、画像、抽取、合并、图、文档分块、混合检索 | TS 事实合并、候选批量抽取、画像、直接关系、文本分块和 BM25 已提交且 TS 测试通过；Android 宿主测试通过 Actions 38105286718，自动 Hook、向量混合检索待实现 | 持久化、检索、更新删除和上下文使用 |
-| Shell、Linux 环境、终端、SSH/SFTP、编辑器、项目管理 | JVM Shell 作业引擎已提交并通过真实 Linux 子进程测试 Actions 38110132814；Android 工作区绑定、目录浏览、多 Shell 命令会话、原生 UI 和 JS 插件接入已发布并通过模拟器验证；Root 身份选择和执行前检查已实现，Root 真机待验；PTY、持久环境、Linux 与 SSH/SFTP 仍待实现 | 本地和远程执行、流式输出、取消及文件操作 |
+| Shell、Linux 环境、终端、SSH/SFTP、编辑器、项目管理 | JVM Shell 作业引擎已提交并通过真实 Linux 子进程测试 Actions 38110132814；Android 工作区绑定、目录浏览、多 Shell 命令会话、原生 UI 和 JS 插件接入已发布并通过模拟器验证；Root 身份选择和执行前检查已实现，Root 真机待验；PTY 与同一进程的持久环境 0.10.0 已发布并通过模拟器验证；Linux 与 SSH/SFTP 仍待实现 | 本地和远程执行、流式输出、取消及文件操作 |
 | 普通权限、无障碍、Shizuku、Root 与逐工具策略 | 普通应用身份、Root 检测/请求、按插件模式、执行前核验与逐次确认已发布；Root 拒绝、撤销、模式变化和持久化单元测试通过；Root 真机、无障碍、Shizuku 和逐工具策略 UI 待实现 | 设备检测、授权交互、实际执行前强制检查 |
 | Hook、模型扩展与声明式插件 UI | 声明式配置 UI、只读 beforeModel Hook 和角色上下文已发布并通过远程验证；模型扩展、其他 Hook 和 UI 待实现 | 插件改变执行流程与渲染设置，不修改 App 核心 |
 
