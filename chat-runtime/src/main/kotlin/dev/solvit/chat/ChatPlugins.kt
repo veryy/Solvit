@@ -8,11 +8,11 @@ import java.util.UUID
 
 class ChatAgentPlugin : SolvitPlugin {
     override val id = "builtin.agent.chat"
-    override val requires = setOf(Services.Model, Services.Tools, ContextHookServiceKey, ModelProfilesServiceKey, RequestInspectionServiceKey)
+    override val requires = setOf(Services.Model, Services.Tools, ContextHookServiceKey, ModelProfilesServiceKey, RequestInspectionServiceKey, ContextPreparationServiceKey)
     override val provides = setOf(Services.Agent)
     override suspend fun enable(context: PluginContext) {
         val provider = context.require(Services.Model)
-        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools), hooks = context.require(ContextHookServiceKey), modelProfiles = context.require(ModelProfilesServiceKey), inspection = context.require(RequestInspectionServiceKey)))
+        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools), hooks = context.require(ContextHookServiceKey), modelProfiles = context.require(ModelProfilesServiceKey), inspection = context.require(RequestInspectionServiceKey), contextPreparation = context.require(ContextPreparationServiceKey)))
     }
 }
 
@@ -67,7 +67,7 @@ class DefaultChatService(
             val messages = buildList {
                 val instructions = ChatContextComposer.render(sections)
                 if (instructions.isNotBlank()) add(ModelMessage(Role.SYSTEM, instructions))
-                addAll(completeContext(history))
+                addAll(completeContext(history, trackSources = true))
             }
             var done = false
             agent.run(ModelRequest(config, messages, authorization = authorization, agentRole = role, conversation = conversation,
@@ -107,19 +107,22 @@ class DefaultChatService(
 }
 
 /** Drop orphaned call groups from interrupted writes; never send unmatched tool IDs. */
-internal fun completeContext(history: List<ChatMessage>): List<ModelMessage> {
+internal fun completeContext(history: List<ChatMessage>, trackSources: Boolean = false): List<ModelMessage> {
     val result = mutableListOf<ModelMessage>()
     var index = 0
     while (index < history.size) {
         val message = history[index++]
         if (message.role == Role.TOOL) continue
-        if (message.toolCalls.isEmpty()) { result += ModelMessage(message.role, message.content, providerTranscript=message.providerTranscript); continue }
+        if (message.toolCalls.isEmpty()) { result += ModelMessage(message.role, message.content, providerTranscript=message.providerTranscript,
+            sourceMessageId = message.id.takeIf { trackSources }); continue }
         val batch = history.drop(index).takeWhile { it.role == Role.TOOL }
         index += batch.size
         val ids = message.toolCalls.map { it.id }
         if (ids.toSet().size != ids.size || batch.size != ids.size || batch.map { it.toolCallId }.toSet() != ids.toSet()) continue
-        result += ModelMessage(message.role, message.content, message.toolCalls, providerTranscript=message.providerTranscript)
-        result += batch.map { ModelMessage(Role.TOOL, it.content, toolCallId = it.toolCallId, toolStage = it.toolStage) }
+        result += ModelMessage(message.role, message.content, message.toolCalls, providerTranscript=message.providerTranscript,
+            sourceMessageId = message.id.takeIf { trackSources })
+        result += batch.map { ModelMessage(Role.TOOL, it.content, toolCallId = it.toolCallId, toolStage = it.toolStage,
+            sourceMessageId = it.id.takeIf { trackSources }) }
     }
     return result
 }

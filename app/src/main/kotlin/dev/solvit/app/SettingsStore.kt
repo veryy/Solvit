@@ -113,14 +113,14 @@ internal fun encodeModelProfiles(state: ModelProfilesState): JSONObject = JSONOb
     .put("configured", state.configured).put("profiles", JSONArray(state.profiles.map { profile -> JSONObject()
         .put("id",profile.id).put("name",profile.name).put("config",JSONObject()
             .put("base",profile.config.baseUrl).put("model",profile.config.model).put("key",profile.config.apiKey)
-            .put("prompt",profile.config.systemPrompt).put("listUrl",profile.config.modelListUrl).put("listAuth",profile.config.modelListUsesApiKey).put("provider",profile.config.providerId).put("options",JSONObject(profile.config.providerOptions))) }))
+            .put("prompt",profile.config.systemPrompt).put("listUrl",profile.config.modelListUrl).put("listAuth",profile.config.modelListUsesApiKey).put("provider",profile.config.providerId).put("options",JSONObject(profile.config.providerOptions)).put("context",encodeContextBudget(profile.config.contextBudget))) }))
     .put("routes",JSONObject().apply { state.routes.forEach { (task,id) -> put(task.name,id) } })
 internal fun decodeModelProfiles(root: JSONObject): ModelProfilesState {
     require(root.getInt("format") == 1)
     val list = root.getJSONArray("profiles"); require(list.length() in 1..32)
     val profiles = (0 until list.length()).map { i -> val row=list.getJSONObject(i); val c=row.getJSONObject("config")
         ModelProfile(row.getString("id"), row.getString("name"), ModelConfig(c.getString("base"),c.getString("model"),c.getString("key"),
-            c.getString("prompt"),c.optString("listUrl",""),c.optBoolean("listAuth",false),c.optString("provider","openai-compatible"),decodeProviderOptions(c))) }
+            c.getString("prompt"),c.optString("listUrl",""),c.optBoolean("listAuth",false),c.optString("provider","openai-compatible"),decodeProviderOptions(c),decodeContextBudget(c))) }
     val routes=root.getJSONObject("routes").let { r -> r.keys().asSequence().associate { ModelTask.valueOf(it) to r.getString(it) } }
     return ModelProfilesState(profiles,routes,root.optBoolean("configured",true)).also { it.validate() }
 }
@@ -129,4 +129,11 @@ internal fun decodeProviderOptions(config:JSONObject):Map<String,String> {
     val options=config.optJSONObject("options") ?: return emptyMap()
     require(options.length()<=32)
     return options.keys().asSequence().associateWith { options.getString(it) }
+}
+
+internal fun encodeContextBudget(policy: ContextBudgetPolicy): JSONObject = JSONObject()
+    .put("window", policy.windowTokens).put("output", policy.outputTokens).put("headroom", policy.headroomTokens).put("automatic", policy.automaticSummary)
+internal fun decodeContextBudget(config: JSONObject): ContextBudgetPolicy {
+    val value = config.optJSONObject("context") ?: return ContextBudgetPolicy()
+    return ContextBudgetPolicy(value.getInt("window"), value.getInt("output"), value.getInt("headroom"), value.getBoolean("automatic")).also { it.validate() }
 }

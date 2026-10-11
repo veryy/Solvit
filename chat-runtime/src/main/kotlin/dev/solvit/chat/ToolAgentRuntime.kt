@@ -14,6 +14,7 @@ class ToolAgentRuntime(
     private val hooks: ContextHookRegistry? = null,
     private val modelProfiles: ModelProfilesService? = null,
     private val inspection: RequestInspectionService? = null,
+    private val contextPreparation: ContextPreparationService? = null,
 ) : AgentRuntime {
     init { require(maxRounds > 0 && maxCalls > 0) }
     override fun run(request: ModelRequest): Flow<ModelChunk> = flow {
@@ -47,10 +48,11 @@ class ToolAgentRuntime(
             var calls = emptyList<ToolCall>()
             var native: ProviderTranscript? = null
             var completed = false
-            val prepared = request.copy(config = if (round == 0) request.config else followUpConfig, messages = preparedMessages, tools = advertised,
+            val assembled = request.copy(config = if (round == 0) request.config else followUpConfig, messages = preparedMessages, tools = advertised,
                 promptSources = request.promptSources + listOfNotNull(guidance.takeIf { it.isNotBlank() }?.let {
                     PromptSourceInfo("tool-guidance", "builtin.agent.chat", it.length)
                 }) + context.mapIndexed { index, value -> PromptSourceInfo("plugin-context-$index", value.substringBefore('：').take(160), value.length) })
+            val prepared = contextPreparation?.prepare(assembled) ?: assembled
             inspection?.record(prepared)
             provider.stream(prepared).collect { chunk ->
                 check(!completed) { "Provider emitted after completion" }

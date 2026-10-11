@@ -21,7 +21,7 @@ private data class RestoredConfiguration(val model: ModelConfig, val roles: List
 private fun configurationJson(config: ModelConfig, roles: List<AgentRole>, theme: String, dynamic: Boolean, language: String, profiles: ModelProfilesState): ByteArray = JSONObject()
     .put("format", 1).put("modelProfiles", encodeModelProfiles(profiles)).put("model", JSONObject().put("base", config.baseUrl).put("name", config.model)
         .put("key", config.apiKey).put("prompt", config.systemPrompt)
-        .put("modelListUrl", config.modelListUrl).put("modelListUsesApiKey", config.modelListUsesApiKey).put("provider",config.providerId).put("options",JSONObject(config.providerOptions)))
+        .put("modelListUrl", config.modelListUrl).put("modelListUsesApiKey", config.modelListUsesApiKey).put("provider",config.providerId).put("options",JSONObject(config.providerOptions)).put("context",encodeContextBudget(config.contextBudget)))
     .put("roles", JSONArray(roles.map { role -> JSONObject().put("id", role.id).put("name", role.name).put("prompt", role.prompt)
         .put("plugins", JSONArray(role.pluginIds.sorted())).put("skills", JSONArray(role.skillIds.sorted())) }))
     .put("theme", theme).put("dynamic", dynamic).put("language", language).toString().toByteArray(Charsets.UTF_8)
@@ -31,7 +31,7 @@ private fun parseConfiguration(bytes: ByteArray): RestoredConfiguration {
     require(root.getInt("format") == 1)
     val m = root.getJSONObject("model")
     val model = ModelConfig(m.getString("base"), m.getString("name"), m.getString("key"), m.getString("prompt"),
-        m.optString("modelListUrl", ""), m.optBoolean("modelListUsesApiKey", false),m.optString("provider","openai-compatible"),decodeProviderOptions(m))
+        m.optString("modelListUrl", ""), m.optBoolean("modelListUsesApiKey", false),m.optString("provider","openai-compatible"),decodeProviderOptions(m),decodeContextBudget(m))
     require(model.validate() == null)
     val entries = root.getJSONArray("roles")
     require(entries.length() <= 64)

@@ -29,6 +29,7 @@ data class ModelMessage(
     val reasoning: String = "",
     val toolStage: ToolStage? = null,
     val providerTranscript: ProviderTranscript? = null,
+    val sourceMessageId: String? = null,
 )
 
 /** Not a data class: toString must never reveal API keys. */
@@ -41,6 +42,7 @@ class ModelConfig(
     val modelListUsesApiKey: Boolean = false,
     val providerId: String = "openai-compatible",
     val providerOptions: Map<String,String> = emptyMap(),
+    val contextBudget: ContextBudgetPolicy = ContextBudgetPolicy(),
 ) {
     fun validate(): String? {
         validateConnection()?.let { return it }
@@ -49,6 +51,10 @@ class ModelConfig(
         return null
     }
     fun validateConnection(): String? {
+        val explicitOutput = providerOptions["max_tokens"]
+        if (explicitOutput != null && (explicitOutput.toIntOrNull() == null || explicitOutput.toInt() !in 1..1_000_000)) return "最大输出令牌无效"
+        runCatching { contextBudget.copy(outputTokens = maxOf(contextBudget.outputTokens, explicitOutput?.toInt() ?: 0)).validate() }
+            .exceptionOrNull()?.let { return it.message ?: "上下文预算无效" }
         if (!providerId.matches(Regex("[A-Za-z0-9_.-]{1,80}"))) return "模型协议 ID 无效"
         if (providerOptions.size > 32 || providerOptions.any { it.key.length !in 1..80 || it.value.length > 1024 }) return "模型协议参数超过限制"
         val uri = runCatching { URI(baseUrl) }.getOrNull() ?: return "API 地址格式不正确"
@@ -81,6 +87,7 @@ data class ModelRequest(
     val conversation: ConversationContext? = null,
     val sessionId: String? = null,
     val promptSources: List<PromptSourceInfo> = emptyList(),
+    val contextMeasurement: ContextMeasurement? = null,
 )
 sealed interface ModelChunk {
     data class Text(val value: String) : ModelChunk

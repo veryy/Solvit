@@ -56,6 +56,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var pluginDrafts: PluginDraftService
         private set
+    lateinit var contextPreparation: ContextPreparationService
+        private set
     lateinit var requestInspection: RequestInspectionService
         private set
     override fun onCreate() {
@@ -72,10 +74,11 @@ class SolvitApplication : Application() {
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts }, useWebPages = true)
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(WebPagesPlugin(this@SolvitApplication), RequestInspectionPlugin(), ModelProvidersPlugin(), ModelRoutingPlugin(), ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
+                listOf(ContextBudgetPlugin(), ContextPreparationPlugin(), WebPagesPlugin(this@SolvitApplication), RequestInspectionPlugin(), ModelProvidersPlugin(), ModelRoutingPlugin(), ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ChatAgentPlugin(), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
                     OpenAiPlugin(), AnthropicPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 branches = manager.registry.require(ChatBranchServiceKey)
+                contextPreparation = manager.registry.require(ContextPreparationServiceKey)
                 requestInspection = manager.registry.require(RequestInspectionServiceKey)
                 updates = manager.registry.require(UpdateServiceKey)
                 marketplace = manager.registry.require(MarketplaceServiceKey)

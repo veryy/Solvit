@@ -317,7 +317,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution, createOnOpen=workspaceCreateRequested) { workspaceOpen = false }
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true }, { diagnosticsOpen = true })
-    if (diagnosticsOpen) RequestDiagnosticsDialog(app.requestInspection, vm) { diagnosticsOpen = false }
+    if (diagnosticsOpen) RequestDiagnosticsDialog(app.requestInspection, vm, app.contextPreparation) { diagnosticsOpen = false }
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace, app.toolApprovals) { permissionsOpen = false }
     if (modelsOpen) ModelProfilesScreen(app.modelProfiles, busy, onDismiss = { modelsOpen = false }, onFetchModels = vm::discoverModels, providers = app.modelProviders)
     if (backupOpen) ConfigurationBackupDialog(vm, app.roles, app.appearance, onDismiss = { backupOpen = false })
@@ -340,6 +340,8 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
     var protocol by remember { mutableStateOf(config.providerId) }
     var options by remember { mutableStateOf(config.providerOptions) }
     var protocolPicker by remember { mutableStateOf(false) }
+    var budget by remember { mutableStateOf(config.contextBudget) }
+    var budgetDialog by remember { mutableStateOf(false) }
     val descriptor = availableProviders.firstOrNull { it.id == protocol }
     var base by remember { mutableStateOf(config.baseUrl) }
     var model by remember { mutableStateOf(config.model) }
@@ -361,7 +363,7 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
     LaunchedEffect(protocol, base, key, listUrl, listAuth) {
         fetchRevision++; fetchJob?.cancel(); fetching = false; models = emptyList(); fetchError = null; fetchDetails = null; showFetchDetails = false; picker = false
     }
-    val candidate = ModelConfig(base.trim(), model.trim(), key.trim(), prompt, listUrl.trim(), listAuth, protocol, options)
+    val candidate = ModelConfig(base.trim(), model.trim(), key.trim(), prompt, listUrl.trim(), listAuth, protocol, options, budget)
     val invalid = providers.validate(candidate)
     FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
@@ -447,6 +449,7 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
                     if(descriptor?.options?.any { it.key=="thinking_mode" }==true) item {
                         UiText("模型默认由服务端决定；自适应、手动预算和关闭模式的支持因模型而异。若服务拒绝，可查看返回详情。工具执行期间沿用发起轮次的思考参数。")
                     }
+                    item { OutlinedButton(onClick = { budgetDialog = true }, enabled = !saving, modifier = Modifier.testTag("context_budget_settings")) { UiText("上下文管理") } }
                     item { OutlinedTextField(prompt, { prompt = it }, label = { UiText("系统提示词") },
                         minLines = 3, maxLines = 8, enabled = !saving, modifier = Modifier.fillMaxWidth()) }
                     if (invalid != null) item { UiText(invalid, color = MaterialTheme.colorScheme.error) }
@@ -455,6 +458,7 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
             }
         }
     }
+    if (budgetDialog) ContextBudgetDialog(budget, { budgetDialog = false }) { budget = it; budgetDialog = false }
     if (showFetchDetails) fetchDetails?.let { ModelErrorDialog(it) { showFetchDetails = false } }
     if (picker) AlertDialog(onDismissRequest = { picker = false }, title = { UiText("选择模型") }, text = {
         Column {

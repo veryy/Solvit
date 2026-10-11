@@ -22,6 +22,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
         val payload = buildJsonObject {
             put("model", request.config.model)
             put("stream", true)
+            put("max_tokens", request.config.providerOptions["max_tokens"]?.toIntOrNull() ?: request.config.contextBudget.outputTokens)
             if (request.tools.isNotEmpty()) {
                 put("tool_choice", "auto")
                 putJsonArray("tools") {
