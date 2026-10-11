@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.15.2 修复版](https://github.com/veryy/Solvit/releases/tag/v0.15.2)：模型接收与显示分离，大段回复按帧追赶；提前入库不跳出全文，工具状态及时更新，角色身份只注入一次。保留 0.15.1 的紧凑插件网格、底部语言弹窗和免配置搜索；验证状态见 [版本说明](docs/release-0.15.2.md)，未完成范围见 [完整产品进度](docs/product-roadmap.md)。
+[0.15.3](https://github.com/veryy/Solvit/releases/tag/v0.15.3) 新增设置底部的实际请求诊断，查看角色、上下文来源、提供的工具与接收/显示耗时。保留 0.15.2 的流式、角色和提前入库显示修复，以及紧凑插件网格、底部语言弹窗和免配置搜索；验证状态见 [版本说明](docs/release-0.15.3.md)，未完成范围见 [完整产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
