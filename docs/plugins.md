@@ -32,7 +32,7 @@ globalThis.solvitPlugin = {
 
 每个启用插件拥有独立引擎、32 MiB JS 内存上限、512 KiB 栈和 30 秒执行期限。宿主 Coroutine 取消与引擎中断相连，停用先中断执行，撤销工具并关闭引擎。模型可见工具名以插件 ID 转为下划线的前缀命名，避免跨插件重名。
 
-原生能力通过 `ctx.storage.get/set` 和 `ctx.http.request` 异步桥接；市场安装与权限配置已经接入原生宿主：用户启用插件时授予声明的全部权限，每次宿主调用重新检查授权。`storage` 仅访问该插件私有键值存储，单值限制 256 KiB 字符长度；`http.request({url, method?, headers?, body?})` 支持 HTTPS GET/POST/DELETE，禁止 URL 内嵌凭据和自动重定向，响应大小不超过 1 MiB。引擎在调用宿主前检查声明权限，未知操作直接拒绝，不暴露 Java 反射或 Android Context。
+原生能力通过 `ctx.storage.get/set` 和 `ctx.http.request` 异步桥接；市场安装与权限配置已经接入原生宿主：用户启用插件时授予声明的全部权限，每次宿主调用重新检查授权。`storage` 仅访问该插件私有键值存储，单值序列化后最多 262144 个 UTF-16 字符；`http.request({url, method?, headers?, body?})` 支持 HTTPS GET/POST/DELETE，禁止 URL 内嵌凭据和自动重定向，响应大小不超过 1 MiB。引擎在调用宿主前检查声明权限，未知操作直接拒绝，不暴露 Java 反射或 Android Context。
 
 ## 当前边界
 

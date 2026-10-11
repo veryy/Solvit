@@ -12,7 +12,7 @@ body{font:16px system-ui,sans-serif;background:#f6f8f2;color:#24351e;max-width:8
 <script type="module">
 const status=document.querySelector('#status');
 try {
- const response=await fetch('/api/v1/plugins');
+ const response=await fetch('/api/v1/plugins?hostApi=2');
  if(!response.ok)throw new Error('HTTP '+response.status);
  const catalog=await response.json();
  status.textContent=`${catalog.plugins.length} 个插件`;
@@ -20,7 +20,7 @@ try {
   const article=document.createElement('article');
   const heading=document.createElement('h2');heading.textContent=plugin.name;
   const description=document.createElement('p');description.textContent=plugin.description;
-  const details=document.createElement('p');details.textContent=`版本 ${plugin.version} · ${plugin.permissions.length ? '权限：'+plugin.permissions.join('、') : '无需额外权限'}`;
+  const details=document.createElement('p');details.textContent=`版本 ${plugin.version}${plugin.apiVersion === 2 ? ' · 需要 Solvit 0.5.0+' : ''} · ${plugin.permissions.length ? '权限：'+plugin.permissions.join('、') : '无需额外权限'}`;
   const download=document.createElement('a');download.className='download';download.textContent='下载插件';download.href=plugin.downloadPath;
   article.append(heading,description,details,download);document.querySelector('#plugins').append(article);
  }
