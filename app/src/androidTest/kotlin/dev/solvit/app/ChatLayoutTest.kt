@@ -385,6 +385,95 @@ class ChatLayoutTest {
             rule.runOnUiThread { listOf(vm,agents,workspaces,updates,market).forEach { it.viewModelScope.cancel() } }
         }
     }
+    @Test fun roleAppliedThroughSettingsReachesProviderAndNewChatRequest() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        val role = AgentRole("ui-request-" + java.util.UUID.randomUUID(), "星辰请求验证", "专门检查 Kotlin 代码，先说明检查依据。")
+        runBlocking { app.roles.save(role) }
+        val sessions = MutableStateFlow(listOf(ChatSession("role-chat-" + java.util.UUID.randomUUID(), "Role fixture", 0)))
+        val saved = MutableStateFlow<List<ChatMessage>>(emptyList())
+        val store = object : ChatStore {
+            override fun sessions() = sessions
+            override fun messages(sessionId: String) = saved.map { it.filter { message -> message.sessionId == sessionId } }
+            override suspend fun history(sessionId: String) = saved.value.filter { it.sessionId == sessionId }
+            override suspend fun createSession(): ChatSession {
+                val session = ChatSession("role-chat-" + java.util.UUID.randomUUID(), "New role fixture", 0)
+                sessions.value = listOf(session) + sessions.value
+                return session
+            }
+            override suspend fun append(message: ChatMessage) { saved.value += message }
+            override suspend fun appendBatch(messages: List<ChatMessage>) { saved.value += messages }
+            override suspend fun deleteSession(sessionId: String) { saved.value = saved.value.filterNot { it.sessionId == sessionId } }
+        }
+        val requests = java.util.concurrent.ConcurrentLinkedQueue<ModelRequest>()
+        val provider = object : ModelProvider {
+            override val id = "fixture"
+            override fun stream(request: ModelRequest) = flow {
+                requests.add(request)
+                // This response does not pretend to validate real-model role adherence.
+                emit(ModelChunk.Text("fixture response")); emit(ModelChunk.Done)
+            }
+        }
+        lateinit var vm: ChatViewModel
+        lateinit var agents: AgentLibraryViewModel
+        lateinit var workspaces: WorkspaceViewModel
+        lateinit var updates: UpdateViewModel
+        lateinit var market: MarketplaceViewModel
+        rule.runOnUiThread {
+            val settings = object : SettingsStore {
+                override suspend fun load() = ModelConfig(apiKey = "fixture")
+                override suspend fun save(config: ModelConfig) = Unit
+                override suspend fun isConfigured() = true
+            }
+            vm = ChatViewModel(DefaultChatService(store, ToolAgentRuntime(provider, ToolRegistry(EventBus())),
+                EventBus(), app.roles), settings, app.roles)
+            agents = AgentLibraryViewModel(app.roles, app.skills, app.marketplace)
+            workspaces = WorkspaceViewModel(app.workspaces, app.pluginDrafts, app.terminals)
+            updates = UpdateViewModel(app.updates, app.updateDownloader)
+            market = MarketplaceViewModel(app.marketplace)
+            rule.activity.setContent { MaterialTheme { ChatScreen(vm, updates, market, agents, workspaces) } }
+        }
+        try {
+            ready()
+            rule.waitUntil(8000) { vm.ready.value && agents.activeRole.value == null }
+            val originalSession = vm.sessionId.value!!
+            rule.onNodeWithContentDescription("设置").performClick()
+            rule.onNodeWithText("角色管理与 Skills").performClick()
+            rule.onNodeWithText(role.name).performScrollTo()
+            rule.onNodeWithTag("apply_role_${role.id}").performClick()
+            rule.waitUntil(8000) { !agents.busy.value && agents.activeRole.value?.id == role.id }
+            rule.onNodeWithContentDescription("关闭").performClick()
+            rule.onNodeWithContentDescription("返回聊天").performClick()
+            rule.onNode(hasSetTextAction()).performTextInput("你是什么角色？")
+            rule.onNodeWithContentDescription("发送").performClick()
+            rule.waitUntil(8000) { requests.size == 1 && !vm.busy.value }
+            rule.onNodeWithContentDescription("对话历史").performClick()
+            rule.onNodeWithTag("new_chat").performClick()
+            rule.waitUntil(8000) { vm.sessionId.value != originalSession && agents.activeRole.value?.id == role.id }
+            rule.onNode(hasSetTextAction()).performTextInput("新对话中你是谁？")
+            rule.onNodeWithContentDescription("发送").performClick()
+            rule.waitUntil(8000) { requests.size == 2 && !vm.busy.value }
+            val sent = requests.toList()
+            assertNotEquals(sent[0].sessionId, sent[1].sessionId)
+            sent.forEach { request ->
+                assertEquals(role, request.agentRole)
+                val system = request.messages.single { it.role == Role.SYSTEM }.content
+                assertTrue(system.contains(role.name)); assertTrue(system.contains(role.prompt))
+                assertFalse(system.contains(ModelConfig().systemPrompt))
+            }
+            screenshot("role-settings-to-provider-new-chat")
+        } catch (e: Exception) {
+            screenshot("role-settings-to-provider-failure")
+            throw AssertionError(rule.onRoot().printToString(), e)
+        } finally {
+            rule.runOnUiThread { vm.stop(); listOf(vm, agents, workspaces, updates, market).forEach { it.viewModelScope.cancel() } }
+            runBlocking {
+                sessions.value.forEach { app.roles.select(it.id, null) }
+                app.roles.delete(role.id)
+            }
+        }
+    }
+
     @Test fun applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist() {
         ready()
         val app = rule.activity.application as SolvitApplication

@@ -14,6 +14,8 @@ Solvit 的 `ChatContextComposer` 原来把模型设置的内置“你是 Solvit�
 
 后续 HTTP 回归还覆盖角色设定编辑、重新创建角色服务和聊天服务、显式全局规则保留，以及切回默认角色。模型响应是明确标注的固定测试响应，仅验证请求链路，不能证明真实模型遵循角色。
 
+新增模拟器回归 `roleAppliedThroughSettingsReachesProviderAndNewChatRequest`：通过真实设置页面点击角色应用，返回聊天并点击发送，再通过侧栏新建对话后发送。实际 `AgentLibraryViewModel`、`AndroidRoleService`、`ChatViewModel`、`DefaultChatService` 和 `ToolAgentRuntime` 连通到 Provider 捕获边界，断言两个不同会话中的角色名称/设定、默认介绍替换。聊天存储通过接口替换、模型返回固定响应；不冒充真实模型回答正确，也不代替已有 HTTP 边界回归。
+
 ## 验证状态
 
 本轮本地提交完成，但 GitHub HTTPS 网页、API 与 `git push` 均在 TLS 握手时失败（`SSL_ERROR_SYSCALL`）；服务器 SSH 也未成功。未运行本地 Android 构建或测试。新增回归尚未在远程执行，不能声称已经取得失败→成功证据。0.21.1 未打标签、未发布、没有新 APK。
