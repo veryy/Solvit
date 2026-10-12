@@ -15,5 +15,6 @@ interface PostTurnTaskService {
     /** Authorize again inside the actual store write lock or before cancelling the exact Job. */
     suspend fun control(pluginId: String, action: PostTurnTaskControl,
         authorize: suspend () -> Unit): Int
+    suspend fun retired(pluginId: String, turnId: String, authorize: suspend () -> Unit): Boolean
 }
 val PostTurnTaskServiceKey = ServiceKey("agent.post-turn-tasks", PostTurnTaskService::class)

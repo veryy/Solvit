@@ -327,9 +327,12 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true }, { diagnosticsOpen = true }, { memoryTasksOpen = true }, { memoryOpen = true })
     if (memoryOpen) {
         val locale = LocalUiLanguage.current
-        key(locale) { PluginPageScreen("记忆", { memoryManager.openPage(locale) }) { memoryOpen = false } }
+        key(locale) { PluginPageScreen("记忆", { memoryManager.openPage(locale, app.postTurnWorker) }) { memoryOpen = false } }
     }
-    if (memoryTasksOpen) MemoryTasksScreen(app.postTurnWorker) { memoryTasksOpen = false }
+    if (memoryTasksOpen) {
+        val locale = LocalUiLanguage.current
+        key(locale) { PluginPageScreen("自动记忆任务", { memoryManager.openPage(locale, app.postTurnWorker, "tasks") }) { memoryTasksOpen = false } }
+    }
     if (diagnosticsOpen) RequestDiagnosticsDialog(app.requestInspection, vm, app.contextPreparation) { diagnosticsOpen = false }
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace, app.toolApprovals) { permissionsOpen = false }
     if (modelsOpen) ModelProfilesScreen(app.modelProfiles, busy, onDismiss = { modelsOpen = false }, onFetchModels = vm::discoverModels, providers = app.modelProviders)

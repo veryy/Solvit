@@ -1,9 +1,19 @@
 /** JSON-only bridge. No Node, DOM, timers, filesystem or credentials are exposed. */
-export type { PageNode, PluginPageView, PluginPageEvent, PluginPageInput } from './pages.js';
+export type { PageNode, PluginPageView, PluginPageEvent, PluginPageInput, PageHostAction } from './pages.js';
 import type { PluginPageView, PluginPageInput } from './pages.js';
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
+export interface PluginTask {
+  id:string; status:'WAITING'|'RUNNING'|'SUCCEEDED'|'FAILED'|'SKIPPED'; attempt:number; updatedAt:number;
+  failure:string|null; roleName:string|null; model:string; sessionId:string; userMessageId:string; assistantMessageId:string;
+}
+export interface PluginTaskListing {
+  available:boolean; jobs:PluginTask[]; activeJobId:string|null; nextCursor:{updatedAt:number;id:string}|null;
+}
 export interface PluginContext {
+  /** API 9, page-only. perform consumes the one native control confirmed on the displayed button. */
+  readonly jobs?: { list(options?:{cursor?:{updatedAt:number;id:string}|null}):Promise<PluginTaskListing>;
+    perform():Promise<{changed:number;receipts:number}> };
   /** API 8: available only during an opted-in afterTurn invocation; at most one call. */
   readonly model?: { complete(options: { instructions: string; input: string }): Promise<string> };
   /** API 6: anonymous Android browser observation; requires network permission. */

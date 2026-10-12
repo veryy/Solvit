@@ -15,6 +15,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.solvit.plugins.ScriptPageView
+import dev.solvit.plugins.ScriptPageHostAction
+import dev.solvit.core.PostTurnTaskControl
 import kotlinx.serialization.json.*
 
 /** Captures the displayed view so queued clicks cannot act on a newer page. */
@@ -39,7 +41,7 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
     val dispatch: (JsonObject, String?) -> Unit = { node, value ->
         if (!busy) {
             val snapshot = fields.toMap()
-            if (node["confirm"] != null) confirmation = node to snapshot
+            if (node["confirm"] != null || node["hostAction"] != null) confirmation = node to snapshot
             else onEvent(PluginPageInteraction(view, node.getValue("id").jsonPrimitive.content, value, snapshot))
         }
     }
@@ -60,7 +62,24 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
     }
     confirmation?.let { (node, values) ->
         AlertDialog(onDismissRequest = { confirmation = null }, title = { Text(node.getValue("text").jsonPrimitive.content) },
-            text = { Text(node.getValue("confirm").jsonPrimitive.content) },
+            text = {
+                val native = node["hostAction"]?.jsonObject?.let(ScriptPageHostAction::parse)
+                if (native == null) Text(node.getValue("confirm").jsonPrimitive.content)
+                else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    UiText(when (native) {
+                        is PostTurnTaskControl.Retry -> "重试将使用原模型配置，可能产生额外费用。"
+                        is PostTurnTaskControl.Delete -> "删除此任务将取消后续处理和重试，已保存记忆和聊天仍然保留。"
+                        is PostTurnTaskControl.Stop -> "停止此任务的当前处理，需要手动重试才能再次执行。"
+                        PostTurnTaskControl.Cleanup -> "清理最多 100 个已完成或跳过的任务，保留失败、等待和运行中的任务。"
+                    })
+                    when (native) {
+                        is PostTurnTaskControl.Retry -> Text(native.id)
+                        is PostTurnTaskControl.Delete -> Text(native.id)
+                        is PostTurnTaskControl.Stop -> Text(native.id)
+                        PostTurnTaskControl.Cleanup -> Unit
+                    }
+                }
+            },
             confirmButton = { TextButton(onClick = {
                 confirmation = null
                 onEvent(PluginPageInteraction(view, node.getValue("id").jsonPrimitive.content, fields = values, confirmed = true))

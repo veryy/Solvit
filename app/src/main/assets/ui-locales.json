@@ -4398,5 +4398,37 @@
     "ko": "플러그인 화면 닫기",
     "es": "Cerrar vista del complemento",
     "fr": "Fermer la vue du plugin"
+  },
+  "重试将使用原模型配置，可能产生额外费用。": {
+    "zh": "重试将使用原模型配置，可能产生额外费用。",
+    "en": "Retry uses the original model configuration and may incur additional charges.",
+    "ja": "再試行は元のモデル設定を使い、追加料金が発生する場合があります。",
+    "ko": "재시도는 원래 모델 설정을 사용하며 추가 비용이 발생할 수 있습니다.",
+    "es": "El reintento usa la configuración original del modelo y puede generar cargos adicionales.",
+    "fr": "La nouvelle tentative utilise la configuration initiale du modèle et peut entraîner des frais supplémentaires."
+  },
+  "删除此任务将取消后续处理和重试，已保存记忆和聊天仍然保留。": {
+    "zh": "删除此任务将取消后续处理和重试，已保存记忆和聊天仍然保留。",
+    "en": "Deleting this task cancels future processing and retries. Saved memories and chats remain.",
+    "ja": "このタスクを削除すると今後の処理と再試行を取り消します。保存済みの記憶とチャットは残ります。",
+    "ko": "이 작업을 삭제하면 이후 처리와 재시도가 취소됩니다. 저장된 기억과 대화는 유지됩니다.",
+    "es": "Eliminar esta tarea cancela el procesamiento futuro y los reintentos. Se conservan los recuerdos y chats guardados.",
+    "fr": "Supprimer cette tâche annule le traitement futur et les nouvelles tentatives. Les souvenirs et discussions enregistrés sont conservés."
+  },
+  "停止此任务的当前处理，需要手动重试才能再次执行。": {
+    "zh": "停止此任务的当前处理，需要手动重试才能再次执行。",
+    "en": "Stop this task. Running it again requires an explicit retry.",
+    "ja": "このタスクの処理を停止します。再実行には手動の再試行が必要です。",
+    "ko": "이 작업 처리를 중지합니다. 다시 실행하려면 수동 재시도가 필요합니다.",
+    "es": "Detener esta tarea. Para ejecutarla de nuevo se requiere un reintento explícito.",
+    "fr": "Arrêter cette tâche. Une nouvelle exécution nécessite une tentative explicite."
+  },
+  "清理最多 100 个已完成或跳过的任务，保留失败、等待和运行中的任务。": {
+    "zh": "清理最多 100 个已完成或跳过的任务，保留失败、等待和运行中的任务。",
+    "en": "Remove up to 100 completed or skipped tasks. Failed, waiting and running tasks remain.",
+    "ja": "完了またはスキップしたタスクを最大100件削除します。失敗、待機中、実行中のタスクは残ります。",
+    "ko": "완료되거나 건너뛴 작업을 최대 100개 삭제합니다. 실패, 대기, 실행 중인 작업은 유지됩니다.",
+    "es": "Eliminar hasta 100 tareas completadas u omitidas. Se conservan las fallidas, en espera y en ejecución.",
+    "fr": "Supprimer jusqu’à 100 tâches terminées ou ignorées. Les tâches en échec, en attente et en cours sont conservées."
   }
 }

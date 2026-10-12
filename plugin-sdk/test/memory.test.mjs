@@ -7,7 +7,7 @@ const clone = value => JSON.parse(JSON.stringify(value));
 function runtime(data = new Map(), rejectWrite = false, options = {}) {
   const sandbox = vm.createContext({});
   vm.runInContext(pkg.source, sandbox, { timeout: 1000 });
-  const ctx = { role: options.role ?? null, model: options.model, storage: {
+  const ctx = { role: options.role ?? null, model: options.model, jobs:options.jobs, storage: {
     async get(key) { return data.has(key) ? clone(data.get(key)) : null; },
     async set(key, value) { if (rejectWrite) throw new Error('disk full'); data.set(key, clone(value)); return null; },
     async compareAndSet(key, expected, value) {
@@ -22,7 +22,7 @@ function runtime(data = new Map(), rejectWrite = false, options = {}) {
     afterTurn: async input => sandbox.solvitPlugin.afterTurn(input,ctx), recall: async (userText, settings={}) => sandbox.solvitPlugin.beforeModel({userText,settings,role:ctx.role},ctx), data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
 }
 test('packaged memory page uses the validated production database and persists edits across engines',async()=>{
-  assert.equal(pkg.manifest.apiVersion,9);assert.deepEqual(pkg.manifest.pages,[{id:'main',title:'记忆'}]);
+  assert.equal(pkg.manifest.apiVersion,9);assert.deepEqual(pkg.manifest.pages,[{id:'main',title:'记忆'},{id:'tasks',title:'自动记忆任务'}]);
   const first=runtime();await first.run('memory_put',{text:'喜欢 Kotlin',tags:['旧标签']});
   await first.page();await first.page('open_0');await first.page('edit');
   await first.page('save',{text:'喜欢 Kotlin 和 TypeScript',edit_category:'preference',tags:'新标签'});

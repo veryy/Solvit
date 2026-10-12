@@ -80,6 +80,10 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     try {
                     js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
+                          jobs: Object.freeze({
+                            list: async (options = {}) => JSON.parse(await __solvitHostCall('jobs.list', JSON.stringify(options))),
+                            perform: async () => JSON.parse(await __solvitHostCall('jobs.perform', '{}'))
+                          }),
                           workspace: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspace.' + operation, JSON.stringify(args))) }),
                           terminal: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('terminal.' + operation, JSON.stringify(args))) }),
                           plugins: Object.freeze({ draft: async args => JSON.parse(await __solvitHostCall('plugins.draft', JSON.stringify(args))) }),

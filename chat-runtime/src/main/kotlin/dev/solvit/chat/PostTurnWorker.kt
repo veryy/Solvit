@@ -65,6 +65,12 @@ class PostTurnWorker(
         }
         return store.controlPostTurnJobs(pluginId, action, now(), authorize)
     }
+    override suspend fun retired(pluginId: String, turnId: String, authorize: suspend () -> Unit): Boolean {
+        authorize()
+        val retired = sourceRetired(pluginId, turnId)
+        authorize()
+        return retired
+    }
     suspend fun jobs(before: PostTurnJobCursor? = null, limit: Int = 20): List<PostTurnJob> = store.recentPostTurnJobs(before, limit)
     suspend fun retry(id: String, attempt: Int): Boolean = store.retryPostTurnJob(id, attempt, now())
     suspend fun delete(job: PostTurnJob): Boolean = store.deletePostTurnJob(job.id, job.attempt, job.status)

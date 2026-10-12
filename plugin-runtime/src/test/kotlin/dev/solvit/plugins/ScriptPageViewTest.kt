@@ -31,6 +31,20 @@ class ScriptPageViewTest {
         assertFails { view.event("delete") }
         assertEquals(JsonPrimitive("delete-memory"), view.event("delete", confirmed = true)["action"])
     }
+    @Test fun nativeControlsRequireConfirmationEvenWithoutPluginConfirmationText() {
+        val node = """{"id":"retry","kind":"button","text":"Retry","action":"retry",
+            "hostAction":{"kind":"postTurn.retry","jobId":"task-a","attempt":1}}"""
+        val view = page(node)
+        assertFails { view.event("retry") }
+        assertEquals(JsonPrimitive("retry"), view.event("retry", confirmed = true)["action"])
+        assertEquals(JsonPrimitive("task-a"), view.hostAction("retry")!!["jobId"])
+        assertFails { page(node.replace("\"attempt\":1", "\"attempt\":\"1\"")) }
+        assertFails { page(node.replace("\"attempt\":1", "\"attempt\":3")) }
+        assertFails { page(node.replace("postTurn.retry", "shell.execute")) }
+        assertFails { page(node.replace("\"attempt\":1", "\"attempt\":1,\"pluginId\":\"other.plugin\"")) }
+        assertFails { page("""{"id":"d","kind":"button","text":"Delete","action":"delete",
+            "hostAction":{"kind":"postTurn.delete","jobId":"task-a","attempt":1,"status":"RUNNING"}}""") }
+    }
     @Test fun fixedFooterActionsAreValidatedWithTheSamePageIdentity() {
         val view = ScriptPageView.parse("""{"title":"编辑","nodes":[{"id":"field","kind":"field","label":"内容","value":"x"}],
             "footer":[{"id":"save","kind":"button","text":"保存","action":"save"}]}""")

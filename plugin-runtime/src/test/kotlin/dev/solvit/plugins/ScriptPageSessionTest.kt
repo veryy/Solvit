@@ -3,6 +3,7 @@ package dev.solvit.plugins
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import kotlin.test.*
+import dev.solvit.core.PostTurnTaskControl
 
 class ScriptPageSessionTest {
     private fun pkg(source: String, api: Int = 9, pages: String = """[{"id":"manage","title":"管理"}]"""): ScriptPackage =
@@ -76,6 +77,36 @@ class ScriptPageSessionTest {
             assertFails { session.dispatch(initial, "save", fields = mapOf("body" to "forbidden")) }
             assertEquals(0, writes)
         } finally { session.close() }
+    }
+    @Test fun confirmedNativeControlComesFromDisplayedNodeAndIsConsumedOnlyOnce() = runBlocking<Unit> {
+        var calls = 0
+        val packageWithControl = pkg("""
+            globalThis.solvitPlugin={tools:{},pages:{manage:async(input,ctx)=>{
+              if(input.event)await ctx.storage.set('forged-target','task-b');
+              return {title:'Tasks',nodes:[{id:'retry',kind:'button',text:'Retry',action:'retry',
+                hostAction:{kind:'postTurn.retry',jobId:'task-a',attempt:1}}]};
+            }}};
+        """.trimIndent())
+        val session = ScriptPageSession(packageWithControl, "manage", "en", ScriptHost { _, _, _ ->
+            val authority = checkNotNull(currentCoroutineContext()[ScriptPageExecutionContext])
+            assertEquals(PostTurnTaskControl.Retry("task-a", 1), authority.consumeTaskControl())
+            assertFailsWith<IllegalStateException> { authority.consumeTaskControl() }
+            calls++; JsonNull
+        }) {}
+        try {
+            val initial = session.open()
+            assertFails { session.dispatch(initial, "retry") }
+            assertEquals(0, calls)
+            val updated = session.dispatch(initial, "retry", confirmed = true)
+            assertEquals(1, calls)
+            assertFails { session.dispatch(initial, "retry", confirmed = true) }
+            assertEquals(1, calls)
+            session.dispatch(updated, "retry", confirmed = true)
+            assertEquals(2, calls)
+        } finally { session.close() }
+        assertFailsWith<IllegalStateException> {
+            ScriptPageExecutionContext("test.pages", {}).consumeTaskControl()
+        }
     }
 
     @Test fun closingPageCancelsPendingNativeCallWithoutBlockingOtherPage() = runBlocking<Unit> {

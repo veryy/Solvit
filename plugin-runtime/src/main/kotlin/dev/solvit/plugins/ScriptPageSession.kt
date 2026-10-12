@@ -41,13 +41,14 @@ class ScriptPageSession(
         check(!closed && opened)
         check(view === expectedView) { "Page has changed; use the current view" }
         val event = checkNotNull(view).event(nodeId, value, fields, confirmed)
-        render(event)
+        render(event, view!!.hostAction(nodeId))
     }
 
-    private suspend fun render(event: kotlinx.serialization.json.JsonObject?): ScriptPageView {
+    private suspend fun render(event: kotlinx.serialization.json.JsonObject?, approvedAction: kotlinx.serialization.json.JsonObject? = null): ScriptPageView {
         check(!closed)
         ensureAuthorized()
-        val next = withContext(authority) { executor.page(pageId, locale, event) }
+        val invocation = ScriptPageExecutionContext(authority.pluginId, ensureAuthorized, approvedAction)
+        val next = withContext(invocation) { executor.page(pageId, locale, event) }
         check(!closed)
         ensureAuthorized()
         view = next

@@ -272,7 +272,7 @@ class AndroidMarketplace(
             return (configurationValues(manifest)[field.key])?.let(::JsonPrimitive) ?: JsonNull
         }
         val permission = when (operation) {
-            "storage.get", "storage.set", "storage.compareAndSet" -> "storage"
+            "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
             "model.complete" -> "model"
             "http.request", "web.visit" -> "network"
             "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
@@ -293,6 +293,16 @@ class AndroidMarketplace(
             check(allowed) { "插件权限未授予" }
         }
         verifyGrants()
+        if (operation.startsWith("jobs.")) {
+            check(manifest.apiVersion >= 9 && page != null && background == null) { "任务管理仅供插件页面使用" }
+            val tasks = if (manager.registry.contains(PostTurnTaskServiceKey)) manager.registry.require(PostTurnTaskServiceKey) else null
+            val authorize: suspend () -> Unit = { page.ensureAuthorized(); verifyGrants() }
+            return PostTurnPageBridge(tasks).call(manifest.id, operation, arguments, page, authorize) {
+                if (manifest.id == "dev.solvit.memory") BuiltinMemoryManager(context).pruneRetiredSources { turnId ->
+                    checkNotNull(tasks).retired(manifest.id, turnId, authorize)
+                } else 0
+            }
+        }
         if (background != null) {
             check(manifest.apiVersion >= 8 && background.target.pluginId == manifest.id && background.target.version == manifest.version)
             background.ensureAuthorized()

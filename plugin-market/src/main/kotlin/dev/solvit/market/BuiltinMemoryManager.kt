@@ -10,6 +10,7 @@ import dev.solvit.plugins.ScriptPageView
 import dev.solvit.plugins.ScriptPageExecutionContext
 import dev.solvit.core.ExtensionPageSession
 import dev.solvit.core.ExtensionPageSnapshot
+import dev.solvit.core.PostTurnTaskService
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,15 +31,16 @@ class BuiltinMemoryManager(context: Context) {
             .also { check(it.manifest.id == ID && it.manifest.apiVersion == 9) }
     }
     /** Human access uses only the immutable packaged page, never downloaded code. */
-    fun openPage(locale: String): ExtensionPageSession {
+    fun openPage(locale: String, tasks: PostTurnTaskService? = null, pageId: String = "main"): ExtensionPageSession {
         require(locale.matches(Regex("[a-zA-Z0-9_-]{1,20}")))
+        require(pageId in setOf("main", "tasks"))
         return object : ExtensionPageSession {
             private val mutableClosed = MutableStateFlow(false)
             override val closed = mutableClosed.asStateFlow()
             private val mutex = Mutex()
             private var revision = 0L
             private var view: ScriptPageView? = null
-            private val engine = ScriptPageSession(pkg, "main", locale, managementHost()) {
+            private val engine = ScriptPageSession(pkg, pageId, locale, managementHost(tasks = tasks)) {
                 check(!mutableClosed.value) { "Memory page closed" }
             }
             private fun snapshot(next: ScriptPageView): ExtensionPageSnapshot {
@@ -84,9 +86,18 @@ class BuiltinMemoryManager(context: Context) {
         }
         return result.getValue("deleted").jsonPrimitive.int.also { check(it in 0..512) }
     }
-    private fun managementHost(verifyWrite: suspend () -> Unit = {}) = ScriptHost { manifest, operation, args ->
-            check(manifest.id == ID && args["key"] == JsonPrimitive("memory.v1"))
+    private fun managementHost(verifyWrite: suspend () -> Unit = {}, tasks: PostTurnTaskService? = null) = ScriptHost { manifest, operation, args ->
+            check(manifest.id == ID)
             val authority = currentCoroutineContext()[ScriptPageExecutionContext]
+            if (operation.startsWith("jobs.")) {
+                check(manifest.apiVersion >= 9 && authority != null)
+                return@ScriptHost PostTurnPageBridge(tasks).call(ID, operation, args, authority, {
+                    authority.ensureAuthorized()
+                }) {
+                    pruneRetiredSources { turnId -> checkNotNull(tasks).retired(ID, turnId) { authority.ensureAuthorized() } }
+                }
+            }
+            check(args["key"] == JsonPrimitive("memory.v1"))
             val verifyPage: suspend () -> Unit = {
                 if (authority != null) { check(authority.pluginId == ID); authority.ensureAuthorized() }
             }

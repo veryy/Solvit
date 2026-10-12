@@ -3,6 +3,11 @@ package dev.solvit.market
 import android.content.Context
 import dev.solvit.core.*
 import dev.solvit.storage.SqliteChatStore
+import dev.solvit.chat.PostTurnWorker
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 import org.junit.Before
@@ -53,6 +58,49 @@ class BuiltinMemoryManagerTest {
         val reopened = BuiltinMemoryManager(context).openPage("ja")
         try { assertEquals("記憶", Json.parseToJsonElement(reopened.open().json).jsonObject.getValue("title").jsonPrimitive.content) }
         finally { reopened.close() }
+    }
+    @Test fun packagedTaskPageControlsRealSqliteJobsWithoutGrantingModelAccess() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        SqliteChatStore(context).use { store ->
+            val target = PostTurnTarget("dev.solvit.memory", "1.3.0", "a".repeat(64))
+            val session = store.createSession()
+            store.append(ChatMessage("task-user", session.id, Role.USER, "Preference"))
+            val turn = CompletedChatTurn("task-answer", session.id, "task-user", "task-answer", null, null,
+                null, null, "fixture", "fixture", 1, listOf(target))
+            store.appendCompletedTurn(listOf(ChatMessage(turn.id, session.id, Role.ASSISTANT, "Saved")), turn)
+            val jobId = "${turn.id}:${target.pluginId}"
+            assertTrue(store.claimPostTurnJob(jobId, 0, 2))
+            assertTrue(store.finishPostTurnJob(jobId, 1, PostTurnJobStatus.FAILED, PostTurnFailure.MODEL, 3))
+            val provider = object : ModelProvider {
+                override val id = "fixture"
+                override fun stream(request: ModelRequest) = error("Page must not invoke inference")
+            }
+            val worker = PostTurnWorker(store, PostTurnHookRegistry(), provider, { null }, { null }, scope)
+            val manager = BuiltinMemoryManager(context)
+            val receipt = buildJsonObject {
+                put("turnId", turn.id); put("sessionId", session.id); put("userMessageId", turn.userMessageId)
+                put("assistantMessageId", turn.assistantMessageId); put("roleId", JsonNull); put("roleName", JsonNull)
+                put("factIds", JsonArray(emptyList()))
+            }
+            PluginDataStore(context).set(target.pluginId, "memory.v1",
+                JsonObject(manager.snapshot() + ("completedSources" to JsonArray(listOf(receipt)))), true) {}
+            val page = manager.openPage("en", worker, "tasks")
+            try {
+                var snapshot = page.open()
+                assertTrue(snapshot.json.contains("Background memory tasks"))
+                snapshot = page.dispatch(snapshot.revision, "task_open_0", null, emptyMap(), false)
+                assertTrue(snapshot.json.contains("task-user"))
+                assertFailsWith<IllegalArgumentException> { page.dispatch(snapshot.revision, "task_retry", null, emptyMap(), false) }
+                assertEquals(PostTurnJobStatus.FAILED, store.postTurnJob(jobId)!!.status)
+                snapshot = page.dispatch(snapshot.revision, "task_retry", null, emptyMap(), true)
+                assertEquals(PostTurnJobStatus.WAITING, store.postTurnJob(jobId)!!.status)
+                page.dispatch(snapshot.revision, "task_delete", null, emptyMap(), true)
+                assertNull(store.postTurnJob(jobId))
+                assertTrue(manager.snapshot().getValue("completedSources").jsonArray.isEmpty())
+                assertEquals(2, store.history(session.id).size)
+                assertTrue(context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).all.isEmpty())
+            } finally { page.close(); scope.cancel() }
+        }
     }
     @Test fun humanManagementWorksWithoutEnablingPluginOrGrantingModelAndSurvivesRestart() = runBlocking<Unit> {
         val manager = BuiltinMemoryManager(context)

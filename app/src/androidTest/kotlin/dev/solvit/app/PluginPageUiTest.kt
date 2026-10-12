@@ -20,6 +20,26 @@ import org.junit.Assert.*
 /** Actual Android QuickJS -> generic Compose form -> callback -> native persistent storage. */
 class PluginPageUiTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    @Test fun nativeTaskControlShowsHostWarningAndRequiresExplicitConfirmation() {
+        val view = ScriptPageView.parse("""{"title":"Tasks","nodes":[],"footer":[
+            {"id":"retry","kind":"button","text":"Continue","action":"retry",
+             "hostAction":{"kind":"postTurn.retry","jobId":"task-a","attempt":1}}]}""")
+        var accepted: PluginPageInteraction? = null
+        rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
+            PluginPageContent(view, false) { accepted = it }
+        } } }
+        rule.onNodeWithTag("plugin_node_retry").performClick()
+        rule.onNodeWithText("重试将使用原模型配置，可能产生额外费用。").assertIsDisplayed()
+        rule.onNodeWithText("task-a").assertIsDisplayed()
+        rule.onNodeWithText("取消").performClick()
+        rule.runOnIdle { assertNull(accepted) }
+        rule.onNodeWithTag("plugin_node_retry").performClick()
+        rule.onNodeWithTag("plugin_page_confirm").performClick()
+        rule.runOnIdle {
+            assertTrue(accepted!!.confirmed); assertEquals("retry", accepted!!.nodeId)
+            assertSame(view, accepted!!.view)
+        }
+    }
     @Test fun packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin() {
         val app = rule.activity.application as SolvitApplication
         val manager = dev.solvit.market.BuiltinMemoryManager(app)

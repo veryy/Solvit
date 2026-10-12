@@ -13,6 +13,7 @@ class ScriptPageView private constructor(
         put("title", title); put("nodes", JsonArray(nodes))
         if (footer.isNotEmpty()) put("footer", JsonArray(footer))
     }.toString()
+    fun hostAction(nodeId: String): JsonObject? = byId[nodeId]?.get("hostAction")?.jsonObject
     /** Resolve the action from the displayed page, never from caller-supplied action text. */
     fun event(nodeId: String, value: String? = null, fields: Map<String, String> = emptyMap(), confirmed: Boolean = false): JsonObject {
         val node = byId[nodeId] ?: error("Page node no longer exists")
@@ -20,6 +21,7 @@ class ScriptPageView private constructor(
         require(kind in setOf("button", "field", "choice", "graph"))
         require(node["enabled"]?.jsonPrimitive?.boolean != false)
         require(node["confirm"] == null || confirmed) { "Page action requires human confirmation" }
+        require(node["hostAction"] == null || confirmed) { "Native task control requires human confirmation" }
         val action = node["action"]?.jsonPrimitive?.content ?: error("Node has no action")
         when (kind) {
             "button" -> require(value == null)
@@ -66,7 +68,7 @@ class ScriptPageView private constructor(
                 val allowed = when (kind) {
                     "column", "row", "card" -> setOf("id", "kind", "children")
                     "text" -> setOf("id", "kind", "text", "tone")
-                    "button" -> setOf("id", "kind", "text", "action", "confirm", "enabled")
+                    "button" -> setOf("id", "kind", "text", "action", "confirm", "enabled", "hostAction")
                     "field" -> setOf("id", "kind", "label", "value", "action", "multiline")
                     "choice" -> setOf("id", "kind", "label", "value", "action", "options")
                     "graph" -> setOf("id", "kind", "nodes", "edges", "action")
@@ -84,6 +86,7 @@ class ScriptPageView private constructor(
                         node.text("text", 128, true); node.text("action", 80, true)
                         if ("confirm" in node) node.text("confirm", 1000, true)
                         node.optionalBoolean("enabled")
+                        node["hostAction"]?.let { ScriptPageHostAction.parse(it.jsonObject) }
                     }
                     "field" -> {
                         node.text("label", 128, true); node.text("value", MAX_FIELD)

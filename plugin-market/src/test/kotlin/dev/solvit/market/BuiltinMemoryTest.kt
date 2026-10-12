@@ -53,7 +53,7 @@ class BuiltinMemoryTest {
             assertEquals(path, server.takeRequest(2, TimeUnit.SECONDS)!!.path)
             val installed = market.installed.value.single { it.id == "dev.solvit.memory" }
             assertEquals("1.3.0", installed.version); assertFalse(installed.enabled)
-            assertEquals(listOf(ExtensionPage("main", "记忆")), installed.pages)
+            assertEquals(listOf(ExtensionPage("main", "记忆"), ExtensionPage("tasks", "自动记忆任务")), installed.pages)
             assertTrue(context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
                 .getStringSet("grants.dev.solvit.memory", emptySet()).orEmpty().isEmpty())
         } finally {
