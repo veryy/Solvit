@@ -9,3 +9,7 @@
 原有真实模型设置用例采用按键定位，仍验证保存后的加密配置值，并重复三次打开、滚到输出限制和思考参数、检查保存值及关闭。没有删除断言或捕获忽略线程异常。此前失败证据对应旧滚动路径，本轮仍需远程验证新路径；不宣称修复了AndroidX所有语义树读取问题。
 
 AndroidX参考：[Actions.kt](https://android.googlesource.com/platform/frameworks/support/+/202b4bda8adfeb303ac30e359e8436a3752fe2b0/compose/ui/ui-test/src/commonMain/kotlin/androidx/compose/ui/test/Actions.kt)、[官方滚动API](https://developer.android.com/reference/kotlin/androidx/compose/ui/test/SemanticsNodeInteraction)。未运行本地Android或TS构建/测试，候选尚未发布。
+
+同时实际读取同一 AndroidX 提交的 [ScrollToKeyTest.kt](https://android.googlesource.com/platform/frameworks/support/+/202b4bda8adfeb303ac30e359e8436a3752fe2b0/compose/ui/ui-test/src/androidDeviceTest/kotlin/androidx/compose/ui/test/actions/ScrollToKeyTest.kt)：覆盖视口内外、不存在的键、缺少语义动作，并由 `performScrollToKey_invokesActionOnOnUiThread` 明确检查滚动动作的主线程执行。采用已有API及其测试约定，没有复制上游测试代码。
+
+候选提交 `523fe7276247d2a98ffd2401e90b7583a00429c9` 的[远程运行](https://github.com/veryy/Solvit/actions/runs/38244926746)已通过编译、Lint、签名指纹、覆盖升级、271个单元及42个模拟器测试（实际XML均无失败、错误或跳过）。报告产物11744761467和11746536081已下载核对，连续三次重开的模型设置用例及角色界面到请求用例通过。正式标签发布结果待补；一轮通过不是对全框架线程问题的证明。
