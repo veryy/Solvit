@@ -22,7 +22,7 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28],application=Application::class)
 class ModelTaskRoutingTest {
-    @Test fun nativeSignedToolContinuationKeepsItsPrefixAndReceivesRefreshedPluginContext() = runBlocking {
+    @Test fun nativeSignedToolContinuationKeepsItsPrefixAndReceivesRefreshedPluginContext() = runBlocking<Unit> {
         val server = MockWebServer(); server.start()
         val client = OkHttpClient.Builder().callTimeout(10, TimeUnit.SECONDS).build()
         var contextText = "workspace state before tool"
