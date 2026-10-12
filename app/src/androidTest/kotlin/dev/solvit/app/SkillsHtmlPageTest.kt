@@ -45,16 +45,15 @@ class SkillsHtmlPageTest {
     private fun clickSystem(predicate: (AccessibilityNodeInfo) -> Boolean) {
         var target: AccessibilityNodeInfo? = null
         rule.waitUntil(10_000) { node(predicate)?.also { target = it } != null }
-        var clickable = checkNotNull(target)
-        repeat(8) { if (!clickable.isClickable) clickable.parent?.let { clickable = it } }
         // DocumentsUI's drawer ListView rows do not consistently expose ACTION_CLICK.
         // Tap the bounds of the observed, visible control rather than simulating a picker result.
-        val bounds = Rect().also(clickable::getBoundsInScreen)
+        val bounds = Rect().also(checkNotNull(target)::getBoundsInScreen)
         assertFalse("System document control must have visible bounds", bounds.isEmpty)
         val down = SystemClock.uptimeMillis()
         for (action in listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP)) {
             val event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action,
                 bounds.exactCenterX(), bounds.exactCenterY(), 0)
+            event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
             try { assertTrue("System document control must receive actual touch input", automation.injectInputEvent(event, true)) }
             finally { event.recycle() }
         }
@@ -137,6 +136,21 @@ class SkillsHtmlPageTest {
             assertTrue(runBlocking { app.skills.list().any { it.name == name } })
             click("delete"); confirm(); waitDom("document.querySelector('[data-node=message]')?.textContent==='已删除'")
             assertFalse(runBlocking { app.skills.list().any { it.name == name } })
+        } catch (error: Throwable) {
+            // This test uses generated fixtures only; preserve actual OS/HTML evidence before teardown.
+            runCatching { android.util.Log.e("SkillsDocumentDiagnostic", "HTML: " + html.js("document.body.innerText")) }
+            runCatching {
+                val queue = ArrayDeque<AccessibilityNodeInfo>()
+                automation.rootInActiveWindow?.let(queue::add)
+                var count = 0
+                while (queue.isNotEmpty() && count++ < 300) {
+                    val item = queue.removeFirst()
+                    android.util.Log.e("SkillsDocumentDiagnostic", "node: ${item.packageName} ${item.viewIdResourceName} ${item.text} ${item.contentDescription}")
+                    for (i in 0 until item.childCount) item.getChild(i)?.let(queue::add)
+                }
+                ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui; screencap -p /data/local/tmp/solvit-ui/skills-document-failure.png")).use { it.readBytes() }
+            }
+            throw error
         } finally {
             vm.viewModelScope.cancel()
             runBlocking { if (app.skills.list().any { it.name == name }) app.skills.remove(name); app.marketplace.disable("dev.solvit.skills") }
