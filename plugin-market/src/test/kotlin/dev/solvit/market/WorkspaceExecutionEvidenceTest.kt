@@ -30,7 +30,15 @@ class WorkspaceExecutionEvidenceTest {
         val ws=AndroidWorkspaces(context,scope,ShellLauncher(ShellPaths("/bin/sh","/usr/bin/setsid")))
         lateinit var session: ChatSession
         try {
-            manager.load(ToolsPlugin());manager.enableAll()
+            manager.load(ToolsPlugin())
+            manager.load(object : SolvitPlugin {
+                override val id="fixture.native-workspace"
+                override val provides=setOf(WorkspaceServiceKey,SystemExecutionServiceKey)
+                override suspend fun enable(context: PluginContext) {
+                    context.register(WorkspaceServiceKey,ws);context.register(SystemExecutionServiceKey,ws.execution)
+                }
+            })
+            manager.enableAll()
             val market=AndroidMarketplace(context,manager,client,manager.registry.require(Services.Tools),workspaces=ws)
             market.restore();market.enable("dev.solvit.workspace",setOf("workspace","shell"))
             SqliteChatStore(context).use { store ->
