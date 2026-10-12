@@ -4390,5 +4390,13 @@
     "ko": "플러그인을 활성화하면 페이지를 열 수 있습니다.",
     "es": "Activa el complemento para abrir sus páginas.",
     "fr": "Activez le plugin pour ouvrir ses pages."
+  },
+  "关闭插件界面": {
+    "zh": "关闭插件界面",
+    "en": "Close plugin view",
+    "ja": "プラグイン画面を閉じる",
+    "ko": "플러그인 화면 닫기",
+    "es": "Cerrar vista del complemento",
+    "fr": "Fermer la vue du plugin"
   }
 }

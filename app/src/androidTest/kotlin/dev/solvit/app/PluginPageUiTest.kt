@@ -49,7 +49,7 @@ class PluginPageUiTest {
             rule.onNodeWithTag("plugin_node_save").assertIsDisplayed().performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_node_body") and hasText("plugin-memory-ui-edited")).fetchSemanticsNodes().isNotEmpty() }
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
-            rule.onNodeWithContentDescription("关闭插件页面").performClick()
+            rule.onNodeWithContentDescription("关闭插件界面").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_content").fetchSemanticsNodes().isEmpty() }
             rule.runOnUiThread { visible = true }
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_query").fetchSemanticsNodes().isNotEmpty() }
@@ -107,7 +107,9 @@ class PluginPageUiTest {
             rule.waitUntil(10_000) {
                 app.getSharedPreferences("extension_data.$id", 0).getString("note", "") == JsonPrimitive("real market page note").toString()
             }
-            rule.onNodeWithContentDescription("关闭插件页面").performClick()
+            rule.onNodeWithContentDescription("关闭插件界面").assertExists().performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_note").fetchSemanticsNodes().isEmpty() }
+            rule.onNodeWithContentDescription("关闭插件页面").assertExists()
             rule.onNodeWithTag("installed_plugin_$id").performClick()
             rule.onNodeWithTag("open_plugin_page_${id}_main").performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_note") and hasText("real market page note")).fetchSemanticsNodes().isNotEmpty() }

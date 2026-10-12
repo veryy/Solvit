@@ -39,7 +39,7 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, on
     }
     FullScreenPage(onDismiss) {
         Scaffold(topBar = { TopAppBar(title = { Text(view?.title ?: title) }, navigationIcon = {
-            IconButton(onClick = onDismiss) { UiIcon(Icons.Default.Close, "关闭插件页面") }
+            IconButton(onClick = onDismiss, modifier = Modifier.testTag("plugin_page_close")) { UiIcon(Icons.Default.Close, "关闭插件界面") }
         }) }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
