@@ -25,6 +25,8 @@ SQLite 数据库候选版本 7：回复批次、来源记录和明确准入的�
 
 ## 验证
 
+发布后市场网页切换为 API 8，补齐 API 6/7/8 所需应用版本；[市场验证 38191218903](https://github.com/veryy/Solvit/actions/runs/38191218903) 成功后部署静态页面。实际公网 HTTPS 读取与提交 `62ec975` 的 HTML 字节完全一致，默认展示新版插件并提示最低应用版本；此前旧 API 客户端目录兼容逻辑未改。
+
 正式标签 `v0.19.0` 指向 `ece105ae4794c8fe9649ec740ca28a59a8d0ac93`，[Actions 38190322667](https://github.com/veryy/Solvit/actions/runs/38190322667) 的单元、模拟器、Lint、APK、固定签名、TS 插件、公网搜索和发布任务均成功。下载 XML 核对 213 个单元与 33 个模拟器测试，失败/错误/跳过均为 0。[公开 Release](https://github.com/veryy/Solvit/releases/tag/v0.19.0) 非草稿；实际下载 APK 为 22,835,567 字节，SHA-256 `48f2c8e32296700116ba0b6c88820ed8f1996035495f8ca72729866fac29caed`，与 GitHub 资产摘要一致。下载入口为 [solvit-debug.apk](https://github.com/veryy/Solvit/releases/download/v0.19.0/solvit-debug.apk)，Actions 产物 `solvit-debug-apk` 为 `11721208234`。签名门禁保持既有指纹；测试与下载证据不能代替真实模型或真机验收。
 
 发布集成候选 `d8529d2` 的 [Actions 38189402281](https://github.com/veryy/Solvit/actions/runs/38189402281) 已成功。下载单元与模拟器 XML 核对：213 个单元、33 个模拟器测试，失败/错误/跳过均为 0；Lint、APK、固定签名及覆盖升级通过。新增 API 8 市场请求→下载→校验→安装回归通过，安装后仍停用且无授权。该分支的插件和联网搜索任务按规则跳过，不能算通过；由 0.19.0 标签构建补齐。候选代码以快进合并保留全部历史；发布结果待标签门禁确认。
