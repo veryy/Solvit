@@ -2,13 +2,15 @@
 
 用户在 2026-10-13 明确纠正方向：插件应能用 JS/TS、HTML 自己绘制业务界面，记忆以关系图为主，MCP 要管理多个服务器，聊天内核必须按实际效果验收。API9 的 TS 控件树加 Compose 渲染不能当作这一目标已经完成。原有全部产品路线继续保留。
 
+当前候选已实现API10离线HTML/JS通用容器、Cytoscape记忆图与多MCP管理页。284项单元回归、Lint、APK和固定签名通过；完整模拟器44项中仅记忆图点击失败。单用例实际记录确认节点点击被桥接接受，但UI回调携带旧页面对象，导致当前版本校验丢弃。2f30ba2让事件携带桥接验证的页面快照，并将确认动作绑定同一快照；原失败用例正在远程复验，尚未发布0.22.0。
+
 ## 已核对的实际源码
 
 - Operit 锁定 dbf71916 的 `MemoryScreen.kt`、`graph/GraphVisualizer.kt`：图谱占首页主要区域并持续挂载，搜索、目录、节点/边选择及详情按需显示；实际图谱是 Compose Canvas，不是 HTML。采用交互方式，不能宣称已经搬来同等图谱能力。
 - Operit `ToolPkgComposeDslWebView.kt`、`JsComposeDslBridge.kt`：有独立 WebView 控制器、资源与事件桥接和关闭清理。读到的相关测试是输入队列与回显保护；没有找到对应图谱/HTML桥的直接回归，不把这些当作 Solvit 新 WebView 的验收。
 - Operit `McpConfigImportParser.kt` 及实际 `McpConfigImportParserTest.kt`：多个具名服务器、明确区分 stdio 与 HTTP/SSE、逐连接配置和禁用状态，拒绝模糊传输声明。Solvit 当前 MCP 只有一个 module-level session 和一个地址，不能称为多MCP管理。
 - DSH `ui-settings-shell/tests/apply.client.spec.ts`：插件业务页注册、主题语言与 dispose 时撤销；`agent-loop/tests/tool-updates.spec.ts`：请求中的真实工具目录与变化记录。Solvit已有每步上下文/工具刷新，但当前MCP只暴露桥接入口，真实模型角色、工具选择与任务完成质量尚未验收，不能重新宣称现有机制全都没有，也不能用测试计数代替效果。
-- [Cytoscape.js 官方文档](https://js.cytoscape.org/)确认纯JS图谱、MIT许可、节点/边事件及拖动缩放。拟采用现成组件，离线打入插件包并保留许可；尚未引入依赖或实现图谱。
+- [Cytoscape.js 官方文档](https://js.cytoscape.org/)确认纯JS图谱、MIT许可、节点/边事件及拖动缩放。已采用固定3.34.3组件离线打入插件包并保留许可；实际交互验收见上方当前状态。
 - [AndroidX WebView桥接契约](https://developer.android.com/develop/ui/views/layout/webapps/native-api-access-jsbridge)：消息桥限制页面来源、主frame与生命周期。将继续核对实现和真实Android回归。
 
 ## 当前实施范围
@@ -48,3 +50,5 @@ cd09572运行38282268111：build成功；HTML notes真实保存/重开/取消与
 多MCP候选1.1.0/API10已实现具名独立会话、HTML配置及加密CAS保存。已读取DSH实际`connection.ts`、`server-context.ts`和对应重连/上下文测试；仅采用每连接会话边界，不声称实现DSH完整重连与动态目录。远程生成38285153870通过，新包36488字节、SHA256 79dfb626d1216ecef5813dd82c332dc9c5b4e3fa5868c7974294e34ea8faeef0。API9保留原1.0.0包。Android多HTTPS路由和HTML管理验收仍待运行，服务端尚未部署新包。
 
 1461ac2完整UI运行38284159748揭示实际图谱容器高度0、节点renderedPosition为(10,10)，截图只有搜索栏没有图。修正HTML页面容器显式绑定viewport并明确图区域宽高，增加真实高度断言；同时窗口探针只选当前Activity拥有且显示的WebView，原生确认临时夺焦时允许读取底层页。修正后的远程生成38285810859通过，记忆候选包538936字节、SHA256 082fa4ad75e54f1f94151db72b78fcbefa7d22e443a74c6b42a8d70b9ece37dc。完整Android验收仍待通过。
+
+单用例运行38291008276记录图谱tapstart/tapend/tap均准确命中m1且busy=false；38292096486进一步记录消息桥接受graph/value，随后页面回调identity=false，未进入dispatch。由此排除触摸坐标与图谱命中作为剩余失败原因。2f30ba2明确转发事件所属的已验证ScriptPageView，HTML字段也使用该事件快照；共享确认状态保存视图/值/字段并只呈现当前视图的确认，过期token和宿主版本校验继续生效。截图等待WebView visual-state回调，选中边的加粗样式只作用于edge，节点保持圆形。下一步验证实际节点→详情→编辑→保存→重开→确认删除；临时诊断在发布前清理。
