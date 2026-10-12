@@ -15,6 +15,6 @@ npm start
 - `GET /api/v1/plugins`：目录、权限、依赖、包字节数和 SHA-256。
 - `GET /api/v1/packages/{id}/{version}`：下载对应包。
 
-包格式是 UTF-8 JSON，包含 `manifest` 和 JS `source`。TS 发布前编译并打包为 JS。当前示例插件是 `dev.solvit.clock`，不依赖系统能力。客户端须验证来源、大小、SHA-256、API 版本、依赖和权限后安装；下载并不代表启用。
+包格式是UTF-8 JSON，包含`manifest`和JS `source`；API10支持离线`resources`及HTML入口，所有资源属于完整包哈希。TS在GitHub Actions发布前编译打包。客户端验证来源、大小、SHA-256、API版本、依赖和权限后安装；下载不代表启用。目录按`hostApi`选择兼容版本，旧包保存在`packages/legacy`。
 
-原生 App 安装和执行流程正在实现。市场目录仅包含实际提供的包，不将待实现的记忆、MCP 或 Skills 标记为可用。
+已提供时钟、记忆、Skills、MCP、网页搜索及工作区等实际包。仓库候选支持API10记忆关系图及多MCP页面；线上部署状态以对应阶段验收记录为准，不能仅凭仓库文件宣称已部署。
