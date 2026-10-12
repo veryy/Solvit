@@ -94,9 +94,12 @@ class ToolAgentRuntime(
                         return request.authorization.authorizeCallForRole(descriptor, actual, role)
                     }
                 }
+                var authorizedDispatch=false
                 val outcome = try {
                     val result = tools.executeCall(call, gate, request.agentRole, execution, request.conversation) {
+                        request.executionJournal.beforeTool(step,advertised.first { it.name==call.name })
                         request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_STARTED,callId=call.id)))
+                        authorizedDispatch=true
                         emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING))
                     }
                     if(result.toByteArray(Charsets.UTF_8).size > 256*1024) throw ToolExecutionException(ToolFailureCode.RESOURCE_LIMIT)
@@ -117,6 +120,7 @@ class ToolAgentRuntime(
                 }
                 request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_FINISHED,
                     callId=call.id,stage=outcome.first,result=outcome.second)))
+                if(authorizedDispatch && outcome.first!=ToolStage.DENIED) request.executionJournal.afterTool(step,advertised.first { it.name==call.name })
                 emit(ModelChunk.ToolActivity(call, outcome.first, outcome.second))
                 val result = ModelMessage(Role.TOOL, outcome.second, toolCallId = call.id, toolStage = outcome.first)
                 messages += result

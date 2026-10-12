@@ -117,7 +117,14 @@ class WorkspaceExecutionEvidenceTest {
             }
             SqliteChatStore(context).use { reopened ->
                 val run=reopened.executionRuns(session.id).first().single();val records=reopened.executionEvents(session.id,run.id)
-                assertEquals(35,records.size)
+                assertEquals(35,records.count { it.event.workspace==null })
+                val baseline=records.single { it.event.kind==ExecutionKind.WORKSPACE_BASELINE }.event.workspace!!
+                val observed=records.filter { it.event.kind==ExecutionKind.WORKSPACE_OBSERVED }
+                assertEquals(7,observed.size)
+                val comparison=compareWorkspaceSnapshots(baseline,observed.last().event.workspace!!)
+                assertTrue(comparison.complete)
+                assertEquals(WorkspaceChangeKind.CREATED,comparison.changes.single { it.path=="main.sh" }.kind)
+                assertTrue(comparison.changes.single { it.path=="main.sh" }.after.excerpt!!.contains("verified"))
                 val failed=records.single { it.event.callId=="status-broken" && it.event.kind==ExecutionKind.TOOL_FINISHED }.event
                 val verified=records.single { it.event.callId=="status-fixed" && it.event.kind==ExecutionKind.TOOL_FINISHED }.event
                 assertEquals(7,Json.parseToJsonElement(failed.result!!).jsonObject["exitCode"]!!.jsonPrimitive.int)

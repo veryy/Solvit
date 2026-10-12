@@ -54,6 +54,7 @@ internal object ExecutionJournalDatabase {
         require(batch.size in 1..64 && expectedSequence in 0..512 && now>=0)
         val run=run(db,runId) ?: return false
         if(run.status != ExecutionStatus.RUNNING || now<run.updatedAt) return false
+        require(batch.all { event -> event.workspace?.let { it.workspaceId==run.workspaceId } ?: true })
         val prior=events(db,run.sessionId,run.id)
         if(prior.size!=expectedSequence || prior.size+batch.size>512) return false
         val state=ExecutionJournalState();prior.forEach { state.accept(it.event) };batch.forEach(state::accept)
@@ -81,11 +82,24 @@ internal object ExecutionJournalDatabase {
     private fun encode(e: ExecutionEvent)=JSONObject().put("step",e.step).put("kind",e.kind.name).put("truncated",e.truncated).apply {
         e.call?.let { put("call",JSONObject().put("id",it.id).put("name",it.name).put("arguments",it.argumentsJson)) }
         e.pluginId?.let { put("plugin",it) };e.callId?.let { put("callId",it) };e.stage?.let { put("stage",it.name) };e.result?.let { put("result",it) }
+        e.workspace?.let { snapshot -> put("workspace",JSONObject().put("id",snapshot.workspaceId)
+            .put("complete",snapshot.complete).put("observedAt",snapshot.observedAt).put("files",JSONObject().apply {
+                snapshot.files.forEach { (path,value) -> put(path,JSONObject().put("kind",value.kind.name)
+                    .put("bytes",value.bytes ?: JSONObject.NULL).put("sha256",value.sha256 ?: JSONObject.NULL)
+                    .put("excerpt",value.excerpt ?: JSONObject.NULL).put("truncated",value.excerptTruncated)) }
+            })) }
     }
     private fun decode(j: JSONObject)=ExecutionEvent(j.getInt("step"),ExecutionKind.valueOf(j.getString("kind")),
         j.optJSONObject("call")?.let { ToolCall(it.getString("id"),it.getString("name"),it.getString("arguments")) },
         if(j.has("plugin")) j.getString("plugin") else null,if(j.has("callId")) j.getString("callId") else null,
         if(j.has("stage")) ToolStage.valueOf(j.getString("stage")) else null,if(j.has("result")) j.getString("result") else null,
-        j.getBoolean("truncated")).also(ExecutionEvent::validate)
+        j.getBoolean("truncated"),j.optJSONObject("workspace")?.let { s ->
+            val files=s.getJSONObject("files")
+            WorkspaceSnapshot(s.getString("id"),files.keys().asSequence().associateWith { path ->
+                val v=files.getJSONObject(path)
+                FileObservation(FileObservationKind.valueOf(v.getString("kind")),if(v.isNull("bytes")) null else v.getLong("bytes"),
+                    if(v.isNull("sha256")) null else v.getString("sha256"),if(v.isNull("excerpt")) null else v.getString("excerpt"),v.getBoolean("truncated"))
+            },s.getBoolean("complete"),s.getLong("observedAt"))
+        }).also(ExecutionEvent::validate)
     private const val MAX_PAYLOAD=512*1024
 }

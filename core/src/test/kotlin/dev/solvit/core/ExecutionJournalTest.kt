@@ -3,6 +3,25 @@ package dev.solvit.core
 import kotlin.test.*
 
 class ExecutionJournalTest {
+    @Test fun workspaceObservationsRequireBaselineSettledToolAndSameWorkspace() {
+        val state=ExecutionJournalState()
+        val snapshot=WorkspaceSnapshot("workspace",emptyMap(),true,0)
+        val baseline=ExecutionEvent(1,ExecutionKind.WORKSPACE_BASELINE,workspace=snapshot)
+        val observed=baseline.copy(kind=ExecutionKind.WORKSPACE_OBSERVED)
+        state.accept(ExecutionEvent(1,ExecutionKind.STEP_STARTED))
+        assertFailsWith<IllegalArgumentException> { state.accept(baseline) }
+        state.accept(proposed)
+        assertFailsWith<IllegalArgumentException> { state.accept(observed) }
+        state.accept(baseline)
+        assertFailsWith<IllegalArgumentException> { state.accept(baseline) }
+        assertFailsWith<IllegalArgumentException> { state.accept(observed) }
+        state.accept(ExecutionEvent(1,ExecutionKind.TOOL_STARTED,callId="call"))
+        state.accept(ExecutionEvent(1,ExecutionKind.TOOL_FINISHED,callId="call",stage=ToolStage.SUCCEEDED,result="ok"))
+        assertFailsWith<IllegalArgumentException> { state.accept(observed.copy(workspace=snapshot.copy(workspaceId="other"))) }
+        state.accept(observed)
+        state.accept(ExecutionEvent(1,ExecutionKind.STEP_FINISHED))
+        assertFailsWith<IllegalArgumentException> { state.accept(observed) }
+    }
     private val proposed=ExecutionEvent(1,ExecutionKind.TOOL_PROPOSED,ToolCall("call","write","{}"),"files")
     @Test fun refusesUnmatchedDuplicateAndPrematureCompletion() {
         val state=ExecutionJournalState()

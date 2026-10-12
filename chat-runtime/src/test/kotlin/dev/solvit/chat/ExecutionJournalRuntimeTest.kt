@@ -45,11 +45,60 @@ class ExecutionJournalRuntimeTest {
             emit(ModelChunk.Done)
         }
     }
-    private fun tools(execute: suspend ()->String): ToolRegistry = ToolRegistry(EventBus()).apply {
+    private fun tools(capabilities: Set<String> = emptySet(), execute: suspend ()->String): ToolRegistry = ToolRegistry(EventBus()).apply {
         register(object : SolvitTool {
-            override val descriptor=ToolDescriptor("write","write","{}",pluginId="files")
+            override val descriptor=ToolDescriptor("write","write","{}",pluginId="files",capabilities=capabilities)
             override suspend fun execute(argumentsJson: String)=execute()
         })
+    }
+    private class ObservedWorkspace : WorkspaceService {
+        private val workspace=Workspace("workspace","test")
+        override val state=MutableStateFlow(WorkspaceState(listOf(workspace),mapOf("session" to workspace.id)))
+        override val jobs=MutableStateFlow<List<ShellJob>>(emptyList())
+        var snapshots=0
+        var written=false
+        override suspend fun snapshot(workspaceId: String): WorkspaceSnapshot {
+            snapshots++
+            val files=if(written) mapOf("main.sh" to FileObservation(FileObservationKind.TEXT,2,"a".repeat(64),"ok")) else emptyMap()
+            return WorkspaceSnapshot(workspaceId,files,true,0)
+        }
+        override suspend fun forChat(sessionId: String): Workspace=error("No implicit creation")
+        override suspend fun bind(sessionId: String,workspaceId: String)=Unit
+        override suspend fun unbind(sessionId: String) { state.value=state.value.copy(bindings=emptyMap()) }
+        override suspend fun create(name: String): Workspace=error("Not used")
+        override suspend fun createShell(workspaceId: String,name: String): ShellSession=error("Not used")
+        override suspend fun read(workspaceId: String,path: String): String=error("Not used")
+        override suspend fun write(workspaceId: String,path: String,text: String)=Unit
+        override suspend fun run(workspaceId: String,shellId: String,command: String,timeoutMs: Long): ShellJob=error("Not used")
+        override suspend fun cancel(workspaceId: String,jobId: String)=Unit
+        override suspend fun cancelOwner(owner: String)=Unit
+    }
+    @Test fun workspaceCapturesAreAuthorizedBeforeEffectsAndDurableAfterReturn() = runTest {
+        val store=JournalStore();val ws=ObservedWorkspace()
+        val gate=object : ToolAuthorization {
+            override suspend fun authorize(descriptor: ToolDescriptor): Boolean { assertEquals(0,ws.snapshots);return true }
+        }
+        val agent=ToolAgentRuntime(provider {
+            val observations=store.events.mapNotNull { it.workspace }
+            assertEquals(2,observations.size)
+            assertEquals(WorkspaceChangeKind.CREATED,compareWorkspaceSnapshots(observations.first(),observations.last()).changes.single().kind)
+        },tools(setOf("workspace")) {
+            assertEquals(1,ws.snapshots)
+            assertTrue(store.events.single { it.kind==ExecutionKind.WORKSPACE_BASELINE }.workspace!!.files.isEmpty())
+            ws.written=true;"ok"
+        })
+        DefaultChatService(store,agent,EventBus(),workspaces=ws).send("session","write",ModelConfig(),gate).toList()
+        assertEquals(2,ws.snapshots)
+    }
+    @Test fun deniedAndUnrelatedToolsNeverReadWorkspaceFiles() = runTest {
+        for(denied in listOf(true,false)) {
+            val store=JournalStore();val ws=ObservedWorkspace();var effects=0
+            val agent=ToolAgentRuntime(provider(),tools(if(denied) setOf("workspace") else emptySet()) { effects++;"ok" })
+            val deny=object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor)=false }
+            DefaultChatService(store,agent,EventBus(),workspaces=ws).send("session","run",ModelConfig(),if(denied) deny else allow).toList()
+            assertEquals(0,ws.snapshots);assertTrue(store.events.none { it.workspace!=null })
+            assertEquals(if(denied) 0 else 1,effects)
+        }
     }
     @Test fun recordsProposalBeforeApprovalAndStartBeforeEffectsAndResultBeforeFollowUp() = runTest {
         val store=JournalStore()

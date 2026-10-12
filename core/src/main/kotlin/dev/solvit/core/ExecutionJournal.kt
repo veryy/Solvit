@@ -12,13 +12,18 @@ data class ExecutionRun(val id: String, val sessionId: String, val userMessageId
         require(eventCount in 0..512)
     }
 }
-enum class ExecutionKind { STEP_STARTED, TOOL_PROPOSED, TOOL_STARTED, TOOL_FINISHED, STEP_FINISHED }
+enum class ExecutionKind { STEP_STARTED, TOOL_PROPOSED, TOOL_STARTED, TOOL_FINISHED, STEP_FINISHED, WORKSPACE_BASELINE, WORKSPACE_OBSERVED }
 data class ExecutionEvent(val step: Int, val kind: ExecutionKind, val call: ToolCall? = null,
     val pluginId: String? = null, val callId: String? = null, val stage: ToolStage? = null,
-    val result: String? = null, val truncated: Boolean = false) {
+    val result: String? = null, val truncated: Boolean = false, val workspace: WorkspaceSnapshot? = null) {
     fun validate() {
         require(step in 1..64)
+        require((workspace!=null)==(kind in setOf(ExecutionKind.WORKSPACE_BASELINE,ExecutionKind.WORKSPACE_OBSERVED)))
         when (kind) {
+            ExecutionKind.WORKSPACE_BASELINE,ExecutionKind.WORKSPACE_OBSERVED -> {
+                require(call==null && pluginId==null && callId==null && stage==null && result==null && !truncated)
+                requireNotNull(workspace).validate()
+            }
             ExecutionKind.STEP_STARTED, ExecutionKind.STEP_FINISHED ->
                 require(call == null && pluginId == null && callId == null && stage == null && result == null && !truncated)
             ExecutionKind.TOOL_PROPOSED -> {
@@ -48,10 +53,18 @@ class ExecutionJournalState {
     private var open = false
     private var dispatched = false
     private val calls = mutableMapOf<String, Pair<Int, ExecutionKind>>()
+    private var baselineWorkspace: String?=null
     val stepOpen get() = open
     fun accept(event: ExecutionEvent) {
         event.validate()
         when (event.kind) {
+            ExecutionKind.WORKSPACE_BASELINE -> {
+                require(open && event.step==step && baselineWorkspace==null && calls.values.any { it.first==step && it.second==ExecutionKind.TOOL_PROPOSED })
+                baselineWorkspace=requireNotNull(event.workspace).workspaceId
+            }
+            ExecutionKind.WORKSPACE_OBSERVED -> {
+                require(open && event.step==step && baselineWorkspace!=null && event.workspace?.workspaceId==baselineWorkspace && calls.values.any { it.first==step && it.second==ExecutionKind.TOOL_FINISHED })
+            }
             ExecutionKind.STEP_STARTED -> {
                 require(!open && event.step == step + 1); step = event.step; open = true; dispatched = false
             }
@@ -83,6 +96,8 @@ class ExecutionJournalState {
 fun interface ExecutionJournal {
     /** A batch must become durable before returning, or fail before any following side effect. */
     suspend fun append(events: List<ExecutionEvent>)
+    suspend fun beforeTool(step: Int, descriptor: ToolDescriptor) {}
+    suspend fun afterTool(step: Int, descriptor: ToolDescriptor) {}
 }
 val NoExecutionJournal = ExecutionJournal { }
 class ExecutionJournalException(cause: Throwable? = null) : IllegalStateException("无法保存执行记录，已停止后续操作", cause)

@@ -5,8 +5,13 @@ data class WorkspaceSnapshot(val workspaceId: String, val files: Map<String,File
     val complete: Boolean, val observedAt: Long) {
     fun validate() {
         require(workspaceId.isNotBlank() && workspaceId.length<=128 && observedAt>=0 && files.size<=64)
-        require(files.keys.all { path -> path.isNotBlank() && path.length<=1024 && !path.startsWith('/') &&
-            '\u0000' !in path && path.split('/').none { it in setOf("",".","..") } })
+        require(files.keys.all { path -> path.isNotBlank() && path.toByteArray(Charsets.UTF_8).size<=1024 && !path.startsWith('/') &&
+            path.none(Char::isISOControl) && path.split('/').none { it in setOf("",".","..") } })
+        files.values.forEach { value ->
+            require(value.bytes==null || value.bytes>=0)
+            require(value.sha256==null || value.sha256.matches(Regex("[a-f0-9]{64}")))
+            require(value.excerpt==null || value.excerpt.toByteArray(Charsets.UTF_8).size<=2048)
+        }
     }
 }
 enum class WorkspaceChangeKind { CREATED, MODIFIED, DELETED, UNKNOWN }

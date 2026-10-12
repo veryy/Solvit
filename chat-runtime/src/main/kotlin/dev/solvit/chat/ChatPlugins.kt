@@ -89,7 +89,7 @@ class DefaultChatService(
             if(store.supportsExecutionJournal) {
                 val run=ExecutionRun(UUID.randomUUID().toString(),sessionId,user.id,sourceRole?.id,conversation?.workspaceId,System.currentTimeMillis())
                 if(!store.beginExecutionRun(run)) throw ExecutionJournalException()
-                journal=StoredExecutionJournal(store,run,listOf(config.apiKey)+modelProfiles?.state?.value?.profiles.orEmpty().map { it.config.apiKey })
+                journal=StoredExecutionJournal(store,run,listOf(config.apiKey)+modelProfiles?.state?.value?.profiles.orEmpty().map { it.config.apiKey },workspaces=workspaces)
             }
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
             val sections = ChatContextComposer.sections(role, config.systemPrompt)

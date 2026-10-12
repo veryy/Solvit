@@ -23,7 +23,7 @@ internal object WorkspaceSnapshots {
                 currentCoroutineContext().ensureActive()
                 if(++visited>512 || files.size>=64) { complete=false;return }
                 val path=child.relativeTo(base).invariantSeparatorsPath
-                if(path.length>1024) { complete=false;continue }
+                if(path.toByteArray(Charsets.UTF_8).size>1024 || path.any(Char::isISOControl)) { complete=false;continue }
                 if(Files.isSymbolicLink(child.toPath())) {
                     files[path]=FileObservation(FileObservationKind.UNAVAILABLE);complete=false;continue
                 }
