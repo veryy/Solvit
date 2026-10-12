@@ -867,7 +867,7 @@ class ChatLayoutTest {
                 "\n"+rule.onRoot().printToString(),e)
         }
         rule.onNodeWithTag("shell_command").performClick().performTextInput("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
-        rule.onNodeWithTag("shell_command").assertTextContains("UI_PTY_STATE")
+        rule.onNodeWithTag("shell_command").assert(hasText("UI_PTY_STATE", substring = true))
         try {
             rule.waitUntil(8000) { rule.onAllNodes(hasText("发送输入") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             rule.waitUntil(8000) { rule.onNodeWithText("发送输入").isDisplayed() }
