@@ -53,3 +53,9 @@ UI候选 `f9cf32e` 的Android38203674752实际失败于生产SQLite编译：`Exe
 再次读取DSH `workspace-changes/src/capture.ts` 与 `tests/capture.spec.ts`，采用有界读取、缺失/二进制/超限区分与不可变内容身份原则，独立Kotlin适配，没有复制Node实现。WorkspaceService增加可选writeObserved，替换存储不支持观测时明确UNAVAILABLE/verified=false；生产文件写前同锁捕获、AtomicFile写入、实际重读并校验目标内容SHA-256。最多读取256KiB+1，前后可查看片段各6KiB，正确UTF-8截断；超限旧文件不伪装缺失/未改变，changed为null。写后异常不能声称写成功已验证。
 
 JS工作区write_file返回实际前后观察，完整任务回归检查首次缺失→错误脚本、错误脚本→修复脚本，模型和持久日志都可看证据。新增原生回归覆盖新建/替换/不变、片段不可变、规范路径、二进制/超限/UTF-8、目录与越界拒绝。当前是每次文件工具写入证据，不是整个项目快照或Shell所有变更；后者继续作为本阶段工作保留。远程验证待运行。
+
+## 即时日志与聊天恢复完整远程门禁
+
+前一提交ef0654d的[Android38205216200](https://github.com/veryy/Solvit/actions/runs/38205216200)已completed/success，不是被新提交取消。下载模拟器实际产物11727815159：40个测试（app31/web1/terminal8），零失败/错误/跳过；`ExecutionJournalUiTest.interruptedObservationsReopenInsideOneReplyAndNeverInventMissingResults`确实执行并通过。SQLite关闭重开、折叠读取、结果未知和同一气泡显示得到Android模拟器证据。此前254个单元、Lint/APK和固定签名成功结论仍适用于该提交。
+
+新文件证据5a50eec的Android38205978852/build114669453926当前in_progress，不能沿用旧绿灯作为新行为验证。尚未发布新版本；完整工作区差异、错误详情、设备任务与真实模型验收继续保留。
