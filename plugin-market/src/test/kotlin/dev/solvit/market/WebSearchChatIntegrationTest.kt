@@ -58,7 +58,7 @@ class WebSearchChatIntegrationTest {
             val market = AndroidMarketplace(context, manager, client, tools, config, webPages = manager.registry.require(WebPageServiceKey))
             market.restore()
             val upgraded = market.installed.value.single { it.id == "dev.solvit.web-search" }
-            assertEquals("1.2.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals("1.2.1", upgraded.version); assertTrue(upgraded.enabled)
             assertTrue(market.configuration(upgraded.id).isEmpty())
             val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
             val result = tools.executeCall(ToolCall("search-default", "dev_solvit_web_search_search", """{"query":"Solvit"}"""), allow)
