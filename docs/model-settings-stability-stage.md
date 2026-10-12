@@ -31,3 +31,5 @@ AndroidX参考：[Actions.kt](https://android.googlesource.com/platform/framewor
 0.22.1运行38298054367的第1、2次尝试都在同一处失败：协议切换后performScrollToKey已返回，model_name字段在performClick获取节点时不存在，ChatLayoutTest.kt:754。新版HTML记忆/多MCP及实际图谱PNG检查通过，不能把这两次设置失败记为已修复。公开搜索两次另遇Bing人机验证和DDG错误。原发布未产生APK。
 
 读取Operit实际ModelConfigScreen.kt、ModelApiSettingsSection.kt及ComposeDslTextFieldEchoGuardTest.kt，核对Provider条件字段和编辑焦点状态边界；没有复制LGPL源码。当前Solvit协议按钮/菜单未清理仍在编辑的配置名称焦点，假设它导致IME重排及bring-into-view与列表滚动互相抢位置。聚焦原模型设置操作并增加协议选择后名称不再处于文本编辑焦点的回归，先在旧实现观察结果，再决定修复；不放宽超时、不跳过原滚动/保存/三次重开断言。
+
+聚焦旧实现[38300906008](https://github.com/veryy/Solvit/actions/runs/38300906008)失败于新增焦点回归：期望0个编辑中的model_profile_name，实际1个Focused=true。确认协议选择没有结束旧文本编辑。候选在FullScreenPage内部取得实际Dialog的LocalFocusManager/键盘控制器，打开协议与Provider参数菜单前clearFocus(force=true)并hide，不清空输入内容。仍需验证原模型名滚动/输入和保存/三次重开，才能判断原失败是否解决；当前仅确认焦点缺陷，不把假设和最终根因混为一谈。

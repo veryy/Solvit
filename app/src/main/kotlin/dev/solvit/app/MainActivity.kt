@@ -384,6 +384,10 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
     val candidate = ModelConfig(base.trim(), model.trim(), key.trim(), prompt, listUrl.trim(), listAuth, protocol, options, budget)
     val invalid = providers.validate(candidate)
     FullScreenPage(onDismissRequest = onDismiss) {
+        // Use this Dialog's focus owner, rather than the underlying chat Activity's owner.
+        val focusManager = LocalFocusManager.current
+        val keyboard = LocalSoftwareKeyboardController.current
+        fun finishEditing() { focusManager.clearFocus(force = true); keyboard?.hide() }
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Scaffold(topBar = { TopAppBar(title = { UiText("模型设置") }, navigationIcon = {
                 IconButton(onClick = onDismiss, enabled = !saving) { UiIcon(Icons.Default.Close, "关闭设置") }
@@ -397,7 +401,7 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
                     if (profileName != null) item { OutlinedTextField(profileName,onProfileNameChanged,label={ UiText("配置名称") },singleLine=true,enabled=!saving,modifier=Modifier.fillMaxWidth().testTag("model_profile_name")) }
                     item { UiText("连接你选择的模型", style = MaterialTheme.typography.headlineSmall) }
                     item { Box {
-                        OutlinedButton(onClick={ protocolPicker=true },enabled=!saving,modifier=Modifier.testTag("model_protocol")) {
+                        OutlinedButton(onClick={ finishEditing(); protocolPicker=true },enabled=!saving,modifier=Modifier.testTag("model_protocol")) {
                             UiText("模型协议"); Spacer(Modifier.width(8.dp));Text(descriptor?.name ?: protocol)
                         }
                         DropdownMenu(expanded=protocolPicker,onDismissRequest={ protocolPicker=false }) {
@@ -455,7 +459,7 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
                         else {
                             var expanded by remember { mutableStateOf(false) }
                             Box {
-                                OutlinedButton(onClick={ expanded=true },enabled=!saving,modifier=Modifier.testTag("provider_option_${option.key}")) {
+                                OutlinedButton(onClick={ finishEditing(); expanded=true },enabled=!saving,modifier=Modifier.testTag("provider_option_${option.key}")) {
                                     UiText(option.label); Spacer(Modifier.width(8.dp)); UiText(option.choices.firstOrNull { it.first==current }?.second ?: current)
                                 }
                                 DropdownMenu(expanded=expanded,onDismissRequest={ expanded=false }) {
