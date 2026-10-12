@@ -28,7 +28,9 @@ export interface PluginContext {
   readonly clock?: { now(): Promise<{ utc: string; localTime: string; timezone: string; timezoneOffsetMinutes: number;
     utcOffset?: string; weekday?: number; displayLocal?: string; displayUtc?: string }> };
   readonly role?: { readonly id: string; readonly name: string; readonly skillIds: readonly string[] } | null;
-  readonly settings: { get(key: string): Promise<string | null> };
+  readonly settings: { get(key: string): Promise<string | null>;
+    /** API10, live pages only. Atomic encrypted update of a declared setting. */
+    compareAndSet?(key: string, expected: string | null, value: string): Promise<boolean> };
   readonly storage: {
     get<T extends JsonValue = JsonValue>(key: string): Promise<T | null>;
     set(key: string, value: JsonValue): Promise<null>;
@@ -61,7 +63,7 @@ export interface PluginManifest {
   pages?: { id: string; title: string; entry?: string }[];
   hooks?: ('beforeModel' | 'afterTurn')[];
   afterTurnEnabledSetting?: string;
-  settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret' | 'boolean'; required?: boolean; defaultValue?: 'true' | 'false' }[];
+  settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret' | 'boolean'; required?: boolean; defaultValue?: 'true' | 'false'; pageManaged?: boolean }[];
   permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins' | 'model')[];
   dependencies: string[];
   tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management' }[];

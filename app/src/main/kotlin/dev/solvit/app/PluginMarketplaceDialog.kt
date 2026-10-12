@@ -99,7 +99,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
                 UiText("配置 ${extension.name}", style = MaterialTheme.typography.titleLarge)
                 UiText("配置只提供给此插件，密钥加密保存在本机。")
                 LazyColumn(Modifier.heightIn(max = 400.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    items(extension.settings, key = { it.key }) { field ->
+                    items(extension.settings.filterNot { it.pageManaged }, key = { it.key }) { field ->
                         if (field.kind == "boolean") {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -153,7 +153,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
                 if (extension.contextHooks.isNotEmpty()) item { UiText("插件可为聊天提供上下文；停用后停止提供。") }
                 if (extension.enabled) item { UiText("AI 可发现 ${extension.tools.count { it.chatVisible }} 个工具；角色需允许此插件，执行时会请求确认。") }
                 extension.failure?.let { item { UiText(it, color = MaterialTheme.colorScheme.error) } }
-                if (extension.settings.isNotEmpty()) item { TextButton(enabled = !busy && !extension.enabled, onClick = { installedTarget = null; vm.openConfiguration(extension) }) { UiText(if (extension.enabled) "停用后可配置" else "配置插件") } }
+                if (extension.settings.any { !it.pageManaged }) item { TextButton(enabled = !busy && !extension.enabled, onClick = { installedTarget = null; vm.openConfiguration(extension) }) { UiText(if (extension.enabled) "停用后可配置" else "配置插件") } }
                 items(extension.pages, key = { "page_" + it.id }) { page ->
                     TextButton(enabled = !busy && extension.enabled, modifier = Modifier.testTag("open_plugin_page_${extension.id}_${page.id}"),
                         onClick = { installedTarget = null; openedPage = extension.id to page }) { Text(page.title) }

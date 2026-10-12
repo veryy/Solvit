@@ -7,7 +7,8 @@ data class MarketEntry(
     val permissions: Set<String>, val dependencies: Set<String>,
     val sha256: String, val bytes: Long, val downloadPath: String,
 )
-data class ExtensionSetting(val key: String, val label: String, val kind: String, val required: Boolean = false, val defaultValue: String? = null)
+data class ExtensionSetting(val key: String, val label: String, val kind: String, val required: Boolean = false,
+    val defaultValue: String? = null, val pageManaged: Boolean = false)
 data class ExtensionPage(val id: String, val title: String)
 data class ExtensionPageSnapshot(val revision: Long, val json: String)
 data class ExtensionPageDocument(val entry: String)

@@ -51,7 +51,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
                         "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
                         "plugins.draft" -> "plugins"
-                        "settings.get", "clock.now" -> null
+                        "settings.get", "settings.compareAndSet", "clock.now" -> null
                         else -> error("宿主未开放此操作")
                     }
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
@@ -62,11 +62,12 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(operation !in setOf("model.complete", "storage.compareAndSet") || pkg.manifest.apiVersion >= 8) { "此操作需要 API 8" }
                     check(!operation.startsWith("jobs.") || pkg.manifest.apiVersion >= 9) { "任务页面需要 API 9" }
                     check(operation != "model.complete" || background) { "模型调用只允许在后台 Hook 中使用" }
+                    check(operation != "settings.compareAndSet" || pkg.manifest.apiVersion >= 10 && !invokeLifecycle) { "配置写入仅供 API10 插件页面使用" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
                     withContext(parent) {
-                        if (operation.startsWith("jobs.")) {
+                        if (operation.startsWith("jobs.") || operation == "settings.compareAndSet") {
                             val page = currentCoroutineContext()[ScriptPageExecutionContext] ?: error("任务管理仅供插件页面使用")
                             check(page.pluginId == pkg.manifest.id)
                             page.ensureAuthorized()
@@ -96,7 +97,10 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                           terminal: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('terminal.' + operation, JSON.stringify(args))) }),
                           plugins: Object.freeze({ draft: async args => JSON.parse(await __solvitHostCall('plugins.draft', JSON.stringify(args))) }),
                           clock: Object.freeze({ now: async () => JSON.parse(await __solvitHostCall('clock.now', '{}')) }),
-                          settings: Object.freeze({ get: async key => JSON.parse(await __solvitHostCall('settings.get', JSON.stringify({key}))) }),
+                          settings: Object.freeze({
+                            get: async key => JSON.parse(await __solvitHostCall('settings.get', JSON.stringify({key}))),
+                            compareAndSet: async (key,expected,value) => JSON.parse(await __solvitHostCall('settings.compareAndSet', JSON.stringify({key,expected,value})))
+                          }),
                           storage: Object.freeze({
                             get: async key => JSON.parse(await __solvitHostCall('storage.get', JSON.stringify({key}))),
                             set: async (key,value) => JSON.parse(await __solvitHostCall('storage.set', JSON.stringify({key,value}))),

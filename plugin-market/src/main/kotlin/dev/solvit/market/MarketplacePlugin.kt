@@ -234,8 +234,13 @@ class AndroidMarketplace(
     override suspend fun configure(id: String, values: Map<String, String>) = mutex.withLock {
         val pkg = packages[id] ?: error("插件未安装")
         check(manager.states.value[id] != PluginState.ENABLED) { "请先停用插件再修改配置" }
-        require(values.keys.all { key -> pkg.manifest.settings.any { it.key == key } })
-        pkg.manifest.settings.forEach { field ->
+        validateConfiguration(pkg.manifest, values)
+        withContext(Dispatchers.IO) { config.write(id, values) }
+    }
+
+    private fun validateConfiguration(manifest: ScriptManifest, values: Map<String, String>) {
+        require(values.keys.all { key -> manifest.settings.any { it.key == key } })
+        manifest.settings.forEach { field ->
             val value = values[field.key] ?: field.defaultValue ?: if (field.kind == "boolean") "false" else ""
             require(value.length <= 4096 && (!field.required || value.isNotBlank())) { "插件配置不完整" }
             if (field.kind == "boolean") require(value in setOf("true", "false")) { "开关配置必须为 true 或 false" }
@@ -245,7 +250,6 @@ class AndroidMarketplace(
             }
             if (field.kind == "secret") require(!value.contains('\n') && !value.contains('\r'))
         }
-        withContext(Dispatchers.IO) { config.write(id, values) }
     }
 
     override suspend fun runTool(name: String, argumentsJson: String, authorization: ToolAuthorization): String =
@@ -270,6 +274,24 @@ class AndroidMarketplace(
             val key = arguments.getValue("key").jsonPrimitive.content
             val field = manifest.settings.singleOrNull { it.key == key } ?: error("插件未声明此配置字段")
             return (configurationValues(manifest)[field.key])?.let(::JsonPrimitive) ?: JsonNull
+        }
+        if (operation == "settings.compareAndSet") {
+            check(manifest.apiVersion >= 10 && page != null) { "配置写入仅供插件页面使用" }
+            require(arguments.keys == setOf("key", "expected", "value"))
+            val key = arguments.getValue("key").jsonPrimitive.also { require(it.isString) }.content
+            val expected = arguments.getValue("expected").let { if (it == JsonNull) null else it.jsonPrimitive.also { p -> require(p.isString) }.content }
+            val value = arguments.getValue("value").jsonPrimitive.also { require(it.isString) }.content
+            require(manifest.settings.any { it.key == key }) { "插件未声明此配置字段" }
+            return mutex.withLock {
+                page.ensureAuthorized()
+                if (configurationValues(manifest)[key] != expected) JsonPrimitive(false)
+                else {
+                    val next = config.read(manifest.id) + (key to value)
+                    validateConfiguration(manifest, next)
+                    withContext(Dispatchers.IO) { page.ensureAuthorized(); config.write(manifest.id, next) }
+                    JsonPrimitive(true)
+                }
+            }
         }
         val permission = when (operation) {
             "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"

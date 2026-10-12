@@ -82,7 +82,9 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
                 require(label.isNotBlank() && label.length <= 100)
                 val defaultValue = field["defaultValue"]?.jsonPrimitive?.content
                 require(defaultValue == null || apiVersion >= 7 && kind == "boolean" && defaultValue in setOf("true", "false")) { "插件配置默认值无效" }
-                ExtensionSetting(key, label, kind, field["required"]?.jsonPrimitive?.boolean ?: false, defaultValue)
+                val pageManaged = field["pageManaged"]?.jsonPrimitive?.boolean ?: false
+                require(!pageManaged || apiVersion >= 10) { "插件页面管理配置需要 API 10" }
+                ExtensionSetting(key, label, kind, field["required"]?.jsonPrimitive?.boolean ?: false, defaultValue, pageManaged)
             }.orEmpty()
             require(settings.size <= 16 && settings.map { it.key }.toSet().size == settings.size && (settings.isEmpty() || apiVersion >= 2))
             val hooks = m["hooks"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty()
