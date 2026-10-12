@@ -56,7 +56,8 @@ function graph(graphNode,theme) {
   cy.style([{selector:'node',style:{'background-color':theme.primary,'label':'data(label)','color':theme.onSurface,
     'font-size':11,'text-wrap':'wrap','text-max-width':100,'text-valign':'bottom','text-margin-y':10,'width':20,'height':20}},
     {selector:'edge',style:{'line-color':theme.outline,'target-arrow-color':theme.outline,'target-arrow-shape':'triangle','curve-style':'bezier','width':1.2}},
-    {selector:':selected',style:{'line-color':theme.primary,'width':3}}]);
+    {selector:'edge:selected',style:{'line-color':theme.primary,'width':3}},
+    {selector:'node:selected',style:{'border-color':theme.primary,'border-width':2}}]);
   if(graphNode){
     const next=JSON.stringify([graphNode.nodes,graphNode.edges]);
     if(next!==signature){
