@@ -13,11 +13,14 @@ function syncGraphCoordinates() {
   }
 }
 function send(id,value) {
+  window.__testPageSend={id,hasValue:value!==undefined,busy:state?.busy,stage:'start'};
   if (!state || state.busy) return;
   const node=flatten(state.view).find(n=>n.id===id);
   if (!node || node.enabled===false) return;
+  window.__testPageSend.stage='declared';
   $('menu').hidden=true;document.activeElement?.blur();
   solvitHost.postMessage(JSON.stringify({type:'event',token:state.token,nodeId:id,fields,...(value!==undefined?{value}:{})}));
+  window.__testPageSend.stage='posted';
 }
 function action(node) {
   const element=document.createElement('button');element.textContent=node.text;

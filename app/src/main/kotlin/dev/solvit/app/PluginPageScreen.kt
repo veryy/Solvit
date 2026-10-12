@@ -51,11 +51,13 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, on
                         resource = { path -> checkNotNull(session).resource(path) }) { event ->
                         val current = session
                         val revision = snapshot?.revision
+                        println("[DEBUG-page-screen] busy=$busy identity=${event.view === view} value=${event.value != null}")
                         if (!busy && event.view === view && current != null && revision != null) {
                             busy = true; error = null
                             scope.launch {
                                 try {
                                     val next = current.dispatch(revision, event.nodeId, event.value, event.fields, event.confirmed)
+                                    println("[DEBUG-page-screen] dispatched")
                                     snapshot = next; view = ScriptPageView.parse(next.json)
                                 } catch (e: CancellationException) { throw e }
                                 catch (_: Exception) { error = "插件页面操作失败，请重新打开后重试。" }
