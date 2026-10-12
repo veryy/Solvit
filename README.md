@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。0.22.2 候选已改用插件携带的离线 HTML/JS 记忆图谱和任务页，新增多 MCP 管理；[Android 验证](https://github.com/veryy/Solvit/actions/runs/38307706985)通过287个单元、44个模拟器测试和Lint/固定签名APK。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38307706985/artifacts/11772709922)需要登录GitHub下载；公开搜索门禁失败，尚未发布正式Release，顶部最新下载仍为0.21.3。真实模型角色回答、流式/搜索质量及完整未完成范围见 [产品进度](docs/product-roadmap.md)。
+[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。0.22.2 候选（build36）使用插件携带的离线 HTML/JS 记忆图谱、任务、多 MCP 和 Skills 页面，修复内容区塌缩；[Android 验证](https://github.com/veryy/Solvit/actions/runs/38317347510)通过297个单元、45个模拟器测试和Lint/固定签名APK，包括真实系统文件选择器的导入预览、保存、重开、导出后再导入预览和删除确认。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38317347510/artifacts/11777697054)需要登录GitHub下载；公开搜索门禁尚未通过，未发布正式Release，顶部最新下载仍为0.21.3。工作区页面仍待迁移，真实模型角色回答、流式/搜索质量及完整未完成范围见 [产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
@@ -45,7 +45,7 @@
 
 时间插件 1.1.0 会在每轮聊天读取当前时间并加入模型上下文，因此模型不主动调用工具时也能回答时间。Solvit 0.7.0 提供 Android 真实时区；较旧 API 3 宿主回退到 JS UTC 时间。仅升级字节完全匹配原始离线包的时间插件，保留启用状态；修改过的插件不会被覆盖。禁用插件或角色未绑定时，不提供它的时间上下文。
 
-模型提出工具调用时，Solvit 显示工具描述和完整参数，点击“允许这一次”后执行。拒绝会回传拒绝结果；“停止生成”会取消等待和执行。工具状态与结果可以展开查看。默认整次回复最多 8 轮、16 次工具执行，每次执行有 60 秒上限，JS 引擎期限为 30 秒。
+模型提出工具调用时，Solvit 显示工具描述和完整参数，点击“允许这一次”后执行。拒绝会回传拒绝结果；“停止生成”会取消等待和执行。工具状态与结果可以展开查看。默认整次回复最多 8 轮、16 次工具执行，每次执行有 60 秒上限，聊天工具的 JS 引擎期限为 30 秒；人工页面文件选择操作最多等待 3 分钟。
 
 成功回复的工具调用、结果和最终文本一起保存；失败或中断记录保留并从后续上下文排除。数据库升级保留已有聊天。尚未验证真实模型和真机上的完整调用体验。
 
