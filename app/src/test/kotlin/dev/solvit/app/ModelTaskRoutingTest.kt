@@ -22,6 +22,47 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28],application=Application::class)
 class ModelTaskRoutingTest {
+    @Test fun nativeSignedToolContinuationKeepsItsPrefixAndReceivesRefreshedPluginContext() = runBlocking {
+        val server = MockWebServer(); server.start()
+        val client = OkHttpClient.Builder().callTimeout(10, TimeUnit.SECONDS).build()
+        var contextText = "workspace state before tool"
+        val hooks = ContextHookRegistry().apply {
+            register("fixture.workspace", ContextHook { contextText })
+        }
+        val tools = ToolRegistry(EventBus()).apply { register(object : SolvitTool {
+            override val descriptor = ToolDescriptor("clock", "Clock", "{\"type\":\"object\",\"properties\":{}}")
+            override suspend fun execute(argumentsJson: String): String {
+                contextText = "workspace state after actual tool"
+                return "actual UTC tool result"
+            }
+        }) }
+        val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
+        try {
+            server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("""{"role":"assistant","content":[{"type":"thinking","thinking":"fixture reasoning","signature":"opaque-prefix-signature"},{"type":"tool_use","id":"c1","name":"clock","input":{}}],"stop_reason":"tool_use"}"""))
+            server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("""{"role":"assistant","content":[{"type":"text","text":"Verified tool result"}],"stop_reason":"end_turn"}"""))
+            val config = ModelConfig(server.url("/v1").toString(), "native-model", "fixture", providerId = "anthropic")
+            val output = ToolAgentRuntime(AnthropicProvider(client), tools, hooks = hooks).run(ModelRequest(
+                config, listOf(ModelMessage(Role.SYSTEM, "fixture identity"), ModelMessage(Role.USER, "Check current workspace")),
+                authorization = allow,
+            )).toList()
+            assertEquals("Verified tool result", output.filterIsInstance<ModelChunk.Text>().joinToString("") { it.value })
+            val first = JSONObject(server.takeRequest(2, TimeUnit.SECONDS)!!.body.readUtf8())
+            val next = JSONObject(server.takeRequest(2, TimeUnit.SECONDS)!!.body.readUtf8())
+            assertEquals(first.get("system"), next.get("system"), "Signed request header must stay unchanged")
+            assertEquals(first.getJSONArray("tools").toString(), next.getJSONArray("tools").toString())
+            val previousMessages = first.getJSONArray("messages")
+            val continuedMessages = next.getJSONArray("messages")
+            for (i in 0 until previousMessages.length())
+                assertEquals(previousMessages.getJSONObject(i).toString(), continuedMessages.getJSONObject(i).toString())
+            assertTrue(continuedMessages.toString().contains("opaque-prefix-signature"))
+            assertTrue(continuedMessages.toString().contains("actual UTC tool result"))
+            assertTrue(continuedMessages.toString().contains(contextText), "Refresh must reach the model without changing the signed prefix")
+            assertEquals(2, server.requestCount)
+        } finally {
+            server.shutdown(); client.dispatcher.executorService.shutdown(); client.connectionPool.evictAll()
+        }
+    }
+
     @Test fun persistedRoleReachesActualHttpRequestOnEveryTurnIncludingDefaultIdentity() = runBlocking {
         val context = RuntimeEnvironment.getApplication()
         val roles = dev.solvit.market.AndroidRoleService(context)
