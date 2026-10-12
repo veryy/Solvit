@@ -36,7 +36,7 @@ test('same remote tool name routes to two independent servers, and one expired s
   assert.equal((await f.run('mcp_tools',{server:'code'})).server,'code');
   f.expire();await assert.rejects(()=>f.run('mcp_call',{server:'资料',name:'echo',arguments:{text:'C'}}),/expired/);
   assert.equal((await f.run('mcp_call',{server:'code',name:'echo',arguments:{text:'D'}})).content[0].text,'code:D');
-  assert.equal(f.requests.filter(r=>r.body?.includes('initialize')&&r.url.includes('code.')).length,1);
+  assert.equal(f.requests.filter(r=>r.body&&JSON.parse(r.body).method==='initialize'&&r.url.includes('code.')).length,1);
   await f.stop();assert.equal(f.requests.at(-1).method,'DELETE');assert.equal(f.requests.at(-1).url,'https://code.example/mcp');
 });
 test('disabling or changing one profile invalidates its session without exposing credentials or retrying calls',async()=>{
