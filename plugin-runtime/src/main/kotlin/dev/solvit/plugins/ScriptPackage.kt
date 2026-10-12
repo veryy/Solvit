@@ -5,7 +5,7 @@ import java.security.MessageDigest
 import dev.solvit.core.ExtensionSetting
 
 data class ScriptTool(val name: String, val description: String, val inputSchema: JsonObject, val chatVisible: Boolean = true)
-data class ScriptPage(val id: String, val title: String)
+data class ScriptPage(val id: String, val title: String, val entry: String? = null)
 data class ScriptManifest(
     val id: String,
     val name: String,
@@ -20,7 +20,8 @@ data class ScriptManifest(
     val afterTurnEnabledSetting: String? = null,
     val pages: List<ScriptPage> = emptyList(),
 )
-data class ScriptPackage(val manifest: ScriptManifest, val source: String, val payload: ByteArray) {
+data class ScriptPackage(val manifest: ScriptManifest, val source: String, val payload: ByteArray,
+    val resources: Map<String, String> = emptyMap()) {
     companion object {
         const val MAX_BYTES = 2 * 1024 * 1024
         fun parse(bytes: ByteArray, expectedSha256: String? = null): ScriptPackage {
@@ -33,7 +34,11 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val root = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
             val m = root.getValue("manifest").jsonObject
             val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..9) { "插件需要其他版本的宿主 API" }
+            require(apiVersion in 1..10) { "插件需要其他版本的宿主 API" }
+            val resources = root["resources"]?.let { value ->
+                require(apiVersion >= 10) { "HTML 页面资源需要 API 10" }
+                ScriptWebResources.parse(value.jsonObject)
+            }.orEmpty()
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -79,15 +84,20 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             require(source.isNotBlank()) { "插件缺少 JavaScript 代码" }
             val pages = m["pages"]?.jsonArray?.map { element ->
                 val page = element.jsonObject
-                require(page.keys == setOf("id", "title")) { "插件页面声明无效" }
+                require(page.keys == setOf("id", "title") ||
+                    apiVersion >= 10 && page.keys == setOf("id", "title", "entry")) { "插件页面声明无效" }
                 val pageId = page.getValue("id").jsonPrimitive.also { require(it.isString) }.content
                 val title = page.getValue("title").jsonPrimitive.also { require(it.isString) }.content
                 require(pageId.matches(Regex("[a-z][a-zA-Z0-9_-]{0,39}")) && title.isNotBlank() && title.length <= 128)
-                ScriptPage(pageId, title)
+                val entry = page["entry"]?.jsonPrimitive?.also { require(it.isString) }?.content
+                if (entry != null) {
+                    require(ScriptWebResources.mimeType(entry) == "text/html" && entry in resources) { "HTML 页面入口缺失或无效" }
+                }
+                ScriptPage(pageId, title, entry)
             }.orEmpty()
             require(pages.size <= 8 && pages.map { it.id }.distinct().size == pages.size && (pages.isEmpty() || apiVersion >= 9)) { "插件页面需要 API 9 且 ID 不得重复" }
             return ScriptPackage(ScriptManifest(id, string("name"), string("description"), version,
-                permissions, dependencies, tools, apiVersion, settings, hooks, afterTurnSetting, pages), source, bytes.copyOf())
+                permissions, dependencies, tools, apiVersion, settings, hooks, afterTurnSetting, pages), source, bytes.copyOf(), resources)
         }
     }
 }

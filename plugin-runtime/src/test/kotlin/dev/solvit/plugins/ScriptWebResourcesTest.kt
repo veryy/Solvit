@@ -30,6 +30,8 @@ class ScriptWebResourcesTest {
         val digest = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }
         val parsed = ScriptPackage.parse(bytes, digest)
         assertEquals("Memory", parsed.manifest.pages.single().title)
+        assertEquals("ui/index.html", parsed.manifest.pages.single().entry)
+        assertTrue(parsed.resources.getValue("ui/main.js").contains("关系图"))
         assertContentEquals(bytes, parsed.payload)
         val changed = bytes.toString(Charsets.UTF_8).replace("关系图", "modified").toByteArray()
         assertFails { ScriptPackage.parse(changed, digest) }
