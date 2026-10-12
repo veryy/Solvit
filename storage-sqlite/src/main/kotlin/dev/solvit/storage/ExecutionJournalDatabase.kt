@@ -61,7 +61,7 @@ internal object ExecutionJournalDatabase {
         payloads.forEachIndexed { i,payload -> db.insertOrThrow("execution_events",null,ContentValues().apply {
             put("run_id",runId);put("sequence",expectedSequence+i);put("recorded_at",now);put("payload",payload)
         }) }
-        db.execSQL("UPDATE execution_runs SET updated_at=? WHERE id=?",arrayOf(now,runId));return true
+        db.execSQL("UPDATE execution_runs SET updated_at=? WHERE id=?",arrayOf<Any>(now,runId));return true
     }
     fun finish(db: SQLiteDatabase, runId: String, status: ExecutionStatus, now: Long): Boolean {
         require(status in setOf(ExecutionStatus.COMPLETE,ExecutionStatus.CANCELLED,ExecutionStatus.FAILED) && now>=0)
