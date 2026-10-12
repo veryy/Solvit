@@ -100,6 +100,9 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         save(state.value.copy(shells = state.value.shells + shell)); shell
     } }
     override suspend fun location(workspaceId: String): String = withContext(Dispatchers.IO) { directory(workspaceId).canonicalPath }
+    override suspend fun snapshot(workspaceId: String): WorkspaceSnapshot = withContext(Dispatchers.IO) { lock.withLock {
+        WorkspaceSnapshots.capture(workspaceId,directory(workspaceId))
+    } }
     override suspend fun list(workspaceId: String, path: String): List<WorkspaceFile> = withContext(Dispatchers.IO) { lock.withLock {
         val base = directory(workspaceId).canonicalFile
         val folder = if (path.isEmpty()) base else file(workspaceId, path)

@@ -30,6 +30,7 @@ interface WorkspaceService {
     suspend fun create(name: String): Workspace
     suspend fun createShell(workspaceId: String, name: String): ShellSession
     suspend fun location(workspaceId: String): String { error("工作区目录服务不可用") }
+    suspend fun snapshot(workspaceId: String): WorkspaceSnapshot = WorkspaceSnapshot(workspaceId,emptyMap(),false,System.currentTimeMillis())
     suspend fun list(workspaceId: String, path: String = ""): List<WorkspaceFile> { error("工作区目录服务不可用") }
     suspend fun read(workspaceId: String, path: String): String
     suspend fun write(workspaceId: String, path: String, text: String)
