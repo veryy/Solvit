@@ -47,7 +47,9 @@ class ScriptPageView private constructor(
                 require(p.isString)
                 return p.content.also { require(it.length <= max && (!nonEmpty || it.isNotBlank())) }
             }
-            fun JsonObject.optionalBoolean(key: String) { if (key in this) require(getValue(key).jsonPrimitive.booleanOrNull != null) }
+            fun JsonObject.optionalBoolean(key: String) {
+                if (key in this) getValue(key).jsonPrimitive.let { require(!it.isString && it.booleanOrNull != null) }
+            }
             val title = root.text("title", 128, true)
             val indexed = linkedMapOf<String, JsonObject>()
             fun visit(node: JsonObject, depth: Int) {

@@ -36,6 +36,8 @@ class ScriptPageViewTest {
         assertFails { page("""{"id":"x","kind":"text","text":"x","onClick":"eval()"}""") }
         assertFails { page("""{"id":"x","kind":"text","text":"1"},{"id":"x","kind":"text","text":"2"}""") }
         assertFails { page("""{"id":"g","kind":"graph","nodes":[],"edges":[{"from":"missing","to":"other","label":"关系"}]}""") }
+        assertFails { page("""{"id":"b","kind":"button","text":"保存","action":"save","enabled":"false"}""") }
+        assertFails { page("""{"id":"f","kind":"field","label":"内容","value":123}""") }
     }
     @Test fun boundsUtf8PayloadAndNativeComponentCount() {
         assertFails { page("""{"id":"text","kind":"text","text":"${"中".repeat(ScriptPageView.MAX_BYTES)}"}""") }
