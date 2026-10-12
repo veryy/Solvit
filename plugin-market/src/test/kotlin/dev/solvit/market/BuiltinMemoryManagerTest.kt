@@ -35,8 +35,9 @@ class BuiltinMemoryManagerTest {
             var snapshot = page.open()
             assertTrue(snapshot.json.contains("Original"))
             val stale = snapshot.revision
-            snapshot = page.dispatch(snapshot.revision, "open_0", null, emptyMap(), false)
-            assertFailsWith<IllegalStateException> { page.dispatch(stale, "open_0", null, emptyMap(), false) }
+            assertEquals(ExtensionPageDocument("ui/index.html"), page.document())
+            snapshot = page.dispatch(snapshot.revision, "relations", id, emptyMap(), false)
+            assertFailsWith<IllegalStateException> { page.dispatch(stale, "relations", id, emptyMap(), false) }
             snapshot = page.dispatch(snapshot.revision, "edit", null, emptyMap(), false)
             manager.save("Concurrent change", "fact", listOf("other"), id)
             snapshot = page.dispatch(snapshot.revision, "save", null, mapOf("text" to "My draft", "edit_category" to "fact", "tags" to "new"), false)
@@ -56,7 +57,7 @@ class BuiltinMemoryManagerTest {
             assertTrue(context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).all.isEmpty())
         } finally { page.close() }
         val reopened = BuiltinMemoryManager(context).openPage("ja")
-        try { assertEquals("記憶", Json.parseToJsonElement(reopened.open().json).jsonObject.getValue("title").jsonPrimitive.content) }
+        try { assertEquals("関係図", Json.parseToJsonElement(reopened.open().json).jsonObject.getValue("title").jsonPrimitive.content) }
         finally { reopened.close() }
     }
     @Test fun packagedTaskPageControlsRealSqliteJobsWithoutGrantingModelAccess() = runBlocking<Unit> {

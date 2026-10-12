@@ -40,8 +40,9 @@ const button = (id: string, label: string, action = id, confirm?: string): Butto
 const field = (id: string, label: string, value: string, multiline = false): PageNode => ({id,kind:'field',label,value,multiline});
 
 /** Each page engine gets its own search/navigation/edit snapshot. No chat lifecycle state. */
-export function createMemoryPage(backend: MemoryPageBackend) {
-  let mode:'list'|'detail'|'edit'|'new'|'graph'|'profiles'|'documents'|'tasks'='list';
+export function createMemoryPage(backend: MemoryPageBackend, options: { graphHome?: boolean } = {}) {
+  const home = options.graphHome ? 'graph' : 'list';
+  let mode:'list'|'detail'|'edit'|'new'|'graph'|'profiles'|'documents'|'tasks'=home;
   let query='', category='', role='', offset=0, selected:string|null=null;
   let expected:MemoryFact|null=null, visible:MemoryFact[]=[], graphFacts:MemoryFact[]=[];
   let graphReturn:'list'|'detail'='list', center:string|null=null;
@@ -54,16 +55,16 @@ export function createMemoryPage(backend: MemoryPageBackend) {
     const record = () => db.facts.find(fact=>fact.id===selected);
     try {
       const action=event?.action;
-      if (action==='filter') { query=(event!.fields.query??'').trim().slice(0,160);category=(event!.fields.category??'').trim().slice(0,40);role=(event!.fields.role??'').trim().slice(0,80);offset=0; }
+      if (action==='filter') { query=(event!.fields.query??'').trim().slice(0,160);category=(event!.fields.category_filter??event!.fields.category??'').trim().slice(0,40);role=(event!.fields.role??'').trim().slice(0,80);offset=0; }
       else if (action==='clear') { query=category=role='';offset=0; }
       else if (action==='next') offset+=20;
       else if (action==='previous') offset=Math.max(0,offset-20);
       else if (action?.startsWith('open_')) { selected=visible[Number(action.slice(5))]?.id??null;mode=selected ? 'detail':'list'; }
-      else if (action==='select_node') { selected=graphFacts[Number(event!.value?.slice(1))]?.id??null;mode=selected ? 'detail':'list'; }
+      else if (action==='select_node') { selected=options.graphHome ? graphFacts.find(f=>f.id===event!.value)?.id??null : graphFacts[Number(event!.value?.slice(1))]?.id??null;mode=selected ? 'detail':home; }
       else if (action==='new') { selected=null;expected=null;mode='new'; }
       else if (action==='edit') { const fact=record(); if(fact){expected=copy(fact);mode='edit';} }
       else if (action==='reload') { const fact=record(); expected=fact ? copy(fact):null; if(!fact)mode='list'; }
-      else if (action==='back') { mode=mode==='graph' ? graphReturn : mode==='edit' ? 'detail':'list'; }
+      else if (action==='back') { mode=mode==='graph' ? graphReturn : mode==='edit' ? 'detail':home; if(mode===home)center=null; }
       else if (action==='profiles'||action==='documents') { mode=action;offset=0; }
       else if (action==='tasks'&&backend.tasks) { mode='tasks';return backend.tasks({...input,event:null},context); }
       else if (action==='graph') { center=mode==='detail' ? selected:null;graphReturn=mode==='detail' ? 'detail':'list';mode='graph'; }
@@ -75,7 +76,7 @@ export function createMemoryPage(backend: MemoryPageBackend) {
         else { selected=await backend.save({expected:mode==='edit'?expected:null,text:body,category:cat,tags},context);mode='detail';db=await backend.read(context); }
       } else if (action==='remove'&&mode==='detail') {
         if(!sameMemoryFact(record(),expected))message=t.changed;
-        else { await backend.remove(expected!,context);selected=null;mode='list';db=await backend.read(context); }
+        else { await backend.remove(expected!,context);selected=null;mode=home;center=null;db=await backend.read(context); }
       }
     } catch { message=t.failed; }
     const nodes:PageNode[]=[];
@@ -119,13 +120,16 @@ export function createMemoryPage(backend: MemoryPageBackend) {
     if(mode==='graph') {
       const neighbors=center ? new Set(db.edges.filter(e=>e.from===center||e.to===center).flatMap(e=>[e.from,e.to])):null;
       graphFacts=center ? db.facts.filter(f=>f.id===center||neighbors!.has(f.id)):all;
-      const ids=new Map(graphFacts.map((fact,i)=>[fact.id,`g${i}`]));
+      const ids=new Map(graphFacts.map((fact,i)=>[fact.id,options.graphHome ? fact.id : `g${i}`]));
+      if(options.graphHome)nodes.push({id:'filters',kind:'row',children:[field('query',t.query,query),button('filter',t.filter),button('clear',t.clear)]},
+        field('category_filter',t.category,category),field('role',t.role,role));
       nodes.push(text('graph_count',`${t.total}: ${graphFacts.length}`,'caption'));
       if(graphFacts.length)nodes.push({id:'relations',kind:'graph',action:'select_node',
-        nodes:graphFacts.map((f,i)=>({id:`g${i}`,label:brief(f.text,36)})),
+        nodes:graphFacts.map((f,i)=>({id:ids.get(f.id)!,label:brief(f.text,36)})),
         edges:db.edges.filter(e=>ids.has(e.from)&&ids.has(e.to)).map(e=>({from:ids.get(e.from)!,to:ids.get(e.to)!,label:brief(e.relation,24)}))});
       else nodes.push(text('empty',t.empty));
-      return {title:t.graph,nodes,footer:[button('back',t.back),button('refresh',t.refresh)]};
+      return {title:t.graph,nodes,footer:options.graphHome && !center ? [button('new',t.new),button('profiles',t.profiles),button('documents',t.documents),
+        ...(backend.tasks?[button('tasks',t.tasks)]:[]),button('refresh',t.refresh)] : [button('back',t.back),button('refresh',t.refresh)]};
     }
     nodes.push(text('shared',t.shared,'caption'));
     if(query)nodes.push(text('query_summary',`${t.query}: ${query}`,'caption'));

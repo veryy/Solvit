@@ -28,7 +28,7 @@ class BuiltinMemoryManager(context: Context) {
     private val data = PluginDataStore(app)
     private val pkg by lazy {
         ScriptPackage.parse(app.assets.open("builtin-plugins/dev.solvit.memory.solvit.json").use { it.readBytes() })
-            .also { check(it.manifest.id == ID && it.manifest.apiVersion == 9) }
+            .also { check(it.manifest.id == ID && it.manifest.apiVersion in 9..10) }
     }
     /** Human access uses only the immutable packaged page, never downloaded code. */
     fun openPage(locale: String, tasks: PostTurnTaskService? = null, pageId: String = "main"): ExtensionPageSession {

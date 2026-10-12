@@ -296,7 +296,7 @@ const plugin = definePlugin({
 const writers = new Set(['memory_put','memory_extract','memory_delete','memory_profile','memory_link','memory_document','memory_prune_sources']);
 const tools = Object.fromEntries(Object.entries(plugin.tools).map(([name, handler]) => [name, writers.has(name)
   ? (args: JsonObject, ctx: PluginContext) => transact(ctx, local => handler(args, local)) : handler]));
-const managementPage = createMemoryPage({ ...createMemoryPageBackend(load, save), tasks: createMemoryTasksPage() });
+const managementPage = createMemoryPage({ ...createMemoryPageBackend(load, save), tasks: createMemoryTasksPage() }, {graphHome:true});
 let tasksOpened = false;
 export default definePlugin({ ...plugin, tools, pages: {
   main: managementPage,

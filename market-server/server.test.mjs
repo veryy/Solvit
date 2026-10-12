@@ -38,6 +38,13 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(memoryPage.version, '1.3.1');
     assert.equal(memoryPage.apiVersion, 9);
     assert.deepEqual(memoryPage.pages, [{id:'main',title:'记忆'},{id:'tasks',title:'自动记忆任务'}]);
+    const api10 = await (await fetch(base + '/api/v1/plugins?hostApi=10')).json();
+    const htmlMemory = api10.plugins.find(plugin => plugin.id === 'dev.solvit.memory');
+    assert.equal(htmlMemory.apiVersion, 10); assert.equal(htmlMemory.version, '1.4.0');
+    assert.ok(htmlMemory.pages.every(page => page.entry === 'ui/index.html'));
+    const htmlPackage = await (await fetch(base + htmlMemory.downloadPath)).json();
+    assert.ok(htmlPackage.resources['ui/index.html'].includes('id="graph"'));
+    assert.ok(htmlPackage.resources['ui/main.js'].length > 100_000);
     const notesPage = api9.plugins.find(plugin => plugin.id === 'example.notes');
     assert.equal(notesPage.apiVersion, 9);
     assert.deepEqual(notesPage.pages, [{id:'main',title:'便签'}]);
@@ -50,7 +57,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(api6.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.2.0');
     assert.equal(api5.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.1.0');
     assert.ok(api4.plugins.every(plugin => plugin.apiVersion <= 4));
-    for (const plugin of [...api5.plugins, ...api7.plugins, ...api8.plugins, ...api9.plugins]) {
+    for (const plugin of [...api5.plugins, ...api7.plugins, ...api8.plugins, ...api9.plugins, ...api10.plugins]) {
       const response = await fetch(base + plugin.downloadPath);
       assert.equal(response.status, 200);
       const bytes = Buffer.from(await response.arrayBuffer());

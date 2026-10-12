@@ -32,3 +32,5 @@ HTML页面复用现有QuickJS业务回调、实际页面版本、字段/动作�
 通用WebView候选接入AndroidX WebKit 1.12.1的精确来源/主frame消息监听。HTML、CSS、JS由本插件离线资源提供，网络/文件/内容访问关闭，页面销毁和渲染进程退出均撤销桥并清理WebView。主题、语言、busy与当前页面状态更新不重载文档。DOM事件必须携带当前token，并通过已声明节点/字段验证；危险动作仍由宿主实际确认。新增真实Android回归覆盖HTML脚本加载、通过QuickJS写入Marketplace持久存储、关闭重开、取消/确认删除及停用关闭；这是待远程验证的候选，尚无新HTML APK。
 
 包解析候选运行38275479326的build成功，但完整UI在已有交互终端第二次输入（ChatLayoutTest.kt:874）超时，不能记为全通过。继续读取报告定位；新HTML容器尚不属于这次运行源码，不能把它归为HTML验收结果。
+
+已核对Cytoscape.js v3.34.3实际commit716a1cb6的`src/extensions/layout/cose.mjs`、`src/core/viewport.mjs`和`test/events.mjs`（选择/位置事件与destroy清理）。固定依赖、离线browser bundle、保留JS版权注释和插件内`ui/LICENSE.txt`。采用库本身图布局、拖动缩放和节点/边事件；未复制Operit LGPL源码。新记忆候选1.4.0/API10以图为首页，搜索和更多菜单、节点详情/编辑作为HTML面板，后台任务也在HTML里绘制。图实例保持挂载，状态/主题变化保留视角；实际数据及来源/CAS修改仍沿用已有TS事务。API9 1.3.1原字节保留legacy，当前候选尚未生成/远程验证，不算交付。

@@ -1,4 +1,4 @@
-/** Native Android views, without DOM/React or direct access to host navigation. */
+/** Page state and validated actions. API10 HTML owns layout; API9 uses native widgets. */
 export type PageHostAction =
   | { kind:'postTurn.retry'; jobId:string; attempt:number }
   | { kind:'postTurn.delete'; jobId:string; attempt:number; status:'WAITING'|'SUCCEEDED'|'FAILED'|'SKIPPED' }

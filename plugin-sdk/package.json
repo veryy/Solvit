@@ -12,6 +12,7 @@
     "build:builtins": "node scripts/build-builtins.mjs"
   },
   "devDependencies": {
+    "cytoscape": "3.34.3",
     "esbuild": "0.25.12",
     "typescript": "5.9.3",
     "yaml": "2.8.1"

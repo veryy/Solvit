@@ -18,18 +18,19 @@ function runtime(data = new Map(), rejectWrite = false, options = {}) {
       data.set(key,clone(value));return true;
     },
   } };
-  return { page: async (action,fields={}) => clone(await sandbox.solvitPlugin.pages.main({locale:'zh',event:action?{nodeId:action,action,fields}:null},ctx)),
+  return { page: async (action,fields={},value) => clone(await sandbox.solvitPlugin.pages.main({locale:'zh',event:action?{nodeId:action,action,fields,...(value?{value}:{})}:null},ctx)),
     afterTurn: async input => sandbox.solvitPlugin.afterTurn(input,ctx), recall: async (userText, settings={}) => sandbox.solvitPlugin.beforeModel({userText,settings,role:ctx.role},ctx), data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
 }
 test('packaged memory page uses the validated production database and persists edits across engines',async()=>{
-  assert.equal(pkg.manifest.apiVersion,9);assert.deepEqual(pkg.manifest.pages,[{id:'main',title:'记忆'},{id:'tasks',title:'自动记忆任务'}]);
+  assert.equal(pkg.manifest.apiVersion,10);assert.deepEqual(pkg.manifest.pages,[{id:'main',title:'记忆',entry:'ui/index.html'},{id:'tasks',title:'自动记忆任务',entry:'ui/index.html'}]);
+  assert.ok(pkg.resources['ui/LICENSE.txt'].includes('The Cytoscape Consortium'));
   const first=runtime();await first.run('memory_put',{text:'喜欢 Kotlin',tags:['旧标签']});
-  await first.page();await first.page('open_0');await first.page('edit');
+  const graph=await first.page();assert.ok(graph.nodes.some(n=>n.kind==='graph'));await first.page('select_node',{},'m1');await first.page('edit');
   await first.page('save',{text:'喜欢 Kotlin 和 TypeScript',edit_category:'preference',tags:'新标签'});
   const reloaded=runtime(first.data);const db=await reloaded.run('memory_export');
   assert.equal(db.facts[0].text,'喜欢 Kotlin 和 TypeScript');assert.deepEqual(db.facts[0].tags,['新标签']);
   assert.equal(db.facts[0].modifiedByUser,true);
-  await reloaded.page();await reloaded.page('open_0');await reloaded.page('remove');
+  await reloaded.page();await reloaded.page('select_node',{},'m1');await reloaded.page('remove');
   assert.equal((await runtime(first.data).run('memory_export')).facts.length,0);
 });
 test('memory persists across engine reload and merges duplicates without losing tags', async () => {
