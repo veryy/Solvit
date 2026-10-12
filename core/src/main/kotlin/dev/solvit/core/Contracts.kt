@@ -90,6 +90,7 @@ data class ModelRequest(
     val contextMeasurement: ContextMeasurement? = null,
     /** Dynamic plugin data, projected by adapters independently of immutable system rules. */
     val runtimeContext: List<String> = emptyList(),
+    val executionJournal: ExecutionJournal = NoExecutionJournal,
 )
 sealed interface ModelChunk {
     data class Text(val value: String) : ModelChunk
@@ -122,6 +123,14 @@ data class ModelErrorDetails(val endpoint: String, val httpStatus: Int? = null,
 }
 class ModelException(message: String, val details: ModelErrorDetails? = null) : IOException(message)
 interface ChatStore {
+    val supportsExecutionJournal: Boolean get() = false
+    fun executionRuns(sessionId: String): Flow<List<ExecutionRun>> = kotlinx.coroutines.flow.flowOf(emptyList())
+    suspend fun executionEvents(sessionId: String, runId: String): List<RecordedExecutionEvent> = emptyList()
+    suspend fun beginExecutionRun(run: ExecutionRun): Boolean = false
+    suspend fun appendExecutionEvents(runId: String, expectedSequence: Int, events: List<ExecutionEvent>, now: Long): Boolean = false
+    suspend fun finishExecutionRun(runId: String, status: ExecutionStatus, now: Long): Boolean = false
+    /** Called once on application startup, never while a live execution is active. */
+    suspend fun recoverInterruptedExecutions(now: Long): Int = 0
     /** Only supporting stores promise atomic completed-turn anchors for background work. */
     val supportsCompletedTurns: Boolean get() = false
     fun sessions(): Flow<List<ChatSession>>

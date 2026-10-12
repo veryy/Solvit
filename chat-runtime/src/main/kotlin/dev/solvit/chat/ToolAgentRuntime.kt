@@ -27,6 +27,8 @@ class ToolAgentRuntime(
         val seen = mutableSetOf<String>()
         var executions = 0
         for (round in 0 until maxRounds) {
+            val step=round+1
+            request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.STEP_STARTED)))
             // Fresh context and tool availability for every step; do not accumulate old Hook text.
             val advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false &&
                 (request.conversation != null || it.capabilities.none { permission -> permission in setOf("workspace","shell","plugins") }) }.take(64)
@@ -72,9 +74,14 @@ class ToolAgentRuntime(
                 }
             }
             check(completed) { "模型响应提前结束" }
-            if (calls.isEmpty()) { native?.let { emit(ModelChunk.NativeTranscript(it)) }; emit(ModelChunk.Done); return@flow }
+            if (calls.isEmpty()) {
+                request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.STEP_FINISHED)))
+                native?.let { emit(ModelChunk.NativeTranscript(it)) }; emit(ModelChunk.Done); return@flow
+            }
             if (round == maxRounds - 1 || executions + calls.size > maxCalls) throw ModelException("已达到工具执行上限，请继续对话")
             if (calls.any { it.name !in allowed || !seen.add(it.id) }) throw ModelException("模型调用了未提供或重复的工具")
+            request.executionJournal.append(calls.map { call -> ExecutionEvent(step,ExecutionKind.TOOL_PROPOSED,
+                call=call,pluginId=advertised.first { it.name==call.name }.pluginId) })
             val assistant = ModelMessage(Role.ASSISTANT, text.toString(), calls, reasoning = reasoning.toString(), providerTranscript = native)
             messages += assistant
             emit(ModelChunk.Transcript(assistant))
@@ -88,21 +95,28 @@ class ToolAgentRuntime(
                     }
                 }
                 val outcome = try {
-                    val result = tools.executeCall(call, gate, request.agentRole, execution, request.conversation) { emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING)) }
+                    val result = tools.executeCall(call, gate, request.agentRole, execution, request.conversation) {
+                        request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_STARTED,callId=call.id)))
+                        emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING))
+                    }
                     check(result.toByteArray(Charsets.UTF_8).size <= 256 * 1024) { "工具返回结果超出限制" }
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {
                     ToolStage.DENIED to "用户拒绝执行此工具。"
                 } catch (e: CancellationException) { throw e }
+                catch (e: ExecutionJournalException) { throw e }
                 catch (e: Exception) {
                     // Exceptions may contain host credentials or remote diagnostics.
                     ToolStage.FAILED to "工具执行失败，请检查插件状态、权限和参数。"
                 }
+                request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_FINISHED,
+                    callId=call.id,stage=outcome.first,result=outcome.second)))
                 emit(ModelChunk.ToolActivity(call, outcome.first, outcome.second))
                 val result = ModelMessage(Role.TOOL, outcome.second, toolCallId = call.id, toolStage = outcome.first)
                 messages += result
                 emit(ModelChunk.Transcript(result))
             }
+            request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.STEP_FINISHED)))
         }
         } catch (e: Throwable) { execution.cancel(); throw e }
         finally { execution.release() }

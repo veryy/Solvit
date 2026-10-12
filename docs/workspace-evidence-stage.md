@@ -1,0 +1,19 @@
+# 工作区执行证据阶段
+
+基线为已发布0.20.0；分支 `feat/workspace-evidence`。完整目标是项目规则、可靠读写、差异审阅、Shell退出码/输出、执行后验证与持久步骤日志。采用“创建文件→运行失败→修复→再运行验证”的实际任务，不把工具启动或测试数量当作整个任务验收。
+
+## 上游实际源码与测试
+
+六个锁定checkout已再次通过 `scripts/fetch-upstreams.py --verify-only`（源码核对，不运行上游应用）。读取DSH `packages/core/agent-loop/src/agent.ts`、`tool-calls.ts`、`tests/cancel.spec.ts`、`tests/resume.spec.ts`，以及 `packages/deliverables/workspace-changes/src/recorder.ts`、`tests/capture.spec.ts`、`tests/current-directory.spec.ts`。读取Operit `core/tools/defaultTool/standard/StandardTerminalCommandExecutor.kt` 的会话查找、结束输出、退出码和取消结算。采用每步日志、写前捕获、失败/取消记录与资源归属原则；没有复制上游实现，本阶段代码为Kotlin适配，不引入Cordis/Node。
+
+## 第一检查点：即时持久步骤日志
+
+新增可替换ChatStore的可选执行日志协议；不支持的存储明确不提供日志，原聊天接口仍可用。生产SQLite迁移7→8，独立的执行轮次与顺序事件表保留聊天、后台记忆任务及签名转录。轮次绑定实际用户消息、角色与工作区快照；只有当前用户消息能启动，日志不会复制到聊天分支。删除对话级联删除日志。
+
+ToolAgentRuntime在每次步骤开始、工具批次提出、授权后执行前、结果返回后以及步骤结束同步写入。写入失败则终止后续副作用；日志按预期序号及运行状态比较，拒绝重复ID、陈旧写入、缺失开始或提前结束。记录保留工具身份、插件归属、参数和结果的有界脱敏片段；不保存模型配置、系统提示、思考/签名原文。片段不改写实际工具参数/模型收到的结果，也不作为可重放消息。每轮最多64步/64调用/512事件，参数16KiB、结果64KiB，明确截断标志；大JSON使用字节分块读取以避开CursorWindow。
+
+应用初始化将遗留RUNNING轮次标为PROCESS_INTERRUPTED，已记录事件保持原样。不编造成功/失败结果，不自动重跑工具；已开始但未记录结果的调用需要后续界面显示“结果未知，先检查实际文件/外部状态”。打开一个只读观察实例不会触发恢复，避免误停活跃轮次。
+
+新增远程回归：严格步骤/调用边界、真实SQLite跨实例即时可见与恢复、旧版迁移/级联/分支、UTF-8和大JSON读取、真实Runtime授权/副作用/后续模型之前的持久边界、存储失败零副作用、取消无假结果、密钥脱敏和UTF-8截断。尚未运行，不宣称通过。
+
+后续必须接聊天中的折叠执行详情与中断恢复展示，安全的失败分类/建议、文件差异和实际退出码/验证证据；完成JS工作区插件→原生文件/Shell→SQLite的完整任务与模拟器回归后再发布新APK。当前0.20.0公开版本尚不包含此检查点；真机、真实模型执行和完整AndroidAgent验收仍未完成。

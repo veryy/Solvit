@@ -49,6 +49,7 @@ class DefaultChatService(
         var sourceRole: AgentRole? = null
         var sourceProfileId: String? = null
         var sourceTargets = emptyList<PostTurnTarget>()
+        var journal: StoredExecutionJournal? = null
         suspend fun persist(message: ChatMessage) {
             store.append(message)
             events.publish(CoreEvent.MessageStored(sessionId, message.id))
@@ -67,6 +68,11 @@ class DefaultChatService(
             } else store.appendBatch(batch)
             batch.forEach { events.publish(CoreEvent.MessageStored(sessionId, it.id)) }
             settled = true
+            journal?.finish(when(status) {
+                MessageStatus.COMPLETE -> ExecutionStatus.COMPLETE
+                MessageStatus.INTERRUPTED -> ExecutionStatus.CANCELLED
+                MessageStatus.FAILED -> ExecutionStatus.FAILED
+            })
         }
         try {
             val role = roles?.selected(sessionId)
@@ -78,6 +84,11 @@ class DefaultChatService(
             sourceUserId = user.id
             persist(user)
             admitted = true
+            if(store.supportsExecutionJournal) {
+                val run=ExecutionRun(UUID.randomUUID().toString(),sessionId,user.id,sourceRole?.id,conversation?.workspaceId,System.currentTimeMillis())
+                if(!store.beginExecutionRun(run)) throw ExecutionJournalException()
+                journal=StoredExecutionJournal(store,run,listOf(config.apiKey)+modelProfiles?.state?.value?.profiles.orEmpty().map { it.config.apiKey })
+            }
             val history = store.history(sessionId).filter { it.status == MessageStatus.COMPLETE }
             val sections = ChatContextComposer.sections(role, config.systemPrompt)
             val messages = buildList {
@@ -87,7 +98,8 @@ class DefaultChatService(
             }
             var done = false
             agent.run(ModelRequest(config, messages, authorization = authorization, agentRole = role, conversation = conversation,
-                sessionId = sessionId, promptSources = sections.map { PromptSourceInfo(it.name, it.source, it.text.length) })).collect { chunk ->
+                sessionId = sessionId, executionJournal=journal ?: NoExecutionJournal,
+                promptSources = sections.map { PromptSourceInfo(it.name, it.source, it.text.length) })).collect { chunk ->
                 check(!done) { "Provider emitted after completion" }
                 when (chunk) {
                     is ModelChunk.Text -> { answer.append(chunk.value); emit(chunk) }

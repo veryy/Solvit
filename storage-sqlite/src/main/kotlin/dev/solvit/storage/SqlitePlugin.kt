@@ -17,7 +17,7 @@ import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 
 class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
-    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 7) {
+    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 8) {
         override fun onConfigure(db: SQLiteDatabase) { db.setForeignKeyConstraintsEnabled(true) }
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT NOT NULL, updated_at INTEGER NOT NULL, origin_session_id TEXT, origin_message_id TEXT)")
@@ -25,8 +25,10 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
             db.execSQL("CREATE INDEX messages_session ON messages(session_id, sequence)")
             createSummaryTable(db)
             createTurnTable(db)
+            ExecutionJournalDatabase.create(db)
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+            if (oldVersion < 8) ExecutionJournalDatabase.create(db)
             if (oldVersion < 7) createTurnTable(db)
             if (oldVersion < 6) createSummaryTable(db)
             if (oldVersion < 5) db.execSQL("ALTER TABLE messages ADD COLUMN provider_transcript TEXT")
@@ -72,6 +74,16 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     }.distinctUntilChanged()
     override fun messages(sessionId: String): Flow<List<ChatMessage>> = revision.map { history(sessionId) }.distinctUntilChanged()
     override suspend fun history(sessionId: String): List<ChatMessage> = read { history(it, sessionId) }
+    override val supportsExecutionJournal = true
+    override fun executionRuns(sessionId: String): Flow<List<ExecutionRun>> = revision.map {
+        read { ExecutionJournalDatabase.runs(it,sessionId) }
+    }.distinctUntilChanged()
+    override suspend fun executionEvents(sessionId: String, runId: String) = read { ExecutionJournalDatabase.events(it,sessionId,runId) }
+    override suspend fun beginExecutionRun(run: ExecutionRun) = write { ExecutionJournalDatabase.begin(it,run) }
+    override suspend fun appendExecutionEvents(runId: String, expectedSequence: Int, events: List<ExecutionEvent>, now: Long) =
+        write { ExecutionJournalDatabase.append(it,runId,expectedSequence,events,now) }
+    override suspend fun finishExecutionRun(runId: String, status: ExecutionStatus, now: Long) = write { ExecutionJournalDatabase.finish(it,runId,status,now) }
+    override suspend fun recoverInterruptedExecutions(now: Long) = write { ExecutionJournalDatabase.recover(it,now) }
     override suspend fun contextSummary(sessionId: String): ContextSummary? = read { loadSummary(it, sessionId) }
     override suspend fun saveContextSummary(sessionId: String, expected: ContextSummary?, replacement: ContextSummary): Boolean {
         replacement.validate()
@@ -354,6 +366,7 @@ class SqliteStoragePlugin(private val androidContext: Context) : SolvitPlugin {
     override suspend fun enable(context: PluginContext) {
         val store = SqliteChatStore(androidContext)
         context.own { store.close() }
+        store.recoverInterruptedExecutions(System.currentTimeMillis())
         context.register(Services.Storage, store)
     }
 }

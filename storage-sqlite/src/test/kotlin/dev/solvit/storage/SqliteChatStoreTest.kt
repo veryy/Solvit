@@ -181,6 +181,7 @@ class SqliteChatStoreTest {
             store.appendBatch(listOf(ChatMessage("u", session.id, Role.USER, "old"), ChatMessage("a", session.id, Role.ASSISTANT, "reply")))
         }
         SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("DROP TABLE execution_events"); db.execSQL("DROP TABLE execution_runs")
             db.execSQL("DROP TABLE post_turn_jobs"); db.execSQL("DROP TABLE completed_turns"); db.version = 6
         }
         SqliteChatStore(context).use { store ->
