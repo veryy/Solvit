@@ -99,7 +99,7 @@ class ToolAgentRuntime(
                         request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_STARTED,callId=call.id)))
                         emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING))
                     }
-                    check(result.toByteArray(Charsets.UTF_8).size <= 256 * 1024) { "工具返回结果超出限制" }
+                    if(result.toByteArray(Charsets.UTF_8).size > 256*1024) throw ToolExecutionException(ToolFailureCode.RESOURCE_LIMIT)
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {
                     ToolStage.DENIED to "用户拒绝执行此工具。"
@@ -107,7 +107,13 @@ class ToolAgentRuntime(
                 catch (e: ExecutionJournalException) { throw e }
                 catch (e: Exception) {
                     // Exceptions may contain host credentials or remote diagnostics.
-                    ToolStage.FAILED to "工具执行失败，请检查插件状态、权限和参数。"
+                    val code=when(e) {
+                        is ToolExecutionException -> e.code
+                        is IllegalArgumentException -> ToolFailureCode.INVALID_ARGUMENTS
+                        is java.io.IOException -> ToolFailureCode.IO_ERROR
+                        else -> ToolFailureCode.UNKNOWN
+                    }
+                    ToolStage.FAILED to code.userDetails()
                 }
                 request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_FINISHED,
                     callId=call.id,stage=outcome.first,result=outcome.second)))

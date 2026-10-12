@@ -57,10 +57,11 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         return dir
     }
     private fun file(id: String, path: String): File {
-        require(path.length in 1..1024 && '\u0000' !in path && !File(path).isAbsolute) { "请输入工作区内的相对路径" }
+        if(path.length !in 1..1024 || '\u0000' in path) throw ToolExecutionException(ToolFailureCode.INVALID_ARGUMENTS)
+        if(File(path).isAbsolute) throw ToolExecutionException(ToolFailureCode.PATH_OUTSIDE_WORKSPACE)
         val base = directory(id).canonicalFile
         val file = File(base, path).canonicalFile
-        require(file != base && file.path.startsWith(base.path + File.separator)) { "路径超出工作区" }
+        if(file==base || !file.path.startsWith(base.path+File.separator)) throw ToolExecutionException(ToolFailureCode.PATH_OUTSIDE_WORKSPACE)
         return file
     }
     private fun name(text: String): String = text.trim().also { require(it.length in 1..80 && it.none(Char::isISOControl)) { "名称需为 1–80 个字符" } }
@@ -112,13 +113,15 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     override suspend fun read(workspaceId: String, path: String): String = withContext(Dispatchers.IO) {
         lock.withLock {
             val file = file(workspaceId, path)
-            require(file.isFile && file.length() <= MAX_TEXT) { "文件不存在或超过 256 KiB" }
+            if(!file.exists()) throw ToolExecutionException(ToolFailureCode.FILE_NOT_FOUND)
+            if(!file.isFile) throw ToolExecutionException(ToolFailureCode.NOT_REGULAR_FILE)
+            if(file.length()>MAX_TEXT) throw ToolExecutionException(ToolFailureCode.FILE_TOO_LARGE)
             file.inputStream().use { input ->
                 val output = java.io.ByteArrayOutputStream()
                 val buffer = ByteArray(8192)
                 while (true) {
                     val count = input.read(buffer); if (count == -1) break
-                    require(output.size() + count <= MAX_TEXT)
+                    if(output.size()+count>MAX_TEXT) throw ToolExecutionException(ToolFailureCode.FILE_TOO_LARGE)
                     output.write(buffer, 0, count)
                 }
                 val bytes = output.toByteArray()
@@ -128,7 +131,8 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     }
     override suspend fun write(workspaceId: String, path: String, text: String) { writeObserved(workspaceId,path,text) }
     override suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
-        val bytes = text.toByteArray(Charsets.UTF_8); require(bytes.size <= MAX_TEXT) { "文件超过 256 KiB" }
+        val bytes = text.toByteArray(Charsets.UTF_8)
+        if(bytes.size>MAX_TEXT) throw ToolExecutionException(ToolFailureCode.FILE_TOO_LARGE)
         val target = file(workspaceId, path)
         val before=FileObservations.capture(target)
         check(target.parentFile!!.mkdirs() || target.parentFile!!.isDirectory)
@@ -137,9 +141,11 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         val atomic = AtomicFile(target); val output = atomic.startWrite()
         try { output.write(bytes); atomic.finishWrite(output) }
         catch (e: Throwable) { atomic.failWrite(output); throw e }
-        check(file(workspaceId,path)==target) { "写入后路径已变化，请检查实际文件" }
-        val after=FileObservations.capture(target)
-        check(after.sha256==FileObservations.fromBytes(bytes).sha256) { "写入后文件发生变化，请检查实际内容" }
+        val after=try {
+            if(file(workspaceId,path)!=target) throw ToolExecutionException(ToolFailureCode.WRITE_OUTCOME_UNKNOWN)
+            FileObservations.capture(target)
+        } catch(e: Exception) { throw ToolExecutionException(ToolFailureCode.WRITE_OUTCOME_UNKNOWN) }
+        if(after.sha256!=FileObservations.fromBytes(bytes).sha256) throw ToolExecutionException(ToolFailureCode.WRITE_OUTCOME_UNKNOWN)
         WorkspaceWriteEvidence(workspaceId,target.relativeTo(directory(workspaceId)).invariantSeparatorsPath,
             before,after,FileObservations.changed(before,after),true)
     } }

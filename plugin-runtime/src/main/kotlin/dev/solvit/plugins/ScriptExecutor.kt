@@ -28,6 +28,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
     @Volatile private var executionJob: Job? = null
     @Volatile private var executionContext: CoroutineContext? = null
     @Volatile private var readOnlyHost = false
+    @Volatile private var nativeToolFailure: ToolFailureCode? = null
 
     suspend fun start() = mutex.withLock {
         check(engine == null) { "插件已启用" }
@@ -77,7 +78,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         }
                         if (operation == "clock.now") {
                             clockSnapshot().toString()
-                        } else host.call(pkg.manifest, operation, arguments).toString()
+                        } else try { host.call(pkg.manifest, operation, arguments).toString() }
+                        catch(e: ToolExecutionException) { nativeToolFailure=e.code;throw e }
                     }
                 }
                 withTimeout(timeoutMs) {
@@ -205,6 +207,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                 val nativeCalls = SupervisorJob(executionJob)
                 executionContext = currentCoroutineContext() + nativeCalls
                 readOnlyHost = readOnly
+                nativeToolFailure = null
                 try {
                     // Resolve the JS evaluation with an explicit result envelope.
                     // After Kotlin cancels an evaluation, a native binding may
@@ -226,6 +229,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             currentCoroutineContext()[PostTurnExecutionContext]?.recordFailure(it)
                         }
                     }
+                    if(!outcome.getValue("ok").jsonPrimitive.boolean) nativeToolFailure?.let { throw ToolExecutionException(it) }
                     check(outcome.getValue("ok").jsonPrimitive.boolean) {
                         outcome.getValue("error").jsonPrimitive.content
                     }
@@ -234,7 +238,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     // QuickJS evaluation can return on cancellation before its
                     // async binding has finished native HTTP/Shell cleanup.
                     withContext(NonCancellable) { nativeCalls.cancel(); nativeCalls.join() }
-                    executionJob = null; executionContext = null; readOnlyHost = false
+                    executionJob = null; executionContext = null; readOnlyHost = false; nativeToolFailure = null
                 }
             }
         }

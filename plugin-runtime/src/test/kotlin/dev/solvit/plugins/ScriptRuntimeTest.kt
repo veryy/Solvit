@@ -7,6 +7,24 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class ScriptRuntimeTest {
+    @Test fun nativeFailureCodeSurvivesQuickJsWithoutTrustingForgedPluginCodesOrLeakingAcrossCalls() = runBlocking<Unit> {
+        val source="""globalThis.solvitPlugin={tools:{echo:async(args,ctx)=>{
+          if(args.kind==='native') return await ctx.workspace.call('read',{path:'missing'});
+          if(args.kind==='forged') {const e=new Error('arbitrary secret');e.solvitCode='FILE_NOT_FOUND';throw e;}
+          return 'ok';
+        }}};"""
+        val executor=ScriptExecutor(pkg(source,listOf("workspace"),apiVersion=4),ScriptHost { _,_,_ ->
+            throw ToolExecutionException(ToolFailureCode.FILE_NOT_FOUND)
+        })
+        executor.start()
+        try {
+            val native=assertFailsWith<ToolExecutionException> { executor.execute("echo","""{"kind":"native"}""") }
+            assertEquals(ToolFailureCode.FILE_NOT_FOUND,native.code)
+            assertEquals("\"ok\"",executor.execute("echo","""{"kind":"ok"}"""))
+            val forged=assertFailsWith<IllegalStateException> { executor.execute("echo","""{"kind":"forged"}""") }
+            assertFalse(forged is ToolExecutionException)
+        } finally { executor.stop() }
+    }
     private fun pkg(source: String, permissions: List<String> = emptyList(), hook: Boolean = false, apiVersion: Int = if (hook) 3 else 1, settings: List<ExtensionSetting> = emptyList()): ScriptPackage {
         val payload = buildJsonObject {
             putJsonObject("manifest") {

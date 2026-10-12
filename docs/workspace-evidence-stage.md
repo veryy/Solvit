@@ -59,3 +59,9 @@ JS工作区write_file返回实际前后观察，完整任务回归检查首次�
 前一提交ef0654d的[Android38205216200](https://github.com/veryy/Solvit/actions/runs/38205216200)已completed/success，不是被新提交取消。下载模拟器实际产物11727815159：40个测试（app31/web1/terminal8），零失败/错误/跳过；`ExecutionJournalUiTest.interruptedObservationsReopenInsideOneReplyAndNeverInventMissingResults`确实执行并通过。SQLite关闭重开、折叠读取、结果未知和同一气泡显示得到Android模拟器证据。此前254个单元、Lint/APK和固定签名成功结论仍适用于该提交。
 
 新文件证据5a50eec的Android38205978852/build114669453926当前in_progress，不能沿用旧绿灯作为新行为验证。尚未发布新版本；完整工作区差异、错误详情、设备任务与真实模型验收继续保留。
+
+## 工具失败的安全分类
+
+对照DSH `agent-loop/tests/tool-calls.spec.ts` 的结构化失败/未知结果及Operit `StandardTerminalCommandExecutor.kt` 的退出码/超时/失败表示，新增宿主定义ToolFailureCode及固定下一步建议。原生文件能力在具体检查处区分不存在、非普通文件、越界、超限与写后结果未知；通用错误只按异常类型给安全分类，不回显任意异常文本。模型工具结果、折叠详情与持久日志得到同一份安全信息，用户拒绝与协程取消保留原语义。
+
+QuickJS使用每次原生调用的宿主侧失败记录传递类型，不接受JS随意指定错误代码，不跨调用继承；业务可以捕获失败自行返回，成功仍按其返回处理。新增实际QuickJS回归核对原生类型、成功后清除、伪造code无效，Runtime回归核对模型和活动信息一致且不含原始异常秘密。改动待远程验证，不宣称已有APK包含。

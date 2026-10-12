@@ -13,7 +13,7 @@ internal object FileObservations {
     private const val EXCERPT=6*1024
     fun capture(file: File): FileObservation {
         if(!file.exists()) return FileObservation(FileObservationKind.ABSENT)
-        require(file.isFile) { "目标不是普通文件" }
+        if(!file.isFile) throw ToolExecutionException(ToolFailureCode.NOT_REGULAR_FILE)
         val output=ByteArrayOutputStream()
         file.inputStream().use { input ->
             val buffer=ByteArray(8192)
