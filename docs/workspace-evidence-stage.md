@@ -127,3 +127,10 @@ Android完整任务候选进一步把实际任务持久记录接到ChatTimeline�
 ## Android测试APK编译修复的实际结果
 
 0677c3e的[Android38209958118](https://github.com/veryy/Solvit/actions/runs/38209958118) build114681688512已success，包含Android测试APK编译、Lint、0.21.0 APK及固定签名检查；上次不可见OkHttp类型的原因由同一编译门禁验证已修复。下载实际单元产物11728532776，268个测试、失败/错误/跳过均零；保存基线失败零副作用、快照秘密路径/预览脱敏及Linux完整任务确实执行。模拟器114682776191当前仍在准备UI APK，不宣称Android完整任务已经运行。追加的实际任务→重开聊天审阅e7f4a51尚未推送，待当前运行终态后验证；保留真机及真实模型验收。
+
+
+## Android真实Shell完整任务与文件审阅的首个通过结果
+
+0677c3e的[Android38209958118](https://github.com/veryy/Solvit/actions/runs/38209958118)已completed/success；模拟器114682776191成功。下载实际UI产物11729263182：41个测试、失败/错误/跳过均零，WorkspaceExecutionDeviceTest确实执行APK QuickJS→默认AndroidShell→真实退出码7→修复→0→SQLite关闭重开前后记录检查；ExecutionJournalUiTest确实执行中断事实、折叠文件预览及后续状态未知提示。此前268个单元、Lint/APK和签名门禁通过结论保留。
+
+当前追加e7f4a51的真实任务持久结果→同一聊天气泡审阅已随80f6778推送，[Android38210928823](https://github.com/veryy/Solvit/actions/runs/38210928823) build114684685066正在运行；不能沿用上一运行作为追加展示检查通过证据。尚未发布0.21.0或完成真机/真实模型决策验收。
