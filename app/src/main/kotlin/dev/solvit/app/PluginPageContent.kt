@@ -28,6 +28,9 @@ import kotlinx.serialization.json.*
 data class PluginPageInteraction(val view: ScriptPageView, val nodeId: String, val value: String? = null,
     val fields: Map<String, String> = emptyMap(), val confirmed: Boolean = false)
 
+private data class PageConfirmation(val view: ScriptPageView, val node: JsonObject,
+    val value: String?, val fields: Map<String, String>)
+
 /** Generic renderer: content and business actions come from the plugin, not per-plugin screens. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -45,20 +48,22 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
             view.nodes.forEach(::collect)
         }
     }
-    var confirmation by remember(view) { mutableStateOf<Pair<JsonObject, Map<String, String>>?>(null) }
-    val dispatch: (JsonObject, String?) -> Unit = { node, value ->
-        if (!busy) {
-            val snapshot = fields.toMap()
+    var confirmation by remember { mutableStateOf<PageConfirmation?>(null) }
+    val latestBusy by rememberUpdatedState(busy)
+    val latestEvent by rememberUpdatedState(onEvent)
+    LaunchedEffect(view) { if (confirmation?.view !== view) confirmation = null }
+    val deliver: (ScriptPageView, JsonObject, String?, Map<String, String>) -> Unit = { displayed, node, value, snapshot ->
+        if (!latestBusy) {
             keyboardController?.hide()
             focusManager.clearFocus()
-            if (node["confirm"] != null || node["hostAction"] != null) confirmation = node to snapshot
-            else onEvent(PluginPageInteraction(view, node.getValue("id").jsonPrimitive.content, value, snapshot))
+            if (node["confirm"] != null || node["hostAction"] != null) confirmation = PageConfirmation(displayed, node, value, snapshot)
+            else latestEvent(PluginPageInteraction(displayed, node.getValue("id").jsonPrimitive.content, value, snapshot))
         }
     }
+    val dispatch: (JsonObject, String?) -> Unit = { node, value -> deliver(view, node, value, fields.toMap()) }
     if (document != null) {
         PluginWebPage(view, document, checkNotNull(resource), busy, modifier) { event ->
-            fields.putAll(event.fields)
-            dispatch(event.node, event.value)
+            deliver(event.view, event.node, event.value, event.fields)
         }
     } else Column(modifier.fillMaxSize()) {
         LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("plugin_page_content"), contentPadding = PaddingValues(12.dp),
@@ -75,7 +80,8 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
             }
         }
     }
-    confirmation?.let { (node, values) ->
+    confirmation?.takeIf { it.view === view }?.let { pending ->
+        val node = pending.node
         AlertDialog(onDismissRequest = { confirmation = null }, title = { Text(node.getValue("text").jsonPrimitive.content) },
             text = {
                 val native = node["hostAction"]?.jsonObject?.let(ScriptPageHostAction::parse)
@@ -97,7 +103,8 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
             },
             confirmButton = { TextButton(onClick = {
                 confirmation = null
-                onEvent(PluginPageInteraction(view, node.getValue("id").jsonPrimitive.content, fields = values, confirmed = true))
+                latestEvent(PluginPageInteraction(pending.view, node.getValue("id").jsonPrimitive.content,
+                    pending.value, pending.fields, confirmed = true))
             }, enabled = !busy, modifier = Modifier.testTag("plugin_page_confirm")) { UiText("确认操作") } },
             dismissButton = { TextButton(onClick = { confirmation = null }) { UiText("取消") } })
     }

@@ -14,6 +14,7 @@ class ScriptWebPageEventTest {
 
     @Test fun resolvesCurrentDeclaredActionAndPreservesTheHtmlFormValue() {
         val event = ScriptWebPageEvent.parse(view, "current", input())
+        assertSame(view, event.view)
         assertEquals(JsonPrimitive("store"), event.node["action"])
         assertEquals("new", event.fields["text"])
     }

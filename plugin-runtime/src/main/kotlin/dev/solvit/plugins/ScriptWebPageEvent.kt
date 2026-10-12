@@ -3,7 +3,7 @@ package dev.solvit.plugins
 import kotlinx.serialization.json.*
 
 /** Browser requests name current declared nodes; they never supply an action or approval. */
-data class ScriptWebPageEvent(val node: JsonObject, val value: String?, val fields: Map<String, String>) {
+data class ScriptWebPageEvent(val view: ScriptPageView, val node: JsonObject, val value: String?, val fields: Map<String, String>) {
     companion object {
         fun parse(view: ScriptPageView, token: String, json: String): ScriptWebPageEvent {
             require(json.toByteArray(Charsets.UTF_8).size <= ScriptPageView.MAX_BYTES)
@@ -19,7 +19,7 @@ data class ScriptWebPageEvent(val node: JsonObject, val value: String?, val fiel
             // Validate arguments, not approval. The UI must still show the host dialog;
             // the session revalidates confirmed only after that actual human decision.
             view.event(nodeId, value, fields, confirmed = true)
-            return ScriptWebPageEvent(checkNotNull(view.node(nodeId)), value, fields)
+            return ScriptWebPageEvent(view, checkNotNull(view.node(nodeId)), value, fields)
         }
     }
 }
