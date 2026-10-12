@@ -81,6 +81,6 @@
 
 ## 0.21.0正式交付
 
-[0.21.0 Release](https://github.com/veryy/Solvit/releases/tag/v0.21.0)已由[正式标签Actions38214915959](https://github.com/veryy/Solvit/actions/runs/38214915959)发布，源提交d14ea90。测试、Lint、APK、固定签名、覆盖升级、模拟器、SDK/市场、公网MCP/Skills和搜索门禁全部成功；实际单元报告270个测试均无失败/错误/跳过，正式模拟器报告待下载核对。交付逐步事实、文件观察/审阅和安全失败结算，脚本模型的Android失败修复任务已通过候选模拟器检查。公开APK一致性仍在下载核验，真机和真实模型自主修复未验收。
+[0.21.0 Release](https://github.com/veryy/Solvit/releases/tag/v0.21.0)已由[正式标签Actions38214915959](https://github.com/veryy/Solvit/actions/runs/38214915959)发布，源提交d14ea90。测试、Lint、APK、固定签名、覆盖升级、模拟器、SDK/市场、公网MCP/Skills和搜索门禁全部成功；已下载实际XML核对270个单元和41个模拟器测试，均无失败/错误/跳过。交付逐步事实、文件观察/审阅和安全失败结算，脚本模型的Android失败修复任务通过正式模拟器检查。公开APK与该运行的APK产物逐字节一致（23,067,851字节，SHA-256 `3c1349b25055288de9584493eff13c25ca8490949b2b78172a28c6aadd24b05a`），真机和真实模型自主修复未验收。
 
 随后继续完整文件diff、项目规则自动装载、真实模型任务与手机观察/动作闭环。已完成机制和未完成质量验收分别保留，完整产品路线不缩减。
