@@ -27,6 +27,7 @@ class BuiltinMcpUpgradeTest {
             .putBoolean("seeded.dev.solvit.mcp.solvit.json", true).commit()
         try {
             manager.load(ToolsPlugin())
+            manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin())
             manager.load(object : SolvitPlugin {
                 override val id = "test.web"
                 override val provides = setOf(WebPageServiceKey)
@@ -71,6 +72,28 @@ class BuiltinMcpUpgradeTest {
             market.uninstall("dev.solvit.mcp")
             market.restore()
             assertFalse(file.exists()); assertFalse(market.installed.value.any { it.id == "dev.solvit.mcp" })
+        }
+    }
+    @Test fun originalMemoryPageUpgradesWithoutLosingFactsOrExistingGrants() = runBlocking<Unit> {
+        fixture { market, _, _ ->
+            val app = RuntimeEnvironment.getApplication()
+            val memoryFile = File(app.filesDir, "extensions/dev.solvit.memory.solvit.json")
+            memoryFile.writeBytes(javaClass.getResourceAsStream("/memory-1.3.1.solvit.json")!!.use { it.readBytes() })
+            val prefs = app.getSharedPreferences("extension_permissions", 0)
+            prefs.edit().putBoolean("seeded.dev.solvit.memory.solvit.json", true)
+                .putBoolean("enabled.dev.solvit.memory", true).putStringSet("grants.dev.solvit.memory", setOf("storage")).commit()
+            val manager = BuiltinMemoryManager(app)
+            val fact = manager.save("Memory retained through HTML upgrade", "fact", emptyList())
+                .getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
+            market.restore()
+            val installed = market.installed.value.single { it.id == "dev.solvit.memory" }
+            assertEquals("1.4.0", installed.version); assertTrue(installed.enabled)
+            val page = market.openPage("dev.solvit.memory", "main", "en")
+            try {
+                assertTrue(page.open().json.contains(fact))
+                assertEquals("ui/index.html", page.document()!!.entry)
+                assertTrue(manager.snapshot().toString().contains("Memory retained through HTML upgrade"))
+            } finally { page.close() }
         }
     }
 }
