@@ -52,9 +52,16 @@ class SkillsHtmlPageTest {
         assertFalse("System document control must have visible bounds", bounds.isEmpty)
         val down = SystemClock.uptimeMillis()
         for (action in listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP)) {
-            val event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action,
-                bounds.exactCenterX(), bounds.exactCenterY(), 0)
-            event.source = android.view.InputDevice.SOURCE_TOUCHSCREEN
+            // DocumentsUI's RecyclerView SelectionTracker accepts FINGER/STYLUS,
+            // not the UNKNOWN tool type created by the short MotionEvent.obtain overload.
+            val pointer = MotionEvent.PointerProperties().apply { id = 0; toolType = MotionEvent.TOOL_TYPE_FINGER }
+            val position = MotionEvent.PointerCoords().apply {
+                x = bounds.exactCenterX(); y = bounds.exactCenterY(); size = 1f
+                pressure = if (action == MotionEvent.ACTION_DOWN) 1f else 0f
+            }
+            val event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action, 1,
+                arrayOf(pointer), arrayOf(position), 0, 0, 1f, 1f, 0, 0,
+                android.view.InputDevice.SOURCE_TOUCHSCREEN, 0)
             try { assertTrue("System document control must receive actual touch input", automation.injectInputEvent(event, true)) }
             finally { event.recycle() }
         }
