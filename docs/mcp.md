@@ -29,7 +29,7 @@ MCP 配置不进入模型的工具参数和描述，但启用的插件可读取�
 
 ## 仍待完善
 
-当前通过 `mcp_tools`/`mcp_call` 桥接远程工具，还未把每个远程工具动态注册成独立模型函数。角色绑定、OAuth 登录、MCP resources/prompts、持续 GET 事件流、SSE 断线恢复，以及老式 HTTP+SSE 和 stdio/Linux 进程传输尚未实现。当前不声称完整 MCP 协议兼容。
+当前通过 `mcp_tools`/`mcp_call` 桥接远程工具，还未把每个远程工具动态注册成独立模型函数。每个远程工具的独立角色绑定、OAuth 登录、MCP resources/prompts、持续 GET 事件流、SSE 断线恢复，以及老式 HTTP+SSE 和 stdio/Linux 进程传输尚未实现。当前不声称完整 MCP 协议兼容。
 
 ## 验证
 
@@ -40,3 +40,5 @@ TS 测试覆盖会话协商、工具分页、JSON/SSE、未知工具、过期会
 ## 多连接候选验证状态
 
 远程TypeScript生成运行[38285153870](https://github.com/veryy/Solvit/actions/runs/38285153870)已通过。新增回归覆盖同名工具的逐服务器路由、一方会话过期不影响另一方、禁用清理、配置导入和并发保护。新Android回归用两个实际HTTPS测试服务器加确定性Provider验证工具回传，并用真实WebView和Keystore验证多连接保存重开、禁用及删除确认；这些Android回归尚待通过，确定性Provider也不等于真实模型效果验收。
+
+干净候选包已由远程生成38294468996取回并提交，37,381字节、SHA256 `111d17a33de9272b9b645e54ddc599aaed909e45960231b3254ba4dcb05f0f2c`。完整候选38295011493运行中，市场未部署、0.22.0未发布。

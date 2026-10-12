@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。插件 HTML/JS 自绘页面、图谱首页与多MCP管理正在重新实施；真实模型角色回答、流式/搜索质量及完整未完成范围见 [产品进度](docs/product-roadmap.md)。
+[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。0.22.0 候选已改用插件携带的离线 HTML/JS 记忆图谱和任务页，新增多 MCP 管理；完整远程验收与发布进行中，尚未交付新 APK。真实模型角色回答、流式/搜索质量及完整未完成范围见 [产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
@@ -63,7 +63,7 @@
 
 ## MCP 连接
 
-当前源码已内置 TS MCP 插件和声明式配置页。进入“插件 → 已安装 → MCP 连接”，先配置 HTTPS 端点及可选 Bearer 令牌，再启用 network 权限。聊天可发现并调用服务器工具，每次执行需确认。
+当前 0.22.0 候选内置 TS MCP 插件和插件自绘 HTML 管理页。支持最多 8 个具名 HTTPS 连接、独立会话与启停、标准 HTTP mcpServers 配置导入及加密凭据。进入“插件 → 已安装 → MCP 连接”管理；启用 network 后，聊天可按服务器名称发现及调用工具，仍经过工具授权。当前已发布 APK 仍是单连接版。
 
 实际可测试的只读演示地址：`https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空，提供回显和服务器时间。协议支持与边界见 [MCP 插件说明](docs/mcp.md)。[0.5.1 APK 已发布](https://github.com/veryy/Solvit/releases/tag/v0.5.1)，[45 个 Android 测试、Lint、APK、TS、市场和实际 HTTPS MCP 验证通过](https://github.com/veryy/Solvit/actions/runs/38107628413)。角色绑定、OAuth、stdio 和完整服务接入继续实现。
 
@@ -108,6 +108,6 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 当前源码提供流式聊天、多会话、JS/TS 插件、[插件市场](https://solvit.207.57.126.73.sslip.io/)、有界工具循环、MCP/Skills、角色、模型列表获取、配置备份和应用内更新。测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
 
-当前 MCP 支持 HTTPS 工具发现、调用和按插件绑定角色；多服务器、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。工作区与 Shell 已接入 Android 宿主和终端 UI，支持普通命令、真实 PTY 和同一进程的持久环境；Shizuku、Linux 发行版和 SSH/SFTP 仍待实现。Markdown 富文本和折叠思考已发布，聊天分支已接入；手机控制、向量记忆、附件、摘要、上下文管理和后台 Agent 持续执行仍待实现。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
+当前源码 MCP 支持多个 HTTPS 服务器、工具发现、调用和按插件绑定角色；动态注册远程工具、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。工作区与 Shell 已接入 Android 宿主和终端 UI，支持普通命令、真实 PTY 和同一进程的持久环境；Shizuku、Linux 发行版和 SSH/SFTP 仍待实现。Markdown 富文本和折叠思考已发布，聊天分支已接入；预算与持久历史摘要已有；手机控制、向量记忆、附件和后台 Agent 持续执行仍待实现，真实模型摘要质量未验收。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
 
 停止或失败后的助手回复保留并标记，但不进入后续模型上下文；用户输入仍保留。进程被系统杀死时，未结算的流式片段可能丢失，已写入的用户消息和完整回复保留。完整上下文发送给配置的模型服务，较长对话目前需要新建对话。
