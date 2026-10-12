@@ -660,12 +660,7 @@ class ChatLayoutTest {
         openWorkspace()
         rule.onNodeWithTag("shell_command").performClick().performTextInput("printf hello-solvit")
         rule.onNodeWithText("运行").performClick()
-        try { rule.waitUntil(10_000) { rule.onAllNodesWithText("hello-solvit").fetchSemanticsNodes().isNotEmpty() } }
-        catch (failure: Throwable) {
-            screenshot("workspace-command-failure")
-            val app = rule.activity.application as SolvitApplication
-            throw AssertionError("[DEBUG-shell-ui] " + app.workspaces.jobs.value.filter { it.command == "printf hello-solvit" } + "\n" + rule.onRoot().printToString(), failure)
-        }
+        rule.waitUntil(10_000) { rule.onAllNodesWithText("hello-solvit").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("hello-solvit").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("＋ Shell").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("Shell 2").fetchSemanticsNodes().isNotEmpty() }
@@ -866,7 +861,7 @@ class ChatLayoutTest {
         rule.onNodeWithText("发送输入").assertIsEnabled().performClick()
         try {
             rule.waitUntil(8000) { rule.onAllNodes(hasText("__UI_READY__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
-        } catch(e: Throwable) {
+        } catch(e: Exception) {
             screenshot("workspace-interactive-initial-failure")
             throw AssertionError("PTY initial state="+app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }+
                 "\n"+rule.onRoot().printToString(),e)
@@ -878,7 +873,7 @@ class ChatLayoutTest {
             rule.waitUntil(8000) { rule.onNodeWithText("发送输入").isDisplayed() }
             rule.onNodeWithText("发送输入").assertIsDisplayed().performClick()
             rule.waitUntil(8000) { rule.onAllNodes(hasText("ui-result:retained", substring=true)).fetchSemanticsNodes().isNotEmpty() }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             screenshot("workspace-interactive-failure")
             throw AssertionError("PTY UI state=" + app.terminals.sessions.value.filter { it.owner == TERMINAL_OWNER } +
                 "\n" + rule.onRoot().printToString(), e)

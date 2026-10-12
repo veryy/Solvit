@@ -137,12 +137,7 @@ class PluginPageUiTest {
             html.js("document.getElementById('query').value='plugin-memory-ui-original';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
             waitDom("!document.getElementById('search-button').disabled && !!document.querySelector('[data-memory-id=$id]') && !!document.querySelector('[data-memory-id=$relatedId]')")
             html.tapMemoryNode(id)
-            try { waitDom("!!document.querySelector('[data-node=edit]')") }
-            catch (failure: Throwable) {
-                html.screenshot("memory-html-tap-failure")
-                println("[DEBUG-html-tap] " + html.js("(()=>{const n=document.querySelector('[data-memory-id=$id]'),g=document.getElementById('graph'),r=g.getBoundingClientRect();return JSON.stringify({sent:window.__testPageSend,status:document.getElementById('status').textContent,events:window.__testGraphEvents,nearest:n?window.__testGraphHit(Number(n.dataset.x),Number(n.dataset.y)):null,touches:window.__testTouches,canvases:[...g.querySelectorAll('canvas')].map(c=>[c.width,c.height,c.getBoundingClientRect().width,c.getBoundingClientRect().height]),zoom:g.dataset.zoom,ready:window.memoryPageReady,background:getComputedStyle(document.body).backgroundColor,width:innerWidth,height:innerHeight,graph:[r.x,r.y,r.width,r.height],node:n?[n.dataset.x,n.dataset.y]:null,hit:n?document.elementFromPoint(Number(n.dataset.x),Number(n.dataset.y))?.tagName:null,sheetHidden:document.getElementById('sheet').hidden})})()"))
-                throw failure
-            }
+            waitDom("!!document.querySelector('[data-node=edit]')")
             html.js("document.querySelector('[data-node=edit]').click()")
             waitDom("!!document.getElementById('field-text')")
             html.js("const input=document.getElementById('field-text');input.value='plugin-memory-ui-edited';input.dispatchEvent(new Event('input'));document.querySelector('[data-node=save]').click()")

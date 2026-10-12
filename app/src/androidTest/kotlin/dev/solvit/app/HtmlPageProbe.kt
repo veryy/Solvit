@@ -40,7 +40,6 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         withTimeout(10_000) { result.await() }
     }
     fun tapMemoryNode(id: String) {
-        js("window.__testTouches=[];for(const type of ['pointerdown','pointerup','touchstart','touchend'])document.addEventListener(type,e=>{const p=e.touches?.[0]??e.changedTouches?.[0]??e;window.__testTouches.push([type,p.clientX,p.clientY,e.target.tagName])},{capture:true,once:true})")
         val point = Json.parseToJsonElement(js("(()=>{const node=document.querySelector('[data-memory-id='+${JsonPrimitive(id)}+']');return [Number(node.dataset.x),Number(node.dataset.y),innerWidth]})()")) .jsonArray
         var x = 0f; var y = 0f
         val ready = CompletableDeferred<Unit>()
@@ -50,7 +49,6 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
             val scale = web.width / point[2].jsonPrimitive.float
             x = location[0] + point[0].jsonPrimitive.float * scale
             y = location[1] + point[1].jsonPrimitive.float * scale
-            println("[DEBUG-html-position] web=${web.width}x${web.height} location=${location.toList()} css=$point tap=$x,$y")
             ready.complete(Unit)
         }
         runBlocking { withTimeout(10_000) { ready.await() } }

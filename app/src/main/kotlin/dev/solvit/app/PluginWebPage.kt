@@ -112,17 +112,14 @@ fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
                     if (input == buildJsonObject { put("type", "ready") }) {
                         web.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($latestState)", null)
                     } else {
-                        println("[DEBUG-page-bridge] busy=$latestBusy")
                         check(!latestBusy)
                         val event = ScriptWebPageEvent.parse(latestView, latestToken, body)
-                        println("[DEBUG-page-bridge] accepted kind=${event.node["kind"]} value=${event.value != null}")
                         latestEvent(event)
                         if (event.node["confirm"] != null || event.node["hostAction"] != null) {
                             reply.postMessage(buildJsonObject { put("type", "confirmation"); put("token", latestToken) }.toString())
                         }
                     }
                 }.onFailure {
-                    println("[DEBUG-page-bridge] rejected type=${it.javaClass.simpleName}")
                     // Never echo form data, secrets or script exception text into diagnostics.
                     reply.postMessage("{\"type\":\"error\",\"message\":\"Page request rejected\"}")
                 }
