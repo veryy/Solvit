@@ -29,7 +29,7 @@ class MarketplacePagesTest {
         put("source", """
             globalThis.solvitPlugin={tools:{},pages:{main:async(input,ctx)=>{
               if(input.event){
-                ${if (network) "await ctx.http.request({url:'https://example.com/page',timeoutMs:30000});" else ""}
+                ${if (network) "await ctx.http.request({url:'https://example.com/page',timeoutMs:20000});" else ""}
                 await ctx.storage.set('note',input.event.fields.note);
               }
               return {title:${JsonPrimitive(title)},nodes:[{id:'note',kind:'field',label:'Note',value:await ctx.storage.get('note')??''}],
