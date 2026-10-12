@@ -118,4 +118,28 @@ class ExecutionJournalRuntimeTest {
         assertEquals(ToolStage.DENIED,store.events.single { it.kind==ExecutionKind.TOOL_FINISHED }.stage)
         assertEquals(ExecutionStatus.COMPLETE,store.run!!.status)
     }
+    @Test fun escapedCredentialFieldsAreFullyRedactedFromJournalButExecutionKeepsOriginalArguments() = runTest {
+        val store=JournalStore()
+        val payload="""{"token":"upstream\"tail\\path","api_key":"another-secret","description":"public"}"""
+        val provider=object : ModelProvider {
+            override val id="fixture"
+            var requests=0
+            override fun stream(request: ModelRequest)=flow {
+                if(requests++==0) emit(ModelChunk.ToolCalls(listOf(call.copy(argumentsJson=payload))))
+                else { assertEquals(payload,request.messages.last { it.role==Role.TOOL }.content);emit(ModelChunk.Text("done")) }
+                emit(ModelChunk.Done)
+            }
+        }
+        val registry=ToolRegistry(EventBus()).apply { register(object : SolvitTool {
+            override val descriptor=ToolDescriptor("write","write","{}",pluginId="files")
+            override suspend fun execute(argumentsJson: String): String { assertEquals(payload,argumentsJson);return payload }
+        }) }
+        DefaultChatService(store,ToolAgentRuntime(provider,registry),EventBus()).send("session","run",ModelConfig(),allow).toList()
+        val arguments=store.events.single { it.kind==ExecutionKind.TOOL_PROPOSED }.call!!.argumentsJson
+        val result=requireNotNull(store.events.single { it.kind==ExecutionKind.TOOL_FINISHED }.result)
+        for(fragment in listOf(arguments,result)) {
+            assertTrue(fragment.contains("public"));assertTrue(fragment.contains("[已隐藏]"))
+            for(secret in listOf("upstream","tail","path","another-secret")) assertFalse(fragment.contains(secret))
+        }
+    }
 }

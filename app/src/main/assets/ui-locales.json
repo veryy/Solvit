@@ -4534,5 +4534,13 @@
     "ko": "실행 기록을 불러오지 못했습니다",
     "es": "No se pudo cargar el registro",
     "fr": "Impossible de charger le journal"
+  },
+  "未记录结果": {
+    "zh": "未记录结果",
+    "en": "No result recorded",
+    "ja": "結果は記録されていません",
+    "ko": "결과가 기록되지 않았습니다",
+    "es": "No se registró ningún resultado",
+    "fr": "Aucun résultat enregistré"
   }
 }

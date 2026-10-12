@@ -44,7 +44,7 @@ internal class StoredExecutionJournal(private val store: ChatStore, private val 
         var safe=value
         secrets.forEach { safe=safe.replace(it,"[已隐藏]") }
         safe=safe.replace(Regex("(?i)Bearer\\s+[^\\s\\\"'<>]+"),"Bearer [已隐藏]")
-        safe=safe.replace(Regex("(?i)(\\\"(?:api[_-]?key|authorization|password|token)\\\"\\s*:\\s*\\\")[^\\\"]*(\\\")"),"$1[已隐藏]$2")
+        safe=safe.replace(Regex("""(?i)("(?:api[_-]?key|authorization|password|token|secret|access_token)"\s*:\s*)"(?:\\.|[^"\\])*""""),"$1\"[已隐藏]\"")
         val bytes=safe.toByteArray(Charsets.UTF_8)
         if(bytes.size<=limit) return safe to false
         return Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.IGNORE).onUnmappableCharacter(CodingErrorAction.IGNORE)

@@ -75,7 +75,8 @@ private fun AssistantContents(row: ChatRow) {
             if (emitted.add(call.id)) {
                 val result = results[call.id]
                 ToolSection(activity[call.id] ?: ModelChunk.ToolActivity(call,
-                    result?.toolStage ?: if (result != null) ToolStage.SUCCEEDED else ToolStage.CONFIRMING, result?.content))
+                    result?.toolStage ?: if (result != null) ToolStage.SUCCEEDED else ToolStage.CONFIRMING, result?.content),
+                    missingResult=!row.generating && result==null)
                 hasContent = true
             }
         }
@@ -113,7 +114,7 @@ private fun ThinkingSection(thinking: String, generating: Boolean, id: String) {
 }
 
 @Composable
-private fun ToolSection(activity: ModelChunk.ToolActivity) {
+private fun ToolSection(activity: ModelChunk.ToolActivity, missingResult: Boolean = false) {
     var expanded by rememberSaveable(activity.call.id) { mutableStateOf(false) }
     val title = when (activity.call.name) {
         "dev_solvit_clock_current_time" -> "当前时间"
@@ -123,11 +124,11 @@ private fun ToolSection(activity: ModelChunk.ToolActivity) {
         Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(vertical=5.dp).testTag("tool_toggle"), verticalAlignment=Alignment.CenterVertically) {
             Icon(if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight, null, Modifier.size(18.dp))
             UiText(title, style=MaterialTheme.typography.labelMedium, modifier=Modifier.weight(1f))
-            if (activity.stage == ToolStage.RUNNING) CircularProgressIndicator(Modifier.size(12.dp),strokeWidth=1.dp)
+            if (!missingResult && activity.stage == ToolStage.RUNNING) CircularProgressIndicator(Modifier.size(12.dp),strokeWidth=1.dp)
         }
         if (expanded) Surface(color=MaterialTheme.colorScheme.surfaceContainer,shape=RoundedCornerShape(6.dp)) {
             Column(Modifier.padding(10.dp).testTag("tool_details"),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                UiText(when(activity.stage) {
+                UiText(if(missingResult) "未记录结果" else when(activity.stage) {
                     ToolStage.CONFIRMING -> "等待确认"; ToolStage.RUNNING -> "执行中"; ToolStage.SUCCEEDED -> "已完成"
                     ToolStage.DENIED -> "已拒绝"; ToolStage.FAILED -> "执行失败"
                 },style=MaterialTheme.typography.labelSmall)
