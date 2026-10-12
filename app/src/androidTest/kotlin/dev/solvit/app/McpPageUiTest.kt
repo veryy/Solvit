@@ -60,14 +60,13 @@ class McpPageUiTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_page_confirm").performClick()
             waitDom("!!document.querySelector('[data-node=server_1]')")
-            assertEquals("ui-private-docs", profiles()[1].jsonObject.getValue("token").jsonPrimitive.content)
-            // Editing moves docs to the end; each subsequent action resolves the displayed row.
-            click("toggle_0"); waitDom("document.querySelector('[data-node=state_0]')?.textContent==='已停用'")
-            assertTrue(profiles()[0].jsonObject.getValue("disabled").jsonPrimitive.boolean)
-            click("delete_0")
+            assertEquals("ui-private-docs", profiles()[0].jsonObject.getValue("token").jsonPrimitive.content)
+            click("toggle_1"); waitDom("document.querySelector('[data-node=state_1]')?.textContent==='已停用'")
+            assertTrue(profiles()[1].jsonObject.getValue("disabled").jsonPrimitive.boolean)
+            click("delete_1")
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("取消").performClick(); assertEquals(2, profiles().size)
-            click("delete_0"); rule.onNodeWithTag("plugin_page_confirm").performClick()
+            click("delete_1"); rule.onNodeWithTag("plugin_page_confirm").performClick()
             waitDom("document.querySelectorAll('.card').length===1")
             assertEquals("docs", profiles().single().jsonObject.getValue("name").jsonPrimitive.content)
         } finally {

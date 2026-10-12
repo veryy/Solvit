@@ -16,8 +16,9 @@ function fixture(){
     assert.equal(request.headers.Authorization,'Bearer '+token);
     if(request.method==='DELETE')return {status:200,headers:{},body:''};
     const rpc=JSON.parse(request.body);
-    if(rpc.method==='initialize')return {status:200,headers:{'mcp-session-id':'session-'+name},body:JSON.stringify({jsonrpc:'2.0',id:rpc.id,result:{protocolVersion:'2025-11-25',capabilities:{tools:{}},serverInfo:{name,version:'1'}}})};
-    assert.equal(request.headers['Mcp-Session-Id'],'session-'+name);
+    const sessionId=name==='资料'?'session-docs':'session-code';
+    if(rpc.method==='initialize')return {status:200,headers:{'mcp-session-id':sessionId},body:JSON.stringify({jsonrpc:'2.0',id:rpc.id,result:{protocolVersion:'2025-11-25',capabilities:{tools:{}},serverInfo:{name,version:'1'}}})};
+    assert.equal(request.headers['Mcp-Session-Id'],sessionId);
     if(!rpc.id)return {status:202,headers:{},body:''};
     if(rpc.method==='tools/call'&&name==='资料'&&expireDocs)return {status:404,headers:{},body:'private-docs'};
     return {status:200,headers:{},body:JSON.stringify({jsonrpc:'2.0',id:rpc.id,result:rpc.method==='tools/list'?{tools:[{name:'echo',inputSchema:{type:'object'}}]}:{content:[{type:'text',text:name+':'+rpc.params.arguments.text}]}})};

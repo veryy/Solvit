@@ -38,8 +38,9 @@ export function createMcpPage(probe:(ctx:PluginContext,name:string)=>Promise<{pr
         const previous=config.servers.find(profile=>profile.name===selected);
         const candidate={name:draft.name?.trim(),url:draft.url?.trim(),token:draft.token||previous?.token||'',
           headers:draft.headers?.trim()?JSON.parse(draft.headers):previous?.headers??{},disabled:previous?.disabled??false};
-        const servers=config.servers.filter(profile=>profile.name!==selected);
-        servers.push(...validateConnections([candidate]));await store(servers);mode='list';draft={};
+        const replacement=validateConnections([candidate])[0];
+        const servers=selected ? config.servers.map(profile=>profile.name===selected?replacement:profile) : [...config.servers,replacement];
+        await store(servers);mode='list';draft={};
       }else if(action==='import_save'&&mode==='import'){
         draft={config:event!.fields.config??''};await store(importConnections(draft.config));mode='list';draft={};
       }else if(action==='clear_auth'&&mode==='edit'){
