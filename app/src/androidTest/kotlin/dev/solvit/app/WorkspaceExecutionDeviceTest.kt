@@ -7,6 +7,10 @@ import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import java.io.File
 import java.util.UUID
 
@@ -22,12 +26,14 @@ import okhttp3.OkHttpClient
 import org.junit.Before
 import org.junit.After
 import org.junit.Test
+import org.junit.Rule
 import org.junit.Assert.*
 import org.junit.runner.RunWith
 
 /** Scripted decisions, actual APK QuickJS -> Android shell/files -> durable SQLite -> reopen. */
 @RunWith(AndroidJUnit4::class)
 class WorkspaceExecutionDeviceTest {
+    @get:Rule val rule=createAndroidComposeRule<MainActivity>()
     private lateinit var context: Context
     private lateinit var directory: File
     private lateinit var prefix: String
@@ -167,9 +173,24 @@ class WorkspaceExecutionDeviceTest {
                 assertEquals("printf 'broken\\n'\nexit 7\n",Json.parseToJsonElement(fixedWrite.result!!).jsonObject["before"]!!.jsonObject["excerpt"]!!.jsonPrimitive.content)
                 assertTrue(reopened.history(session.id).last().content.startsWith("Verified actual"))
                 assertEquals(0,reopened.recoverInterruptedExecutions(System.currentTimeMillis()))
+                val rows=attachExecutions(presentChat(reopened.history(session.id)),reopened.executionRuns(session.id).first())
+                rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
+                    ChatTimeline(rows,session.id,loadExecutionEvents={ actual -> reopened.executionEvents(actual.sessionId,actual.id) })
+                } } }
+                rule.onAllNodesWithTag("assistant_message").assertCountEquals(1)
+                rule.onNodeWithText("Verified actual exit code 0 and updated main.sh").assertExists()
+                rule.onNodeWithTag("execution_journal_details").assertDoesNotExist()
+                rule.onNodeWithTag("execution_journal_toggle").performClick()
+                rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_changes_toggle").fetchSemanticsNodes().isNotEmpty() }
+                rule.onNodeWithTag("workspace_changes_toggle").performClick()
+                rule.onNodeWithTag("workspace_change_main.sh").performClick()
+                rule.onNodeWithText(fixedPreview(),substring=true).assertExists()
+                rule.onNodeWithText("仍有操作未记录后续观察，文件当前状态需重新检查").assertDoesNotExist()
+                rule.onNodeWithTag("execution_journal_toggle").performClick()
             }
         } finally {
             manager.shutdown();ws.close();scope.cancel();client.dispatcher.cancelAll();client.connectionPool.evictAll();client.dispatcher.executorService.shutdown()
         }
     }
+    private fun fixedPreview()="printf 'verified\\n'\nexit 0\n"
 }

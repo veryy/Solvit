@@ -119,3 +119,6 @@ QuickJS使用每次原生调用的宿主侧失败记录传递类型，不接受J
 [候选Android38209425730](https://github.com/veryy/Solvit/actions/runs/38209425730) build114680044737失败，下载实际日志定位 `:app:compileDebugAndroidTestKotlin`：WorkspaceExecutionDeviceTest 的 `okhttp3`、OkHttpClient不可见。plugin-market将OkHttp声明为implementation，不能充当App androidTest的直接编译依赖。App测试显式增加相同版本4.12.0；不修改任务行为、模式门禁或断言。确定的编译反馈无需添加运行时探针，修复是否正确由下一次远程测试APK编译及原任务检查判定。
 
 465dadf的[Android38208643824](https://github.com/veryy/Solvit/actions/runs/38208643824)现已全成功，模拟器114678528820通过；下载实际UI产物11728692478报告40个测试、失败/错误/跳过均零，单元266个通过结论保留。新增聊天审阅及Android完整任务仍未验证通过，后续0.21候选尚未发布。
+
+
+Android完整任务候选进一步把实际任务持久记录接到ChatTimeline：同一条助手回复、默认折叠、展开main.sh的实际修复内容，完成状态不出现后续观察缺失提示。此检查使用刚执行任务的同一SQLite关闭重开结果，不用手写事件替代实际工具链；仍是脚本模型，不宣称真实模型决策已验证。等待下一轮远程编译/模拟器。
