@@ -91,7 +91,10 @@ class SkillsHtmlPageTest {
         app.contentResolver.update(uri, ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }, null, null)
         val html = HtmlPageProbe(rule.activity)
         fun waitDom(expression: String) = rule.waitUntil(15_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) }
-        fun click(id: String) { html.js("document.querySelector('[data-node='+${JsonPrimitive(id)}+']').click()") }
+        fun click(id: String) {
+            waitDom("document.querySelector('[data-node='+${JsonPrimitive(id)}+']')?.disabled===false")
+            html.js("document.querySelector('[data-node='+${JsonPrimitive(id)}+']').click()")
+        }
         fun confirm() {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_page_confirm").performClick()
