@@ -67,12 +67,13 @@ class SkillsHtmlPageTest {
         }
         automation.waitForIdle(300, 10_000)
     }
-    private fun selectFile(name: String) {
-        if (node { it.text?.toString() == name } == null) {
+    private fun downloads() {
             clickSystem { it.contentDescription?.toString()?.contains("Show roots", ignoreCase = true) == true ||
                 it.viewIdResourceName?.endsWith("/drawer_icon") == true || it.viewIdResourceName == "android:id/home" }
             clickSystem { it.text?.toString() == "Downloads" }
-        }
+    }
+    private fun selectFile(name: String) {
+        if (node { it.text?.toString() == name } == null) downloads()
         clickSystem { it.text?.toString() == name }
     }
     @Test fun importsTextZipThroughSystemPickerExportsReimportsAndUsesActualDeleteConfirmation() {
@@ -132,6 +133,7 @@ class SkillsHtmlPageTest {
             waitDom("window.pluginPageReady===true && document.body.textContent.includes(${JsonPrimitive(name)})")
             html.screenshot("skills-html-library").recycle()
             openSkill(); click("export"); confirm()
+            downloads()
             clickSystem { it.isEnabled && it.text?.toString()?.equals("Save", ignoreCase = true) == true }
             waitDom("document.querySelector('[data-node=message]')?.textContent==='已导出'")
             click("back"); waitDom("!!document.querySelector('[data-node=import]')")
