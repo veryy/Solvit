@@ -362,7 +362,7 @@ class AndroidMarketplace(
                     put("shells", JsonArray(service.state.value.shells.filter { it.workspaceId == workspace }.map { buildJsonObject { put("id", it.id); put("name", it.name) } }))
                 }
                 "workspace.read" -> JsonPrimitive(service.read(workspace, string("path")))
-                "workspace.write" -> { service.write(workspace, string("path"), string("text")); JsonNull }
+                "workspace.write" -> writeEvidenceJson(service.writeObserved(workspace, string("path"), string("text")))
                 "workspace.createShell" -> service.createShell(workspace, string("name")).let { buildJsonObject { put("id", it.id); put("name", it.name) } }
                 "workspace.start" -> shellJson(service.run(workspace, string("shellId"), string("command")))
                 "workspace.status" -> {
@@ -457,6 +457,16 @@ class AndroidMarketplace(
         put("workspaceId", job.workspaceId); put("cwd", job.cwd); put("mode", job.mode.name)
         put("output", job.output.joinToString("") { it.text }); put("exitCode", job.exitCode?.let(::JsonPrimitive) ?: JsonNull)
         put("truncated", job.truncated); put("failure", job.failure)
+    }
+    private fun writeEvidenceJson(value: WorkspaceWriteEvidence): JsonObject = buildJsonObject {
+        put("workspaceId",value.workspaceId);put("path",value.path);put("verified",value.verified)
+        put("changed",value.changed?.let(::JsonPrimitive) ?: JsonNull)
+        fun observation(side: FileObservation)=buildJsonObject {
+            put("kind",side.kind.name);put("bytes",side.bytes?.let(::JsonPrimitive) ?: JsonNull)
+            put("sha256",side.sha256);put("excerpt",side.excerpt);put("excerptTruncated",side.excerptTruncated)
+        }
+        put("before",observation(value.before));put("after",observation(value.after))
+        put("scope","This write only; excerpts may be truncated. Shell changes outside this write are not captured.")
     }
 
     private suspend fun getBytes(url: String, maxBytes: Int): ByteArray {

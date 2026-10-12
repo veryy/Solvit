@@ -60,6 +60,10 @@ class WorkspaceExecutionEvidenceTest {
                         val proposed=when(step++) {
                             0->listOf(call("write-broken","write_file",args("path" to "main.sh","text" to broken)),call("create-shell","create_shell",args("name" to "Verify")))
                             1->{
+                                val write=result(request,"write-broken")
+                                assertTrue(write["verified"]!!.jsonPrimitive.boolean)
+                                assertEquals("ABSENT",write["before"]!!.jsonObject["kind"]!!.jsonPrimitive.content)
+                                assertEquals(broken,write["after"]!!.jsonObject["excerpt"]!!.jsonPrimitive.content)
                                 assertEquals(broken,ws.read(workspace.id,"main.sh"));shellId=result(request,"create-shell")["id"]!!.jsonPrimitive.content
                                 listOf(call("start-broken","shell_start",args("shellId" to shellId,"command" to "sh main.sh")))
                             }
@@ -74,7 +78,14 @@ class WorkspaceExecutionEvidenceTest {
                                 assertEquals(workspace.id,failed["workspaceId"]!!.jsonPrimitive.content)
                                 listOf(call("write-fixed","write_file",args("path" to "main.sh","text" to fixed)))
                             }
-                            4->{ assertEquals(fixed,ws.read(workspace.id,"main.sh"));listOf(call("start-fixed","shell_start",args("shellId" to shellId,"command" to "sh main.sh"))) }
+                            4->{
+                                val write=result(request,"write-fixed")
+                                assertTrue(write["verified"]!!.jsonPrimitive.boolean)
+                                assertTrue(write["changed"]!!.jsonPrimitive.boolean)
+                                assertEquals(broken,write["before"]!!.jsonObject["excerpt"]!!.jsonPrimitive.content)
+                                assertEquals(fixed,write["after"]!!.jsonObject["excerpt"]!!.jsonPrimitive.content)
+                                assertEquals(fixed,ws.read(workspace.id,"main.sh"));listOf(call("start-fixed","shell_start",args("shellId" to shellId,"command" to "sh main.sh")))
+                            }
                             5->{ verifiedJob=result(request,"start-fixed")["id"]!!.jsonPrimitive.content;completed(verifiedJob);listOf(call("status-fixed","shell_status",args("id" to verifiedJob))) }
                             6->{
                                 val verified=result(request,"status-fixed");assertEquals(0,verified["exitCode"]!!.jsonPrimitive.int)
@@ -111,6 +122,8 @@ class WorkspaceExecutionEvidenceTest {
                 val verified=records.single { it.event.callId=="status-fixed" && it.event.kind==ExecutionKind.TOOL_FINISHED }.event
                 assertEquals(7,Json.parseToJsonElement(failed.result!!).jsonObject["exitCode"]!!.jsonPrimitive.int)
                 assertEquals(0,Json.parseToJsonElement(verified.result!!).jsonObject["exitCode"]!!.jsonPrimitive.int)
+                val fixedWrite=records.single { it.event.callId=="write-fixed" && it.event.kind==ExecutionKind.TOOL_FINISHED }.event
+                assertEquals("printf 'broken\\n'\nexit 7\n",Json.parseToJsonElement(fixedWrite.result!!).jsonObject["before"]!!.jsonObject["excerpt"]!!.jsonPrimitive.content)
                 assertTrue(reopened.history(session.id).last().content.startsWith("Verified actual"))
                 assertEquals(0,reopened.recoverInterruptedExecutions(System.currentTimeMillis()))
             }

@@ -126,15 +126,22 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             }
         }
     }
-    override suspend fun write(workspaceId: String, path: String, text: String) = withContext(Dispatchers.IO) { lock.withLock {
+    override suspend fun write(workspaceId: String, path: String, text: String) { writeObserved(workspaceId,path,text) }
+    override suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
         val bytes = text.toByteArray(Charsets.UTF_8); require(bytes.size <= MAX_TEXT) { "文件超过 256 KiB" }
         val target = file(workspaceId, path)
+        val before=FileObservations.capture(target)
         check(target.parentFile!!.mkdirs() || target.parentFile!!.isDirectory)
         // Recheck after creating parents, before opening the atomic file.
         check(file(workspaceId, path) == target)
         val atomic = AtomicFile(target); val output = atomic.startWrite()
         try { output.write(bytes); atomic.finishWrite(output) }
         catch (e: Throwable) { atomic.failWrite(output); throw e }
+        check(file(workspaceId,path)==target) { "写入后路径已变化，请检查实际文件" }
+        val after=FileObservations.capture(target)
+        check(after.sha256==FileObservations.fromBytes(bytes).sha256) { "写入后文件发生变化，请检查实际内容" }
+        WorkspaceWriteEvidence(workspaceId,target.relativeTo(directory(workspaceId)).invariantSeparatorsPath,
+            before,after,FileObservations.changed(before,after),true)
     } }
     override suspend fun run(workspaceId: String, shellId: String, command: String, timeoutMs: Long): ShellJob {
         check(state.value.shells.any { it.id == shellId && it.workspaceId == workspaceId }) { "Shell 会话不属于此工作区" }
