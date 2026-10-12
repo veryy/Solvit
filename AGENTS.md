@@ -21,6 +21,8 @@ Do not execute upstream applications or bundle all reference repositories into t
 - Workspace/execution: DSH workspace/shell services and Operit terminal tools.
 - Phone actions: Open-AutoGLM `phone_agent/agent.py`, actions and model client.
 - Skills/Hooks/MCP packages: DSH extension packages, ZCode and ZAI coding plugin examples.
+- Plugin pages: Operit `ui/features/memory/screens/MemoryScreen.kt` and its graph/detail components;
+  DSH client UI registration/disposal and UI plugin guidance. Follow `docs/plugin-ui-plan.md`.
 
 Record the exact upstream files, adopted behavior, Android adaptation and verification
 evidence in a stage note. Prefer suitable existing components over speculative rewrites.
