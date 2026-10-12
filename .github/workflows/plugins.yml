@@ -1,5 +1,11 @@
 name: TypeScript plugins
 on:
+  workflow_dispatch:
+    inputs:
+      generate_packages:
+        description: Generate reviewable package artifacts before committing them
+        type: boolean
+        default: false
   workflow_call:
   push:
     paths: ['plugin-sdk/**', 'plugin-examples/**', 'builtin-plugins/**', 'market-server/packages/**', '.github/workflows/plugins.yml']
@@ -29,7 +35,9 @@ jobs:
         working-directory: plugin-sdk
       - run: npm test
         working-directory: market-server
-      - run: |
+      - name: Require committed packages to match the current source
+        if: github.event_name != 'workflow_dispatch' || inputs.generate_packages != true
+        run: |
           git diff --exit-code -- market-server/packages plugin-market/src/main/assets/builtin-plugins
           test -z "$(git ls-files --others --exclude-standard -- market-server/packages plugin-market/src/main/assets/builtin-plugins)"
       - name: Verify no-configuration public web search

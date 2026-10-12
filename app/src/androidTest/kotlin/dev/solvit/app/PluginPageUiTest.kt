@@ -153,6 +153,8 @@ class PluginPageUiTest {
             stage = "initial-scroll"
             rule.onNodeWithTag("plugin_page_content").performScrollToKey("filters")
             stage = "initial-filter-click"
+            rule.onNodeWithTag("plugin_node_filter").assertIsDisplayed()
+            rule.onNodeWithTag("plugin_node_clear").assertIsDisplayed()
             rule.onNodeWithTag("plugin_node_filter").performClick()
             stage = "initial-open-result"
             rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))
@@ -175,6 +177,8 @@ class PluginPageUiTest {
             stage = "reopened-scroll"
             rule.onNodeWithTag("plugin_page_content").performScrollToKey("filters")
             stage = "reopened-filter-click"
+            rule.onNodeWithTag("plugin_node_filter").assertIsDisplayed()
+            rule.onNodeWithTag("plugin_node_clear").assertIsDisplayed()
             rule.onNodeWithTag("plugin_node_filter").performClick()
             stage = "reopened-open-result"
             rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))

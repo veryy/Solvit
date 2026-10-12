@@ -10,7 +10,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -28,6 +31,8 @@ data class PluginPageInteraction(val view: ScriptPageView, val nodeId: String, v
 @Composable
 fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = Modifier,
     onEvent: (PluginPageInteraction) -> Unit) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val fields = remember(view) {
         mutableStateMapOf<String, String>().apply {
             fun collect(node: JsonObject) {
@@ -41,6 +46,8 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
     val dispatch: (JsonObject, String?) -> Unit = { node, value ->
         if (!busy) {
             val snapshot = fields.toMap()
+            keyboardController?.hide()
+            focusManager.clearFocus()
             if (node["confirm"] != null || node["hostAction"] != null) confirmation = node to snapshot
             else onEvent(PluginPageInteraction(view, node.getValue("id").jsonPrimitive.content, value, snapshot))
         }
@@ -90,9 +97,9 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
 
 @Composable
 private fun PluginPageNode(node: JsonObject, busy: Boolean, fields: MutableMap<String, String>,
-    dispatch: (JsonObject, String?) -> Unit) {
+    dispatch: (JsonObject, String?) -> Unit, baseModifier: Modifier = Modifier) {
     fun text(key: String) = node.getValue(key).jsonPrimitive.content
-    val modifier = Modifier.testTag("plugin_node_${text("id")}")
+    val modifier = baseModifier.testTag("plugin_node_${text("id")}")
     val children = node["children"]?.jsonArray?.map { it.jsonObject }.orEmpty()
     when (text("kind")) {
         "text" -> Text(text("text"), modifier, style = when (node["tone"]?.jsonPrimitive?.content) {
@@ -103,7 +110,14 @@ private fun PluginPageNode(node: JsonObject, busy: Boolean, fields: MutableMap<S
         "column" -> Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             children.forEach { child -> key(child.getValue("id").jsonPrimitive.content) { PluginPageNode(child, busy, fields, dispatch) } }
         }
-        "row" -> Row(modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        "row" -> if (children.any { it["kind"] == JsonPrimitive("field") }) {
+            Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                children.forEach { child -> key(child.getValue("id").jsonPrimitive.content) {
+                    PluginPageNode(child, busy, fields, dispatch,
+                        if (child["kind"] == JsonPrimitive("field")) Modifier.weight(1f) else Modifier)
+                } }
+            }
+        } else Row(modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             children.forEach { child -> key(child.getValue("id").jsonPrimitive.content) { PluginPageNode(child, busy, fields, dispatch) } }
         }
         "card" -> Card(modifier.fillMaxWidth()) {
