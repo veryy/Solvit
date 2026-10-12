@@ -105,9 +105,10 @@ class ExecutionJournalRuntimeTest {
         val agent=ToolAgentRuntime(provider { request -> assertEquals(result,request.messages.last { it.role==Role.TOOL }.content) },tools { result })
         DefaultChatService(store,agent,EventBus()).send("session","run",ModelConfig(apiKey=secret),allow).toList()
         val recorded=store.events.single { it.kind==ExecutionKind.TOOL_FINISHED }
-        assertTrue(recorded.truncated);assertTrue(recorded.result!!.toByteArray(Charsets.UTF_8).size<=64*1024)
-        assertFalse(recorded.result.contains(secret));assertFalse(recorded.result.contains("upstream-secret"))
-        assertFalse(recorded.result.contains('\uFFFD'))
+        val fragment=requireNotNull(recorded.result)
+        assertTrue(recorded.truncated);assertTrue(fragment.toByteArray(Charsets.UTF_8).size<=64*1024)
+        assertFalse(fragment.contains(secret));assertFalse(fragment.contains("upstream-secret"))
+        assertFalse(fragment.contains('\uFFFD'))
     }
     @Test fun denialIsRecordedWithoutDispatchingOrInventingStartedState() = runTest {
         val store=JournalStore();var effects=0
