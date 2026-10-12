@@ -65,22 +65,22 @@ class PluginPageUiTest {
         rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
             PluginPageScreen("自动记忆任务", { manager.openPage("zh", service, "tasks") }) {}
         } } }
-        rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_node_task_open_0").fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithTag("plugin_node_task_open_0").performClick()
-        rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_task_user"))
-        rule.onNodeWithText("来源用户消息: page-task-user").assertIsDisplayed()
-        rule.onNodeWithTag("plugin_node_task_retry").performClick()
+        val html = HtmlPageProbe(rule.activity)
+        fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+        waitDom("!!document.querySelector('[data-node=task_open_0]')")
+        html.js("document.querySelector('[data-node=task_open_0]').click()")
+        waitDom("document.body.textContent.includes('来源用户消息: page-task-user')")
+        html.js("document.querySelector('[data-node=task_retry]').click()")
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithText("重试将使用原模型配置，可能产生额外费用。").assertIsDisplayed()
         rule.onNodeWithText("取消").performClick()
         assertEquals(0, controls.get())
-        rule.onNodeWithTag("plugin_node_task_retry").performClick()
+        html.js("document.querySelector('[data-node=task_retry]').click()")
         rule.onNodeWithTag("plugin_page_confirm").performClick()
-        rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_node_task_retry").fetchSemanticsNodes().isEmpty() }
-        rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_task_status"))
-        rule.onNode(hasTestTag("plugin_node_task_status") and hasText("等待处理")).assertIsDisplayed()
-        rule.onNodeWithTag("plugin_node_task_delete").performClick()
+        waitDom("document.querySelector('[data-node=task_status]')?.textContent==='等待处理'")
+        html.js("document.querySelector('[data-node=task_delete]').click()")
         rule.onNodeWithTag("plugin_page_confirm").performClick()
-        rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_node_task_empty").fetchSemanticsNodes().isNotEmpty() }
+        waitDom("!!document.querySelector('[data-node=task_empty]')")
         assertEquals(2, controls.get()); assertNull(row.get())
         assertFalse(app.marketplace.installed.value.first { it.id == target.pluginId }.enabled)
     }
@@ -116,47 +116,35 @@ class PluginPageUiTest {
         fun present() { rule.activity.setContent { MaterialTheme(colorScheme = darkColorScheme()) {
             if (visible) PluginPageScreen("记忆", { manager.openPage("zh") }) { visible = false }
         } } }
+        val html = HtmlPageProbe(rule.activity)
+        fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+        fun select() { html.js("document.querySelector('[data-memory-id=$id]').click()") }
         try {
             rule.runOnUiThread { present() }
-            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_query").fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("plugin_field_query").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_query") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("plugin_field_query").performTextReplacement("plugin-memory-ui-original")
-            rule.onNodeWithTag("plugin_page_content").performScrollToKey("filters")
-            rule.onNodeWithTag("plugin_node_filter").assertIsDisplayed()
-            rule.onNodeWithTag("plugin_node_clear").assertIsDisplayed()
-            rule.onNodeWithTag("plugin_node_filter").performClick()
-            rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))
-            rule.onNodeWithTag("plugin_node_open_0").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_node_edit") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("plugin_node_edit").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_text") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("plugin_field_text").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_text") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("plugin_field_text").performTextReplacement("plugin-memory-ui-edited")
-            rule.onNodeWithTag("plugin_node_save").assertIsDisplayed().performClick()
-            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_node_body") and hasText("plugin-memory-ui-edited")).fetchSemanticsNodes().isNotEmpty() }
+            waitDom("window.memoryPageReady===true")
+            rule.onNodeWithTag("plugin_field_query").assertDoesNotExist()
+            html.js("document.getElementById('query').value='plugin-memory-ui-original';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
+            waitDom("!document.getElementById('search-button').disabled && !!document.querySelector('[data-memory-id=$id]')")
+            select()
+            waitDom("!!document.querySelector('[data-node=edit]')")
+            html.js("document.querySelector('[data-node=edit]').click()")
+            waitDom("!!document.getElementById('field-text')")
+            html.js("const input=document.getElementById('field-text');input.value='plugin-memory-ui-edited';input.dispatchEvent(new Event('input'));document.querySelector('[data-node=save]').click()")
+            waitDom("document.querySelector('[data-node=body]')?.textContent==='plugin-memory-ui-edited'")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
             rule.onNodeWithContentDescription("关闭插件界面").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_content").fetchSemanticsNodes().isEmpty() }
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_web_page").fetchSemanticsNodes().isEmpty() }
             rule.runOnUiThread { visible = true }
-            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_query").fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("plugin_field_query").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_query") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("plugin_field_query").performTextReplacement("plugin-memory-ui-edited")
-            rule.onNodeWithTag("plugin_page_content").performScrollToKey("filters")
-            rule.onNodeWithTag("plugin_node_filter").assertIsDisplayed()
-            rule.onNodeWithTag("plugin_node_clear").assertIsDisplayed()
-            rule.onNodeWithTag("plugin_node_filter").performClick()
-            rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))
-            rule.onNodeWithTag("plugin_node_open_0").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_node_remove") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("plugin_node_remove").performClick()
+            waitDom("window.memoryPageReady===true && !!document.querySelector('[data-memory-id=$id]')")
+            select()
+            waitDom("document.querySelector('[data-node=body]')?.textContent==='plugin-memory-ui-edited'")
+            html.js("document.querySelector('[data-node=remove]').click()")
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("取消").performClick()
             assertEquals("plugin-memory-ui-edited", runBlocking { manager.snapshot().getValue("facts").jsonArray.first { it.jsonObject["id"]==JsonPrimitive(id) }.jsonObject.getValue("text").jsonPrimitive.content })
-            rule.onNodeWithTag("plugin_node_remove").performClick()
+            html.js("document.querySelector('[data-node=remove]').click()")
             rule.onNodeWithTag("plugin_page_confirm").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_node_empty").fetchSemanticsNodes().isNotEmpty() }
+            waitDom("!document.querySelector('[data-memory-id=$id]') && document.getElementById('sheet').hidden")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
         } finally { rule.runOnUiThread { visible = false }; runBlocking { runCatching { manager.delete(id) } } }
     }

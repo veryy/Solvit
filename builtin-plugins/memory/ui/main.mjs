@@ -41,6 +41,7 @@ function graph(graphNode,theme) {
     cy.on('tap','edge',event=>{const e=event.target;const p=e.renderedMidpoint();cy.elements().unselect();e.select();
       $('status').textContent=e.data('label');$('status').hidden=false;});
     cy.on('tap',event=>{if(event.target===cy){$('status').hidden=true;$('menu').hidden=true}});
+    cy.on('viewport',()=>{$('graph').dataset.zoom=String(cy.zoom())});
   }
   cy.style([{selector:'node',style:{'background-color':theme.primary,'label':'data(label)','color':theme.onSurface,
     'font-size':11,'text-wrap':'wrap','text-max-width':100,'text-valign':'bottom','text-margin-y':10,'width':20,'height':20}},
@@ -80,6 +81,14 @@ window.solvitPageUpdate = next => {
       const apply=nodes.find(n=>n.id==='filter');if(apply)filters.append(action(apply));$('menu').append(filters);
       for(const node of next.view.footer??[])if(node.id!=='new')$('menu').append(action(node));
       const clear=nodes.find(n=>n.id==='clear');if(clear)$('menu').append(action(clear));
+      if(relation){
+        const list=document.createElement('details'),summary=document.createElement('summary');summary.textContent=next.view.title;list.append(summary);
+        for(const node of relation.nodes){const button=document.createElement('button');button.textContent=node.label;
+          button.dataset.memoryId=node.id;const position=cy.getElementById(node.id).renderedPosition();
+          button.dataset.x=String(position.x);button.dataset.y=String(position.y);
+          button.onclick=()=>send('relations',node.id);list.append(button)}
+        $('menu').append(list);
+      }
     }else{
       $('sheet-content').replaceChildren(...next.view.nodes.map(render));
       $('sheet-actions').replaceChildren(...(next.view.footer??[]).map(action));
