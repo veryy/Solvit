@@ -28,7 +28,7 @@ class BuiltinMcpUpgradeTest {
             val skillData = """{"format":1,"skills":[]} """.trim()
             val data = app.getSharedPreferences("extension_data.dev.solvit.skills", 0)
             data.edit().putString("skills.v1", skillData).commit()
-            val profiles = """[{"id":"docs","name":"docs","url":"https://docs.example.invalid/mcp","token":"fixture-docs","disabled":false},{"id":"code","name":"code","url":"https://code.example.invalid/mcp","token":"fixture-code","disabled":true}]"""
+            val profiles = """[{"name":"docs","url":"https://docs.example.invalid/mcp","token":"fixture-docs","disabled":false},{"name":"code","url":"https://code.example.invalid/mcp","token":"fixture-code","disabled":true}]"""
             config.write("dev.solvit.mcp", mapOf("connections" to profiles))
             market.restore()
             for (id in listOf("dev.solvit.skills", "dev.solvit.mcp")) {
