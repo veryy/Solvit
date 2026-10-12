@@ -39,3 +39,5 @@ UI候选 `f9cf32e` 的Android38203674752实际失败于生产SQLite编译：`Exe
 `28dd8e8` 的Android38204230919已编译到App，但完整任务fixture初次启用工作区插件失败。下载实际XML（11727260145）：`Missing or cyclic dependencies: dev.solvit.workspace`，来自PluginManager.enableAll。优先核对fixture服务注册、再核对包依赖及启用状态；实际ScriptToolPlugin声明需要WorkspaceServiceKey，而fixture只构造AndroidWorkspaces没有注册。通过fixture原生服务插件注册同一真实AndroidWorkspaces及其执行服务；不更改生产依赖、不删启用或实际执行断言。该报告同时确认日志核心2个、Runtime6个、SQLite5个新增回归全部通过；整条构建仍失败，模拟器未执行。
 
 即时持久检查点会在ToolRegistry.onAuthorized中挂起。原实现只在回调前复查工具实例/执行模式/拒绝策略，等待期间撤销可能过期。补充回调后、实际调用前的取消/实例/模式/策略复查；新增受控等待中卸载与取消的零副作用回归。未扩大权限或重放操作，等待远程验证。
+
+`afaa77b` 的Android38204703757再次失败于完整任务：XML11726693119显示step2读取 `start-broken` 时不是JsonObject；第一步文件写入和Shell创建已通过。按优先级核对工具FAILED回传（而非直接容忍双重JSON）、执行模式、宿主绑定。源码确认fixture的ToolsPlugin默认enforceSystem=false，描述符mode=null，而AndroidExecution.authorized必须与实际APP模式一致；生产App使用enforceSystem=true。fixture改用同样模式服务门禁，并在授权时断言APP、解析前断言工具成功。保留退出码7/0、工作目录、文件内容和重开记录断言，等待远程证据验证该原因。

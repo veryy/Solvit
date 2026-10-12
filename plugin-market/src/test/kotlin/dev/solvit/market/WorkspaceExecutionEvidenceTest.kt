@@ -30,7 +30,7 @@ class WorkspaceExecutionEvidenceTest {
         val ws=AndroidWorkspaces(context,scope,ShellLauncher(ShellPaths("/bin/sh","/usr/bin/setsid")))
         lateinit var session: ChatSession
         try {
-            manager.load(ToolsPlugin())
+            manager.load(ToolsPlugin(enforceSystem=true))
             manager.load(object : SolvitPlugin {
                 override val id="fixture.native-workspace"
                 override val provides=setOf(WorkspaceServiceKey,SystemExecutionServiceKey)
@@ -47,7 +47,11 @@ class WorkspaceExecutionEvidenceTest {
                 var step=0;var shellId="";var failedJob="";var verifiedJob=""
                 fun args(vararg pairs: Pair<String,String>)=buildJsonObject { pairs.forEach { put(it.first,it.second) } }.toString()
                 fun call(id: String,name: String,arguments: String)=ToolCall(id,"dev_solvit_workspace_$name",arguments)
-                fun result(request: ModelRequest,id: String)=Json.parseToJsonElement(request.messages.last { it.role==Role.TOOL && it.toolCallId==id }.content).jsonObject
+                fun result(request: ModelRequest,id: String): JsonObject {
+                    val message=request.messages.last { it.role==Role.TOOL && it.toolCallId==id }
+                    assertEquals(ToolStage.SUCCEEDED,message.toolStage,"Expected a successful tool return for $id")
+                    return Json.parseToJsonElement(message.content).jsonObject
+                }
                 suspend fun completed(jobId: String) { withTimeout(10_000) { ws.jobs.first { jobs -> jobs.any { it.id==jobId && it.stage !in setOf(ShellStage.STARTING,ShellStage.RUNNING) } } } }
                 val provider=object : ModelProvider {
                     override val id="fixture"
@@ -87,6 +91,7 @@ class WorkspaceExecutionEvidenceTest {
                 val authorization=object : ToolAuthorization {
                     override suspend fun authorize(descriptor: ToolDescriptor)=false
                     override suspend fun authorizeCall(descriptor: ToolDescriptor,call: ToolCall): Boolean {
+                        assertEquals(ExecutionMode.APP,descriptor.executionMode)
                         val run=store.executionRuns(session.id).first().single()
                         assertTrue(store.executionEvents(session.id,run.id).any { it.event.call?.id==call.id && it.event.kind==ExecutionKind.TOOL_PROPOSED })
                         approvals+=call;return true
