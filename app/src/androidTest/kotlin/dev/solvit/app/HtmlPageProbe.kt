@@ -68,7 +68,9 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
     fun secureWindow(): Boolean = runBlocking {
         val result = CompletableDeferred<Boolean>()
         activity.runOnUiThread {
-            val root = android.view.inspector.WindowInspector.getGlobalWindowViews().firstOrNull { browser(it) != null }
+            val root = android.view.inspector.WindowInspector.getGlobalWindowViews().asReversed().firstOrNull {
+                it.hasWindowFocus() && browser(it)?.let { web -> web.isShown && owned(web) } == true
+            }
             val flags = (root?.layoutParams as? android.view.WindowManager.LayoutParams)?.flags ?: 0
             result.complete(flags and android.view.WindowManager.LayoutParams.FLAG_SECURE != 0)
         }

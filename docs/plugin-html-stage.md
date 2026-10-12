@@ -44,3 +44,5 @@ HTML页面复用现有QuickJS业务回调、实际页面版本、字段/动作�
 94101cf运行38280669363的build通过。首轮HTML UI失败来自探针只遍历Activity decor，实际PluginPageScreen在独立Dialog窗口；修正探针遍历WindowInspector实际窗口，复用同一个异步求值驱动，异常通过Deferred传回测试线程。原终端诊断新增assertTextContains默认整串匹配，自行造成误报（报告EditableText中实际包含UI_PTY_STATE），改为明确substring匹配。保留真实工具输出等待，不把这两处测试修正当作产品交互通过；下一次继续完整UI验收。
 
 cd09572运行38282268111：build成功；HTML notes真实保存/重开/取消与确认删除/停用，以及HTML后台任务操作已通过。记忆关系图实际触摸未进入详情，普通Shell输出UI另有超时，因此整轮仍失败。截图首屏显示尚未填入主题/数据的白页，需要区分探针选中残留窗口、首屏准备时机和触摸来源/坐标。探针下一候选限定当前Activity且有焦点的真实窗口，明确SOURCE_TOUCHSCREEN、使用实际事件时间；保留实体触摸与详情等待，失败时仅记录颜色/尺寸/命中元素等无正文信息。Shell失败时记录此固定fixture命令的作业状态及UI；临时DEBUG探针在定位后移除，不把部分通过当作图谱完成。
+
+多MCP候选1.1.0/API10已实现具名独立会话、HTML配置及加密CAS保存。已读取DSH实际`connection.ts`、`server-context.ts`和对应重连/上下文测试；仅采用每连接会话边界，不声称实现DSH完整重连与动态目录。远程生成38285153870通过，新包36488字节、SHA256 79dfb626d1216ecef5813dd82c332dc9c5b4e3fa5868c7974294e34ea8faeef0。API9保留原1.0.0包。Android多HTTPS路由和HTML管理验收仍待运行，服务端尚未部署新包。

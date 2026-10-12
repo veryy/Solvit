@@ -45,6 +45,14 @@ test('catalog downloads match their declared integrity and expose no write API',
     const htmlPackage = await (await fetch(base + htmlMemory.downloadPath)).json();
     assert.ok(htmlPackage.resources['ui/index.html'].includes('id="graph"'));
     assert.ok(htmlPackage.resources['ui/main.js'].length > 100_000);
+    const oldMcp = api9.plugins.find(plugin => plugin.id === 'dev.solvit.mcp');
+    assert.equal(oldMcp.version, '1.0.0'); assert.equal(oldMcp.apiVersion, 2);
+    const multiMcp = api10.plugins.find(plugin => plugin.id === 'dev.solvit.mcp');
+    assert.equal(multiMcp.version, '1.1.0'); assert.equal(multiMcp.apiVersion, 10);
+    assert.equal(multiMcp.pages[0].entry, 'ui/index.html');
+    const mcpPackage = await (await fetch(base + multiMcp.downloadPath)).json();
+    assert.ok(mcpPackage.resources['ui/main.js']);
+    assert.ok(mcpPackage.manifest.settings.every(setting => setting.pageManaged));
     const notesPage = api9.plugins.find(plugin => plugin.id === 'example.notes');
     assert.equal(notesPage.apiVersion, 9);
     assert.deepEqual(notesPage.pages, [{id:'main',title:'便签'}]);
