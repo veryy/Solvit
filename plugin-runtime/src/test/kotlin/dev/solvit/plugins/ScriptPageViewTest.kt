@@ -54,6 +54,30 @@ class ScriptPageViewTest {
         assertEquals(JsonPrimitive("save"), view.event("save", fields = mapOf("field" to "new"))["action"])
         assertFails { ScriptPageView.parse("""{"title":"编辑","nodes":[],"footer":[{"id":"field","kind":"field","label":"内容","value":"x"}]}""") }
     }
+    @Test fun documentControlsAreDeclaredByTheDisplayedPageAndRequireHumanConfirmation() {
+        val view = page("""{"id":"import","kind":"button","text":"Import","action":"choose-file",
+            "hostAction":{"kind":"document.open","mimeTypes":["text/*","application/json","application/zip"],"maxBytes":524288}},
+            {"id":"export","kind":"button","text":"Export","action":"save-file",
+            "hostAction":{"kind":"document.save","name":"code-review.skill.json","mimeType":"application/json","maxBytes":524288}}""")
+        assertFails { view.event("import") }
+        assertFails { view.event("export") }
+        assertEquals(JsonPrimitive("choose-file"), view.event("import", confirmed = true)["action"])
+        assertEquals(JsonPrimitive("code-review.skill.json"), view.hostAction("export")!!["name"])
+        assertFails { view.event("import", value = "content://invented/document", confirmed = true) }
+    }
+    @Test fun documentControlsRejectInventedPathsOversizedLimitsAndAmbiguousMimeTypes() {
+        fun node(control: String) = """{"id":"file","kind":"button","text":"File","action":"file","hostAction":$control}"""
+        for (control in listOf(
+            """{"kind":"document.open","mimeTypes":[],"maxBytes":524288}""",
+            """{"kind":"document.open","mimeTypes":["text/plain"],"maxBytes":524289}""",
+            """{"kind":"document.open","mimeTypes":["text/plain"],"maxBytes":0}""",
+            """{"kind":"document.open","mimeTypes":["text/plain"],"maxBytes":"12"}""",
+            """{"kind":"document.open","mimeTypes":["text/plain; charset=utf-8"],"maxBytes":12}""",
+            """{"kind":"document.open","mimeTypes":["text/plain"],"maxBytes":12,"uri":"content://other/document"}""",
+            """{"kind":"document.save","name":"../secret.json","mimeType":"application/json","maxBytes":12}""",
+            """{"kind":"document.save","name":"secret.json","mimeType":"application/*","maxBytes":12}""",
+        )) assertFails { page(node(control)) }
+    }
     @Test fun rejectsExecutableFieldsAmbiguousIdsAndBrokenRelations() {
         assertFails { page("""{"id":"x","kind":"webview","html":"<script/>"}""") }
         assertFails { page("""{"id":"x","kind":"text","text":"x","onClick":"eval()"}""") }
