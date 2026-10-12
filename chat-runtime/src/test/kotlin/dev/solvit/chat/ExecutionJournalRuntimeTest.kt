@@ -34,6 +34,17 @@ private class JournalStore : ChatStore {
 }
 
 class ExecutionJournalRuntimeTest {
+    @Test fun denialAfterDispatchSettlesWithoutPretendingTheToolNeverStarted() = runTest {
+        val store=JournalStore();var effects=0
+        val agent=ToolAgentRuntime(provider { request ->
+            assertEquals(ToolStage.FAILED,request.messages.last { it.role==Role.TOOL }.toolStage)
+        },tools { effects++;throw ToolDeniedException() })
+        DefaultChatService(store,agent,EventBus()).send("session","run",ModelConfig(),allow).toList()
+        assertEquals(1,effects)
+        assertEquals(ExecutionStatus.COMPLETE,store.run!!.status)
+        assertTrue(store.events.any { it.kind==ExecutionKind.TOOL_STARTED })
+        assertEquals(ToolStage.FAILED,store.events.single { it.kind==ExecutionKind.TOOL_FINISHED }.stage)
+    }
     private val allow=object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor)=true }
     private val call=ToolCall("call","write","{}")
     private fun provider(onFollowUp: (ModelRequest)->Unit={})=object : ModelProvider {
