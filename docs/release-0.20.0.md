@@ -10,4 +10,4 @@
 
 关系图采用有界布局和缩放/拖动，不是 Operit 的完整聚类算法；画像和文档当前提供预览。尚未进行真机、真实模型自动记忆质量或完整 Android Agent 任务验收。
 
-此文件随候选源码编写，发布状态以 GitHub Release 和对应 Actions 实际结果为准。
+发布前远程验证：[Android 构建与模拟器](https://github.com/veryy/Solvit/actions/runs/38199824758)通过，实际 XML 为 236 个单元测试、39 个模拟器测试，均无失败、错误或跳过；[TS/SDK](https://github.com/veryy/Solvit/actions/runs/38199824774)与[市场检查](https://github.com/veryy/Solvit/actions/runs/38199824732)通过。正式标签构建结果见下方发布工作流链接。
