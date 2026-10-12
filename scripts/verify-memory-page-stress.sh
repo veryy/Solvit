@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Diagnostic mode only. Runs the original real QuickJS/storage/UI test unchanged.
+# Diagnostic mode only. Runs the real QuickJS/storage/UI regression repeatedly.
 set -euo pipefail
 mkdir -p ui-screenshots
 timeout 90s adb install -r app/build/outputs/apk/debug/app-debug.apk

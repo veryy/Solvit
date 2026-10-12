@@ -6,9 +6,9 @@
 
 三项预测按当前证据排序：输入框焦点/IME带入视口与滚动竞争，则页面仍在、只丢失视口外按钮；插件刷新，则内容或页面版本变更；页面关闭，则整个列表消失或出现页面错误。文本输入只更新本地字段，按钮点击前未派发插件事件，暂不支持刷新推断；仍需失败瞬间状态。
 
-原操作、十秒等待、滚动、点击和所有持久化/删除/禁用插件断言保持不变。仅失败时捕获各节点数量、可见边界、查询框焦点、输入法显示状态和截图，之后重新抛出原异常。诊断内容限模拟器固定测试资料，不增加应用运行时提示词或密钥日志。
+首轮诊断的原操作、十秒等待、滚动、点击和所有持久化/删除/禁用插件断言保持不变。仅失败时捕获各节点数量、可见边界、查询框焦点、输入法显示状态和截图，之后重新抛出原异常。诊断内容限模拟器固定测试资料，不增加应用运行时提示词或密钥日志。
 
-手动Android工作流增加可选 `memory-filter-stress` 模式，连续20次执行同一个真实APK→QuickJS→SQLite→Compose用例，然后运行原完整UI套件。遇到第一次失败即停止并保存现场；不忽略失败，也不替代完整测试或发布门禁。默认push/tag仍运行原完整套件。尚未运行远程诊断，未修改应用功能或APK版本，未运行本地Android/TS构建和测试。
+手动Android工作流增加可选 `memory-filter-stress` 模式，连续20次执行同一个真实APK→QuickJS→SQLite→Compose用例，然后运行原完整UI套件。遇到第一次失败即停止并保存现场；不忽略失败，也不替代完整测试或发布门禁。默认push/tag仍运行原完整套件。各轮实际结果见下，未修改应用功能或APK版本，未运行本地Android/TS构建和测试。
 
 ## 原条件复现与下一项实验
 
@@ -17,3 +17,9 @@
 下一实验只增加输入后关闭原生键盘，再执行同一滚动和按钮点击。使用实际读取的AndroidX Test [Espresso.closeSoftKeyboard](https://developer.android.com/reference/androidx/test/espresso/Espresso)与 [CloseKeyboardAction.java](https://github.com/android/android-test/blob/main/espresso/core/java/androidx/test/espresso/action/CloseKeyboardAction.java)，后者等待InputMethodManager关闭结果；不增加固定sleep或放宽断言，不修改插件/应用布局。原条件已失败，下一次20轮与完整UI结果待验证。若通过，仅说明收起键盘后的程序滚动路径稳定，不宣称用户保持键盘打开时的交互或原生布局动画全被修复。
 
 `cd0ac11` 的[运行38254299660](https://github.com/veryy/Solvit/actions/runs/38254299660)在测试APK编译时失败，下载build114828274183日志明确是 `espresso` 与 `closeSoftKeyboard` 不可见，未运行模拟器。Compose测试依赖不能当作该API的直接编译依赖；本轮显式增加 `androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")`。版本已核对[官方发布记录](https://developer.android.com/jetpack/androidx/releases/test)，与现有2024年测试库系列一致，仅进入测试APK。下一运行继续原实验，不把编译失败当作运行时假设结果。
+
+## 收起键盘的对照结果与保留原交互的下一轮
+
+`e5b66cb` 的[运行38255273459](https://github.com/veryy/Solvit/actions/runs/38255273459)全部成功。实际下载单元产物11750067044和UI产物11750303451，分别核对271个单元、42个完整模拟器测试均无失败/错误/跳过；20份单独instrumentation输出也逐份确认 `OK (1 test)`、无失败。该对照支持IME/可见范围影响，仍不能确定是焦点回滚还是匹配后代的滚动实现问题，也没有证明键盘打开的原操作已修复。
+
+下一轮恢复键盘保持打开的原操作，仅将两处筛选定位改成AndroidX `performScrollToKey("filters")`。现有 `PluginPageContent.kt` 已按TS节点ID为列表项声明稳定键，记忆插件的 `filters` 是筛选按钮所在行。采用已读取的官方 `Actions.kt` 与 `ScrollToKeyTest.kt` 的按键定位契约，不修改原生页面/TS内容，不移除点击、编辑、重开、取消删除和最终删除断言。收起键盘的试验调用与临时Espresso直接依赖已撤回。下一轮仍需20次原键盘条件及完整UI验证，不以较容易通过的收起键盘路径代替。
