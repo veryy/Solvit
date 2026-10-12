@@ -170,9 +170,11 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
         val locale = LocalUiLanguage.current
         key(pluginId, page.id, locale) {
             PluginPageScreen(page.title, {
+                val permissions = installed.firstOrNull { it.id == pluginId }?.permissions.orEmpty()
+                // Capture the chat before acquiring a page lease; a missing chat must not leak a lease.
+                val access = if ("workspace" in permissions) workspaceAccess?.invoke("plugins" in permissions) else null
                 vm.openPage(pluginId, page.id, locale).also { session ->
-                    val permissions = installed.firstOrNull { it.id == pluginId }?.permissions.orEmpty()
-                    if ("workspace" in permissions) workspaceAccess?.invoke("plugins" in permissions)?.let(session::attachWorkspace)
+                    access?.let(session::attachWorkspace)
                 }
             }) { openedPage = null }
         }
