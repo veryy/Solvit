@@ -132,7 +132,17 @@ class PluginPageUiTest {
         try {
             rule.runOnUiThread { present() }
             waitDom("window.memoryPageReady===true && !!document.querySelector('[data-memory-id=$id]') && !!document.querySelector('[data-memory-id=$relatedId]') && document.getElementById('graph').getBoundingClientRect().height>innerHeight*.9")
-            html.screenshot("memory-html-graph-home")
+            val graphFrame = html.screenshot("memory-html-graph-home")
+            // The previous artifact was white although DOM/interaction checks passed.
+            // Check the displayed middle of this explicitly dark page, excluding native bars.
+            val samples = (2..8).flatMap { row -> (2..8).map { column ->
+                graphFrame.getPixel(graphFrame.width * column / 10, graphFrame.height * row / 10)
+            } }
+            val darkPixels = samples.count { pixel ->
+                android.graphics.Color.red(pixel) + android.graphics.Color.green(pixel) + android.graphics.Color.blue(pixel) < 384
+            }
+            assertTrue(darkPixels >= samples.size * .8, "HTML graph must be visibly themed, not a pre-render white frame")
+            graphFrame.recycle()
             rule.onNodeWithTag("plugin_field_query").assertDoesNotExist()
             html.js("document.getElementById('query').value='plugin-memory-ui-original';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
             waitDom("!document.getElementById('search-button').disabled && !!document.querySelector('[data-memory-id=$id]') && !!document.querySelector('[data-memory-id=$relatedId]')")

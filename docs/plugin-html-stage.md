@@ -58,3 +58,5 @@ cd09572运行38282268111：build成功；HTML notes真实保存/重开/取消与
 清理诊断后的远程生成38294468996成功，取回记忆包539,542字节/SHA256 `8650268525bf39cc49ce39f5e4bdfc3d3039c6f7e01ddd5829225bb98231c719`及MCP包37,381字节/SHA256 `111d17a33de9272b9b645e54ddc599aaed909e45960231b3254ba4dcb05f0f2c`。d42931e同步到APK和市场；正常SDK运行38295011430已通过提交包与源码一致性，完整Android38295011493尚在运行。
 
 干净候选38295011493完整成功：实际285单元/44模拟器无失败、错误或跳过，72 SDK/2市场及提交包一致性成功。查看实际产物时发现首页截图仍捕获主题/图谱绘制前白屏，虽然后续实体点击和编辑已通过。Android官方VisualStateCallback只保证下一次draw可包含当前DOM，不保证画面已提交；截图探针改为随后等待硬件FrameCommit回调，并要求两实际节点已存在。该修改仅涉及测试探针，不能把原截图称为图谱可见证据；继续单用例及正式完整发布检查。参考[WebView契约](https://developer.android.com/reference/android/webkit/WebView#postVisualStateCallback(long,%20android.webkit.WebView.VisualStateCallback))及[帧提交契约](https://developer.android.com/reference/android/view/ViewTreeObserver#registerFrameCommitCallback(java.lang.Runnable))。
+
+实际首屏PNG增加像素回归：在显式深色主题下检查排除原生状态/导航栏的内容区域多数为深色，防止DOM/触摸通过但取证仍白屏。截图来自真实screencap并等待帧提交，不创建替代图片或放宽图谱实体触摸断言。此取证检查将随正式完整UI门禁执行。

@@ -61,7 +61,7 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
             it.source = android.view.InputDevice.SOURCE_TOUCHSCREEN; instrument.sendPointerSync(it); it.recycle()
         }
     }
-    fun screenshot(name: String) {
+    fun screenshot(name: String): android.graphics.Bitmap {
         require(name.matches(Regex("[a-z-]+")))
         runBlocking {
             val frame = CompletableDeferred<Unit>()
@@ -83,6 +83,8 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
+        val bytes = ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("cat /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
+        return checkNotNull(android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
     }
     fun secureWindow(): Boolean = runBlocking {
         val result = CompletableDeferred<Boolean>()
