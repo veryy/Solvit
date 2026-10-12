@@ -49,4 +49,13 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
+    fun secureWindow(): Boolean = runBlocking {
+        val result = CompletableDeferred<Boolean>()
+        activity.runOnUiThread {
+            val root = android.view.inspector.WindowInspector.getGlobalWindowViews().firstOrNull { browser(it) != null }
+            val flags = (root?.layoutParams as? android.view.WindowManager.LayoutParams)?.flags ?: 0
+            result.complete(flags and android.view.WindowManager.LayoutParams.FLAG_SECURE != 0)
+        }
+        withTimeout(10_000) { result.await() }
+    }
 }
