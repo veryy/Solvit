@@ -120,6 +120,8 @@ class MarketplacePagesTest {
                 assertFails { session.document() }
                 assertFails { session.resource("ui/main.js") }
             } finally { session.close() }
+            // Explicitly transition out of enabled state before granting again.
+            market.disable("test.notes")
             market.enable("test.notes", setOf("storage"))
             val old = market.openPage("test.notes", "main", "en")
             try {
