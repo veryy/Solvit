@@ -41,3 +41,9 @@ UI候选 `f9cf32e` 的Android38203674752实际失败于生产SQLite编译：`Exe
 即时持久检查点会在ToolRegistry.onAuthorized中挂起。原实现只在回调前复查工具实例/执行模式/拒绝策略，等待期间撤销可能过期。补充回调后、实际调用前的取消/实例/模式/策略复查；新增受控等待中卸载与取消的零副作用回归。未扩大权限或重放操作，等待远程验证。
 
 `afaa77b` 的Android38204703757再次失败于完整任务：XML11726693119显示step2读取 `start-broken` 时不是JsonObject；第一步文件写入和Shell创建已通过。按优先级核对工具FAILED回传（而非直接容忍双重JSON）、执行模式、宿主绑定。源码确认fixture的ToolsPlugin默认enforceSystem=false，描述符mode=null，而AndroidExecution.authorized必须与实际APP模式一致；生产App使用enforceSystem=true。fixture改用同样模式服务门禁，并在授权时断言APP、解析前断言工具成功。保留退出码7/0、工作目录、文件内容和重开记录断言，等待远程证据验证该原因。
+
+## 当前远程证据（ef0654d）
+
+[Android38205216200](https://github.com/veryy/Solvit/actions/runs/38205216200) 的build114667086311已success，测试/Lint/APK及固定签名检查通过；模拟器114668047384仍在准备，尚未通过。下载实际报告11727337378，254个单元测试、失败/错误/跳过均零。日志Runtime6个、核心2个、SQLite5个、检查点撤销2个及聊天投影6个均实际执行；完整JS工作区任务1个通过，验证真实文件内容、Linux退出码7→修复→0及重开后35个事件。fixture服务/模式接线原因得到此回归支持。
+
+这仍不是正式版本发布，也不是Android设备/真实模型验收。尚需读取模拟器实际结果、完成文件差异/安全失败详情和设备完整任务，然后以新版本通过标签完整门禁并发布APK；公开最新版仍0.20.0。
