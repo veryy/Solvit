@@ -49,7 +49,9 @@ class ScriptPageSession(
     suspend fun document(): ExtensionPageDocument? {
         check(!closed && opened)
         ensureAuthorized()
-        return pkg.manifest.pages.single { it.id == pageId }.entry?.let(::ExtensionPageDocument)
+        return pkg.manifest.pages.single { it.id == pageId }.entry?.let { entry ->
+            ExtensionPageDocument(entry, pkg.manifest.settings.any { it.pageManaged && it.kind == "secret" })
+        }
     }
 
     suspend fun resource(path: String): ExtensionPageResource {

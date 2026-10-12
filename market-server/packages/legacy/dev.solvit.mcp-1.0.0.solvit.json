@@ -1,0 +1,90 @@
+{
+  "manifest": {
+    "id": "dev.solvit.mcp",
+    "name": "MCP 连接",
+    "description": "TS 实现的远程 MCP 工具桥接：HTTPS Streamable HTTP 初始化、工具发现和调用。先在插件配置中填写服务器地址与可选令牌。",
+    "version": "1.0.0",
+    "apiVersion": 2,
+    "permissions": [
+      "network"
+    ],
+    "dependencies": [],
+    "settings": [
+      {
+        "key": "url",
+        "label": "MCP HTTPS 地址",
+        "kind": "url",
+        "required": true
+      },
+      {
+        "key": "token",
+        "label": "Bearer 令牌（可选）",
+        "kind": "secret",
+        "required": false
+      }
+    ],
+    "tools": [
+      {
+        "name": "mcp_connect",
+        "description": "连接已配置的 MCP 服务器，协商会话并发现工具。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "mcp_tools",
+        "description": "列出 MCP 服务器工具及输入格式。调用远程工具前先查询此列表。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "offset": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 30
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "mcp_call",
+        "description": "执行已发现的 MCP 远程工具。name 与 arguments 必须按 mcp_tools 的描述填写；可能改变远程数据，须遵从用户意图。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "arguments": {
+              "type": "object"
+            }
+          },
+          "required": [
+            "name",
+            "arguments"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "mcp_disconnect",
+        "description": "关闭当前 MCP 会话。",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [],
+          "additionalProperties": false
+        }
+      }
+    ]
+  },
+  "source": "var __solvitBundle = (() => {\n  var __defProp = Object.defineProperty;\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // ../builtin-plugins/mcp/index.ts\n  var index_exports = {};\n  __export(index_exports, {\n    default: () => index_default\n  });\n\n  // src/index.ts\n  function definePlugin(definition) {\n    return definition;\n  }\n  function textArgument(args, key, maxLength = 4e3) {\n    const value = args[key];\n    if (typeof value !== \"string\" || !value.trim() || value.length > maxLength) throw new Error(`Invalid ${key}`);\n    return value.trim();\n  }\n\n  // ../builtin-plugins/mcp/index.ts\n  var VERSIONS = [\"2025-11-25\", \"2025-06-18\", \"2025-03-26\"];\n  var session = null;\n  var sequence = 0;\n  function isObject(value) {\n    return !!value && typeof value === \"object\" && !Array.isArray(value);\n  }\n  function headers(state) {\n    const result = { Accept: \"application/json, text/event-stream\", \"MCP-Protocol-Version\": state.protocol };\n    if (state.id) result[\"Mcp-Session-Id\"] = state.id;\n    if (state.token) result.Authorization = `Bearer ${state.token}`;\n    return result;\n  }\n  function messages(body, contentType) {\n    if (!contentType.includes(\"text/event-stream\")) {\n      const value = JSON.parse(body);\n      if (!isObject(value)) throw new Error(\"MCP response must be one JSON-RPC object\");\n      return [value];\n    }\n    const result = [];\n    for (const frame of body.replace(/\\r\\n/g, \"\\n\").split(\"\\n\\n\")) {\n      const data = frame.split(\"\\n\").filter((line) => line.startsWith(\"data:\")).map((line) => line.slice(5).replace(/^ /, \"\")).join(\"\\n\");\n      if (!data.trim()) continue;\n      const value = JSON.parse(data);\n      if (!isObject(value)) throw new Error(\"Invalid MCP SSE object\");\n      result.push(value);\n    }\n    return result;\n  }\n  var ExpiredSession = class extends Error {\n  };\n  async function post(state, ctx, payload) {\n    const cancelBody = payload.method === \"tools/call\" ? JSON.stringify({\n      jsonrpc: \"2.0\",\n      method: \"notifications/cancelled\",\n      params: { requestId: payload.id, reason: \"Client stopped the tool call\" }\n    }) : void 0;\n    const result = await ctx.http.request({ url: state.url, method: \"POST\", headers: headers(state), body: JSON.stringify(payload), cancelBody });\n    if (result.status === 404 && state.id) {\n      session = null;\n      throw new ExpiredSession(\"MCP session expired; reconnect before retrying\");\n    }\n    if (result.status < 200 || result.status >= 300) throw new Error(`MCP HTTP ${result.status}`);\n    return result;\n  }\n  async function notify(state, ctx, method, params) {\n    await post(state, ctx, { jsonrpc: \"2.0\", method, ...params ? { params } : {} });\n  }\n  async function rpc(state, ctx, method, params) {\n    const id = ++sequence;\n    const response = await post(state, ctx, { jsonrpc: \"2.0\", id, method, params });\n    const incoming = messages(response.body, response.headers[\"content-type\"] ?? \"application/json\");\n    if (method === \"initialize\") {\n      const assigned = response.headers[\"mcp-session-id\"];\n      if (assigned) {\n        if (!/^[\\x21-\\x7e]{1,1024}$/.test(assigned)) throw new Error(\"Invalid MCP session identifier\");\n        state.id = assigned;\n      }\n    }\n    let matched;\n    for (const message of incoming) {\n      if (message.jsonrpc !== \"2.0\") throw new Error(\"Invalid MCP JSON-RPC version\");\n      if (typeof message.method === \"string\" && message.id !== void 0) {\n        const answer = message.method === \"ping\" ? { result: {} } : { error: { code: -32601, message: \"Client capability unavailable\" } };\n        await post(state, ctx, { jsonrpc: \"2.0\", id: message.id, ...answer });\n      } else if (message.id === id) {\n        if (matched) throw new Error(\"Duplicate MCP response ID\");\n        matched = message;\n      }\n    }\n    if (!matched) throw new Error(\"MCP response missing request ID\");\n    if (matched.error !== void 0) {\n      const code = isObject(matched.error) && typeof matched.error.code === \"number\" ? matched.error.code : \"unknown\";\n      throw new Error(`MCP JSON-RPC error ${code}`);\n    }\n    if (!isObject(matched.result)) throw new Error(\"MCP result must be an object\");\n    return matched.result;\n  }\n  async function connect(ctx) {\n    if (session) return session;\n    const url = await ctx.settings.get(\"url\");\n    const token = await ctx.settings.get(\"token\") ?? \"\";\n    if (!url || !/^https:\\/\\//i.test(url) || /[\\r\\n]/.test(token)) throw new Error(\"Configure MCP HTTPS endpoint first\");\n    const state = { url, token, protocol: VERSIONS[0], server: {}, tools: [] };\n    try {\n      const initialized = await rpc(state, ctx, \"initialize\", {\n        protocolVersion: VERSIONS[0],\n        capabilities: {},\n        clientInfo: { name: \"Solvit MCP plugin\", version: \"1.0.0\" }\n      });\n      if (typeof initialized.protocolVersion !== \"string\" || !VERSIONS.includes(initialized.protocolVersion)) throw new Error(\"MCP protocol version unsupported\");\n      if (!isObject(initialized.capabilities) || !isObject(initialized.capabilities.tools)) throw new Error(\"MCP server does not provide tools\");\n      state.protocol = initialized.protocolVersion;\n      state.server = initialized.serverInfo ?? {};\n      await notify(state, ctx, \"notifications/initialized\");\n      const cursors = /* @__PURE__ */ new Set();\n      let cursor;\n      for (let page = 0; page < 8; page++) {\n        const result = await rpc(state, ctx, \"tools/list\", cursor ? { cursor } : {});\n        if (!Array.isArray(result.tools)) throw new Error(\"Invalid MCP tools list\");\n        for (const candidate of result.tools) {\n          if (!isObject(candidate) || typeof candidate.name !== \"string\" || !candidate.name || candidate.name.length > 128 || !isObject(candidate.inputSchema) || candidate.inputSchema.type !== \"object\" || candidate.description !== void 0 && typeof candidate.description !== \"string\") throw new Error(\"Invalid MCP tool descriptor\");\n          if (state.tools.some((tool) => tool.name === candidate.name)) throw new Error(\"Duplicate MCP tool name\");\n          state.tools.push(candidate);\n        }\n        if (state.tools.length > 200) throw new Error(\"MCP tool catalog exceeds 200 tools\");\n        if (result.nextCursor === void 0) {\n          session = state;\n          return state;\n        }\n        if (typeof result.nextCursor !== \"string\" || !result.nextCursor || cursors.has(result.nextCursor)) throw new Error(\"Invalid MCP pagination cursor\");\n        cursor = result.nextCursor;\n        cursors.add(cursor);\n      }\n      throw new Error(\"MCP pagination exceeds eight pages\");\n    } catch (error) {\n      await close(state, ctx);\n      throw error;\n    }\n  }\n  async function close(state, ctx) {\n    if (state.id) {\n      try {\n        await ctx.http.request({ url: state.url, method: \"DELETE\", headers: headers(state) });\n      } catch {\n      }\n    }\n  }\n  var index_default = definePlugin({\n    async deactivate(ctx) {\n      const previous = session;\n      session = null;\n      if (previous) await close(previous, ctx);\n    },\n    tools: {\n      async mcp_connect(_args, ctx) {\n        const state = await connect(ctx);\n        return { protocol: state.protocol, server: state.server, tools: state.tools.length };\n      },\n      async mcp_tools(args, ctx) {\n        const state = await connect(ctx);\n        const offset = args.offset ?? 0, limit = args.limit ?? 20;\n        if (typeof offset !== \"number\" || !Number.isInteger(offset) || offset < 0 || typeof limit !== \"number\" || !Number.isInteger(limit) || limit < 1 || limit > 30) throw new Error(\"Invalid tool page\");\n        return { tools: state.tools.slice(offset, offset + limit), total: state.tools.length };\n      },\n      async mcp_call(args, ctx) {\n        const name = textArgument(args, \"name\", 128);\n        if (!isObject(args.arguments)) throw new Error(\"MCP arguments must be an object\");\n        const state = await connect(ctx);\n        if (!state.tools.some((tool) => tool.name === name)) throw new Error(\"MCP tool was not discovered\");\n        return await rpc(state, ctx, \"tools/call\", { name, arguments: args.arguments });\n      },\n      async mcp_disconnect(_args, ctx) {\n        const previous = session;\n        session = null;\n        if (previous) await close(previous, ctx);\n        return { disconnected: true };\n      }\n    }\n  });\n  return __toCommonJS(index_exports);\n})();\nglobalThis.solvitPlugin = __solvitBundle.default;\n"
+}

@@ -7,7 +7,7 @@ function client(options = {}) {
   const context = vm.createContext({}); vm.runInContext(pkg.source, context, { timeout: 1000 });
   const requests = [];
   const ctx = {
-    settings: { async get(key) { return key === 'url' ? 'https://example.com/mcp' : 'private-token'; } },
+    settings: { async get(key) { return key === 'url' ? 'https://example.com/mcp' : key === 'token' ? 'private-token' : null; } },
     http: { async request(request) {
       requests.push(request);
       if (request.method === 'DELETE') return { status: 405, headers: {}, body: '' };

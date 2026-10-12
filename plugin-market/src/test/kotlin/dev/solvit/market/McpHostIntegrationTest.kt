@@ -8,6 +8,8 @@ import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
+import okhttp3.mockwebserver.Dispatcher
+import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.tls.HandshakeCertificates
 import okhttp3.tls.HeldCertificate
 import org.junit.runner.RunWith
@@ -17,10 +19,24 @@ import org.robolectric.annotation.Config
 import javax.crypto.spec.SecretKeySpec
 import java.util.concurrent.TimeUnit
 import kotlin.test.*
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.toList
+import dev.solvit.chat.ToolAgentRuntime
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class McpHostIntegrationTest {
+    private suspend fun infrastructure(manager: PluginManager) {
+        manager.load(ToolsPlugin())
+        manager.load(object : SolvitPlugin {
+            override val id = "test.mcp-browser"
+            override val provides = setOf(WebPageServiceKey)
+            override suspend fun enable(context: PluginContext) { context.register(WebPageServiceKey, object : WebPageService {
+                override suspend fun visit(url: String): WebPage = error("MCP uses HTTPS RPC, not browser observation")
+            }) }
+        })
+        manager.enableAll()
+    }
     @Test fun encryptedConfigurationDrivesRealHttpsMcpAndRevocationStopsRequests() = runBlocking<Unit> {
         val context = RuntimeEnvironment.getApplication()
         val certificate = HeldCertificate.Builder().addSubjectAlternativeName("localhost").build()
@@ -32,11 +48,11 @@ class McpHostIntegrationTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val manager = PluginManager(scope = scope)
         try {
-            manager.load(ToolsPlugin()); manager.enableAll()
+            infrastructure(manager)
             val configuration = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
             val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools), configuration)
             market.restore()
-            assertFailsWith<IllegalStateException> { market.enable("dev.solvit.mcp", setOf("network")) }
+            assertFailsWith<IllegalStateException> { market.enable("dev.solvit.mcp", emptySet()) }
             market.configure("dev.solvit.mcp", mapOf("url" to server.url("/mcp").toString(), "token" to "private-token"))
             market.enable("dev.solvit.mcp", setOf("network"))
             assertFailsWith<IllegalStateException> { market.configure("dev.solvit.mcp", mapOf("url" to server.url("/other").toString())) }
@@ -82,5 +98,92 @@ class McpHostIntegrationTest {
             manager.shutdown(); scope.cancel(); server.shutdown()
             client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown()
         }
+    }
+
+    @Test fun twoActualHttpsServersWithTheSameToolReturnToTheCorrectAgentFollowUp() = runBlocking<Unit> {
+        val context = RuntimeEnvironment.getApplication()
+        val certificate = HeldCertificate.Builder().addSubjectAlternativeName("localhost").build()
+        val serverTls = HandshakeCertificates.Builder().heldCertificate(certificate).build()
+        val clientTls = HandshakeCertificates.Builder().addTrustedCertificate(certificate.certificate).build()
+        fun endpoint(name: String) = MockWebServer().apply {
+            useHttps(serverTls.sslSocketFactory(), false)
+            dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse {
+                    assertEquals("Bearer private-$name", request.getHeader("Authorization"))
+                    if (request.method == "DELETE") return MockResponse().setResponseCode(200)
+                    val rpc = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
+                    val method = rpc.getValue("method").jsonPrimitive.content
+                    if (method == "notifications/initialized") return MockResponse().setResponseCode(202)
+                    val result = when (method) {
+                        "initialize" -> buildJsonObject {
+                            put("protocolVersion", "2025-11-25"); putJsonObject("capabilities") { putJsonObject("tools") {} }
+                            putJsonObject("serverInfo") { put("name", name); put("version", "1") }
+                        }
+                        "tools/list" -> buildJsonObject { putJsonArray("tools") { add(buildJsonObject { put("name", "echo"); putJsonObject("inputSchema") { put("type", "object") } }) } }
+                        "tools/call" -> {
+                            assertEquals("session-$name", request.getHeader("Mcp-Session-Id"))
+                            assertEquals("echo", rpc.getValue("params").jsonObject.getValue("name").jsonPrimitive.content)
+                            buildJsonObject { putJsonArray("content") { add(buildJsonObject { put("type", "text"); put("text", "$name-reply") }) } }
+                        }
+                        else -> error("Unexpected MCP method")
+                    }
+                    return MockResponse().setHeader("Content-Type", "application/json").apply {
+                        if (method == "initialize") setHeader("Mcp-Session-Id", "session-$name")
+                        setBody(buildJsonObject { put("jsonrpc", "2.0"); put("id", rpc.getValue("id")); put("result", result) }.toString())
+                    }
+                }
+            }
+            start()
+        }
+        val docs = endpoint("docs"); val code = endpoint("code")
+        val client = OkHttpClient.Builder().sslSocketFactory(clientTls.sslSocketFactory(), clientTls.trustManager)
+            .followRedirects(false).followSslRedirects(false).build()
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default); val manager = PluginManager(scope = scope)
+        val configuration = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { 9 }, "AES") }
+        try {
+            infrastructure(manager)
+            val tools = manager.registry.require(Services.Tools)
+            val market = AndroidMarketplace(context, manager, client, tools, configuration)
+            market.restore()
+            market.configure("dev.solvit.mcp", mapOf("connections" to buildJsonArray {
+                for ((name, server) in listOf("docs" to docs, "code" to code)) add(buildJsonObject {
+                    put("name", name); put("url", server.url("/mcp").toString()); put("token", "private-$name")
+                })
+            }.toString()))
+            market.enable("dev.solvit.mcp", setOf("network"))
+            var requests = 0; var approvals = 0
+            val provider = object : ModelProvider {
+                override val id = "dual-mcp-fixture"
+                override fun stream(request: ModelRequest) = flow<ModelChunk> {
+                    requests++
+                    if (requests == 1) {
+                        val schema = Json.parseToJsonElement(request.tools.single { it.name == "dev_solvit_mcp_mcp_call" }.inputSchema).jsonObject
+                        assertTrue(schema.getValue("properties").jsonObject.containsKey("server"))
+                        emit(ModelChunk.ToolCalls(listOf("docs", "code").map { name -> ToolCall("call-$name", "dev_solvit_mcp_mcp_call",
+                            """{"server":"$name","name":"echo","arguments":{}}""") }))
+                    } else {
+                        assertEquals(2, requests)
+                        val returned = request.messages.filter { it.role == Role.TOOL }
+                        assertEquals(2, returned.size)
+                        for (name in listOf("docs", "code")) {
+                            val message = returned.single { it.toolCallId == "call-$name" }
+                            assertTrue(message.content.contains("$name-reply")); assertTrue(message.content.contains("\"connection\":\"$name\""))
+                            assertFalse(message.content.contains("private-$name"))
+                        }
+                        emit(ModelChunk.Text("Both servers returned their own result."))
+                    }
+                    emit(ModelChunk.Done)
+                }
+            }
+            val authorization = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor): Boolean { approvals++; return true } }
+            val chunks = withTimeout(20_000) { ToolAgentRuntime(provider, tools).run(ModelRequest(ModelConfig(),
+                listOf(ModelMessage(Role.USER, "Call echo on both configured servers")), authorization = authorization)).toList() }
+            assertEquals(2, approvals); assertEquals(2, requests)
+            assertTrue(chunks.any { it == ModelChunk.Text("Both servers returned their own result.") })
+            assertEquals(4, docs.requestCount); assertEquals(4, code.requestCount)
+            market.disable("dev.solvit.mcp")
+            assertEquals(5, docs.requestCount); assertEquals(5, code.requestCount)
+            market.uninstall("dev.solvit.mcp")
+        } finally { manager.shutdown(); scope.cancel(); docs.shutdown(); code.shutdown(); configuration.remove("dev.solvit.mcp"); client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown() }
     }
 }

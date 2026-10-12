@@ -39,7 +39,7 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, on
         catch (_: Exception) { busy = false; error = "插件页面无法打开，请检查启用状态和权限。" }
         finally { withContext(NonCancellable) { owned?.close() } }
     }
-    FullScreenPage(onDismiss) {
+    FullScreenPage(onDismiss, secure = document?.sensitive == true) {
         Scaffold(topBar = { TopAppBar(title = { Text(view?.title ?: title) }, navigationIcon = {
             IconButton(onClick = onDismiss, modifier = Modifier.testTag("plugin_page_close")) { UiIcon(Icons.Default.Close, "关闭插件界面") }
         }) }) { padding ->

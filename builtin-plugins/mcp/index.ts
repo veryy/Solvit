@@ -1,13 +1,16 @@
 import { definePlugin, textArgument, type JsonObject, type JsonValue, type PluginContext } from '../../plugin-sdk/src/index';
+import { readConnections, type Connection } from './config';
+import { createMcpPage } from './pages';
 
 type RemoteTool = { name: string; description?: string; inputSchema: JsonObject };
-type Session = { url: string; token: string; id?: string; protocol: string; server: JsonValue; tools: RemoteTool[] };
+type Session = { name:string; fingerprint:string; customHeaders:Record<string,string>; url: string; token: string; id?: string; protocol: string; server: JsonValue; tools: RemoteTool[] };
 const VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'];
-let session: Session | null = null;
+const sessions = new Map<string, Session>();
+const failures = new Map<string, string>();
 let sequence = 0;
 function isObject(value: unknown): value is JsonObject { return !!value && typeof value === 'object' && !Array.isArray(value); }
 function headers(state: Session): Record<string, string> {
-  const result: Record<string, string> = { Accept: 'application/json, text/event-stream', 'MCP-Protocol-Version': state.protocol };
+  const result: Record<string, string> = { ...state.customHeaders, Accept: 'application/json, text/event-stream', 'MCP-Protocol-Version': state.protocol };
   if (state.id) result['Mcp-Session-Id'] = state.id;
   if (state.token) result.Authorization = `Bearer ${state.token}`;
   return result;
@@ -34,7 +37,7 @@ async function post(state: Session, ctx: PluginContext, payload: JsonObject) {
     jsonrpc: '2.0', method: 'notifications/cancelled', params: { requestId: payload.id, reason: 'Client stopped the tool call' },
   }) : undefined;
   const result = await ctx.http.request({ url: state.url, method: 'POST', headers: headers(state), body: JSON.stringify(payload), cancelBody });
-  if (result.status === 404 && state.id) { session = null; throw new ExpiredSession('MCP session expired; reconnect before retrying'); }
+  if (result.status === 404 && state.id) { sessions.delete(state.name); failures.set(state.name,'EXPIRED'); throw new ExpiredSession('MCP session expired; reconnect before retrying'); }
   if (result.status < 200 || result.status >= 300) throw new Error(`MCP HTTP ${result.status}`);
   return result;
 }
@@ -73,15 +76,24 @@ async function rpc(state: Session, ctx: PluginContext, method: string, params: J
   if (!isObject(matched.result)) throw new Error('MCP result must be an object');
   return matched.result;
 }
-async function connect(ctx: PluginContext): Promise<Session> {
-  if (session) return session;
-  const url = await ctx.settings.get('url');
-  const token = await ctx.settings.get('token') ?? '';
-  if (!url || !/^https:\/\//i.test(url) || /[\r\n]/.test(token)) throw new Error('Configure MCP HTTPS endpoint first');
-  const state: Session = { url, token, protocol: VERSIONS[0], server: {}, tools: [] };
+async function synchronize(ctx:PluginContext):Promise<Connection[]> {
+  const {servers}=await readConnections(ctx);
+  for(const [name,state]of sessions)if(!servers.some(server=>server.name===name&&!server.disabled&&JSON.stringify(server)===state.fingerprint)){
+    sessions.delete(name);await close(state,ctx);
+  }
+  return servers;
+}
+async function connect(ctx: PluginContext, name?:string): Promise<Session> {
+  const servers=await synchronize(ctx),enabled=servers.filter(server=>!server.disabled);
+  const profile=name ? servers.find(server=>server.name===name) : enabled.length===1 ? enabled[0] : undefined;
+  if(!profile)throw new Error('Select a configured MCP server with mcp_servers');
+  if(profile.disabled)throw new Error('MCP server is disabled');
+  const previous=sessions.get(profile.name);if(previous)return previous;
+  const state:Session={name:profile.name,fingerprint:JSON.stringify(profile),customHeaders:profile.headers,
+    url:profile.url,token:profile.token,protocol:VERSIONS[0],server:{},tools:[]};
   try {
     const initialized = await rpc(state, ctx, 'initialize', {
-      protocolVersion: VERSIONS[0], capabilities: {}, clientInfo: { name: 'Solvit MCP plugin', version: '1.0.0' },
+      protocolVersion: VERSIONS[0], capabilities: {}, clientInfo: { name: 'Solvit MCP plugin', version: '1.1.0' },
     });
     if (typeof initialized.protocolVersion !== 'string' || !VERSIONS.includes(initialized.protocolVersion)) throw new Error('MCP protocol version unsupported');
     if (!isObject(initialized.capabilities) || !isObject(initialized.capabilities.tools)) throw new Error('MCP server does not provide tools');
@@ -101,45 +113,58 @@ async function connect(ctx: PluginContext): Promise<Session> {
         state.tools.push(candidate as unknown as RemoteTool);
       }
       if (state.tools.length > 200) throw new Error('MCP tool catalog exceeds 200 tools');
-      if (result.nextCursor === undefined) { session = state; return state; }
+      if (result.nextCursor === undefined) { sessions.set(state.name,state);failures.delete(state.name);return state; }
       if (typeof result.nextCursor !== 'string' || !result.nextCursor || cursors.has(result.nextCursor)) throw new Error('Invalid MCP pagination cursor');
       cursor = result.nextCursor; cursors.add(cursor);
     }
     throw new Error('MCP pagination exceeds eight pages');
-  } catch (error) { await close(state, ctx); throw error; }
+  } catch (error) { failures.set(state.name,'CONNECTION_FAILED');await close(state, ctx); throw error; }
 }
 async function close(state: Session, ctx: PluginContext) {
   if (state.id) {
     try { await ctx.http.request({ url: state.url, method: 'DELETE', headers: headers(state) }); } catch { /* Best-effort server cleanup. */ }
   }
 }
+function serverArgument(args:JsonObject):string|undefined { return args.server===undefined ? undefined : textArgument(args,'server',40); }
+async function disconnect(ctx:PluginContext,name?:string) {
+  const selected=[...sessions.values()].filter(state=>!name||state.name===name);
+  selected.forEach(state=>sessions.delete(state.name));
+  await Promise.all(selected.map(state=>close(state,ctx)));
+}
+async function probe(ctx:PluginContext,name:string) {
+  try { const state=await connect(ctx,name);return {protocol:state.protocol,tools:state.tools.length}; }
+  finally { await disconnect(ctx,name); }
+}
 export default definePlugin({
-  async deactivate(ctx) {
-    const previous = session; session = null;
-    if (previous) await close(previous, ctx);
-  },
+  pages:{main:createMcpPage(probe)},
+  async deactivate(ctx) { await disconnect(ctx); },
   tools: {
-    async mcp_connect(_args, ctx) {
-      const state = await connect(ctx);
-      return { protocol: state.protocol, server: state.server, tools: state.tools.length };
+    async mcp_servers(_args,ctx) {
+      const servers=await synchronize(ctx);
+      return {servers:servers.map(profile=>({name:profile.name,enabled:!profile.disabled,
+        status:profile.disabled?'disabled':sessions.has(profile.name)?'connected':failures.get(profile.name)??'not_connected',
+        tools:sessions.get(profile.name)?.tools.length??0}))};
+    },
+    async mcp_connect(args, ctx) {
+      const state = await connect(ctx,serverArgument(args));
+      return { connection:state.name,protocol: state.protocol, server: state.server, tools: state.tools.length };
     },
     async mcp_tools(args, ctx) {
-      const state = await connect(ctx);
+      const state = await connect(ctx,serverArgument(args));
       const offset = args.offset ?? 0, limit = args.limit ?? 20;
       if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0 || typeof limit !== 'number' || !Number.isInteger(limit) || limit < 1 || limit > 30) throw new Error('Invalid tool page');
-      return { tools: state.tools.slice(offset, offset + limit) as unknown as JsonValue, total: state.tools.length };
+      return { server:state.name,tools: state.tools.slice(offset, offset + limit) as unknown as JsonValue, total: state.tools.length };
     },
     async mcp_call(args, ctx) {
       const name = textArgument(args, 'name', 128);
       if (!isObject(args.arguments)) throw new Error('MCP arguments must be an object');
-      const state = await connect(ctx);
+      const state = await connect(ctx,serverArgument(args));
       if (!state.tools.some(tool => tool.name === name)) throw new Error('MCP tool was not discovered');
-      // No automatic retry of calls: a network error can follow an external side effect.
-      return await rpc(state, ctx, 'tools/call', { name, arguments: args.arguments });
+      // Never replay a call after a failed response: the server may have changed external state.
+      return { ...await rpc(state, ctx, 'tools/call', { name, arguments: args.arguments }),connection:state.name };
     },
-    async mcp_disconnect(_args, ctx) {
-      const previous = session; session = null;
-      if (previous) await close(previous, ctx);
+    async mcp_disconnect(args, ctx) {
+      await disconnect(ctx,serverArgument(args));
       return { disconnected: true };
     },
   },

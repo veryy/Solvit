@@ -18,13 +18,15 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.DialogWindowProvider
+import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.core.view.WindowCompat
 
 /** One inset owner: TopAppBar handles the status bar, this page handles navigation/IME. */
 @Composable
-fun FullScreenPage(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+fun FullScreenPage(onDismissRequest: () -> Unit, secure: Boolean = false, content: @Composable () -> Unit) {
     Dialog(onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false,
+            securePolicy = if (secure) SecureFlagPolicy.SecureOn else SecureFlagPolicy.Inherit)) {
         val view = LocalView.current
         val light = MaterialTheme.colorScheme.surface.luminance() > .5f
         SideEffect {

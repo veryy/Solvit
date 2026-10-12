@@ -11,7 +11,7 @@ data class ExtensionSetting(val key: String, val label: String, val kind: String
     val defaultValue: String? = null, val pageManaged: Boolean = false)
 data class ExtensionPage(val id: String, val title: String)
 data class ExtensionPageSnapshot(val revision: Long, val json: String)
-data class ExtensionPageDocument(val entry: String)
+data class ExtensionPageDocument(val entry: String, val sensitive: Boolean = false)
 data class ExtensionPageResource(val mimeType: String, val content: String)
 interface ExtensionPageSession {
     val closed: StateFlow<Boolean>
