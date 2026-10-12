@@ -75,3 +75,7 @@ globalThis.solvitPlugin = {
 `beforeModel(input, ctx)` 的 `input.settings` 是该插件声明为非 `secret` 的配置副本，值为字符串或 null；旧 API 不提供此字段。Hook 仍不能调用 `ctx.settings.get` 读取密钥，也不能写入、联网、运行工具或 Shell。Boolean 例子见记忆插件的 `autoRecall`。
 
 模型每个步骤重新读取 Hook，并以原始身份/规则重建提示词。不要在 Hook 内写入、调用模型或持续累积文本；不启用或角色未绑定的插件不提供上下文。新版宿主查询市场使用 `hostApi=7`，旧客户端过滤不兼容包。
+
+## API10：插件自己绘制 HTML/JS 页面
+
+页面清单可声明本包HTML入口，资源随包离线分发。宿主负责通用WebView、权限/确认与关闭清理；业务布局和图谱由插件JS绘制。开发与桥接示例见[HTML页面指南](plugin-html-pages.md)。API9旧页面继续兼容；新版宿主查询 `hostApi=10`，旧宿主保留对应版本包。实际交付状态见阶段记录，不能把资源支持当作全部插件/聊天功能已经迁移。
