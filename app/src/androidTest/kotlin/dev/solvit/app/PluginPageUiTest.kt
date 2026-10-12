@@ -121,7 +121,7 @@ class PluginPageUiTest {
         fun select() { html.js("document.querySelector('[data-memory-id=$id]').click()") }
         try {
             rule.runOnUiThread { present() }
-            waitDom("window.memoryPageReady===true")
+            waitDom("window.memoryPageReady===true && document.getElementById('graph').getBoundingClientRect().height>innerHeight*.9")
             html.screenshot("memory-html-graph-home")
             rule.onNodeWithTag("plugin_field_query").assertDoesNotExist()
             html.js("document.getElementById('query').value='plugin-memory-ui-original';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")

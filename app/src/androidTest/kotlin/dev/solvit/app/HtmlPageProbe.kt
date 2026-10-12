@@ -24,10 +24,12 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         }
         return context === activity
     }
-    private fun activeBrowser(): WebView? = android.view.inspector.WindowInspector.getGlobalWindowViews()
-        .asReversed().firstNotNullOfOrNull { root ->
-            if (!root.hasWindowFocus()) null else browser(root)?.takeIf { it.isShown && owned(it) }
-        }
+    private fun activeBrowser(): WebView? {
+        val roots = android.view.inspector.WindowInspector.getGlobalWindowViews().asReversed()
+        fun candidate(root: View) = browser(root)?.takeIf { it.isShown && owned(it) }
+        return roots.filter { it.hasWindowFocus() }.firstNotNullOfOrNull(::candidate)
+            ?: roots.firstNotNullOfOrNull(::candidate) // A native confirmation temporarily owns focus.
+    }
     fun js(code: String): String = runBlocking {
         val result = CompletableDeferred<String>()
         activity.runOnUiThread {
