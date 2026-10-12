@@ -1,8 +1,5 @@
 package dev.solvit.app
 
-import android.view.View
-import android.view.ViewGroup
-import android.webkit.WebView
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
@@ -20,16 +17,7 @@ import org.junit.Test
 class PluginWebPageUiTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
 
-    private fun browser(view: View): WebView? = if (view is WebView) view else
-        (view as? ViewGroup)?.let { group -> (0 until group.childCount).firstNotNullOfOrNull { browser(group.getChildAt(it)) } }
-
-    private fun js(code: String): String = runBlocking {
-        val result = CompletableDeferred<String>()
-        rule.runOnUiThread {
-            checkNotNull(browser(rule.activity.window.decorView)).evaluateJavascript(code) { result.complete(it) }
-        }
-        withTimeout(10_000) { result.await() }
-    }
+    private fun js(code: String) = HtmlPageProbe(rule.activity).js(code)
 
     @Test fun pluginHtmlSavesReopensAndRequiresActualNativeDeleteConfirmation() {
         val app = rule.activity.application as SolvitApplication

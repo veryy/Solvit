@@ -14,10 +14,12 @@ import kotlinx.serialization.json.*
 internal class HtmlPageProbe(private val activity: MainActivity) {
     private fun browser(view: View): WebView? = if (view is WebView) view else
         (view as? ViewGroup)?.let { group -> (0 until group.childCount).firstNotNullOfOrNull { browser(group.getChildAt(it)) } }
+    private fun activeBrowser(): WebView? = android.view.inspector.WindowInspector.getGlobalWindowViews()
+        .firstNotNullOfOrNull { browser(it) }
     fun js(code: String): String = runBlocking {
         val result = CompletableDeferred<String>()
         activity.runOnUiThread {
-            val web = browser(activity.window.decorView)
+            val web = activeBrowser()
             if (web == null) result.completeExceptionally(IllegalStateException("No active HTML page"))
             else web.evaluateJavascript(code) { result.complete(it) }
         }
@@ -28,7 +30,7 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         var x = 0f; var y = 0f
         val ready = CompletableDeferred<Unit>()
         activity.runOnUiThread {
-            val web = checkNotNull(browser(activity.window.decorView)); val location = IntArray(2)
+            val web = checkNotNull(activeBrowser()); val location = IntArray(2)
             web.getLocationOnScreen(location)
             val scale = web.width / point[2].jsonPrimitive.float
             x = location[0] + point[0].jsonPrimitive.float * scale
