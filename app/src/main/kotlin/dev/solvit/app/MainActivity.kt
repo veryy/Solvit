@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalFocusManager
@@ -163,20 +164,20 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val inputFocus = remember { FocusRequester() }
+    var inputPlaced by remember { mutableStateOf(false) }
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = LocalFocusManager.current
     fun hideInput() { keyboard?.hide(); focus.clearFocus() }
-    LaunchedEffect(ready) {
-        if (ready && !settingsOpen && !modelsOpen && !pluginsOpen && !agentsOpen && !workspaceOpen) {
-            withFrameNanos { }
+    LaunchedEffect(ready, inputPlaced) {
+        if (ready && inputPlaced && !settingsOpen && !modelsOpen && !pluginsOpen && !agentsOpen && !workspaceOpen) {
             inputFocus.requestFocus()
             keyboard?.show()
         }
     }
-    LaunchedEffect(selected, branchInput) {
+    LaunchedEffect(selected, branchInput, inputPlaced) {
         branchInput?.takeIf { it.first == selected }?.let {
             input=it.second
-            withFrameNanos { }; inputFocus.requestFocus(); keyboard?.show()
+            if (inputPlaced) { inputFocus.requestFocus(); keyboard?.show() }
             if (vm.branchInput.value == it) vm.branchInput.value=null
         }
     }
@@ -241,7 +242,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                         Row(verticalAlignment = Alignment.Bottom) {
                             TextField(value = input, onValueChange = { input = it },
                                 placeholder = { UiText("问点什么，或描述你的想法…") },
-                                modifier = Modifier.weight(1f).focusRequester(inputFocus), maxLines = 5, enabled = ready,
+                                modifier = Modifier.weight(1f).focusRequester(inputFocus).onGloballyPositioned { inputPlaced = true }, maxLines = 5, enabled = ready,
                                 shape = RoundedCornerShape(24.dp),
                                 colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent,
                                     unfocusedContainerColor = Color.Transparent, disabledContainerColor = Color.Transparent,
