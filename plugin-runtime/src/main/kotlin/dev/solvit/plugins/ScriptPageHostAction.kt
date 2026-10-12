@@ -5,6 +5,25 @@ import kotlinx.serialization.json.*
 
 /** Native metadata is read from the displayed button, never supplied by a JS host call. */
 object ScriptPageHostAction {
+    fun validate(value: JsonObject) {
+        if (value["kind"]?.jsonPrimitive?.content?.startsWith("document.") == true) document(value)
+        else parse(value)
+    }
+    fun document(value: JsonObject): PageDocumentControl {
+        fun text(key: String) = value.getValue(key).jsonPrimitive.also { require(it.isString) }.content
+        val max = value.getValue("maxBytes").jsonPrimitive.let { require(!it.isString); requireNotNull(it.intOrNull) }
+        return when (text("kind")) {
+            "document.open" -> {
+                require(value.keys == setOf("kind", "mimeTypes", "maxBytes"))
+                PageDocumentControl.Open(value.getValue("mimeTypes").jsonArray.map { it.jsonPrimitive.also { p -> require(p.isString) }.content }, max)
+            }
+            "document.save" -> {
+                require(value.keys == setOf("kind", "name", "mimeType", "maxBytes"))
+                PageDocumentControl.Save(text("name"), text("mimeType"), max)
+            }
+            else -> error("Unsupported page document control")
+        }
+    }
     fun parse(value: JsonObject): PostTurnTaskControl {
         fun text(key: String, max: Int): String = value.getValue(key).jsonPrimitive.let {
             require(it.isString && it.content.isNotBlank() && it.content.length <= max)

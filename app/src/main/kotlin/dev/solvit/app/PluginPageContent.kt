@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import dev.solvit.plugins.ScriptPageView
 import dev.solvit.plugins.ScriptPageHostAction
 import dev.solvit.core.PostTurnTaskControl
+import dev.solvit.core.PageDocumentControl
 import dev.solvit.core.ExtensionPageDocument
 import dev.solvit.core.ExtensionPageResource
 import kotlinx.serialization.json.*
@@ -84,8 +85,16 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
         val node = pending.node
         AlertDialog(onDismissRequest = { confirmation = null }, title = { Text(node.getValue("text").jsonPrimitive.content) },
             text = {
-                val native = node["hostAction"]?.jsonObject?.let(ScriptPageHostAction::parse)
-                if (native == null) Text(node.getValue("confirm").jsonPrimitive.content)
+                val metadata = node["hostAction"]?.jsonObject
+                val file = metadata?.takeIf { it["kind"]?.jsonPrimitive?.content?.startsWith("document.") == true }
+                    ?.let(ScriptPageHostAction::document)
+                val native = metadata?.takeIf { file == null }?.let(ScriptPageHostAction::parse)
+                if (file != null) {
+                    UiText(when(file) {
+                        is PageDocumentControl.Open -> "在系统文件选择器中选择一个文本文件或文本ZIP。只读取选中的文件。"
+                        is PageDocumentControl.Save -> "在系统文件选择器中选择保存位置：${file.name}"
+                    })
+                } else if (native == null) Text(node.getValue("confirm").jsonPrimitive.content)
                 else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     UiText(when (native) {
                         is PostTurnTaskControl.Retry -> "重试将使用原模型配置，可能产生额外费用。"

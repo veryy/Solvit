@@ -20,6 +20,8 @@ interface ExtensionPageSession {
         fields: Map<String, String> = emptyMap(), confirmed: Boolean = false): ExtensionPageSnapshot
     suspend fun document(): ExtensionPageDocument? = null
     suspend fun resource(path: String): ExtensionPageResource { error("此页面没有离线资源") }
+    /** Attached by the page owner before open; never available to model tools or Hooks. */
+    fun attachDocuments(access: PageDocumentAccess) { }
     suspend fun close()
 }
 

@@ -6,6 +6,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import dev.solvit.core.ExtensionPageDocument
 import dev.solvit.core.ExtensionPageResource
+import dev.solvit.core.PageDocumentAccess
 
 /** One independent QuickJS instance per open page, owned and closed by the host UI. */
 class ScriptPageSession(
@@ -17,14 +18,20 @@ class ScriptPageSession(
 ) {
     init { require(pkg.manifest.apiVersion >= 9 && pkg.manifest.pages.any { it.id == pageId }) }
     private val mutex = Mutex()
-    private val authority = ScriptPageExecutionContext(pkg.manifest.id, ensureAuthorized)
+    private val authority = ScriptPageExecutionContext(pkg.manifest.id, { authorize() })
     private val executor = ScriptExecutor(pkg, ScriptHost { manifest, operation, args ->
-        ensureAuthorized()
+        authorize()
         host.call(manifest, operation, args)
     }, invokeLifecycle = false)
     @Volatile private var closed = false
     private var view: ScriptPageView? = null
     @Volatile private var opened = false
+    private var documents: PageDocumentAccess? = null
+    private suspend fun authorize() { check(!closed); ensureAuthorized() }
+    fun attachDocuments(access: PageDocumentAccess) {
+        check(!opened && !closed && documents == null)
+        documents = access
+    }
 
     suspend fun open(): ScriptPageView = mutex.withLock {
         check(!closed && !opened)
@@ -68,7 +75,7 @@ class ScriptPageSession(
     private suspend fun render(event: kotlinx.serialization.json.JsonObject?, approvedAction: kotlinx.serialization.json.JsonObject? = null): ScriptPageView {
         check(!closed)
         ensureAuthorized()
-        val invocation = ScriptPageExecutionContext(authority.pluginId, ensureAuthorized, approvedAction)
+        val invocation = ScriptPageExecutionContext(authority.pluginId, { authorize() }, approvedAction, documents)
         val next = withContext(invocation) { executor.page(pageId, locale, event) }
         check(!closed)
         ensureAuthorized()
@@ -81,7 +88,7 @@ class ScriptPageSession(
         // Interrupt work before waiting for the page mutex; repeat after a racing start.
         withContext(NonCancellable) {
             executor.stop()
-            mutex.withLock { executor.stop(); view = null }
+            mutex.withLock { executor.stop(); view = null; documents = null }
         }
     }
 }

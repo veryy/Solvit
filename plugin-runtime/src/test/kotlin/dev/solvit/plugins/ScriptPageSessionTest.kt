@@ -4,8 +4,81 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import kotlin.test.*
 import dev.solvit.core.PostTurnTaskControl
+import dev.solvit.core.PageDocumentAccess
+import dev.solvit.core.PageDocumentControl
+import dev.solvit.core.PageTextDocument
 
 class ScriptPageSessionTest {
+    private val documentSource = """
+        globalThis.solvitPlugin={tools:{},pages:{manage:async(input,ctx)=>{
+          if(input.event?.action==='open'){
+            const file=await ctx.documents.open();
+            await ctx.storage.set('chosen',file);
+          }
+          if(input.event?.action==='save')await ctx.documents.save('exact exported text');
+          if(input.event?.action==='twice'){await ctx.documents.open();await ctx.documents.open()}
+          if(input.event?.action==='injected')await __solvitHostCall('documents.open',JSON.stringify({uri:'content://other/file'}));
+          return {title:'Documents',nodes:[
+            {id:'open',kind:'button',text:'Open',action:'open',hostAction:{kind:'document.open',mimeTypes:['text/plain'],maxBytes:524288}},
+            {id:'save',kind:'button',text:'Save',action:'save',hostAction:{kind:'document.save',name:'export.txt',mimeType:'text/plain',maxBytes:524288}},
+            {id:'twice',kind:'button',text:'Twice',action:'twice',hostAction:{kind:'document.open',mimeTypes:['text/plain'],maxBytes:524288}},
+            {id:'injected',kind:'button',text:'Injected',action:'injected',hostAction:{kind:'document.open',mimeTypes:['text/plain'],maxBytes:524288}}
+          ]};
+        }}};
+    """
+    @Test fun actualQuickJsCanOnlyConsumeTheConfirmedDocumentControlOnce() = runBlocking {
+        var opens = 0; var saves = 0; var selected: JsonElement? = null
+        val page = ScriptPageSession(pkg(documentSource, 11), "manage", "zh-CN", ScriptHost { _, operation, args ->
+            assertEquals("storage.set", operation); selected = args.getValue("value"); JsonNull
+        }, {})
+        page.attachDocuments(object : PageDocumentAccess {
+            override suspend fun open(control: PageDocumentControl.Open, authorize: suspend () -> Unit): PageTextDocument {
+                authorize(); opens++; assertEquals(listOf("text/plain"), control.mimeTypes)
+                return PageTextDocument("chosen.txt", text = "chosen content")
+            }
+            override suspend fun save(control: PageDocumentControl.Save, text: String, authorize: suspend () -> Unit): Boolean {
+                authorize(); saves++; assertEquals("export.txt", control.name); assertEquals("exact exported text", text); return true
+            }
+        })
+        try {
+            val initial = page.open()
+            assertFails { page.dispatch(initial, "open") }; assertEquals(0, opens)
+            val imported = page.dispatch(initial, "open", confirmed = true)
+            assertEquals("chosen content", selected?.jsonObject?.get("text")?.jsonPrimitive?.content)
+            val saved = page.dispatch(imported, "save", confirmed = true)
+            assertEquals(1, saves)
+            assertFails { page.dispatch(saved, "injected", confirmed = true) }; assertEquals(1, opens)
+            assertFails { page.dispatch(saved, "twice", confirmed = true) }; assertEquals(2, opens)
+            assertFails { page.dispatch(initial, "save", confirmed = true) }; assertEquals(1, saves)
+        } finally { page.close() }
+    }
+    @Test fun revokedAndClosedPageCannotReceiveOrPersistAPendingFileResult() = runBlocking {
+        var authorized = true; var writes = 0
+        val entered = CompletableDeferred<Unit>()
+        val result = CompletableDeferred<PageTextDocument?>()
+        val page = ScriptPageSession(pkg(documentSource, 11), "manage", "zh-CN",
+            ScriptHost { _, _, _ -> writes++; JsonNull }, { check(authorized) })
+        page.attachDocuments(object : PageDocumentAccess {
+            override suspend fun open(control: PageDocumentControl.Open, authorize: suspend () -> Unit): PageTextDocument? {
+                authorize(); entered.complete(Unit); return result.await()
+            }
+            override suspend fun save(control: PageDocumentControl.Save, text: String, authorize: suspend () -> Unit) = error("Not used")
+        })
+        val initial = page.open()
+        val invocation = async { runCatching { page.dispatch(initial, "open", confirmed = true) } }
+        entered.await(); authorized = false; result.complete(PageTextDocument("late.txt", text = "private text"))
+        assertTrue(invocation.await().isFailure); assertEquals(0, writes)
+        page.close(); assertFails { page.dispatch(initial, "open", confirmed = true) }
+    }
+    @Test fun lowerApiPagesAndModelExecutionsCannotOpenDocuments() = runBlocking {
+        var opens = 0
+        val host = ScriptHost { _, _, _ -> opens++; JsonNull }
+        val old = ScriptPageSession(pkg(documentSource, 10), "manage", "zh-CN", host, {})
+        try { val view = old.open(); assertFails { old.dispatch(view, "open", confirmed = true) } }
+        finally { old.close() }
+        val model = ScriptExecutor(pkg("""globalThis.solvitPlugin={tools:{},activate:async(ctx)=>{await ctx.documents.open()},pages:{manage:()=>({title:'x',nodes:[]})}};""", 11), host)
+        assertFails { model.start() }; assertEquals(0, opens)
+    }
     private fun pkg(source: String, api: Int = 9, pages: String = """[{"id":"manage","title":"管理"}]"""): ScriptPackage =
         ScriptPackage.parse(buildJsonObject {
             putJsonObject("manifest") {

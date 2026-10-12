@@ -87,7 +87,7 @@ class ScriptPageView private constructor(
                         node.text("text", 128, true); node.text("action", 80, true)
                         if ("confirm" in node) node.text("confirm", 1000, true)
                         node.optionalBoolean("enabled")
-                        node["hostAction"]?.let { ScriptPageHostAction.parse(it.jsonObject) }
+                        node["hostAction"]?.let { ScriptPageHostAction.validate(it.jsonObject) }
                     }
                     "field" -> {
                         node.text("label", 128, true); node.text("value", MAX_FIELD)

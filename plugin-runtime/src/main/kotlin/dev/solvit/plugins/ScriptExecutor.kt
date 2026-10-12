@@ -51,7 +51,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
                         "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
                         "plugins.draft" -> "plugins"
-                        "settings.get", "settings.compareAndSet", "clock.now" -> null
+                        "settings.get", "settings.compareAndSet", "clock.now", "documents.open", "documents.save" -> null
                         else -> error("宿主未开放此操作")
                     }
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
@@ -63,11 +63,12 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(!operation.startsWith("jobs.") || pkg.manifest.apiVersion >= 9) { "任务页面需要 API 9" }
                     check(operation != "model.complete" || background) { "模型调用只允许在后台 Hook 中使用" }
                     check(operation != "settings.compareAndSet" || pkg.manifest.apiVersion >= 10 && !invokeLifecycle) { "配置写入仅供 API10 插件页面使用" }
+                    check(!operation.startsWith("documents.") || pkg.manifest.apiVersion >= 11 && !invokeLifecycle && !background) { "文件选择仅供 API11 插件页面使用" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
                     withContext(parent) {
-                        if (operation.startsWith("jobs.") || operation == "settings.compareAndSet") {
+                        if (operation.startsWith("jobs.") || operation.startsWith("documents.") || operation == "settings.compareAndSet") {
                             val page = currentCoroutineContext()[ScriptPageExecutionContext] ?: error("任务管理仅供插件页面使用")
                             check(page.pluginId == pkg.manifest.id)
                             page.ensureAuthorized()
@@ -77,7 +78,19 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             check(execution.target.pluginId == pkg.manifest.id)
                             execution.ensureAuthorized()
                         }
-                        if (operation == "clock.now") {
+                        if (operation == "documents.open") {
+                            require(arguments.isEmpty()) { "不能指定文件URI或路径" }
+                            val selected = checkNotNull(currentCoroutineContext()[ScriptPageExecutionContext]).openDocument()
+                            (selected?.let { buildJsonObject {
+                                put("name", it.name)
+                                it.text?.let { text -> put("text", text) }
+                                it.files?.let { files -> putJsonObject("files") { files.forEach { (path, text) -> put(path, text) } } }
+                            } } ?: JsonNull).toString()
+                        } else if (operation == "documents.save") {
+                            require(arguments.keys == setOf("text")) { "文件保存只接受文本" }
+                            val text = arguments.getValue("text").jsonPrimitive.also { require(it.isString) }.content
+                            JsonPrimitive(checkNotNull(currentCoroutineContext()[ScriptPageExecutionContext]).saveDocument(text)).toString()
+                        } else if (operation == "clock.now") {
                             clockSnapshot().toString()
                         } else try { host.call(pkg.manifest, operation, arguments).toString() }
                         catch(e: ToolExecutionException) { nativeToolFailure=e.code;throw e }
@@ -89,6 +102,10 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     try {
                     js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
+                          documents: Object.freeze({
+                            open: async () => JSON.parse(await __solvitHostCall('documents.open', '{}')),
+                            save: async text => JSON.parse(await __solvitHostCall('documents.save', JSON.stringify({text})))
+                          }),
                           jobs: Object.freeze({
                             list: async (options = {}) => JSON.parse(await __solvitHostCall('jobs.list', JSON.stringify(options))),
                             perform: async () => JSON.parse(await __solvitHostCall('jobs.perform', '{}'))

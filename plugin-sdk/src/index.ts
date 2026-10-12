@@ -11,6 +11,11 @@ export interface PluginTaskListing {
   available:boolean; jobs:PluginTask[]; activeJobId:string|null; nextCursor:{updatedAt:number;id:string}|null;
 }
 export interface PluginContext {
+  /** API11, page-only. One confirmed displayed control; system picker owns URI access. */
+  readonly documents?: {
+    open(): Promise<{name:string;text?:string;files?:Record<string,string>} | null>;
+    save(text:string): Promise<boolean>;
+  };
   /** API 9, page-only. perform consumes the one native control confirmed on the displayed button. */
   readonly jobs?: { list(options?:{cursor?:{updatedAt:number;id:string}|null}):Promise<PluginTaskListing>;
     perform():Promise<{changed:number;receipts:number}> };
