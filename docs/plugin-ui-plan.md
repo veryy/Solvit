@@ -1,5 +1,7 @@
 # 插件自带界面：记忆插件作为第一个完整示例
 
+2026-10-13方向更新：用户明确要求插件可自行绘制HTML/JS业务页面，以下API9原生控件树方案仅是已交付的兼容基础，不能代替新目标。下一阶段与验收见[HTML页面阶段](https://github.com/veryy/Solvit/blob/feat/plugin-html-pages/docs/plugin-html-stage.md)，优先关系图首页、多MCP及真实执行效果。
+
 用户要求插件既能供模型调用，也能提供可查看和操作的界面。当前 TS 承载记忆业务，`MemoryManagementScreen` 仍硬编码在 Kotlin，不能称为插件自带界面。先完成自动记忆版交付，随后优先实现通用插件页面，再推进工作区执行链。
 
 已读取锁定 Operit 的 `ui/features/memory/screens/MemoryScreen.kt`：搜索、目录导航、持续挂载的 GraphVisualizer 和查看/操作入口；DSH 的 `skills/cordis-plugin-development/references/ui-plugin.md`：页面/插槽注册、宿主主题、延迟加载、卸载清理和客户端本地化。实现前继续读取对应组件与测试。DSH 的 React/浏览器组件不能直接运行在 Android QuickJS；第一步采用 TS 页面声明与事件处理、Compose 原生渲染。

@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.21.2](https://github.com/veryy/Solvit/releases/tag/v0.21.2) 为模型设置字段增加稳定列表键，并验证连续三次重新打开配置。271 个单元、42 个模拟器测试及正式发布门禁通过；首次记忆页面点击失败及重跑结果保留，根因仍待排查，验证范围见 [版本说明](docs/release-0.21.2.md)。包含 0.21.1 的角色请求修正、持久执行记录、聊天内折叠文件变更审阅和 JS/TS 插件页面；真实模型角色回答及完整未完成范围见 [产品进度](docs/product-roadmap.md)。
+[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。插件 HTML/JS 自绘页面、图谱首页与多MCP管理正在重新实施；真实模型角色回答、流式/搜索质量及完整未完成范围见 [产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
