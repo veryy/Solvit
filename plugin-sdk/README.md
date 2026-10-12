@@ -88,13 +88,13 @@ Solvit 0.7.0 为 API 3 提供可选 `ctx.clock.now()`，返回 `utc`、`localTim
 
 新增 `ctx.terminal.call('open' | 'status' | 'input' | 'interrupt' | 'close', args)`，由独立宿主插件提供 Android PTY。JS 工具示例见 [terminal](../builtin-plugins/terminal/index.ts)，参数、授权与运行边界见 [API 5 文档](../docs/plugins.md#api-5交互式-pty)。TS 在 CI 打包为 JS，手机不直接运行 TS 编译器。
 
-### API 8 candidate: background completed-turn hooks
+### API 8：后台记忆（Solvit 0.19.0）
 
 Declare `hooks: ["afterTurn"]`, `afterTurnEnabledSetting: "autoSave"`, and a
 boolean setting `autoSave` with `defaultValue: "false"`. Request `model`
 permission to use `ctx.model.complete({ instructions, input })`. The host owns
 credentials, input/output budgets, the deadline and the one-call limit.
-This candidate is not yet a published automatic-memory feature.
+Solvit 0.19.0 已发布此接口；真实模型的抽取质量仍需验证。
 
 `afterTurn(input, ctx)` receives the completed user/assistant text, source message
 IDs and role ID/name, plus schema-declared public settings. It runs in a fresh
@@ -108,3 +108,11 @@ the last-read value is unchanged. Clone the expected snapshot before editing it,
 then reread and merge on conflict. Do not repeat inference for storage conflicts.
 Existing `storage.set` participates in the same host lock. Commit source deduplication
 and facts together, so an interrupted task can be retried without duplicate facts.
+
+## API 9：插件原生页面（0.20.0 候选）
+
+清单用 `pages: [{id: 'main', title: '便签'}]` 注册页面；插件实现 `pages.main(input, ctx)`，返回 `title`、`nodes` 和可选固定 `footer`。节点与事件类型见 [pages.ts](src/pages.ts)，可安装示例源码见 [notes](../plugin-examples/notes)。页面是独立 QuickJS 实例，不运行 activate/deactivate，不共享聊天 Hook 的全局状态。宿主提供主题、语言、系统/键盘边距、原生表单和关系图，TS 定义业务、数据、文案和事件。
+
+`input.locale` 有 zh/en/ja/ko/es/fr；`input.event` 包含当前节点派生的 action、输入值及校验过的表单字段。关闭、停用、卸载或更新会取消对应实例；事件有显示版本保护，数据写入锁内重新检查授权。页面不提供隐式 Shell、工作区或模型调用权限。下载页面须先启用并授予声明权限；停用时的内置记忆管理只运行 APK 固定代码。
+
+`ctx.jobs.list({cursor})` 仅在页面中提供本插件的任务元数据，最多 20 条；`available:false` 表示服务缺失。`ctx.jobs.perform()` 不接受目标参数，只执行当前按钮由宿主确认的 `hostAction`，每次事件只能消费一次。重试/删除/停止声明具体 jobId 和 attempt，删除还声明预期 status；完成清理使用 `postTurn.cleanup`。宿主始终展示自己的费用/删除/停止提示，插件的文案不能替换确认内容。任务列表、详情和导航仍由 TS 提供。实际实现见 [记忆任务页面](../builtin-plugins/memory/task-pages.ts)；重试不会启用插件、授予模型权限或直接等待推理结果。

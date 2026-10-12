@@ -35,6 +35,14 @@ SDK 增加原生页面节点、页面输入与事件类型；Android 增加独�
 
 ## 后续与验收
 
+下载 `8d35768` 的 TS job 114647208905 日志，68 个 SDK/2 个市场测试无失败（包括 4 个新任务页测试）；整条 run 38198758144 只有生成包未提交的一致性 gate 失败，不能称全通过。下载其 `solvit-builtin-plugins` 11723873494，记忆新包 75,373 字节，SHA-256 `7cce19572a842767f37dc21ade02762b08da4248a11558658debce9ebdd2915e`，服务端与 Android 写入同一原始产物。APK 候选版本设为 0.20.0/code 27，当前没有正式 tag/Release。
+
+Android `38198758193` 的实际失败是测试编译：`PostTurnPageBridgeTest.kt:51` 的 assertEquals 没有给 `Pair<String, PostTurnTaskControl>` 明确类型，expected 的 Retry 子类型与实际控制接口导致 T 推断失败。仅修正断言类型，保留完整确认目标检查；先前因旧资产缺 tasks 预期会失败的判断不构成实际失败原因证据。后续继续跑编译和整套单元/模拟器。
+
+新增模拟器实际 APK TS 任务页面→QuickJS→宿主确认→服务接口回归，用可控服务 fixture 验证来源可见、费用警告、取消零操作和确认后重试/删除；生产 SQLite 变更另由 `BuiltinMemoryManagerTest` 覆盖，不把 fixture 当真实模型执行。已下载 `eaac535` 的完整模拟器 XML，实际 37 个（app 28/web 1/terminal 8）零失败/错误/跳过。
+
+SDK 的远程打包流程增加可选 `example.notes` 市场包，仅生成服务端资产，不预装为 Android 内置插件；新示例资产还须下载 CI 产物后提交。API 9 市场测试验证其页面声明、可下载完整性，并确认旧 API 8 不会看到该包；不可把尚未生成/发布的包写成已可下载。设置两个入口已使用 TS，但本阶段仍须完成新包一致性、完整 Android gate、市场部署、正式 APK 发布和哈希核验。
+
 补充停止控制的并发边界：同一个 durable 任务 ID 在手动重试后会再次运行；仅比较 ID 无法区分两次尝试。`Stop` 确认元数据与 Worker 的不可变活动快照增加 attempt，旧尝试按钮不能停止同 ID 的新尝试。回归改为让同 ID 实际进入第二次运行后验证旧 attempt 无效，仍须新 attempt 才能停止。
 
 关闭按钮修复 `eaac535` 的 [Android 38197662201](https://github.com/veryy/Solvit/actions/runs/38197662201) 已全成功，build 114643861429 与模拟器 114644815204 成功；此前“模拟器尚未通过”的结论在此提交上解除，仍不是 APK 发布或真机/真实模型验收。前一失败报告下载 XML 确认 app 28 个测试仅市场重开关闭选择失败，新记忆界面/图/原生表单测试确已通过；web 1、terminal 8 全通过。

@@ -48,7 +48,7 @@ class PostTurnPageBridgeTest {
         }
         assertTrue(tasks.controls.isEmpty())
         assertEquals(JsonPrimitive(1), bridge.call(owner, "jobs.perform", buildJsonObject {}, page, { check(allowed) })["changed"])
-        assertEquals(listOf(owner to PostTurnTaskControl.Retry(job.id, 1)), tasks.controls)
+        assertEquals(listOf<Pair<String, PostTurnTaskControl>>(owner to PostTurnTaskControl.Retry(job.id, 1)), tasks.controls)
         assertFailsWith<IllegalStateException> { bridge.call(owner, "jobs.perform", buildJsonObject {}, page, { check(allowed) }) }
         assertFailsWith<IllegalStateException> {
             bridge.call(owner, "jobs.perform", buildJsonObject {}, ScriptPageExecutionContext(owner, {}), {})

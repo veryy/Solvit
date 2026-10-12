@@ -16,10 +16,74 @@ import kotlinx.serialization.json.*
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.*
+import dev.solvit.core.*
+import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.AtomicInteger
 
 /** Actual Android QuickJS -> generic Compose form -> callback -> native persistent storage. */
 class PluginPageUiTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    @Test fun packagedTaskPageShowsSourcesAndUsesNativeCostConfirmationBeforeServiceControl() {
+        val app = rule.activity.application as SolvitApplication
+        runBlocking {
+            withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }
+            app.marketplace.disable("dev.solvit.memory")
+        }
+        val target = PostTurnTarget("dev.solvit.memory", "1.3.0", "a".repeat(64))
+        val turn = CompletedChatTurn("page-task-answer", "page-task-chat", "page-task-user", "page-task-answer",
+            null, null, null, null, "fixture", "fixture", 1, listOf(target))
+        val row = AtomicReference<PostTurnJob?>(PostTurnJob("page-task-answer:dev.solvit.memory", turn, target,
+            PostTurnJobStatus.FAILED, 1, 2, PostTurnFailure.MODEL))
+        val controls = AtomicInteger()
+        val service = object : PostTurnTaskService {
+            override suspend fun list(pluginId: String, before: PostTurnJobCursor?, limit: Int, authorize: suspend () -> Unit): PostTurnTaskPage {
+                assertEquals(target.pluginId, pluginId); authorize()
+                return PostTurnTaskPage(listOfNotNull(row.get()), null)
+            }
+            override suspend fun control(pluginId: String, action: PostTurnTaskControl, authorize: suspend () -> Unit): Int {
+                assertEquals(target.pluginId, pluginId); authorize()
+                val current = row.get() ?: return 0
+                when (action) {
+                    is PostTurnTaskControl.Retry -> {
+                        assertEquals(current.id, action.id); assertEquals(current.attempt, action.attempt)
+                        assertEquals(PostTurnJobStatus.FAILED, current.status)
+                        row.set(current.copy(status = PostTurnJobStatus.WAITING, failure = null))
+                    }
+                    is PostTurnTaskControl.Delete -> {
+                        assertEquals(current.id, action.id); assertEquals(current.status, action.status)
+                        row.set(null)
+                    }
+                    else -> error("Unexpected task action")
+                }
+                controls.incrementAndGet(); return 1
+            }
+            override suspend fun retired(pluginId: String, turnId: String, authorize: suspend () -> Unit): Boolean {
+                authorize(); return false
+            }
+        }
+        val manager = dev.solvit.market.BuiltinMemoryManager(app)
+        rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
+            PluginPageScreen("自动记忆任务", { manager.openPage("zh", service, "tasks") }) {}
+        } } }
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_node_task_open_0").fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag("plugin_node_task_open_0").performClick()
+        rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_task_user"))
+        rule.onNodeWithText("来源用户消息: page-task-user").assertIsDisplayed()
+        rule.onNodeWithTag("plugin_node_task_retry").performClick()
+        rule.onNodeWithText("重试将使用原模型配置，可能产生额外费用。").assertIsDisplayed()
+        rule.onNodeWithText("取消").performClick()
+        assertEquals(0, controls.get())
+        rule.onNodeWithTag("plugin_node_task_retry").performClick()
+        rule.onNodeWithTag("plugin_page_confirm").performClick()
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_node_task_retry").fetchSemanticsNodes().isEmpty() }
+        rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_task_status"))
+        rule.onNode(hasTestTag("plugin_node_task_status") and hasText("等待处理")).assertIsDisplayed()
+        rule.onNodeWithTag("plugin_node_task_delete").performClick()
+        rule.onNodeWithTag("plugin_page_confirm").performClick()
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_node_task_empty").fetchSemanticsNodes().isNotEmpty() }
+        assertEquals(2, controls.get()); assertNull(row.get())
+        assertFalse(app.marketplace.installed.value.first { it.id == target.pluginId }.enabled)
+    }
     @Test fun nativeTaskControlShowsHostWarningAndRequiresExplicitConfirmation() {
         val view = ScriptPageView.parse("""{"title":"Tasks","nodes":[],"footer":[
             {"id":"retry","kind":"button","text":"Continue","action":"retry",

@@ -15,3 +15,7 @@ for (const directory of plugins.filter(entry => entry.isDirectory())) {
   await mkdir(resolve('../plugin-market/src/main/assets/builtin-plugins'), { recursive: true });
   await writeFile(asset, await readFile(output));
 }
+// Optional installable UI example; do not seed it as an Android built-in.
+const notes = resolve('../plugin-examples/notes');
+await buildPlugin(join(notes, 'index.ts'), join(notes, 'manifest.json'),
+  resolve('../market-server/packages/example.notes.solvit.json'));

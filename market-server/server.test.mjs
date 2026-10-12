@@ -38,6 +38,10 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(memoryPage.version, '1.3.0');
     assert.equal(memoryPage.apiVersion, 9);
     assert.deepEqual(memoryPage.pages, [{id:'main',title:'记忆'},{id:'tasks',title:'自动记忆任务'}]);
+    const notesPage = api9.plugins.find(plugin => plugin.id === 'example.notes');
+    assert.equal(notesPage.apiVersion, 9);
+    assert.deepEqual(notesPage.pages, [{id:'main',title:'便签'}]);
+    assert.ok(!api8.plugins.some(plugin => plugin.id === 'example.notes'));
     const api7 = await (await fetch(base + '/api/v1/plugins?hostApi=7')).json();
     assert.ok(api7.plugins.every(plugin => plugin.apiVersion <= 7));
     assert.ok(api7.plugins.length >= api6.plugins.length);
