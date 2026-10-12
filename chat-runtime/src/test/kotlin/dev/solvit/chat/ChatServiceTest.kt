@@ -24,6 +24,19 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun characterReplacesBuiltInIntroductionButKeepsExplicitUserRules() {
+        val role = AgentRole("star", "星辰", "使用简洁中文回答")
+        val default = ChatContextComposer.render(ChatContextComposer.sections(role, ModelConfig().systemPrompt))
+        assertFalse(default.contains(ModelConfig().systemPrompt))
+        assertTrue(default.contains("星辰"))
+        assertTrue(default.contains(role.prompt))
+        assertFalse(ChatContextComposer.sections(role, ModelConfig().systemPrompt).any { it.name == "user-rules" })
+        val custom = "仅用中文回答，不编造事实。"
+        assertTrue(ChatContextComposer.render(ChatContextComposer.sections(role, custom)).contains(custom))
+        assertTrue(ChatContextComposer.render(ChatContextComposer.sections(null, ModelConfig().systemPrompt))
+            .contains(ModelConfig().systemPrompt))
+    }
+
     @Test fun enablingAfterTurnStartsCannotRetroactivelyAdmitThatConversation() = runTest {
         val store = MemoryStore()
         val registry = PostTurnHookRegistry()

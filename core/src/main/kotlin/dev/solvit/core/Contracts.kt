@@ -33,11 +33,13 @@ data class ModelMessage(
 )
 
 /** Not a data class: toString must never reveal API keys. */
+const val DEFAULT_SYSTEM_PROMPT = "你是 Solvit，一个认真、可靠的 AI 助手。"
+
 class ModelConfig(
     val baseUrl: String = "https://api.openai.com/v1",
     val model: String = "gpt-4o-mini",
     val apiKey: String = "",
-    val systemPrompt: String = "你是 Solvit，一个认真、可靠的 AI 助手。",
+    val systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
     val modelListUrl: String = "",
     val modelListUsesApiKey: Boolean = false,
     val providerId: String = "openai-compatible",
