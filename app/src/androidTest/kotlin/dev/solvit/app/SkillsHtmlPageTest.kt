@@ -3,6 +3,9 @@ package dev.solvit.app
 import android.content.ContentValues
 import android.os.Environment
 import android.os.ParcelFileDescriptor
+import android.os.SystemClock
+import android.graphics.Rect
+import android.view.MotionEvent
 import android.provider.MediaStore
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.activity.compose.setContent
@@ -44,7 +47,17 @@ class SkillsHtmlPageTest {
         rule.waitUntil(10_000) { node(predicate)?.also { target = it } != null }
         var clickable = checkNotNull(target)
         repeat(8) { if (!clickable.isClickable) clickable.parent?.let { clickable = it } }
-        assertTrue("System document control must receive an actual click", clickable.performAction(AccessibilityNodeInfo.ACTION_CLICK))
+        // DocumentsUI's drawer ListView rows do not consistently expose ACTION_CLICK.
+        // Tap the bounds of the observed, visible control rather than simulating a picker result.
+        val bounds = Rect().also(clickable::getBoundsInScreen)
+        assertFalse("System document control must have visible bounds", bounds.isEmpty)
+        val down = SystemClock.uptimeMillis()
+        for (action in listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP)) {
+            val event = MotionEvent.obtain(down, SystemClock.uptimeMillis(), action,
+                bounds.exactCenterX(), bounds.exactCenterY(), 0)
+            try { assertTrue("System document control must receive actual touch input", automation.injectInputEvent(event, true)) }
+            finally { event.recycle() }
+        }
     }
     private fun selectFile(name: String) {
         if (node { it.text?.toString() == name } == null) {
