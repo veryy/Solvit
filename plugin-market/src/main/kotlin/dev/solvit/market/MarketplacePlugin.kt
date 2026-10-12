@@ -454,6 +454,7 @@ class AndroidMarketplace(
 
     private fun shellJson(job: ShellJob): JsonObject = buildJsonObject {
         put("id", job.id); put("shellId", job.shellSessionId); put("stage", job.stage.name)
+        put("workspaceId", job.workspaceId); put("cwd", job.cwd); put("mode", job.mode.name)
         put("output", job.output.joinToString("") { it.text }); put("exitCode", job.exitCode?.let(::JsonPrimitive) ?: JsonNull)
         put("truncated", job.truncated); put("failure", job.failure)
     }
