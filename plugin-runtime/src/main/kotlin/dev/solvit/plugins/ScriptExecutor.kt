@@ -108,6 +108,9 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         js.evaluate<Any?>("if (typeof solvitPlugin.beforeModel !== 'function') throw new Error('Missing beforeModel hook');")
                     }
                     if ("afterTurn" in pkg.manifest.hooks) js.evaluate<Any?>("if (typeof solvitPlugin.afterTurn !== 'function') throw new Error('Missing afterTurn hook');")
+                    for (page in pkg.manifest.pages) {
+                        js.evaluate<Any?>("if (typeof solvitPlugin.pages?.[${JsonPrimitive(page.id)}] !== 'function') throw new Error('Missing page handler');")
+                    }
                     if (!background && invokeLifecycle) js.evaluate<Any?>("if (solvitPlugin.activate) await solvitPlugin.activate(ctx);")
                     } finally { executionJob = null; executionContext = null }
                 }
@@ -121,6 +124,14 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
         val input = Json.parseToJsonElement(arguments).jsonObject
         val role = currentCoroutineContext()[AgentRoleContext]?.role
         return invoke("solvitPlugin.tools[${JsonPrimitive(tool)}](JSON.parse(${JsonPrimitive(input.toString())}), ${contextExpression(role)})", false)
+    }
+
+    internal suspend fun page(pageId: String, locale: String, event: JsonObject?): ScriptPageView {
+        check(!background && !invokeLifecycle && pkg.manifest.apiVersion >= 9)
+        require(pkg.manifest.pages.any { it.id == pageId }) { "Plugin page not declared" }
+        require(locale.matches(Regex("[a-zA-Z0-9_-]{1,20}")))
+        val input = buildJsonObject { put("locale", locale); put("event", event ?: JsonNull) }
+        return ScriptPageView.parse(invoke("solvitPlugin.pages[${JsonPrimitive(pageId)}](JSON.parse(${JsonPrimitive(input.toString())}), ctx)", false))
     }
 
     suspend fun beforeModel(input: ContextInput): String {

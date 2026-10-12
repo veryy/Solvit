@@ -6,6 +6,24 @@ import { tmpdir } from 'node:os';
 import vm from 'node:vm';
 import { buildPlugin } from '../scripts/build-plugin.mjs';
 
+test('API 9 page declarations bundle callbacks and reject ambiguous or older manifests', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'solvit-pages-'));
+  try {
+    const entry = join(dir, 'entry.ts'), file = join(dir, 'manifest.json'), output = join(dir, 'output.json');
+    await writeFile(entry, "export default {tools:{},pages:{manage: input=>({title:input.locale,nodes:[]})}};");
+    const manifest = { id:'test.pages', name:'Pages', description:'Test', version:'1.0.0', apiVersion:9,
+      permissions:[],dependencies:[],tools:[],pages:[{id:'manage',title:'管理'}] };
+    for (const invalid of [ {...manifest,apiVersion:8}, {...manifest,pages:[...manifest.pages,...manifest.pages]},
+      {...manifest,pages:[{id:'../escape',title:'Bad'}]}, {...manifest,pages:[{id:'manage',title:42}]} ]) {
+      await writeFile(file, JSON.stringify(invalid));
+      await assert.rejects(()=>buildPlugin(entry,file,output));
+    }
+    await writeFile(file, JSON.stringify(manifest)); await buildPlugin(entry,file,output);
+    const sandbox = vm.createContext({}); vm.runInContext(JSON.parse(await readFile(output,'utf8')).source,sandbox);
+    assert.equal(sandbox.solvitPlugin.pages.manage({locale:'ja',event:null}).title,'ja');
+  } finally { await rm(dir,{recursive:true}); }
+});
+
 test('bundles TypeScript imports as standalone host-compatible JavaScript', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'solvit-sdk-'));
   try {

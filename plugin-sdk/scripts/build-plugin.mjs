@@ -5,7 +5,13 @@ import { pathToFileURL } from 'node:url';
 
 export async function buildPlugin(entry, manifestFile, output) {
   const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
-  if (![1, 2, 3, 4, 5, 6, 7, 8].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
+  const pages = manifest.pages ?? [];
+  if (!Array.isArray(pages) || pages.length > 8 || pages.length && manifest.apiVersion < 9 ||
+      pages.some(page => !page || Object.keys(page).sort().join(',') !== 'id,title' ||
+        typeof page.id !== 'string' || !/^[a-z][a-zA-Z0-9_-]{0,39}$/.test(page.id) ||
+        typeof page.title !== 'string' || !page.title.trim() || page.title.length > 128) ||
+      new Set(pages.map(page => page.id)).size !== pages.length) throw new Error('Invalid plugin pages');
   const hooks = manifest.hooks ?? [];
   if (!Array.isArray(hooks) || hooks.some(hook => hook !== 'beforeModel' && hook !== 'afterTurn') ||
       hooks.includes('beforeModel') && manifest.apiVersion < 3 || hooks.includes('afterTurn') && manifest.apiVersion < 8) throw new Error('Invalid hooks');

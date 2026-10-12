@@ -1,5 +1,6 @@
 /** JSON-only bridge. No Node, DOM, timers, filesystem or credentials are exposed. */
 export type { PageNode, PluginPageView, PluginPageEvent, PluginPageInput } from './pages.js';
+import type { PluginPageView, PluginPageInput } from './pages.js';
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
 export interface PluginContext {
@@ -31,6 +32,8 @@ export interface PluginContext {
 export type ToolHandler = (arguments_: JsonObject, context: PluginContext) => JsonValue | Promise<JsonValue>;
 export interface PluginDefinition {
   tools: Record<string, ToolHandler>;
+  /** API 9: independent page instance; does not share activate() or chat state. */
+  pages?: Record<string, (input: PluginPageInput, context: PluginContext) => PluginPageView | Promise<PluginPageView>>;
   activate?(context: PluginContext): void | Promise<void>;
   deactivate?(context: PluginContext): void | Promise<void>;
   beforeModel?(input: { userText: string; role: PluginContext['role']; settings?: Readonly<Record<string, string | null>> }, context: PluginContext): string | Promise<string>;
@@ -44,7 +47,8 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  pages?: { id: string; title: string }[];
   hooks?: ('beforeModel' | 'afterTurn')[];
   afterTurnEnabledSetting?: string;
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret' | 'boolean'; required?: boolean; defaultValue?: 'true' | 'false' }[];
