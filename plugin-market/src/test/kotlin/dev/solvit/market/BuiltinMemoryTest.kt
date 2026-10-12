@@ -5,6 +5,10 @@ import dev.solvit.core.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import okhttp3.OkHttpClient
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
+import java.security.MessageDigest
+import java.util.concurrent.TimeUnit
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -17,6 +21,45 @@ class BuiltinMemoryTest {
     private val context: Context get() = RuntimeEnvironment.getApplication()
     private val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
     private fun result(value: String) = Json.parseToJsonElement(value).jsonObject
+
+    @Test fun api8CatalogCanInstallAutomaticMemoryWithoutEnablingOrGrantingIt() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val manager = PluginManager(scope = scope)
+        val server = MockWebServer(); server.start()
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val original = chain.request().url
+            chain.proceed(chain.request().newBuilder().url(server.url(original.encodedPath +
+                (original.encodedQuery?.let { "?$it" } ?: ""))).build())
+        }.build()
+        try {
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin()); manager.enableAll()
+            val payload = context.assets.open("builtin-plugins/dev.solvit.memory.solvit.json").use { it.readBytes() }
+            val manifest = Json.parseToJsonElement(payload.toString(Charsets.UTF_8)).jsonObject.getValue("manifest").jsonObject
+            val sha = MessageDigest.getInstance("SHA-256").digest(payload).joinToString("") { "%02x".format(it) }
+            val path = "/api/v1/packages/dev.solvit.memory/1.2.0"
+            val catalog = buildJsonObject {
+                put("apiVersion", 1)
+                put("plugins", JsonArray(listOf(JsonObject(manifest + mapOf("sha256" to JsonPrimitive(sha),
+                    "bytes" to JsonPrimitive(payload.size), "downloadPath" to JsonPrimitive(path))))))
+            }
+            server.enqueue(MockResponse().setBody(catalog.toString()))
+            server.enqueue(MockResponse().setBody(payload.toString(Charsets.UTF_8)))
+            val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools))
+            market.restore()
+            val entry = market.catalog().single()
+            assertEquals(setOf("storage", "model"), entry.permissions.toSet())
+            market.install(entry)
+            assertEquals("/api/v1/plugins?hostApi=8", server.takeRequest(2, TimeUnit.SECONDS)!!.path)
+            assertEquals(path, server.takeRequest(2, TimeUnit.SECONDS)!!.path)
+            val installed = market.installed.value.single { it.id == "dev.solvit.memory" }
+            assertEquals("1.2.0", installed.version); assertFalse(installed.enabled)
+            assertTrue(context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
+                .getStringSet("grants.dev.solvit.memory", emptySet()).orEmpty().isEmpty())
+        } finally {
+            manager.shutdown(); scope.cancel(); server.shutdown()
+            client.dispatcher.executorService.shutdown(); client.connectionPool.evictAll()
+        }
+    }
 
     @Test fun offlineSeedNeedsPermissionAndPersistsMemoryThroughApplicationRestart() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
