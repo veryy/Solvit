@@ -21,7 +21,7 @@ class ScriptRuntimeTest {
             val native=assertFailsWith<ToolExecutionException> { executor.execute("echo","""{"kind":"native"}""") }
             assertEquals(ToolFailureCode.FILE_NOT_FOUND,native.code)
             assertEquals("\"ok\"",executor.execute("echo","""{"kind":"ok"}"""))
-            val forged=assertFailsWith<IllegalStateException> { executor.execute("echo","""{"kind":"forged"}""") }
+            val forged: Throwable=assertFailsWith<IllegalStateException> { executor.execute("echo","""{"kind":"forged"}""") }
             assertFalse(forged is ToolExecutionException)
         } finally { executor.stop() }
     }
