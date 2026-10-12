@@ -19,12 +19,18 @@ import java.util.concurrent.TimeUnit
 @Config(sdk = [28])
 class MarketplacePagesTest {
     private val context: Context get() = RuntimeEnvironment.getApplication()
-    private fun payload(title: String = "Notes", network: Boolean = false): ByteArray = buildJsonObject {
+    private fun payload(title: String = "Notes", network: Boolean = false, web: Boolean = false): ByteArray = buildJsonObject {
         putJsonObject("manifest") {
-            put("id", "test.notes"); put("name", "Notes"); put("description", "Test"); put("version", "1.0.0"); put("apiVersion", 9)
+            put("id", "test.notes"); put("name", "Notes"); put("description", "Test"); put("version", "1.0.0"); put("apiVersion", if (web) 10 else 9)
             put("permissions", JsonArray((if (network) listOf("storage", "network") else listOf("storage")).map(::JsonPrimitive)))
             put("dependencies", JsonArray(emptyList())); put("tools", JsonArray(emptyList()))
-            putJsonArray("pages") { add(buildJsonObject { put("id", "main"); put("title", "Notes") }) }
+            putJsonArray("pages") { add(buildJsonObject {
+                put("id", "main"); put("title", "Notes"); if (web) put("entry", "ui/index.html")
+            }) }
+        }
+        if (web) putJsonObject("resources") {
+            put("ui/index.html", "<html><script src='main.js'></script></html>")
+            put("ui/main.js", "document.title='Plugin-owned page';")
         }
         put("source", """
             globalThis.solvitPlugin={tools:{},pages:{main:async(input,ctx)=>{
@@ -94,6 +100,34 @@ class MarketplacePagesTest {
             val replacement = market.openPage("test.notes", "main", "en")
             try { assertEquals(JsonPrimitive("Changed package"), Json.parseToJsonElement(replacement.open().json).jsonObject["title"]) }
             finally { replacement.close(); old.close() }
+        }
+    }
+
+    @Test fun offlineHtmlResourcesBelongToTheEnabledLeaseAndStopOnRevocationOrReplacement() = runBlocking<Unit> {
+        fixture { market, _ ->
+            market.installLocal(payload(web = true)); market.enable("test.notes", setOf("storage"))
+            val session = market.openPage("test.notes", "main", "en")
+            try {
+                assertFails { session.resource("ui/main.js") }
+                session.open()
+                assertEquals(ExtensionPageDocument("ui/index.html"), session.document())
+                assertEquals("application/javascript", session.resource("ui/main.js").mimeType)
+                assertTrue(session.resource("ui/main.js").content.contains("Plugin-owned page"))
+                assertFails { session.resource("../extension_data.other.plugin") }
+                assertFails { session.resource("ui/missing.js") }
+                context.getSharedPreferences("extension_permissions", 0).edit()
+                    .putStringSet("grants.test.notes", emptySet()).commit()
+                assertFails { session.document() }
+                assertFails { session.resource("ui/main.js") }
+            } finally { session.close() }
+            market.enable("test.notes", setOf("storage"))
+            val old = market.openPage("test.notes", "main", "en")
+            try {
+                old.open(); market.installLocal(payload("Updated", web = true))
+                assertTrue(old.closed.value)
+                assertFails { old.resource("ui/main.js") }
+                assertFails { old.document() }
+            } finally { old.close() }
         }
     }
 

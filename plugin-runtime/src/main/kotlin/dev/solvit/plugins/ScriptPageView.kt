@@ -2,7 +2,7 @@ package dev.solvit.plugins
 
 import kotlinx.serialization.json.*
 
-/** Validated native view data. No HTML, styles, executable expressions or host routes. */
+/** Validated page state and action declarations. HTML presentation loads separately from the package. */
 class ScriptPageView private constructor(
     val title: String,
     val nodes: List<JsonObject>,

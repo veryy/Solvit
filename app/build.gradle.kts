@@ -7,8 +7,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 31
-        versionName = "0.21.3"
+        versionCode = 32
+        versionName = "0.22.0"
     }
     // setup-android can change ANDROID_USER_HOME. Never rely on AGP's implicit
     // debug-keystore path: CI restores and uses this exact file.
@@ -43,6 +43,7 @@ dependencies {
     implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.30.0")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.activity:activity-compose:1.9.3")
+    implementation("androidx.webkit:webkit:1.12.1")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")

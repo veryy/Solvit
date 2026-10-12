@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import dev.solvit.plugins.ScriptPageView
 import dev.solvit.plugins.ScriptPageHostAction
 import dev.solvit.core.PostTurnTaskControl
+import dev.solvit.core.ExtensionPageDocument
+import dev.solvit.core.ExtensionPageResource
 import kotlinx.serialization.json.*
 
 /** Captures the displayed view so queued clicks cannot act on a newer page. */
@@ -30,6 +32,7 @@ data class PluginPageInteraction(val view: ScriptPageView, val nodeId: String, v
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = Modifier,
+    document: ExtensionPageDocument? = null, resource: (suspend (String) -> ExtensionPageResource)? = null,
     onEvent: (PluginPageInteraction) -> Unit) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -52,7 +55,12 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
             else onEvent(PluginPageInteraction(view, node.getValue("id").jsonPrimitive.content, value, snapshot))
         }
     }
-    Column(modifier.fillMaxSize()) {
+    if (document != null) {
+        PluginWebPage(view, document, checkNotNull(resource), busy, modifier) { event ->
+            fields.putAll(event.fields)
+            dispatch(event.node, event.value)
+        }
+    } else Column(modifier.fillMaxSize()) {
         LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("plugin_page_content"), contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(view.nodes, key = { it.getValue("id").jsonPrimitive.content }) { node ->

@@ -20,6 +20,7 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, on
     var session by remember { mutableStateOf<ExtensionPageSession?>(null) }
     var snapshot by remember { mutableStateOf<ExtensionPageSnapshot?>(null) }
     var view by remember { mutableStateOf<ScriptPageView?>(null) }
+    var document by remember { mutableStateOf<ExtensionPageDocument?>(null) }
     var busy by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -29,6 +30,7 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, on
         try {
             val current = open(); owned = current; session = current
             val initial = current.open()
+            document = current.document()
             snapshot = initial; view = ScriptPageView.parse(initial.json); busy = false
             current.closed.collect { closed -> if (closed) {
                 view = null; snapshot = null; busy = false; error = "插件页面已关闭，请检查启用状态和权限。"
@@ -45,7 +47,8 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, on
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { UiText(it, Modifier.padding(12.dp).testTag("plugin_page_error"), color = MaterialTheme.colorScheme.error) }
                 view?.let { displayed ->
-                    PluginPageContent(displayed, busy, Modifier.weight(1f)) { event ->
+                    PluginPageContent(displayed, busy, Modifier.weight(1f), document,
+                        resource = { path -> checkNotNull(session).resource(path) }) { event ->
                         val current = session
                         val revision = snapshot?.revision
                         if (!busy && event.view === view && current != null && revision != null) {
