@@ -81,7 +81,7 @@ class BuiltinMcpUpgradeTest {
             memoryFile.writeBytes(javaClass.getResourceAsStream("/memory-1.3.1.solvit.json")!!.use { it.readBytes() })
             val prefs = app.getSharedPreferences("extension_permissions", 0)
             prefs.edit().putBoolean("seeded.dev.solvit.memory.solvit.json", true)
-                .putBoolean("enabled.dev.solvit.memory", true).putStringSet("grants.dev.solvit.memory", setOf("storage")).commit()
+                .putBoolean("enabled.dev.solvit.memory", true).putStringSet("grants.dev.solvit.memory", setOf("storage", "model")).commit()
             val manager = BuiltinMemoryManager(app)
             val fact = manager.save("Memory retained through HTML upgrade", "fact", emptyList())
                 .getValue("fact").jsonObject.getValue("id").jsonPrimitive.content

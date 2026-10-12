@@ -113,7 +113,7 @@ class PluginPageUiTest {
             val first = manager.save("plugin-memory-ui-original", "fact", emptyList()).getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
             val related = manager.save("plugin-memory-ui-original related", "fact", emptyList()).getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
             try {
-                app.marketplace.enable("dev.solvit.memory", setOf("storage"))
+                app.marketplace.enable("dev.solvit.memory", app.marketplace.installed.value.single { it.id == "dev.solvit.memory" }.permissions)
                 app.marketplace.runTool("dev_solvit_memory_memory_link", buildJsonObject {
                     put("from", first); put("to", related); put("relation", "关联")
                 }.toString(), object : ToolAuthorization {
