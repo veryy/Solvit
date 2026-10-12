@@ -2,7 +2,7 @@
   "id": "dev.solvit.skills",
   "name": "Skills 技能库",
   "description": "纯 TS 技能库：SKILL.md 与文本资源导入、角色绑定、元数据自动注入和按需加载。",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "apiVersion": 11,
   "permissions": [
     "storage"

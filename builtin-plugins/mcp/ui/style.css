@@ -4,3 +4,6 @@ main{padding:16px;flex:1;min-height:0;overflow:auto;overflow-wrap:anywhere}foote
 .card{border:1px solid var(--outline);border-radius:20px;padding:16px;margin:0 0 12px}.card p:first-child{font-size:18px;font-weight:600}.card p{margin:8px 0}.card p:nth-child(2){font-size:12px;opacity:.6}.row{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 button,input,textarea,select{font:inherit;color:inherit}button{border:0;border-radius:12px;background:var(--surfaceContainer);padding:10px 12px;cursor:pointer}footer button:last-child{background:var(--primary);color:var(--onPrimary)}button:disabled{opacity:.45;cursor:wait}
 label{display:block;font-size:13px;margin:0 0 16px}input,textarea,select{display:block;width:100%;border:1px solid var(--outline);border-radius:12px;padding:12px;margin-top:8px;background:var(--surface)}textarea{min-height:180px;resize:vertical}input:focus,textarea:focus,select:focus,button:focus-visible{outline:2px solid var(--primary)}p{white-space:pre-wrap;line-height:1.5}
+
+/* A fixed viewport avoids collapsed percentage heights in Android WebView. */
+body{position:fixed;inset:0;height:auto;overflow:hidden}footer{flex-shrink:0}

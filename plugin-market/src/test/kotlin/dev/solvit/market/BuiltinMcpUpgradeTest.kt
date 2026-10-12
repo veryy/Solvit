@@ -15,6 +15,33 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class BuiltinMcpUpgradeTest {
+    @Test fun originalHtmlPackagesUpgradeWithoutChangingSkillsOrMultipleEncryptedConnections() = runBlocking<Unit> {
+        fixture { market, config, mcpFile ->
+            val app = RuntimeEnvironment.getApplication()
+            val skillsFile = File(mcpFile.parentFile, "dev.solvit.skills.solvit.json")
+            for ((id, file) in listOf("skills" to skillsFile, "mcp" to mcpFile)) {
+                file.writeBytes(javaClass.getResourceAsStream("/$id-1.1.0.solvit.json")!!.use { it.readBytes() })
+                app.getSharedPreferences("extension_permissions", 0).edit()
+                    .putBoolean("seeded.dev.solvit.$id.solvit.json", true).putBoolean("enabled.dev.solvit.$id", true)
+                    .putStringSet("grants.dev.solvit.$id", setOf(if (id == "skills") "storage" else "network")).commit()
+            }
+            val skillData = """{"format":1,"skills":[]} """.trim()
+            val data = app.getSharedPreferences("extension_data.dev.solvit.skills", 0)
+            data.edit().putString("skills.v1", skillData).commit()
+            val profiles = """[{"id":"docs","name":"docs","url":"https://docs.example.invalid/mcp","token":"fixture-docs","disabled":false},{"id":"code","name":"code","url":"https://code.example.invalid/mcp","token":"fixture-code","disabled":true}]"""
+            config.write("dev.solvit.mcp", mapOf("connections" to profiles))
+            market.restore()
+            for (id in listOf("dev.solvit.skills", "dev.solvit.mcp")) {
+                val installed = market.installed.value.single { it.id == id }
+                assertEquals("1.1.1", installed.version); assertTrue(installed.enabled)
+                val page = market.openPage(id, "main", "en")
+                try { page.open(); assertNotNull(page.document()) } finally { page.close() }
+            }
+            assertEquals(skillData, data.getString("skills.v1", null))
+            assertEquals(profiles, config.read("dev.solvit.mcp")["connections"])
+            assertFalse(app.getSharedPreferences("extension_configuration", 0).getString("dev.solvit.mcp", "")!!.contains("fixture-docs"))
+        }
+    }
     @Test fun originalSkillsUpgradeKeepsDocumentsActivationAndGrants() = runBlocking<Unit> {
         fixture { market, _, _ ->
             val app = RuntimeEnvironment.getApplication()
@@ -35,7 +62,7 @@ class BuiltinMcpUpgradeTest {
                 .putBoolean("enabled.dev.solvit.skills", true).putStringSet("grants.dev.solvit.skills", setOf("storage")).commit()
             market.restore()
             val upgraded = market.installed.value.single { it.id == "dev.solvit.skills" }
-            assertEquals("1.1.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals("1.1.1", upgraded.version); assertTrue(upgraded.enabled)
             assertEquals(setOf("storage"), prefs.getStringSet("grants.dev.solvit.skills", emptySet()))
             assertEquals(saved, data.getString("skills.v1", null))
             val page = market.openPage("dev.solvit.skills", "main", "en")
@@ -95,7 +122,7 @@ class BuiltinMcpUpgradeTest {
             prefs.edit().putBoolean("enabled.dev.solvit.mcp", true).putStringSet("grants.dev.solvit.mcp", setOf("network")).commit()
             market.restore()
             val installed = market.installed.value.single { it.id == "dev.solvit.mcp" }
-            assertEquals("1.1.0", installed.version); assertTrue(installed.enabled)
+            assertEquals("1.1.1", installed.version); assertTrue(installed.enabled)
             assertEquals("fixture-upgrade-token", config.read("dev.solvit.mcp")["token"])
             val page = market.openPage("dev.solvit.mcp", "main", "en")
             try {

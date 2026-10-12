@@ -49,7 +49,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     const oldMcp = api9.plugins.find(plugin => plugin.id === 'dev.solvit.mcp');
     assert.equal(oldMcp.version, '1.0.0'); assert.equal(oldMcp.apiVersion, 2);
     const multiMcp = api10.plugins.find(plugin => plugin.id === 'dev.solvit.mcp');
-    assert.equal(multiMcp.version, '1.1.0'); assert.equal(multiMcp.apiVersion, 10);
+    assert.equal(multiMcp.version, '1.1.1'); assert.equal(multiMcp.apiVersion, 10);
     assert.equal(multiMcp.pages[0].entry, 'ui/index.html');
     const mcpPackage = await (await fetch(base + multiMcp.downloadPath)).json();
     assert.ok(mcpPackage.resources['ui/main.js']);
@@ -58,7 +58,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(previousSkills.version, '1.0.2'); assert.equal(previousSkills.apiVersion, 3);
     const api11 = await (await fetch(base + '/api/v1/plugins?hostApi=11')).json();
     const htmlSkills = api11.plugins.find(plugin => plugin.id === 'dev.solvit.skills');
-    assert.equal(htmlSkills.version, '1.1.0'); assert.equal(htmlSkills.apiVersion, 11);
+    assert.equal(htmlSkills.version, '1.1.1'); assert.equal(htmlSkills.apiVersion, 11);
     assert.equal(htmlSkills.pages[0].entry, 'ui/index.html');
     const oldSkillsBytes = Buffer.from(await (await fetch(base + previousSkills.downloadPath)).arrayBuffer());
     assert.deepEqual(oldSkillsBytes, await readFile(new URL('./packages/legacy/dev.solvit.skills-1.0.2.solvit.json', import.meta.url)));

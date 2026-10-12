@@ -20,7 +20,7 @@ async function page(data=new Map(),documents=[]){
   scoped:async()=>sandbox.solvitPlugin.beforeModel({userText:'writing'}, {...ctx,role:{id:'writer',name:'Writer',skillIds:['page-writing']}})};
 }
 test('Skills package carries an offline HTML page and keeps older packages unchanged',async()=>{
- assert.equal(pkg.manifest.apiVersion,11);assert.equal(pkg.manifest.version,'1.1.0');
+ assert.equal(pkg.manifest.apiVersion,11);assert.equal(pkg.manifest.version,'1.1.1');
  assert.equal(pkg.manifest.pages[0].entry,'ui/index.html');assert.ok(pkg.resources['ui/main.js']);
  const legacy=JSON.parse(await readFile('../market-server/packages/legacy/dev.solvit.skills-1.0.2.solvit.json','utf8'));
  assert.equal(legacy.manifest.apiVersion,3);assert.equal(legacy.manifest.version,'1.0.2');

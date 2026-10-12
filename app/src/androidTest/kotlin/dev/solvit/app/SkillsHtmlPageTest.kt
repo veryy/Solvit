@@ -70,7 +70,8 @@ class SkillsHtmlPageTest {
     private fun downloads() {
             clickSystem { it.contentDescription?.toString()?.contains("Show roots", ignoreCase = true) == true ||
                 it.viewIdResourceName?.endsWith("/drawer_icon") == true || it.viewIdResourceName == "android:id/home" }
-            clickSystem { it.text?.toString() == "Downloads" }
+            clickSystem { it.text?.toString() == "Downloads" && it.viewIdResourceName == "android:id/title" }
+            rule.waitUntil(10_000) { node { it.viewIdResourceName?.endsWith("/roots_list") == true } == null }
     }
     private fun selectFile(name: String) {
         if (node { it.text?.toString() == name } == null) downloads()
@@ -123,6 +124,7 @@ class SkillsHtmlPageTest {
             assertFalse(runBlocking { app.skills.list().any { it.name == name } })
             click("import"); confirm(); selectFile(filename)
             waitDom("document.querySelector('[data-node=preview]')?.textContent==='导入预览'")
+            waitDom("innerHeight>300 && document.getElementById('content').getBoundingClientRect().height>innerHeight*.5 && document.getElementById('actions').getBoundingClientRect().top>innerHeight*.7")
             assertFalse(runBlocking { app.skills.list().any { it.name == name } })
             html.screenshot("skills-html-import-preview").recycle()
             click("confirm_import"); confirm()
@@ -131,6 +133,7 @@ class SkillsHtmlPageTest {
             rule.onNodeWithTag("plugin_page_close").performClick()
             rule.onNodeWithTag("skills_library_tab").performClick()
             waitDom("window.pluginPageReady===true && document.body.textContent.includes(${JsonPrimitive(name)})")
+            waitDom("document.getElementById('content').getBoundingClientRect().height>innerHeight*.5 && Array.from(document.querySelectorAll('.card')).every(n=>n.getBoundingClientRect().bottom<document.getElementById('actions').getBoundingClientRect().top)")
             html.screenshot("skills-html-library").recycle()
             openSkill(); click("export"); confirm()
             downloads()

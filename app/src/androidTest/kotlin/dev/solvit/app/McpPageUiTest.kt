@@ -53,6 +53,7 @@ class McpPageUiTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_web_page").fetchSemanticsNodes().isEmpty() }
             rule.runOnUiThread { visible = true }
             waitDom("window.pluginPageReady===true && document.querySelectorAll('.card').length===2")
+            waitDom("innerHeight>300 && document.getElementById('content').getBoundingClientRect().height>innerHeight*.5 && document.getElementById('actions').getBoundingClientRect().top>innerHeight*.7 && Array.from(document.querySelectorAll('.card')).every(n=>n.getBoundingClientRect().bottom<document.getElementById('actions').getBoundingClientRect().top)")
             click("edit_0"); waitDom("!!document.getElementById('field-token')")
             assertEquals("\"\"", html.js("document.getElementById('field-token').value"))
             assertEquals("\"password\"", html.js("document.getElementById('field-token').type"))

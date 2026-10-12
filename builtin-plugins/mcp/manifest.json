@@ -2,7 +2,7 @@
   "id": "dev.solvit.mcp",
   "name": "MCP 连接",
   "description": "JS/TS 多服务器 MCP：插件页面管理具名 HTTPS Streamable HTTP 连接、加密认证和标准配置导入；AI 可按服务器发现及调用工具。",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "apiVersion": 10,
   "permissions": [
     "network"
