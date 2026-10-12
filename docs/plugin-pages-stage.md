@@ -37,6 +37,8 @@ SDK 增加原生页面节点、页面输入与事件类型；Android 增加独�
 
 第八检查点下载 `38196422477` 的 `solvit-builtin-plugins` 产物（11723552680），使用生成的记忆 1.3.0/API 9 包原字节写入服务端和 Android 资产：58,828 字节，SHA-256 `01971cb6dd2f3ea7266924f0794c2ba9917deee991357e9f7ad2bd5ec10d7d59`。该生成运行只有重建一致性 gate 失败，类型、SDK/市场测试先已通过；不能把整条 Actions 称为成功。新资产提交后继续验证一致性及 Android。
 
+`b801881` 的 [TS 38196758845](https://github.com/veryy/Solvit/actions/runs/38196758845) 和 [市场 38196758852](https://github.com/veryy/Solvit/actions/runs/38196758852) 已成功。下载 TS 实际 job 日志确认 64 个 SDK 测试零失败，其中“packaged memory page uses the validated production database and persists edits across engines”确实执行；另 2 个市场测试通过，覆盖 API 8/9 分流和下载完整性；生成包一致性通过。对应 [Android 38196758882](https://github.com/veryy/Solvit/actions/runs/38196758882) 的 build 114641079096 当前仍在测试/Lint/APK 步骤，尚无模拟器或发布 APK 成功证据。
+
 设置中的记忆入口现在打开通用 `PluginPageScreen`，显示 APK 内不可变 TS 记忆页面；`BuiltinMemoryManager.openPage` 提供 revision/确认/关闭保护，只允许 `memory.v1` 存储操作，实际存储锁内复查关闭状态。人工管理仍可在插件停用/无授权时使用，下载代码不会进入此路径，不启用后台抽取或授予模型/网络/Shell。插件详情中的下载页面继续使用正常启用与授权路径。新增实际 QuickJS/生产数据单元测试和深色主题模拟器测试，覆盖筛选、编辑、键盘固定保存按钮、关闭重开和删除确认。原 Kotlin 管理屏暂留作兼容测试路径；任务/收据清理仍由旧原生入口处理，必须继续迁入受限 TS 页面桥，尚未完成整个 UI 交付。
 
 第七检查点把 `main` 页面接入记忆插件默认导出，使用实际 `load` 的数据库校验、`save` 的配额与 `transact` 的 CAS 写入。源清单升级 1.3.0/API 9；已原样保留 API 8/1.2.0 包于 `market-server/packages/legacy/dev.solvit.memory-api8.solvit.json`，SHA-256 `14b2812beadd26c214b0712727d0316fb8fc1d0173da816b7290ee59a3b9c88f`。市场服务增加 API 9 筛选，测试同时核对旧版选择和各版本下载哈希；SDK 新增真实打包记忆页面→实际业务后端→存储→新实例重开回归。不得本地打包，下一步下载 Actions 生成包并提交完全一致的服务端/Android 资产；在资产提交前重建一致性 gate 预期失败，不当作成功交付。Android 内置管理器 API 检查、目录请求与测试随资产更新，设置/任务入口继续待接入。市场服务改动尚未部署到公网。
