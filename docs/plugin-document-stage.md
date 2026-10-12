@@ -1,6 +1,6 @@
 # 通用插件文件交互与Skills HTML页面候选
 
-用户要求插件用自己的HTML/JS绘制业务页面。已交付候选的记忆/任务/MCP并不包含Skills和工作区。当前Skills的导入、预览、导出和删除仍在`AgentLibraryDialog.kt`，支持SKILL.md、单技能文本ZIP和JSON备份；迁移须保留这些功能、角色绑定和原有数据库，不缩减成文本框。
+用户要求插件用自己的HTML/JS绘制业务页面。已交付候选的记忆/任务/MCP并不包含Skills和工作区。本阶段已将Skills的列表、导入预览、详情、导出和删除移入插件自己的HTML/JS；旧API3包保留原生兼容入口。支持SKILL.md、单技能文本ZIP和JSON备份，保留角色绑定和原有数据库，不能把新页面存在当作实际系统选择器验收通过。
 
 本阶段实际读取锁定Operit `ui/features/packages/screens/SkillConfigScreen.kt`的搜索、详情、导入状态与系统文件选择器，以及`core/tools/skill/SkillManager.kt`的元数据和ZIP导入边界。读取DSH `api/session-controller/src/skill-catalog.ts`及`tests/session-skills.host.spec.ts`的会话作用域和按需目录，以及`preset/agent-preset/tests/skills.spec.ts`的正文/引用资源契约。未找到Operit对应导入的直接单元测试，不用别的测试冒充其验收；未复制LGPL实现。DSH MIT仅采用行为边界，没有整体引入Cordis。
 
@@ -11,3 +11,7 @@ Android官方[Storage Access Framework](https://developer.android.com/training/d
 首个运行38310102521未进入测试：诊断工作流的setup-android默认要求已废弃tools包。明确使用platform-tools后，38310238560实际复现唯一新增正向用例失败，消息为Unsupported page host action；没有把环境失败算作功能复现。候选增加API11文档动作和当前按钮的一次性页面授权、通用有界UTF8/文本ZIP解码，以及QuickJS拒绝路径注入、重复消费、旧API/模型调用和撤权后结果的回归。此检查点尚未接入Android系统选择器，Skills HTML页面与新APK未实现；远程验证待运行。
 
 系统选择器候选b545d96的远程38311374534成功，实际89个核心/插件运行时测试无失败、错误或跳过，App Kotlin编译成功；先前cb17a19的测试注册失败来自一个runBlocking方法推导出非void返回，已明确Unit后修正。当前Skills1.1.0/API11源码提供离线HTML列表/详情、系统选择后的ZIP/SKILL.md/JSON预览、同名替换和删除确认、JSON导出；保留skills.v1及全部原工具/Hook，页面写入使用CAS并拒绝陈旧同名预览。原1.0.2/API3精确哈希包保留，计划升级保留原数据/启用/授权，修改包与卸载不恢复。候选App仍为未正式发布的0.22.2，build35。新包生成、SDK/升级及真实系统选择器模拟器回合尚待验证；API11市场源码已改，在线服务器尚未部署，因此不能交付只查到API1目录的候选。
+
+远程生成38313344225及正常一致性运行38313794010成功：实际79个SDK/2个市场测试全部通过，App内置和市场包与当前源码逐字节一致。Skills1.1.0包为255242字节，SHA-256 `585a182857fb58b2870f048cbdecef12d90b91859a09fe6870a3e0cbe359a3b2`。在线API11市场已原子切换并保留API10备份；公网API1到11的17个不同选中包逐一下载验证长度与哈希，API3到10仍返回Skills1.0.2、API11返回1.1.0。在线搜索仍为1.2.0，APK候选为1.2.1；此阶段没有更改搜索质量门禁。
+
+真实系统选择器运行38313346912已确认取消导入不写数据，随后DocumentsUI的Downloads行ACTION_CLICK返回false，未到文件导入。测试驱动改为点击实际观察到的可见控件坐标，仍使用系统窗口和真实触摸，未模拟选择结果；新运行38313891124待确认。完整Android运行38313790898仍待结果，不能称为新APK交付。
