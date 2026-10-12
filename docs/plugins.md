@@ -44,7 +44,7 @@ globalThis.solvitPlugin = {
 
 ## MCP 与配置
 
-[MCP 插件](mcp.md) 使用 API v2 的 `settings` 配置声明，原生配置页渲染字段，并使用加密存储。`ctx.settings.get` 仅读取本插件声明的配置。MCP 通信和会话逻辑由 TS 插件实现，HTTPS 与取消由宿主提供。
+[MCP 插件](mcp.md)的API10候选支持多个具名连接，配置界面由插件HTML/JS绘制，宿主提供加密保存和页面权限。旧API2单地址包保留兼容。`ctx.settings.get`仅读取本插件声明的配置；API10页面可用`ctx.settings.compareAndSet(key,expected,value)`原子更新自己的声明字段，工具、Hook和生命周期不能写配置。`pageManaged:true`字段由HTML管理页编辑，宿主不再显示重复表单。MCP通信与会话逻辑仍在TS，HTTPS与取消由宿主提供。当前发布状态见MCP文档。
 
 ## API 5：交互式 PTY
 
