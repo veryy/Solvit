@@ -65,7 +65,7 @@ export function createMemoryTasksPage() {
       const footer:Button[]=[button('task_back',t.list),button('task_refresh',t.refresh)];
       if(job.status==='FAILED'&&job.attempt<3&&job.attempt>0)footer.push(button('task_retry',t.retry,'task_control',{kind:'postTurn.retry',jobId:job.id,attempt:job.attempt}));
       if(job.status!=='RUNNING')footer.push(button('task_delete',t.remove,'task_control',{kind:'postTurn.delete',jobId:job.id,attempt:job.attempt,status:job.status}));
-      if(listing.activeJobId===job.id)footer.push(button('task_stop',t.stop,'task_control',{kind:'postTurn.stop',jobId:job.id}));
+      if(listing.activeJobId===job.id)footer.push(button('task_stop',t.stop,'task_control',{kind:'postTurn.stop',jobId:job.id,attempt:job.attempt}));
       return {title:t.title,nodes,footer};
     }
     displayed.forEach((row,i)=>nodes.push({id:`task_${i}`,kind:'card',children:[text(`task_status_${i}`,status(row)),

@@ -4,7 +4,7 @@ package dev.solvit.core
 sealed interface PostTurnTaskControl {
     data class Retry(val id: String, val attempt: Int) : PostTurnTaskControl
     data class Delete(val id: String, val attempt: Int, val status: PostTurnJobStatus) : PostTurnTaskControl
-    data class Stop(val id: String) : PostTurnTaskControl
+    data class Stop(val id: String, val attempt: Int) : PostTurnTaskControl
     data object Cleanup : PostTurnTaskControl
 }
 

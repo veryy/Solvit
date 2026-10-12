@@ -25,8 +25,8 @@ object ScriptPageHostAction {
                 PostTurnTaskControl.Delete(text("jobId", 256), attempt(), status)
             }
             "postTurn.stop" -> {
-                require(value.keys == setOf("kind", "jobId"))
-                PostTurnTaskControl.Stop(text("jobId", 256))
+                require(value.keys == setOf("kind", "jobId", "attempt"))
+                PostTurnTaskControl.Stop(text("jobId", 256), attempt().also { require(it in 1..3) })
             }
             "postTurn.cleanup" -> {
                 require(value.keys == setOf("kind")); PostTurnTaskControl.Cleanup

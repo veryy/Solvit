@@ -24,7 +24,7 @@ class PostTurnWorker(
     private val mutex = Mutex()
     private val mutable = MutableStateFlow(PostTurnWorkerState())
     val state = mutable.asStateFlow()
-    private data class ActiveWork(val id: String, val pluginId: String, val job: Job)
+    private data class ActiveWork(val id: String, val pluginId: String, val attempt: Int, val job: Job)
     @Volatile private var active: ActiveWork? = null
     private var loop: Job? = null
 
@@ -56,8 +56,8 @@ class PostTurnWorker(
         authorize: suspend () -> Unit): Int {
         authorize()
         if (action is PostTurnTaskControl.Stop) {
-            require(action.id.isNotBlank() && action.id.length <= 256)
-            val selected = active?.takeIf { it.pluginId == pluginId && it.id == action.id } ?: return 0
+            require(action.id.isNotBlank() && action.id.length <= 256 && action.attempt in 1..3)
+            val selected = active?.takeIf { it.pluginId == pluginId && it.id == action.id && it.attempt == action.attempt } ?: return 0
             authorize()
             // A newer active task cannot replace this captured Job between check and cancel.
             selected.job.cancel()
@@ -91,7 +91,7 @@ class PostTurnWorker(
             claimed = job
             mutable.value = PostTurnWorkerState(job.id)
             coroutineScope {
-                active = ActiveWork(job.id, job.target.pluginId, currentCoroutineContext().job)
+                active = ActiveWork(job.id, job.target.pluginId, job.attempt, currentCoroutineContext().job)
                 withTimeout(deadlineMs) { execute(job) }
             }
             finish(job, PostTurnJobStatus.SUCCEEDED, null)

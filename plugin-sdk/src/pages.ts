@@ -2,7 +2,7 @@
 export type PageHostAction =
   | { kind:'postTurn.retry'; jobId:string; attempt:number }
   | { kind:'postTurn.delete'; jobId:string; attempt:number; status:'WAITING'|'SUCCEEDED'|'FAILED'|'SKIPPED' }
-  | { kind:'postTurn.stop'; jobId:string }
+  | { kind:'postTurn.stop'; jobId:string; attempt:number }
   | { kind:'postTurn.cleanup' };
 export type PageNode =
   | { id: string; kind: 'text'; text: string; tone?: 'body' | 'title' | 'caption' }

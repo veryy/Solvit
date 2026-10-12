@@ -44,6 +44,8 @@ class ScriptPageViewTest {
         assertFails { page(node.replace("\"attempt\":1", "\"attempt\":1,\"pluginId\":\"other.plugin\"")) }
         assertFails { page("""{"id":"d","kind":"button","text":"Delete","action":"delete",
             "hostAction":{"kind":"postTurn.delete","jobId":"task-a","attempt":1,"status":"RUNNING"}}""") }
+        assertFails { page("""{"id":"s","kind":"button","text":"Stop","action":"stop",
+            "hostAction":{"kind":"postTurn.stop","jobId":"task-a","attempt":0}}""") }
     }
     @Test fun fixedFooterActionsAreValidatedWithTheSamePageIdentity() {
         val view = ScriptPageView.parse("""{"title":"编辑","nodes":[{"id":"field","kind":"field","label":"内容","value":"x"}],

@@ -51,23 +51,23 @@ class PostTurnWorkerTest {
         val first = backgroundScope.launch { worker.runNext() }
         runCurrent()
         assertEquals("job", worker.state.value.activeJobId)
-        assertEquals(0, worker.control("other.memory", PostTurnTaskControl.Stop("job")) {})
+        assertEquals(0, worker.control("other.memory", PostTurnTaskControl.Stop("job", 1)) {})
         assertTrue(first.isActive)
         assertFailsWith<IllegalStateException> {
-            worker.control(target.pluginId, PostTurnTaskControl.Stop("job")) { error("Revoked") }
+            worker.control(target.pluginId, PostTurnTaskControl.Stop("job", 1)) { error("Revoked") }
         }
         assertTrue(first.isActive)
-        assertEquals(1, worker.control(target.pluginId, PostTurnTaskControl.Stop("job")) {})
+        assertEquals(1, worker.control(target.pluginId, PostTurnTaskControl.Stop("job", 1)) {})
         runCurrent()
         assertEquals(PostTurnFailure.INTERRUPTED, store.job!!.failure)
         assertFalse(first.isActive)
-        store.job = store.job!!.copy(id = "job2", status = PostTurnJobStatus.WAITING, attempt = 0, failure = null)
+        store.job = store.job!!.copy(status = PostTurnJobStatus.WAITING, failure = null)
         val second = backgroundScope.launch { worker.runNext() }
         runCurrent()
-        assertEquals(0, worker.control(target.pluginId, PostTurnTaskControl.Stop("job")) {})
+        assertEquals(0, worker.control(target.pluginId, PostTurnTaskControl.Stop("job", 1)) {})
         assertTrue(second.isActive)
-        assertEquals("job2", worker.state.value.activeJobId)
-        assertEquals(1, worker.control(target.pluginId, PostTurnTaskControl.Stop("job2")) {})
+        assertEquals("job", worker.state.value.activeJobId)
+        assertEquals(1, worker.control(target.pluginId, PostTurnTaskControl.Stop("job", 2)) {})
         runCurrent()
         assertFalse(second.isActive)
     }

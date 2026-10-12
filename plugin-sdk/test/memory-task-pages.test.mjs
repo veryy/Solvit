@@ -40,7 +40,7 @@ test('running tasks cannot be deleted and retry limit stays visible in plugin co
     rows[0].status='RUNNING';rows[0].failure=null;rows[1].attempt=3;
     await page();let view=await page('task_open_0');
     assert.ok(!flatten(view).some(n=>n.id==='task_delete'||n.id==='task_retry'));
-    assert.deepEqual(flatten(view).find(n=>n.id==='task_stop').hostAction,{kind:'postTurn.stop',jobId:'job-0'});
+    assert.deepEqual(flatten(view).find(n=>n.id==='task_stop').hostAction,{kind:'postTurn.stop',jobId:'job-0',attempt:1});
     await page('task_back');view=await page('task_open_1');assert.ok(!flatten(view).some(n=>n.id==='task_retry'));
     setChanged(0);view=await page('task_control');assert.equal(controls(),1);assert.ok(flatten(view).some(n=>n.text?.includes('状态已变化')));
   });
