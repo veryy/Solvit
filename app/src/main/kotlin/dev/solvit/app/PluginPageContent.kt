@@ -1,6 +1,7 @@
 package dev.solvit.app
 
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -92,7 +93,7 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                 val workspace = metadata?.takeIf { it["kind"] == JsonPrimitive("workspace.perform") }?.let(ScriptPageHostAction::workspace)
                 val native = metadata?.takeIf { file == null && workspace == null }?.let(ScriptPageHostAction::parse)
                 if (workspace != null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(workspace.operation)
                         SelectionContainer { Text(workspace.argumentsJson) }
                     }

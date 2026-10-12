@@ -26,6 +26,7 @@ class WorkspaceHtmlPageTest {
         }
         val manager = BuiltinWorkspaceManager(app)
         val html = HtmlPageProbe(rule.activity)
+        val initialText = "<script>window.executed=true</script>\n第一版\n" + "line\n".repeat(700)
         var visible by mutableStateOf(true)
         fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
         fun click(id: String) {
@@ -35,6 +36,7 @@ class WorkspaceHtmlPageTest {
         fun field(id: String, text: String) { html.js("(()=>{const input=document.getElementById('field-$id');input.value=${JsonPrimitive(text)};input.dispatchEvent(new Event('input'))})()") }
         fun native(confirm: Boolean) {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_page_confirm").assertIsDisplayed()
             if (confirm) rule.onNodeWithTag("plugin_page_confirm").performClick() else rule.onNodeWithText("取消").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isEmpty() }
         }
@@ -56,7 +58,7 @@ class WorkspaceHtmlPageTest {
             assertEquals(1, app.workspaces.state.value.shells.count { it.workspaceId == workspace.id })
             click("directory"); waitDom("!!document.querySelector('[data-node=new]')")
             click("new"); waitDom("!!document.getElementById('field-content')")
-            field("path", "src/note.txt"); field("content", "<script>window.executed=true</script>\n第一版")
+            field("path", "src/note.txt"); field("content", initialText)
             click("prepareSave"); waitDom("!!document.querySelector('[data-node=confirm]')")
             assertEquals("\"undefined\"", html.js("typeof window.executed"))
             assertTrue(runBlocking { app.workspaces.list(workspace.id) }.isEmpty())
@@ -64,7 +66,7 @@ class WorkspaceHtmlPageTest {
             assertTrue(runBlocking { app.workspaces.list(workspace.id) }.isEmpty())
             click("confirm"); native(true)
             waitDom("!!document.querySelector('[data-node=file_0]')")
-            assertEquals("<script>window.executed=true</script>\n第一版", runBlocking { app.workspaces.read(workspace.id, "src/note.txt") })
+            assertEquals(initialText, runBlocking { app.workspaces.read(workspace.id, "src/note.txt") })
             click("file_0"); waitDom("document.querySelector('[data-node=directory]')?.textContent==='src'")
             click("file_0"); waitDom("!!document.getElementById('field-content')")
             field("content", "页面修改")
