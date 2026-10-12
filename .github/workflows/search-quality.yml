@@ -28,6 +28,7 @@ jobs:
         env:
           SOLVIT_BROWSER_PACKAGE: ${{ runner.temp }}/solvit-search-browser
       - name: Verify actual regional results under a controlled primary outage
+        if: success() || failure()
         working-directory: plugin-sdk
         run: node scripts/check-live-regional-search.mjs
         env:
