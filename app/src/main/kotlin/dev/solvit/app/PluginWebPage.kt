@@ -117,6 +117,9 @@ fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
                         val event = ScriptWebPageEvent.parse(latestView, latestToken, body)
                         println("[DEBUG-page-bridge] accepted kind=${event.node["kind"]} value=${event.value != null}")
                         latestEvent(event)
+                        if (event.node["confirm"] != null || event.node["hostAction"] != null) {
+                            reply.postMessage(buildJsonObject { put("type", "confirmation"); put("token", latestToken) }.toString())
+                        }
                     }
                 }.onFailure {
                     println("[DEBUG-page-bridge] rejected type=${it.javaClass.simpleName}")

@@ -1,7 +1,14 @@
 import cytoscape from 'cytoscape';
 
 const $ = id => document.getElementById(id);
-let state, signature='', revision='', fields={}, cy;
+let state, signature='', revision='', fields={}, cy, pendingToken=null, pendingBusy=false;
+const isBusy=()=>!!state?.busy||pendingToken!==null;
+function updateDisabled(){
+  const nodes=state?flatten(state.view):[];
+  document.querySelectorAll('button,input,textarea,select').forEach(element=>{
+    const node=nodes.find(n=>n.id===element.dataset.node);element.disabled=isBusy()||node?.enabled===false;
+  });
+}
 const labels = {zh:['筛选','关系图已为空','页面操作未完成'],en:['Filters','No relations yet','Page action failed'],ja:['絞り込み','関係がありません','操作に失敗しました'],ko:['필터','관계가 없습니다','작업 실패'],es:['Filtros','Sin relaciones','Acción fallida'],fr:['Filtres','Aucune relation','Action impossible']};
 const words = () => labels[state?.locale?.split('-')[0]] ?? labels.zh;
 const flatten = view => {const result=[];const walk=node=>{result.push(node);(node.children??[]).forEach(walk)};[...view.nodes,...view.footer??[]].forEach(walk);return result};
@@ -14,17 +21,18 @@ function syncGraphCoordinates() {
 }
 function send(id,value) {
   window.__testPageSend={id,hasValue:value!==undefined,busy:state?.busy,stage:'start'};
-  if (!state || state.busy) return;
+  if (!state || isBusy()) return;
   const node=flatten(state.view).find(n=>n.id===id);
   if (!node || node.enabled===false) return;
   window.__testPageSend.stage='declared';
   $('menu').hidden=true;document.activeElement?.blur();
+  pendingToken=state.token;pendingBusy=false;updateDisabled();
   solvitHost.postMessage(JSON.stringify({type:'event',token:state.token,nodeId:id,fields,...(value!==undefined?{value}:{})}));
   window.__testPageSend.stage='posted';
 }
 function action(node) {
   const element=document.createElement('button');element.textContent=node.text;
-  element.dataset.node=node.id;element.disabled=state.busy||node.enabled===false;
+  element.dataset.node=node.id;element.disabled=isBusy()||node.enabled===false;
   element.onclick=()=>send(node.id);return element;
 }
 function render(node) {
@@ -34,7 +42,7 @@ function render(node) {
     const input=document.createElement(node.kind==='choice'?'select':node.multiline?'textarea':'input');
     input.dataset.field=node.id;input.id=`field-${node.id}`;
     if(node.kind==='choice')for(const option of node.options){const e=document.createElement('option');e.value=option.value;e.textContent=option.label;input.append(e)}
-    input.value=fields[node.id]??node.value;input.disabled=state.busy;
+    input.value=fields[node.id]??node.value;input.disabled=isBusy();
     input.oninput=()=>{fields[node.id]=input.value};
     if(node.kind==='choice')input.onchange=()=>send(node.id,input.value);
     label.append(input);return label;
@@ -78,6 +86,10 @@ function graph(graphNode,theme) {
   cy.resize();
 }
 window.solvitPageUpdate = next => {
+  if(pendingToken!==null){
+    if(next.busy)pendingBusy=true;
+    if(next.token!==pendingToken||pendingBusy&&!next.busy)pendingToken=null;
+  }
   const changed=revision!==next.token;state=next;
   for(const [key,value]of Object.entries(next.theme))document.documentElement.style.setProperty(`--${key}`,value);
   const nodes=flatten(next.view),relation=nodes.find(n=>n.id==='relations'),home=nodes.some(n=>n.id==='graph_count');
@@ -110,16 +122,18 @@ window.solvitPageUpdate = next => {
     }
     const create=nodes.find(n=>n.id==='new');$('new').hidden=!home||!create;$('new').title=create?.text??'';
   }
-  document.querySelectorAll('button,input,textarea,select').forEach(element=>{
-    const node=nodes.find(n=>n.id===element.dataset.node);
-    element.disabled=next.busy||node?.enabled===false;
-  });
+  updateDisabled();
   window.memoryPageReady=true;
 };
 $('search').onsubmit=event=>{event.preventDefault();fields.query=$('query').value;send('filter')};
 $('query').oninput=()=>{fields.query=$('query').value};
 $('options').onclick=()=>{$('menu').hidden=!$('menu').hidden};
 $('fit').onclick=()=>cy?.fit(undefined,60);$('new').onclick=()=>send('new');
-solvitHost.onmessage=()=>{$('status').textContent=words()[2];$('status').hidden=false};
+solvitHost.onmessage=event=>{
+  const message=JSON.parse(event.data);
+  if(message.type==='confirmation'&&message.token!==pendingToken)return;
+  pendingToken=null;updateDisabled();
+  if(message.type==='error'){$('status').textContent=words()[2];$('status').hidden=false}
+};
 window.addEventListener('pagehide',()=>cy?.destroy(),{once:true});
 solvitHost.postMessage(JSON.stringify({type:'ready'}));
