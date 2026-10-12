@@ -43,6 +43,7 @@ class SkillsHtmlPageTest {
         return null
     }
     private fun clickSystem(predicate: (AccessibilityNodeInfo) -> Boolean) {
+        automation.waitForIdle(300, 10_000)
         var target: AccessibilityNodeInfo? = null
         rule.waitUntil(10_000) { node(predicate)?.also { target = it } != null }
         // DocumentsUI's drawer ListView rows do not consistently expose ACTION_CLICK.
@@ -57,6 +58,7 @@ class SkillsHtmlPageTest {
             try { assertTrue("System document control must receive actual touch input", automation.injectInputEvent(event, true)) }
             finally { event.recycle() }
         }
+        automation.waitForIdle(300, 10_000)
     }
     private fun selectFile(name: String) {
         if (node { it.text?.toString() == name } == null) {
@@ -148,7 +150,8 @@ class SkillsHtmlPageTest {
                     android.util.Log.e("SkillsDocumentDiagnostic", "node: ${item.packageName} ${item.viewIdResourceName} ${item.text} ${item.contentDescription}")
                     for (i in 0 until item.childCount) item.getChild(i)?.let(queue::add)
                 }
-                ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui; screencap -p /data/local/tmp/solvit-ui/skills-document-failure.png")).use { it.readBytes() }
+                ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
+                ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/skills-document-failure.png")).use { it.readBytes() }
             }
             throw error
         } finally {
