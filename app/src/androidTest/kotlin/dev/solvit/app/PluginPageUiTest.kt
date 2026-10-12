@@ -141,7 +141,7 @@ class PluginPageUiTest {
             val darkPixels = samples.count { pixel ->
                 android.graphics.Color.red(pixel) + android.graphics.Color.green(pixel) + android.graphics.Color.blue(pixel) < 384
             }
-            assertTrue(darkPixels >= samples.size * .8, "HTML graph must be visibly themed, not a pre-render white frame")
+            assertTrue("HTML graph must be visibly themed, not a pre-render white frame", darkPixels >= samples.size * .8)
             graphFrame.recycle()
             rule.onNodeWithTag("plugin_field_query").assertDoesNotExist()
             html.js("document.getElementById('query').value='plugin-memory-ui-original';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
