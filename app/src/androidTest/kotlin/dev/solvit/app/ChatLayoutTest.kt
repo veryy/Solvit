@@ -660,6 +660,12 @@ class ChatLayoutTest {
             rule.onNodeWithTag("model_protocol_anthropic").performClick()
             rule.onNodeWithTag("save_model_profile").assertIsNotEnabled()
             rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("model_name"))
+            // Focusing a lazy-list field can replace its semantics node during IME layout.
+            // Establish focus first, then acquire the current node for text input.
+            rule.onNodeWithTag("model_name").performClick()
+            rule.waitUntil(10_000) {
+                rule.onAllNodes(hasTestTag("model_name") and isFocused()).fetchSemanticsNodes().isNotEmpty()
+            }
             rule.onNodeWithTag("model_name").performTextInput("native-test-model")
             rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("provider_option_max_tokens"))
             rule.onNodeWithTag("provider_option_max_tokens").performClick().performTextReplacement("16384")
