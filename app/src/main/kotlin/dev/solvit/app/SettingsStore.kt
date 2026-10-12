@@ -49,7 +49,7 @@ class EncryptedSettingsStore(context: Context, private val keyProvider: (() -> S
             prefs.getString("base", "https://api.openai.com/v1")!!,
             prefs.getString("model", "gpt-4o-mini")!!,
             apiKey,
-            prefs.getString("prompt", "你是 Solvit，一个认真、可靠的 AI 助手。")!!,
+            prefs.getString("prompt", DEFAULT_SYSTEM_PROMPT)!!,
             listUrl, prefs.getBoolean("modelsAuth", false),
         )
         fun decrypt(valueName: String, ivName: String): String {
