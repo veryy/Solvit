@@ -90,6 +90,7 @@ class WorkspaceExecutionDeviceTest {
                     override val id="fixture"
                     override fun stream(request: ModelRequest)=flow {
                         assertEquals(workspace.id,request.conversation!!.workspaceId)
+                        assertTrue(request.messages.single { it.role==Role.SYSTEM }.content.contains("需要查询该任务直到结束"))
                         val proposed=when(step++) {
                             0->listOf(call("write-broken","write_file",args("path" to "main.sh","text" to broken)),call("create-shell","create_shell",args("name" to "Verify")))
                             1->{
