@@ -29,8 +29,10 @@ class ExecutionJournalUiTest {
             assertTrue(store.beginExecutionRun(source))
             val batch=listOf(ExecutionEvent(1,ExecutionKind.STEP_STARTED),
                 ExecutionEvent(1,ExecutionKind.TOOL_PROPOSED,ToolCall("saved","fixture_write","{\"path\":\"main.sh\"}"),"files"),
+                ExecutionEvent(1,ExecutionKind.WORKSPACE_BASELINE,workspace=WorkspaceSnapshot("fixture-workspace",emptyMap(),true,1)),
                 ExecutionEvent(1,ExecutionKind.TOOL_STARTED,callId="saved"),
                 ExecutionEvent(1,ExecutionKind.TOOL_FINISHED,callId="saved",stage=ToolStage.SUCCEEDED,result="saved journal proof"),
+                ExecutionEvent(1,ExecutionKind.WORKSPACE_OBSERVED,workspace=WorkspaceSnapshot("fixture-workspace",mapOf("main.sh" to FileObservation(FileObservationKind.TEXT,17,"a".repeat(64),"saved file preview")),true,2)),
                 ExecutionEvent(1,ExecutionKind.STEP_FINISHED),ExecutionEvent(2,ExecutionKind.STEP_STARTED),
                 ExecutionEvent(2,ExecutionKind.TOOL_PROPOSED,ToolCall("unknown","fixture_shell","{\"command\":\"sh main.sh\"}"),"shell"),
                 ExecutionEvent(2,ExecutionKind.TOOL_STARTED,callId="unknown"))
@@ -49,6 +51,13 @@ class ExecutionJournalUiTest {
             rule.onNodeWithTag("execution_journal_details").assertDoesNotExist();assertEquals(0,reads.get())
             rule.onNodeWithTag("execution_journal_toggle").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithText("saved journal proof").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithText("saved file preview").assertDoesNotExist()
+            rule.onNodeWithTag("workspace_changes_toggle").performClick()
+            rule.onNodeWithText("仍有操作未记录后续观察，文件当前状态需重新检查").assertExists()
+            rule.onNodeWithTag("workspace_change_main.sh").performClick()
+            rule.onNodeWithText("saved file preview").assertExists()
+            rule.onNodeWithText("文件不存在").assertExists()
+            rule.onNodeWithTag("workspace_changes_toggle").performClick()
             rule.onNodeWithTag("execution_journal_details").performScrollToNode(hasText("结果未知，请先检查实际状态"))
             rule.onNodeWithText("结果未知，请先检查实际状态").assertIsDisplayed()
             rule.onNodeWithText("仅显示已记录的事实，不会自动重跑操作").assertExists()

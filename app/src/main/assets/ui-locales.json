@@ -4542,5 +4542,133 @@
     "ko": "결과가 기록되지 않았습니다",
     "es": "No se registró ningún resultado",
     "fr": "Aucun résultat enregistré"
+  },
+  "文件变更": {
+    "zh": "文件变更",
+    "en": "File changes",
+    "ja": "ファイル変更",
+    "ko": "파일 변경",
+    "es": "Cambios de archivos",
+    "fr": "Modifications des fichiers"
+  },
+  "比较首次授权前与最近一次工具返回后的已记录内容": {
+    "zh": "比较首次授权前与最近一次工具返回后的已记录内容",
+    "en": "Compares recorded contents before first approval and after the latest tool return",
+    "ja": "初回許可前と直近のツール終了後の記録内容を比較",
+    "ko": "첫 승인 전과 최근 도구 반환 후의 기록 내용 비교",
+    "es": "Compara el contenido registrado antes del primer permiso y tras el último retorno",
+    "fr": "Compare les contenus enregistrés avant la première autorisation et après le dernier retour"
+  },
+  "仍有操作未记录后续观察，文件当前状态需重新检查": {
+    "zh": "仍有操作未记录后续观察，文件当前状态需重新检查",
+    "en": "Some operations have no later observation; check the current files",
+    "ja": "後続の観測がない操作があります。現在のファイル状態を確認してください",
+    "ko": "후속 관찰이 없는 작업이 있습니다. 현재 파일 상태를 확인하세요",
+    "es": "Hay operaciones sin observación posterior; comprueba los archivos actuales",
+    "fr": "Certaines opérations n’ont pas d’observation ultérieure ; vérifiez les fichiers actuels"
+  },
+  "尚无操作后的文件观察": {
+    "zh": "尚无操作后的文件观察",
+    "en": "No file observation after the operation yet",
+    "ja": "操作後のファイル観測はまだありません",
+    "ko": "아직 작업 후 파일 관찰이 없습니다",
+    "es": "Todavía no hay observación posterior",
+    "fr": "Aucune observation après l’opération"
+  },
+  "扫描不完整，未观察到的文件不能视为未变更或已删除": {
+    "zh": "扫描不完整，未观察到的文件不能视为未变更或已删除",
+    "en": "Incomplete scan; unobserved files cannot be treated as unchanged or deleted",
+    "ja": "スキャンは不完全です。未観測のファイルは変更なし・削除済みと判断できません",
+    "ko": "불완전한 스캔입니다. 관찰되지 않은 파일을 변경 없음이나 삭제됨으로 판단할 수 없습니다",
+    "es": "Escaneo incompleto; los archivos no observados no se consideran intactos ni eliminados",
+    "fr": "Analyse incomplète ; les fichiers non observés ne sont ni inchangés ni supprimés par défaut"
+  },
+  "已观察范围内没有内容变化": {
+    "zh": "已观察范围内没有内容变化",
+    "en": "No content changes in the observed scope",
+    "ja": "観測範囲内に内容の変更はありません",
+    "ko": "관찰 범위 내에 내용 변경이 없습니다",
+    "es": "Sin cambios de contenido en el alcance observado",
+    "fr": "Aucun changement dans le périmètre observé"
+  },
+  "新建文件": {
+    "zh": "新建文件",
+    "en": "Created",
+    "ja": "作成",
+    "ko": "생성",
+    "es": "Creado",
+    "fr": "Créé"
+  },
+  "修改文件": {
+    "zh": "修改文件",
+    "en": "Modified",
+    "ja": "変更",
+    "ko": "수정",
+    "es": "Modificado",
+    "fr": "Modifié"
+  },
+  "删除文件": {
+    "zh": "删除文件",
+    "en": "Deleted",
+    "ja": "削除",
+    "ko": "삭제",
+    "es": "Eliminado",
+    "fr": "Supprimé"
+  },
+  "变化未知": {
+    "zh": "变化未知",
+    "en": "Change unknown",
+    "ja": "変更不明",
+    "ko": "변경 알 수 없음",
+    "es": "Cambio desconocido",
+    "fr": "Modification inconnue"
+  },
+  "操作前预览": {
+    "zh": "操作前预览",
+    "en": "Before preview",
+    "ja": "操作前プレビュー",
+    "ko": "작업 전 미리보기",
+    "es": "Vista previa anterior",
+    "fr": "Aperçu avant"
+  },
+  "操作后预览": {
+    "zh": "操作后预览",
+    "en": "After preview",
+    "ja": "操作後プレビュー",
+    "ko": "작업 후 미리보기",
+    "es": "Vista previa posterior",
+    "fr": "Aperçu après"
+  },
+  "文件内容未能读取": {
+    "zh": "文件内容未能读取",
+    "en": "File contents unavailable",
+    "ja": "ファイル内容を読み取れません",
+    "ko": "파일 내용을 읽을 수 없습니다",
+    "es": "Contenido no disponible",
+    "fr": "Contenu indisponible"
+  },
+  "二进制文件不显示文本预览": {
+    "zh": "二进制文件不显示文本预览",
+    "en": "No text preview for binary files",
+    "ja": "バイナリファイルのテキストプレビューはありません",
+    "ko": "바이너리 파일은 텍스트 미리보기를 표시하지 않습니다",
+    "es": "Sin vista de texto para archivos binarios",
+    "fr": "Pas d’aperçu texte pour les fichiers binaires"
+  },
+  "文件超过读取上限": {
+    "zh": "文件超过读取上限",
+    "en": "File exceeds the read limit",
+    "ja": "ファイルが読み取り上限を超えています",
+    "ko": "파일이 읽기 제한을 초과합니다",
+    "es": "El archivo supera el límite de lectura",
+    "fr": "Le fichier dépasse la limite de lecture"
+  },
+  "文件不存在": {
+    "zh": "文件不存在",
+    "en": "File does not exist",
+    "ja": "ファイルは存在しません",
+    "ko": "파일이 없습니다",
+    "es": "El archivo no existe",
+    "fr": "Le fichier n’existe pas"
   }
 }

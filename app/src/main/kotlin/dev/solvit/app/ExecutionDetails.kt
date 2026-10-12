@@ -49,6 +49,7 @@ fun ExecutionDetails(run: ExecutionRun, load: (suspend (ExecutionRun)->List<Reco
                 loading->UiText("正在读取执行记录…")
                 failed->UiText("读取执行记录失败")
                 else-> {
+                    WorkspaceChangesReview(events)
                     events.filter { it.event.kind==ExecutionKind.STEP_STARTED }.forEach { started ->
                         val step=started.event.step
                         Row { UiText("模型步骤",style=MaterialTheme.typography.labelSmall);Text(" $step",style=MaterialTheme.typography.labelSmall) }
