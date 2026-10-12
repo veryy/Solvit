@@ -69,7 +69,13 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
                 val web = activeBrowser()
                 if (web == null) frame.completeExceptionally(IllegalStateException("No visible HTML page"))
                 else web.postVisualStateCallback(0, object : WebView.VisualStateCallback() {
-                    override fun onComplete(requestId: Long) { frame.complete(Unit) }
+                    override fun onComplete(requestId: Long) {
+                        // VisualStateCallback only promises the next draw, not a displayed frame.
+                        // API35 verification uses HW rendering; await the committed frame before screencap.
+                        check(web.isHardwareAccelerated)
+                        web.viewTreeObserver.registerFrameCommitCallback { frame.complete(Unit) }
+                        web.invalidate()
+                    }
                 })
             }
             withTimeout(10_000) { frame.await() }
