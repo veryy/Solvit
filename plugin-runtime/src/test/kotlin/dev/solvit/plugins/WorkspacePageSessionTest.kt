@@ -6,6 +6,17 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class WorkspacePageSessionTest {
+    @Test fun api12SeparatesShellPermissionFromPtyAndHttpFromBrowserDependencies() {
+        val host = ScriptHost { _, _, _ -> error("Not invoked") }
+        val source = pkg()
+        fun dependencies(api: Int, services: Set<String> = emptySet()) = ScriptToolPlugin(source.copy(manifest = source.manifest.copy(
+            apiVersion = api, permissions = setOf("workspace", "shell", "network"), nativeServices = services)), host).requires
+        assertTrue(WorkspaceServiceKey in dependencies(12))
+        assertFalse(TerminalServiceKey in dependencies(12)); assertFalse(WebPageServiceKey in dependencies(12))
+        assertTrue(TerminalServiceKey in dependencies(12, setOf("terminal.pty")))
+        assertTrue(WebPageServiceKey in dependencies(12, setOf("web.pages")))
+        assertTrue(TerminalServiceKey in dependencies(11)); assertTrue(WebPageServiceKey in dependencies(11))
+    }
     private fun pkg(api: Int = 12, action: String = "await ctx.workspacePage.perform()") = ScriptPackage.parse(buildJsonObject {
         putJsonObject("manifest") {
             put("id", "test.workspace.page"); put("name", "Workspace"); put("description", "Test"); put("version", "1.0.0"); put("apiVersion", api)

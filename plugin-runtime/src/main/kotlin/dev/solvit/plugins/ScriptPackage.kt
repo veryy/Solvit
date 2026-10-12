@@ -19,6 +19,7 @@ data class ScriptManifest(
     val hooks: Set<String> = emptySet(),
     val afterTurnEnabledSetting: String? = null,
     val pages: List<ScriptPage> = emptyList(),
+    val nativeServices: Set<String> = emptySet(),
 )
 data class ScriptPackage(val manifest: ScriptManifest, val source: String, val payload: ByteArray,
     val resources: Map<String, String> = emptyMap()) {
@@ -61,6 +62,9 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             require(permissions.all { it in setOf("storage", "network") || apiVersion >= 4 && it in setOf("workspace", "shell", "plugins") || apiVersion >= 8 && it == "model" }) { "插件声明了尚未支持的权限" }
             val dependencies = strings("dependencies")
             require(id !in dependencies) { "插件不能依赖自身" }
+            val nativeServices = m["nativeServices"]?.jsonArray?.map { it.jsonPrimitive.also { p -> require(p.isString) }.content }?.toSet().orEmpty()
+            require("nativeServices" !in m || apiVersion >= 12) { "原生服务声明需要 API12" }
+            require(nativeServices.all { it == "terminal.pty" && "shell" in permissions || it == "web.pages" && "network" in permissions }) { "原生服务声明无效或缺少权限" }
             val tools = m.getValue("tools").jsonArray.map { element ->
                 val tool = element.jsonObject
                 val name = tool.getValue("name").jsonPrimitive.content
@@ -108,7 +112,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             }.orEmpty()
             require(pages.size <= 8 && pages.map { it.id }.distinct().size == pages.size && (pages.isEmpty() || apiVersion >= 9)) { "插件页面需要 API 9 且 ID 不得重复" }
             return ScriptManifest(id, string("name"), string("description"), version,
-                permissions, dependencies, tools, apiVersion, settings, hooks, afterTurnSetting, pages)
+                permissions, dependencies, tools, apiVersion, settings, hooks, afterTurnSetting, pages, nativeServices)
         }
     }
 }

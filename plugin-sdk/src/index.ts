@@ -68,6 +68,8 @@ export interface PluginManifest {
   description: string;
   version: string;
   apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+  /** API12: optional native dependencies, separate from permissions and API compatibility. */
+  nativeServices?: ('terminal.pty'|'web.pages')[];
   pages?: { id: string; title: string; entry?: string }[];
   hooks?: ('beforeModel' | 'afterTurn')[];
   afterTurnEnabledSetting?: string;

@@ -58,7 +58,9 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(operation != "clock.now" || pkg.manifest.apiVersion >= 3) { "当前时间服务需要 API 3" }
                     check(!operation.startsWith("workspace.") && !operation.startsWith("plugins.") || pkg.manifest.apiVersion >= 4) { "工作区与插件开发需要 API 4" }
                     check(!operation.startsWith("terminal.") || pkg.manifest.apiVersion >= 5) { "交互终端需要 API 5" }
+                    check(!operation.startsWith("terminal.") || pkg.manifest.apiVersion < 12 || "terminal.pty" in pkg.manifest.nativeServices) { "插件未声明 terminal.pty 服务" }
                     check(operation != "web.visit" || pkg.manifest.apiVersion >= 6) { "浏览器观察需要 API 6" }
+                    check(operation != "web.visit" || pkg.manifest.apiVersion < 12 || "web.pages" in pkg.manifest.nativeServices) { "插件未声明 web.pages 服务" }
                     check(operation !in setOf("model.complete", "storage.compareAndSet") || pkg.manifest.apiVersion >= 8) { "此操作需要 API 8" }
                     check(!operation.startsWith("jobs.") || pkg.manifest.apiVersion >= 9) { "任务页面需要 API 9" }
                     check(operation != "model.complete" || background) { "模型调用只允许在后台 Hook 中使用" }
@@ -315,8 +317,8 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
         if ("beforeModel" in pkg.manifest.hooks) add(ContextHookServiceKey)
         if ("afterTurn" in pkg.manifest.hooks) add(PostTurnHookServiceKey)
         if (pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }) add(WorkspaceServiceKey)
-        if (pkg.manifest.apiVersion >= 5 && "shell" in pkg.manifest.permissions) add(TerminalServiceKey)
-        if (pkg.manifest.apiVersion >= 6 && "network" in pkg.manifest.permissions) add(WebPageServiceKey)
+        if ("terminal.pty" in pkg.manifest.nativeServices || pkg.manifest.apiVersion in 5..11 && "shell" in pkg.manifest.permissions) add(TerminalServiceKey)
+        if ("web.pages" in pkg.manifest.nativeServices || pkg.manifest.apiVersion in 6..11 && "network" in pkg.manifest.permissions) add(WebPageServiceKey)
     }
     override suspend fun enable(context: PluginContext) {
         val executor = ScriptExecutor(pkg, host)
