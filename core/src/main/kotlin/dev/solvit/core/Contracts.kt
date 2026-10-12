@@ -143,6 +143,12 @@ interface ChatStore {
     suspend fun postTurnJobs(statuses: Set<PostTurnJobStatus>, limit: Int = 20): List<PostTurnJob> = emptyList()
     /** Most recently updated first; listing order is independent of consumer admission order. */
     suspend fun recentPostTurnJobs(before: PostTurnJobCursor? = null, limit: Int = 20): List<PostTurnJob> = emptyList()
+    /** Page queries filter ownership in the database before applying the page limit. */
+    suspend fun ownPostTurnJobs(pluginId: String, before: PostTurnJobCursor?, limit: Int,
+        authorize: suspend () -> Unit): List<PostTurnJob> = emptyList()
+    /** Unsupported stores refuse mutation; implementations must authorize inside the write lock. */
+    suspend fun controlPostTurnJobs(pluginId: String, action: PostTurnTaskControl, now: Long,
+        authorize: suspend () -> Unit): Int = 0
     suspend fun postTurnJob(id: String): PostTurnJob? = null
     suspend fun postTurnMessages(turn: CompletedChatTurn): List<ChatMessage> = history(turn.sessionId)
         .filter { it.id == turn.userMessageId || it.id == turn.assistantMessageId }

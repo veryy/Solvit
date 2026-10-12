@@ -19,12 +19,13 @@ class PostTurnWorker(
     private val scope: CoroutineScope,
     private val deadlineMs: Long = 60_000,
     private val now: () -> Long = System::currentTimeMillis,
-) {
+) : PostTurnTaskService {
     init { require(deadlineMs in 1..60_000) }
     private val mutex = Mutex()
     private val mutable = MutableStateFlow(PostTurnWorkerState())
     val state = mutable.asStateFlow()
-    @Volatile private var active: Job? = null
+    private data class ActiveWork(val id: String, val pluginId: String, val job: Job)
+    @Volatile private var active: ActiveWork? = null
     private var loop: Job? = null
 
     /** Start only after installed plugins have been restored, so lookup is authoritative. */
@@ -43,7 +44,27 @@ class PostTurnWorker(
             }
         }
     }
-    fun cancelCurrent() { active?.cancel() }
+    fun cancelCurrent() { active?.job?.cancel() }
+    override suspend fun list(pluginId: String, before: PostTurnJobCursor?, limit: Int,
+        authorize: suspend () -> Unit): PostTurnTaskPage {
+        authorize()
+        val jobs = store.ownPostTurnJobs(pluginId, before, limit, authorize)
+        authorize()
+        return PostTurnTaskPage(jobs, active?.takeIf { it.pluginId == pluginId }?.id)
+    }
+    override suspend fun control(pluginId: String, action: PostTurnTaskControl,
+        authorize: suspend () -> Unit): Int {
+        authorize()
+        if (action is PostTurnTaskControl.Stop) {
+            require(action.id.isNotBlank() && action.id.length <= 256)
+            val selected = active?.takeIf { it.pluginId == pluginId && it.id == action.id } ?: return 0
+            authorize()
+            // A newer active task cannot replace this captured Job between check and cancel.
+            selected.job.cancel()
+            return 1
+        }
+        return store.controlPostTurnJobs(pluginId, action, now(), authorize)
+    }
     suspend fun jobs(before: PostTurnJobCursor? = null, limit: Int = 20): List<PostTurnJob> = store.recentPostTurnJobs(before, limit)
     suspend fun retry(id: String, attempt: Int): Boolean = store.retryPostTurnJob(id, attempt, now())
     suspend fun delete(job: PostTurnJob): Boolean = store.deletePostTurnJob(job.id, job.attempt, job.status)
@@ -64,7 +85,7 @@ class PostTurnWorker(
             claimed = job
             mutable.value = PostTurnWorkerState(job.id)
             coroutineScope {
-                active = currentCoroutineContext().job
+                active = ActiveWork(job.id, job.target.pluginId, currentCoroutineContext().job)
                 withTimeout(deadlineMs) { execute(job) }
             }
             finish(job, PostTurnJobStatus.SUCCEEDED, null)
@@ -186,12 +207,14 @@ val PostTurnWorkerServiceKey = ServiceKey("agent.post-turn-worker", PostTurnWork
 class PostTurnWorkerPlugin : SolvitPlugin {
     override val id = "builtin.post-turn-worker"
     override val requires = setOf(Services.Storage, Services.Model, ModelProfilesServiceKey, RoleServiceKey, PostTurnHookServiceKey)
-    override val provides = setOf(PostTurnWorkerServiceKey)
+    override val provides = setOf(PostTurnWorkerServiceKey, PostTurnTaskServiceKey)
     override suspend fun enable(context: PluginContext) {
         val profiles = context.require(ModelProfilesServiceKey)
         val roles = context.require(RoleServiceKey)
-        context.register(PostTurnWorkerServiceKey, PostTurnWorker(context.require(Services.Storage), context.require(PostTurnHookServiceKey),
+        val worker = PostTurnWorker(context.require(Services.Storage), context.require(PostTurnHookServiceKey),
             context.require(Services.Model), { turn -> profiles.state.value.takeIf { it.configured }?.profiles?.firstOrNull { it.id == turn.requestedProfileId }?.config },
-            { session -> roles.selected(session) }, context.scope))
+            { session -> roles.selected(session) }, context.scope)
+        context.register(PostTurnWorkerServiceKey, worker)
+        context.register(PostTurnTaskServiceKey, worker)
     }
 }

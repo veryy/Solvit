@@ -46,16 +46,18 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     }
     private val lock = Mutex()
     private val revision = MutableStateFlow(0L)
-    private suspend fun <T> read(block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
+    private suspend fun <T> read(verify: suspend () -> Unit = {}, block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
         lock.withLock {
+            verify()
             val db=helper.readableDatabase
             // A stable snapshot also covers additional chunks of a large message.
             db.beginTransactionNonExclusive()
             try { block(db).also { db.setTransactionSuccessful() } } finally { db.endTransaction() }
         }
     }
-    private suspend fun <T> write(block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
+    private suspend fun <T> write(verify: suspend () -> Unit = {}, block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
         lock.withLock {
+            verify()
             val db = helper.writableDatabase
             db.beginTransaction()
             val result = try { block(db).also { db.setTransactionSuccessful() } } finally { db.endTransaction() }
@@ -226,6 +228,39 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         return read { db -> loadJobs(db, condition, arguments, limit, newestFirst = true) }
     }
     override suspend fun postTurnJob(id: String): PostTurnJob? = read { loadJobs(it, "j.id=?", listOf(id), 1).singleOrNull() }
+    private fun validateTaskOwner(pluginId: String) {
+        require(pluginId.length <= 40 && pluginId.matches(Regex("[a-z][a-z0-9]*(?:[.-][a-z0-9]+)+")))
+    }
+    override suspend fun ownPostTurnJobs(pluginId: String, before: PostTurnJobCursor?, limit: Int,
+        authorize: suspend () -> Unit): List<PostTurnJob> {
+        validateTaskOwner(pluginId); require(limit in 1..20)
+        val condition = "j.plugin_id=?" + if (before == null) "" else " AND (j.updated_at<? OR (j.updated_at=? AND j.id<?))"
+        val arguments = listOf(pluginId) + before?.let { listOf(it.updatedAt.toString(), it.updatedAt.toString(), it.id) }.orEmpty()
+        return read(authorize) { db -> loadJobs(db, condition, arguments, limit, newestFirst = true) }
+    }
+    override suspend fun controlPostTurnJobs(pluginId: String, action: PostTurnTaskControl, now: Long,
+        authorize: suspend () -> Unit): Int {
+        validateTaskOwner(pluginId); require(now >= 0)
+        fun validId(id: String) { require(id.isNotBlank() && id.length <= 256) }
+        when (action) {
+            is PostTurnTaskControl.Retry -> { validId(action.id); require(action.attempt in 1..2) }
+            is PostTurnTaskControl.Delete -> { validId(action.id); require(action.attempt in 0..3 && action.status != PostTurnJobStatus.RUNNING) }
+            is PostTurnTaskControl.Stop -> error("Stopping is owned by the live worker")
+            PostTurnTaskControl.Cleanup -> Unit
+        }
+        return write(authorize) { db -> when (action) {
+            is PostTurnTaskControl.Retry -> db.update("post_turn_jobs", ContentValues().apply {
+                put("status", PostTurnJobStatus.WAITING.name); put("updated_at", now); putNull("failure")
+            }, "plugin_id=? AND id=? AND status=? AND attempt=?",
+                arrayOf(pluginId, action.id, PostTurnJobStatus.FAILED.name, action.attempt.toString()))
+            is PostTurnTaskControl.Delete -> db.delete("post_turn_jobs", "plugin_id=? AND id=? AND attempt=? AND status=?",
+                arrayOf(pluginId, action.id, action.attempt.toString(), action.status.name))
+            PostTurnTaskControl.Cleanup -> db.delete("post_turn_jobs",
+                "id IN (SELECT id FROM post_turn_jobs WHERE plugin_id=? AND status IN (?,?) ORDER BY updated_at,id LIMIT 100)",
+                arrayOf(pluginId, PostTurnJobStatus.SUCCEEDED.name, PostTurnJobStatus.SKIPPED.name))
+            is PostTurnTaskControl.Stop -> error("Stopping is owned by the live worker")
+        } }
+    }
     private fun loadJobs(db: SQLiteDatabase, condition: String, arguments: List<String>, limit: Int, newestFirst: Boolean = false): List<PostTurnJob> =
             db.rawQuery("SELECT j.id,t.payload,j.plugin_id,j.version,j.digest,j.status,j.attempt,j.updated_at,j.failure FROM post_turn_jobs j JOIN completed_turns t ON t.id=j.turn_id WHERE $condition ORDER BY j.updated_at ${if (newestFirst) "DESC" else "ASC"},j.id ${if (newestFirst) "DESC" else "ASC"} LIMIT ?",
                 (arguments + limit.toString()).toTypedArray()).use { c ->

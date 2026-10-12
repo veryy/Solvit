@@ -44,6 +44,34 @@ class PostTurnWorkerTest {
         override fun stream(request: ModelRequest) = block(request)
     }
 
+    @Test fun pageStopChecksOwnerAndExactActiveTaskAndRevocationBeforeCancellation() = runTest {
+        val store = Store(turn()); val registry = PostTurnHookRegistry()
+        registry.register(hook { _, _ -> awaitCancellation() })
+        val worker = PostTurnWorker(store, registry, provider { error("No model call") }, { config }, { null }, backgroundScope)
+        val first = backgroundScope.launch { worker.runNext() }
+        runCurrent()
+        assertEquals("job", worker.state.value.activeJobId)
+        assertEquals(0, worker.control("other.memory", PostTurnTaskControl.Stop("job")) {})
+        assertTrue(first.isActive)
+        assertFailsWith<IllegalStateException> {
+            worker.control(target.pluginId, PostTurnTaskControl.Stop("job")) { error("Revoked") }
+        }
+        assertTrue(first.isActive)
+        assertEquals(1, worker.control(target.pluginId, PostTurnTaskControl.Stop("job")) {})
+        runCurrent()
+        assertEquals(PostTurnFailure.INTERRUPTED, store.job!!.failure)
+        assertFalse(first.isActive)
+        store.job = store.job!!.copy(id = "job2", status = PostTurnJobStatus.WAITING, attempt = 0, failure = null)
+        val second = backgroundScope.launch { worker.runNext() }
+        runCurrent()
+        assertEquals(0, worker.control(target.pluginId, PostTurnTaskControl.Stop("job")) {})
+        assertTrue(second.isActive)
+        assertEquals("job2", worker.state.value.activeJobId)
+        assertEquals(1, worker.control(target.pluginId, PostTurnTaskControl.Stop("job2")) {})
+        runCurrent()
+        assertFalse(second.isActive)
+    }
+
     @Test fun executesOnlyCapturedSourceThroughBoundedCredentialFreePluginModelContract() = runTest {
         val store = Store(turn()); val registry = PostTurnHookRegistry(); var calls = 0; var committed = ""
         registry.register(hook { input, model ->

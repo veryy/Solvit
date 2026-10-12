@@ -4,6 +4,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import dev.solvit.core.*
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.async
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import org.junit.After
 import org.junit.Before
@@ -19,6 +21,53 @@ class SqliteChatStoreTest {
     private val context: Context get() = RuntimeEnvironment.getApplication()
     @Before fun before() { context.deleteDatabase("solvit.db") }
     @After fun after() { context.deleteDatabase("solvit.db") }
+
+    @Test fun taskPageQueriesAndControlsStayWithinOwnerAndAuthorizeAtTheWriteLock() = runBlocking<Unit> {
+        val mine = PostTurnTarget("dev.solvit.memory", "1.3.0", "a".repeat(64))
+        val other = PostTurnTarget("other.memory", "1.0.0", "b".repeat(64))
+        SqliteChatStore(context).use { store ->
+            val session = store.createSession()
+            repeat(23) { index ->
+                val suffix = index.toString().padStart(3, '0')
+                store.append(ChatMessage("u-$suffix", session.id, Role.USER, "Preference"))
+                val turn = CompletedChatTurn("a-$suffix", session.id, "u-$suffix", "a-$suffix", null, null,
+                    null, null, "fixture", "fixture", index.toLong(), listOf(mine, other))
+                store.appendCompletedTurn(listOf(ChatMessage(turn.id, session.id, Role.ASSISTANT, "Saved")), turn)
+            }
+            var authorized = 0
+            val first = store.ownPostTurnJobs(mine.pluginId, null, 20) { authorized++ }
+            assertEquals(20, first.size); assertTrue(first.all { it.target == mine }); assertEquals(1, authorized)
+            val cursor = first.last().let { PostTurnJobCursor(it.updatedAt, it.id) }
+            val second = store.ownPostTurnJobs(mine.pluginId, cursor, 20) {}
+            assertEquals(3, second.size); assertEquals(23, (first + second).map { it.id }.toSet().size)
+            assertFailsWith<IllegalArgumentException> { store.ownPostTurnJobs(mine.pluginId, null, 21) {} }
+            val foreign = store.ownPostTurnJobs(other.pluginId, null, 1) {}.single()
+            assertEquals(0, store.controlPostTurnJobs(mine.pluginId,
+                PostTurnTaskControl.Delete(foreign.id, 0, PostTurnJobStatus.WAITING), 24) {})
+            val selected = first.first()
+            assertTrue(store.claimPostTurnJob(selected.id, 0, 24))
+            assertTrue(store.finishPostTurnJob(selected.id, 1, PostTurnJobStatus.FAILED, PostTurnFailure.MODEL, 25))
+            val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>(); var allowed = true
+            val pending = async {
+                runCatching { store.controlPostTurnJobs(mine.pluginId, PostTurnTaskControl.Retry(selected.id, 1), 26) {
+                    entered.complete(Unit); release.await(); check(allowed) { "Revoked" }
+                } }
+            }
+            entered.await(); allowed = false; release.complete(Unit)
+            assertTrue(pending.await().isFailure)
+            assertEquals(PostTurnJobStatus.FAILED, store.postTurnJob(selected.id)!!.status)
+            assertEquals(1, store.controlPostTurnJobs(mine.pluginId, PostTurnTaskControl.Retry(selected.id, 1), 26) {})
+            assertEquals(0, store.controlPostTurnJobs(mine.pluginId,
+                PostTurnTaskControl.Delete(selected.id, 1, PostTurnJobStatus.FAILED), 27) {})
+            assertTrue(store.claimPostTurnJob(selected.id, 1, 28))
+            assertTrue(store.finishPostTurnJob(selected.id, 2, PostTurnJobStatus.SUCCEEDED, null, 29))
+            assertEquals(0, store.controlPostTurnJobs(other.pluginId, PostTurnTaskControl.Cleanup, 30) {})
+            assertEquals(1, store.controlPostTurnJobs(mine.pluginId, PostTurnTaskControl.Cleanup, 30) {})
+            assertEquals(46, store.history(session.id).size)
+            assertNotNull(store.postTurnJob(foreign.id))
+            assertFailsWith<IllegalStateException> { store.ownPostTurnJobs(mine.pluginId, null, 20) { error("Revoked") } }
+        }
+    }
 
     @Test fun taskRetirementPreservesActiveAndRetryableWorkAndOriginalMessages() = runBlocking<Unit> {
         SqliteChatStore(context).use { store ->

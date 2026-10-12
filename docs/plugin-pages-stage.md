@@ -35,6 +35,10 @@ SDK 增加原生页面节点、页面输入与事件类型；Android 增加独�
 
 ## 后续与验收
 
+第九检查点新增受限任务服务契约：列表在 SQLite 查询中按插件 ID 过滤后分页，每页最多 20；重试/删除/最多 100 个完成任务清理把插件 ID 与预期状态/次数放在同一 SQL 条件里。授权回调在实际数据库锁内、开启事务前再次检查；不在 SQLite 线程绑定事务中挂起协程。原任务控制接口保留，默认不支持新接口的可替换存储拒绝变更。Worker 用不可变的任务 ID/插件 ID/Job 组合处理停止，捕获后只取消该 Job，旧按钮不能误停下一个任务。读取 DSH `ui-settings-shell/tests/apply.client.spec.ts` 的依赖出现/消失与页面销毁场景，Operit `MemoryAutoSaveScheduler.kt` 的单任务运行与有界批次；采用对应生命周期/作用域原则，未复制上游代码。
+
+新增 SQLite 回归验证跨插件拒绝、超过 20 条分页、在实际授权锁等待期间撤销、陈旧状态拒绝、清理不删来源历史；Worker 回归验证外部插件/已撤销/旧任务停止不影响当前任务。尚未接入 QuickJS 任务桥、宿主确认凭据或 TS 任务页面，不能说已完成任务界面。待远程运行。
+
 第八检查点下载 `38196422477` 的 `solvit-builtin-plugins` 产物（11723552680），使用生成的记忆 1.3.0/API 9 包原字节写入服务端和 Android 资产：58,828 字节，SHA-256 `01971cb6dd2f3ea7266924f0794c2ba9917deee991357e9f7ad2bd5ec10d7d59`。该生成运行只有重建一致性 gate 失败，类型、SDK/市场测试先已通过；不能把整条 Actions 称为成功。新资产提交后继续验证一致性及 Android。
 
 `b801881` 的 [TS 38196758845](https://github.com/veryy/Solvit/actions/runs/38196758845) 和 [市场 38196758852](https://github.com/veryy/Solvit/actions/runs/38196758852) 已成功。下载 TS 实际 job 日志确认 64 个 SDK 测试零失败，其中“packaged memory page uses the validated production database and persists edits across engines”确实执行；另 2 个市场测试通过，覆盖 API 8/9 分流和下载完整性；生成包一致性通过。对应 [Android 38196758882](https://github.com/veryy/Solvit/actions/runs/38196758882) 的 build 114641079096 当前仍在测试/Lint/APK 步骤，尚无模拟器或发布 APK 成功证据。
