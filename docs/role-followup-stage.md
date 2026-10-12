@@ -22,6 +22,6 @@ Solvit 的 `ChatContextComposer` 原来把模型设置的内置“你是 Solvit�
 
 [修复前远程运行 38238110267](https://github.com/veryy/Solvit/actions/runs/38238110267)在 `c7bdcdf` 复现 HTTP 边界问题。实际下载 XML 核对270个单元测试仅1个失败、无错误/跳过，唯一失败是 `ModelTaskRoutingTest.persistedRoleReachesActualHttpRequestOnEveryTurnIncludingDefaultIdentity`，断言消息为 `A selected character must replace the built-in Solvit introduction at the HTTP boundary`。诊断分支不发布 APK。
 
-[修复候选远程运行 38237983149](https://github.com/veryy/Solvit/actions/runs/38237983149)的测试、Lint、APK和固定签名检查通过。实际下载 XML 核对271个单元测试无失败、错误或跳过，上述实际 HTTP 检查和全局规则保留检查均通过；模拟器仍在执行。取得的是请求中默认身份冲突的失败→成功证据，尚非用户真实模型回答的失败→成功验收。未运行本地 Android 构建或测试。0.21.1 未打标签、未发布。
+[修复候选远程运行 38237983149](https://github.com/veryy/Solvit/actions/runs/38237983149)全部成功：测试、Lint、APK、固定签名、模拟器和覆盖升级。实际下载 XML 核对271个单元和42个模拟器测试，均无失败、错误或跳过。上述 HTTP 检查、全局规则保留检查及 `roleAppliedThroughSettingsReachesProviderAndNewChatRequest`、`applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist` 均通过；UI报告包含 `role-settings-to-provider-new-chat.png`。取得的是默认身份冲突及实际界面到请求链路的验证证据，尚非用户真实模型回答的失败→成功验收。未运行本地 Android 构建或测试。正式标签发布继续通过完整发布门禁。
 
-仍需恢复连接后运行完整 Actions、检查实际测试结果和签名、发布新 APK；并使用用户实际模型复核选择角色后、新对话及重开对话的身份回答。现有源码发现不能断言为用户症状的唯一原因。
+仍需发布新 APK，并使用用户实际模型复核选择角色后、新对话及重开对话的身份回答。现有源码发现不能断言为用户症状的唯一原因。
