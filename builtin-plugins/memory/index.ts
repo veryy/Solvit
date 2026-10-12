@@ -9,6 +9,8 @@ type Database = {
   profile: Record<string, { value: string; updatedAt: string }>;
   completedSources?: (CompletedInput['source'] & { factIds: string[] })[];
 };
+export type MemoryDatabase = Database;
+export type MemoryFact = Fact;
 const KEY = 'memory.v1';
 const MAX_BYTES = 220 * 1024;
 const empty = (): Database => ({ format: 1, sequence: 0, facts: [], edges: [], chunks: [], profile: {} });

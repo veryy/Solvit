@@ -102,7 +102,8 @@ class ScriptPageView private constructor(
                     "graph" -> {
                         val graphNodes = node.getValue("nodes").jsonArray
                         val edges = node.getValue("edges").jsonArray
-                        require(graphNodes.size <= 128 && edges.size <= 256)
+                        // Matches the existing memory store's bounded fact/relation capacity.
+                        require(graphNodes.size <= 256 && edges.size <= 512)
                         val ids = graphNodes.map { it.jsonObject.run {
                             require(keys == setOf("id", "label")); text("label", 256, true); text("id", 80, true)
                         } }
