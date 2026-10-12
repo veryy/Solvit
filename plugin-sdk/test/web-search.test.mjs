@@ -55,7 +55,7 @@ test('browser search unwraps engine redirects, bounds and deduplicates safe sour
   const target='https://example.com/中文?q=1';
   const encoded=Buffer.from(target).toString('base64url');
   const {tools,ctx}=await plugin({apiKey:'PRIVATE'},undefined,async (...args) => {
-    assert.equal(args.length,1); assert.equal(args[0],'https://cn.bing.com/search?q=Solvit');
+    assert.equal(args.length,1); assert.equal(args[0],'https://www.bing.com/search?q=Solvit');
     return {url:args[0],title:'Search',text:'',truncated:false,links:[
       {url:'https://cn.bing.com/settings',title:'Settings',snippet:''},
       {url:'https://www.bing.com/ck/a?u=a1'+encoded,title:'Solvit 中文',snippet:'Useful source'},
@@ -110,20 +110,20 @@ test('a redirected engine home page is never treated as search results',async ()
       links:[{url:'https://example.com/privacy',title:'Solvit privacy',snippet:'Footer'}]};
   });
   const result=await tools.search({query:'Solvit'},ctx);
-  assert.equal(visits,2); assert.equal(result.results.length,0); assert.ok(result.error);
+  assert.equal(visits,3); assert.equal(result.results.length,0); assert.ok(result.error);
 });
 
-test('regional browser failure still obtains real result data from the alternate Bing origin',async () => {
+test('default browser failure still obtains real result data from the upstream regional origin',async () => {
   const visits=[];
   const {tools,ctx}=await plugin({apiKey:'PRIVATE'},undefined,async (...args)=>{
     assert.equal(args.length,1);const url=args[0];visits.push(url);
-    if(url.startsWith('https://cn.bing.com/'))throw new Error('Public origin unavailable');
+    if(url.startsWith('https://www.bing.com/'))throw new Error('Public origin unavailable');
     return {url,title:'Search',text:'',truncated:false,links:[
       {url:'https://example.com/kotlin-guide',title:'Kotlin official guide',snippet:'Kotlin documentation'},
     ]};
   });
   const result=await tools.search({query:'Kotlin'},ctx);
-  assert.deepEqual(visits,['https://cn.bing.com/search?q=Kotlin','https://www.bing.com/search?q=Kotlin']);
+  assert.deepEqual(visits,['https://www.bing.com/search?q=Kotlin','https://cn.bing.com/search?q=Kotlin&FORM=HDRSC1']);
   assert.equal(result.provider,'bing-browser');assert.equal(result.results[0].url,'https://example.com/kotlin-guide');
   assert.equal(JSON.stringify(result).includes('PRIVATE'),false);
 });
