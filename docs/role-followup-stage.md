@@ -18,6 +18,10 @@ Solvit 的 `ChatContextComposer` 原来把模型设置的内置“你是 Solvit�
 
 ## 验证状态
 
-本轮本地提交完成，但 GitHub HTTPS 网页、API 与 `git push` 均在 TLS 握手时失败（`SSL_ERROR_SYSCALL`）；服务器 SSH 也未成功。未运行本地 Android 构建或测试。新增回归尚未在远程执行，不能声称已经取得失败→成功证据。0.21.1 未打标签、未发布、没有新 APK。
+此前 GitHub HTTPS 网页、API 与 `git push` 在 TLS 握手时失败（`SSL_ERROR_SYSCALL`），修复及回归仅保留在本地。连接恢复后已实际推送 `main` 至 `0ffe8c5597aa3f9d52a1a50424d36472b856513e`，并通过 `git ls-remote` 核对远程分支。
+
+[修复前远程运行 38238110267](https://github.com/veryy/Solvit/actions/runs/38238110267)在 `c7bdcdf` 复现 HTTP 边界问题。实际下载 XML 核对270个单元测试仅1个失败、无错误/跳过，唯一失败是 `ModelTaskRoutingTest.persistedRoleReachesActualHttpRequestOnEveryTurnIncludingDefaultIdentity`，断言消息为 `A selected character must replace the built-in Solvit introduction at the HTTP boundary`。诊断分支不发布 APK。
+
+[修复候选远程运行 38237983149](https://github.com/veryy/Solvit/actions/runs/38237983149)的测试、Lint、APK和固定签名检查通过。实际下载 XML 核对271个单元测试无失败、错误或跳过，上述实际 HTTP 检查和全局规则保留检查均通过；模拟器仍在执行。取得的是请求中默认身份冲突的失败→成功证据，尚非用户真实模型回答的失败→成功验收。未运行本地 Android 构建或测试。0.21.1 未打标签、未发布。
 
 仍需恢复连接后运行完整 Actions、检查实际测试结果和签名、发布新 APK；并使用用户实际模型复核选择角色后、新对话及重开对话的身份回答。现有源码发现不能断言为用户症状的唯一原因。
