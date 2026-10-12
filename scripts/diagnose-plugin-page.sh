@@ -7,6 +7,7 @@ timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-and
 case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   memory-click) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin' ;;
   model-settings) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations' ;;
+  model-task) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#modelProfilesUiSavesAndAssignsASeparateToolModel' ;;
   skills-documents) solvit_diagnostic_class='dev.solvit.app.SkillsHtmlPageTest' ;;
   workspace-files) solvit_diagnostic_class='dev.solvit.app.WorkspaceHtmlPageTest' ;;
   *) exit 2 ;;

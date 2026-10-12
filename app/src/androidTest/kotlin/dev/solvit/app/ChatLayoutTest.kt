@@ -823,8 +823,14 @@ class ChatLayoutTest {
             rule.onNodeWithTag("save_model_profile").assertIsEnabled().performClick()
             rule.waitUntil(8000) { app.modelProfiles.state.value.profiles.any { it.name=="UI task model" } }
             val profile=app.modelProfiles.state.value.profiles.single { it.name=="UI task model" }
-            rule.onNodeWithTag("model_task_TOOL_FOLLOW_UP").performScrollTo().performClick()
-            rule.onNodeWithTag("choose_model_${profile.id}").performClick()
+            // Saving publishes the data before the editor coroutine dismisses its window.
+            rule.waitUntil(8000) { rule.onAllNodesWithTag("save_model_profile").fetchSemanticsNodes().isEmpty() }
+            rule.onNodeWithTag("model_profiles_list").performScrollToNode(hasTestTag("model_task_TOOL_FOLLOW_UP"))
+            rule.waitUntil(8000) { rule.onAllNodes(hasTestTag("model_task_TOOL_FOLLOW_UP") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("model_task_TOOL_FOLLOW_UP").performClick()
+            rule.waitUntil(8000) { rule.onAllNodesWithTag("model_task_choices").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("model_task_choices").performScrollToNode(hasTestTag("choose_model_${profile.id}"))
+            rule.onNodeWithTag("choose_model_${profile.id}").assertIsEnabled().performClick()
             rule.waitUntil(8000) { app.modelProfiles.state.value.routes[ModelTask.TOOL_FOLLOW_UP]==profile.id }
             val stored=runBlocking { app.settings.loadProfiles() }
             assertEquals(profile.id,stored.routes[ModelTask.TOOL_FOLLOW_UP])

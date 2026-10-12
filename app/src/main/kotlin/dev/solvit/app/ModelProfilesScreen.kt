@@ -84,7 +84,7 @@ fun ModelProfilesScreen(service: ModelProfilesService, generating: Boolean, onDi
             onFetchModels=onFetchModels,profileName=name,onProfileNameChanged={ name=it },providers=providers)
     } }
     task?.let { selectedTask -> AlertDialog(onDismissRequest={ if(!busy) task=null },title={ UiText("选择任务模型") },text={
-        LazyColumn(Modifier.heightIn(max=360.dp)) {
+        LazyColumn(Modifier.heightIn(max=360.dp).testTag("model_task_choices")) {
             if(selectedTask==ModelTask.TOOL_FOLLOW_UP) item { TextButton(onClick={ operation { service.assign(selectedTask,null);task=null } },enabled=enabled) { UiText("沿用聊天模型") } }
             items(state.profiles,key={it.id}) { profile -> TextButton(onClick={ operation { service.assign(selectedTask,profile.id);task=null } },enabled=enabled,
                 modifier=Modifier.fillMaxWidth().testTag("choose_model_${profile.id}")) { Text(profile.name+" · "+profile.config.model) } }
