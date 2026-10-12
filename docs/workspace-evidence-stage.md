@@ -37,3 +37,5 @@ UI候选 `f9cf32e` 的Android38203674752实际失败于生产SQLite编译：`Exe
 补齐展示边界：已停止/失败回复里缺失工具结果不再误显示“等待确认”，而显示“未记录结果”；详细日志再区分未开始与结果未知。脱敏识别完整JSON字符串（含转义引号/反斜线），新增实际Runtime回归确保不残留凭据后半段，同时保留工具真实参数/模型收到的结果。
 
 `28dd8e8` 的Android38204230919已编译到App，但完整任务fixture初次启用工作区插件失败。下载实际XML（11727260145）：`Missing or cyclic dependencies: dev.solvit.workspace`，来自PluginManager.enableAll。优先核对fixture服务注册、再核对包依赖及启用状态；实际ScriptToolPlugin声明需要WorkspaceServiceKey，而fixture只构造AndroidWorkspaces没有注册。通过fixture原生服务插件注册同一真实AndroidWorkspaces及其执行服务；不更改生产依赖、不删启用或实际执行断言。该报告同时确认日志核心2个、Runtime6个、SQLite5个新增回归全部通过；整条构建仍失败，模拟器未执行。
+
+即时持久检查点会在ToolRegistry.onAuthorized中挂起。原实现只在回调前复查工具实例/执行模式/拒绝策略，等待期间撤销可能过期。补充回调后、实际调用前的取消/实例/模式/策略复查；新增受控等待中卸载与取消的零副作用回归。未扩大权限或重放操作，等待远程验证。

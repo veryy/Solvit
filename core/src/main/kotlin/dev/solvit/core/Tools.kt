@@ -69,6 +69,11 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         check(snapshot(tool).executionMode == descriptor.executionMode) { "执行模式已变化，请重新确认" }
         check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
         onAuthorized()
+        // A durable dispatch checkpoint may suspend: authority can change while it is saved.
+        currentCoroutineContext().ensureActive()
+        if (policies?.policy(descriptor, role) == ToolPolicy.DENY) throw ToolDeniedException()
+        check(snapshot(tool).executionMode == descriptor.executionMode) { "执行模式已变化，请重新确认" }
+        check(synchronized(this) { tools[name] === tool }) { "Tool unloaded" }
         val invocation = ToolInvocationContext(descriptor, call)
         val context = AgentRoleContext(role) + invocation + (conversation ?: kotlin.coroutines.EmptyCoroutineContext)
         try {
