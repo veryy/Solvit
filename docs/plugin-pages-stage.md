@@ -102,3 +102,9 @@ TS `task-pages.ts` 提供六语言任务分页、来源消息 ID、状态/安全
 [Android 38199824758](https://github.com/veryy/Solvit/actions/runs/38199824758) 全成功；build 114650534835、模拟器 114651524581 成功。下载实际报告 XML：236 个单元测试与 39 个模拟器测试（app 30/web 1/terminal 8），失败、错误、跳过均为零。真实 APK 内置 TS 任务页经 QuickJS→宿主确认→SQLite 的接线回归通过；普通工具无法越过页面上下文访问任务桥。Lint、APK、固定签名与升级配置回归通过。
 
 [TS 38199824774](https://github.com/veryy/Solvit/actions/runs/38199824774) 和[市场 38199824732](https://github.com/veryy/Solvit/actions/runs/38199824732) 全成功，包括生成包一致性；真实 MCP/Skills 和搜索质量标签专用 gate 将在正式标签执行，不把分支跳过称作通过。正式发布与公网核验另记，真机/真实模型质量仍未验收。
+
+## 公网 API 9 包部署与正式标签
+
+API 9 服务已部署到 `https://solvit.207.57.126.73.sslip.io`，运行服务健康；回滚副本 `/opt/solvit-market/.backup-api9-1791776503245`。实际服务器源码 SHA-256 `058fb52377a669c7aeb82d0e8a066bdf55f9eea6cf86d71581e2abdc43c6e724`。逐个请求 hostApi 1..9，旧版分别选择兼容记忆包（1..6→1.0.0、7→1.1.0、8→1.2.0）；9→1.3.0 且可见额外便签1.0.0。下载目录涉及的全部14个版本，实际字节、长度、SHA-256 均与仓库和目录元数据一致。公网页面仍显示已发布API8，待0.20正式APK发布后切换API9展示。
+
+主分支无强制覆盖地快进合并。`v0.20.0` 已推送并实际查询确认指向 `e37596b648ef91f03485b2a3c299bb811ab50884`，正式标签门禁与 Release 正在进行，尚未宣称公开APK可下载。
