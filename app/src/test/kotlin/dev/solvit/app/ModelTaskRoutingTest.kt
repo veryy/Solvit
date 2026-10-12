@@ -117,7 +117,7 @@ class ModelTaskRoutingTest {
             // Exercise the actual untouched settings, not a hand-written prompt that
             // accidentally removes the competing built-in identity before this test.
             val config = ModelConfig(server.url("/v1").toString(), "fixture", "fixture")
-            repeat(2) { server.enqueue(MockResponse().setHeader("Content-Type", "application/json")
+            repeat(5) { server.enqueue(MockResponse().setHeader("Content-Type", "application/json")
                 .setBody("""{"choices":[{"message":{"content":"fixture answer"},"finish_reason":"stop"}]}""")) }
             val chat = dev.solvit.chat.DefaultChatService(store, ToolAgentRuntime(OpenAiProvider(client), ToolRegistry(EventBus())), EventBus(), roles)
             roles.select("identity-http", null)
@@ -133,6 +133,27 @@ class ModelTaskRoutingTest {
                 "A selected character must replace the built-in Solvit introduction at the HTTP boundary")
             assertEquals(1, (0 until next.length()).count { next.getJSONObject(it).getString("role") == "system" })
             assertEquals("你现在是谁？", next.getJSONObject(next.length()-1).getString("content"))
+            // Recreate native persistence and the actual chat/provider chain after
+            // editing the character; no manual prompt injection in the fixture.
+            roles.save(selectedRole.copy(prompt = "你是星辰，专门帮助用户检查 Kotlin 代码。"))
+            val reopened = dev.solvit.chat.DefaultChatService(store,
+                ToolAgentRuntime(OpenAiProvider(client), ToolRegistry(EventBus())), EventBus(),
+                dev.solvit.market.AndroidRoleService(context))
+            reopened.send("identity-http", "重开后你是谁？", config).toList()
+            val edited = JSONObject(server.takeRequest(2, TimeUnit.SECONDS)!!.body.readUtf8()).getJSONArray("messages")
+            assertTrue(edited.getJSONObject(0).getString("content").contains("专门帮助用户检查 Kotlin 代码"))
+            assertFalse(edited.getJSONObject(0).getString("content").contains("使用简洁中文回答"))
+            assertFalse(edited.getJSONObject(0).getString("content").contains(ModelConfig().systemPrompt))
+            val userRules = "通用规则：回答时说明哪些事实尚未验证。"
+            reopened.send("identity-http", "再问一次", ModelConfig(config.baseUrl, config.model, config.apiKey, userRules)).toList()
+            val explicit = JSONObject(server.takeRequest(2, TimeUnit.SECONDS)!!.body.readUtf8()).getJSONArray("messages")
+            assertTrue(explicit.getJSONObject(0).getString("content").contains(userRules))
+            assertTrue(explicit.getJSONObject(0).getString("content").contains("角色名称是“星辰”"))
+            roles.select("identity-http", null)
+            reopened.send("identity-http", "回到默认", config).toList()
+            val cleared = JSONObject(server.takeRequest(2, TimeUnit.SECONDS)!!.body.readUtf8()).getJSONArray("messages")
+            assertTrue(cleared.getJSONObject(0).getString("content").contains(ModelConfig().systemPrompt))
+            assertFalse(cleared.getJSONObject(0).getString("content").contains("专门帮助用户检查 Kotlin 代码"))
         } finally {
             roles.select("identity-http", null); roles.delete(selectedRole.id)
             server.shutdown(); client.dispatcher.executorService.shutdown(); client.connectionPool.evictAll()
