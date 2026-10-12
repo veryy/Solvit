@@ -35,6 +35,9 @@ fun AgentLibraryDialog(vm: AgentLibraryViewModel, onDismiss: () -> Unit) {
     val content by vm.content.collectAsStateWithLifecycle()
     val pending by vm.pendingImport.collectAsStateWithLifecycle()
     var tab by remember { mutableIntStateOf(0) }
+    var skillsPageOpen by remember { mutableStateOf(false) }
+    val locale = LocalUiLanguage.current
+    val hasSkillsPage = installed.any { it.id == "dev.solvit.skills" && it.pages.any { page -> page.id == "main" } }
     var editing by remember { mutableStateOf<AgentRole?>(null) }
     var deleteRole by remember { mutableStateOf<AgentRole?>(null) }
     var deleteSkill by remember { mutableStateOf<SkillSummary?>(null) }
@@ -67,7 +70,9 @@ fun AgentLibraryDialog(vm: AgentLibraryViewModel, onDismiss: () -> Unit) {
                 Column(Modifier.padding(padding).consumeWindowInsets(padding).fillMaxSize()) {
                     TabRow(selectedTabIndex = tab) {
                         Tab(selected = tab == 0, onClick = { tab = 0 }, text = { UiText("角色") })
-                        Tab(selected = tab == 1, onClick = { tab = 1; vm.refreshSkills() }, text = { UiText("技能库") })
+                        Tab(modifier = Modifier.testTag("skills_library_tab"), selected = tab == 1 || skillsPageOpen, onClick = {
+                            if (hasSkillsPage) skillsPageOpen = true else { tab = 1; vm.refreshSkills() }
+                        }, text = { UiText("技能库") })
                     }
                     applied?.let { UiText(it, color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(16.dp)) }
                     if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -113,6 +118,9 @@ fun AgentLibraryDialog(vm: AgentLibraryViewModel, onDismiss: () -> Unit) {
                 }
             }
         }
+    }
+    if (skillsPageOpen) PluginPageScreen(uiString("技能库"), { vm.openSkillsPage(locale) }) {
+        skillsPageOpen = false; vm.refreshSkills()
     }
     editing?.let { role -> RoleEditor(role, installed, skills, busy, error,
         onDismiss = { if (!busy) editing = null }, onSave = { vm.saveRole(it) { editing = null } }) }

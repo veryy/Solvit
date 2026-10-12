@@ -54,6 +54,14 @@ test('catalog downloads match their declared integrity and expose no write API',
     const mcpPackage = await (await fetch(base + multiMcp.downloadPath)).json();
     assert.ok(mcpPackage.resources['ui/main.js']);
     assert.ok(mcpPackage.manifest.settings.every(setting => setting.pageManaged));
+    const previousSkills = api10.plugins.find(plugin => plugin.id === 'dev.solvit.skills');
+    assert.equal(previousSkills.version, '1.0.2'); assert.equal(previousSkills.apiVersion, 3);
+    const api11 = await (await fetch(base + '/api/v1/plugins?hostApi=11')).json();
+    const htmlSkills = api11.plugins.find(plugin => plugin.id === 'dev.solvit.skills');
+    assert.equal(htmlSkills.version, '1.1.0'); assert.equal(htmlSkills.apiVersion, 11);
+    assert.equal(htmlSkills.pages[0].entry, 'ui/index.html');
+    const oldSkillsBytes = Buffer.from(await (await fetch(base + previousSkills.downloadPath)).arrayBuffer());
+    assert.deepEqual(oldSkillsBytes, await readFile(new URL('./packages/legacy/dev.solvit.skills-1.0.2.solvit.json', import.meta.url)));
     const notesPage = api9.plugins.find(plugin => plugin.id === 'example.notes');
     assert.equal(notesPage.apiVersion, 9);
     assert.deepEqual(notesPage.pages, [{id:'main',title:'便签'}]);
@@ -68,7 +76,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.deepEqual(previousSearch, await readFile(new URL('./packages/legacy/dev.solvit.web-search-1.2.0.solvit.json', import.meta.url)));
     assert.equal(api5.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.1.0');
     assert.ok(api4.plugins.every(plugin => plugin.apiVersion <= 4));
-    for (const plugin of [...api5.plugins, ...api7.plugins, ...api8.plugins, ...api9.plugins, ...api10.plugins]) {
+    for (const plugin of [...api5.plugins, ...api7.plugins, ...api8.plugins, ...api9.plugins, ...api10.plugins, ...api11.plugins]) {
       const response = await fetch(base + plugin.downloadPath);
       assert.equal(response.status, 200);
       const bytes = Buffer.from(await response.arrayBuffer());

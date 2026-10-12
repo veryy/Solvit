@@ -11,7 +11,7 @@ import java.io.ByteArrayOutputStream
 class AgentLibraryViewModel(
     private val roleService: RoleService,
     private val library: SkillLibraryService,
-    marketplace: MarketplaceService,
+    private val marketplace: MarketplaceService,
 ) : ViewModel() {
     val applied = MutableStateFlow<String?>(null)
     val error = MutableStateFlow<String?>(null)
@@ -70,6 +70,7 @@ class AgentLibraryViewModel(
     }
     fun deleteRole(id: String) = operation { roleService.delete(id); refreshSelection() }
     fun refreshSkills() = operation { skills.value = library.list() }
+    suspend fun openSkillsPage(locale: String): ExtensionPageSession = marketplace.openPage("dev.solvit.skills", "main", locale)
     fun loadSkill(name: String) = operation { content.value = library.load(name) }
     fun prepareImport(read: suspend () -> ByteArray) = operation {
         val bytes = read()

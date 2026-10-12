@@ -1,4 +1,5 @@
 import { definePlugin, textArgument, type JsonValue, type JsonObject, type PluginContext } from '../../plugin-sdk/src/index';
+import { createSkillsPage } from './pages';
 import { parseSkillDocument, utf8Bytes, validateResourcePath, type SkillDocument } from '../../plugin-sdk/src/skills';
 
 type Skill = SkillDocument & { files: Record<string, string> };
@@ -18,8 +19,7 @@ function skillFiles(value: unknown, directory?: unknown): Skill {
   }
   return { ...parsed, files };
 }
-async function load(ctx: PluginContext): Promise<Database> {
-  const data: unknown = await ctx.storage.get(KEY);
+function decode(data: unknown): Database {
   if (data === null) return { format: 1, skills: [] };
   if (!object(data) || data.format !== 1 || !Array.isArray(data.skills) || data.skills.length > 32) throw new Error('Invalid skills database; refusing to reset');
   const skills = data.skills.map(item => {
@@ -31,9 +31,12 @@ async function load(ctx: PluginContext): Promise<Database> {
   if (new Set(skills.map(skill => skill.name)).size !== skills.length) throw new Error('Duplicate stored skill');
   return { format: 1, skills };
 }
-async function save(db: Database, ctx: PluginContext): Promise<void> {
+async function load(ctx: PluginContext): Promise<Database> { return decode(await ctx.storage.get(KEY)); }
+async function save(db: Database, ctx: PluginContext, expected?: JsonValue): Promise<void> {
   if (db.skills.length > 32 || utf8Bytes(JSON.stringify(db)) > 220 * 1024) throw new Error('Skills storage full');
-  await ctx.storage.set(KEY, db as unknown as JsonValue);
+  if (expected !== undefined) {
+    if (!ctx.storage.compareAndSet || !await ctx.storage.compareAndSet(KEY, expected, db as unknown as JsonValue)) throw new Error('CONFLICT');
+  } else await ctx.storage.set(KEY, db as unknown as JsonValue);
 }
 function permitted(skill: Skill, ctx: PluginContext): boolean { return !ctx.role || ctx.role.skillIds.includes(skill.name); }
 function metadata(skill: Skill): JsonObject {
@@ -47,6 +50,7 @@ async function find(args: JsonObject, ctx: PluginContext): Promise<Skill> {
   return skill;
 }
 export default definePlugin({
+  pages: { main: createSkillsPage({ decode, skillFiles, metadata, save }) },
   async activate(ctx) {
     if (await ctx.storage.get(KEY) === null) await save({ format: 1, skills: [skillFiles({ 'SKILL.md': SAMPLE })] }, ctx);
   },

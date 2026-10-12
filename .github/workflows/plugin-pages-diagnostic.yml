@@ -6,7 +6,7 @@ on:
         description: Actual page scenario to reproduce
         type: choice
         default: memory-click
-        options: [memory-click, model-settings]
+        options: [memory-click, model-settings, skills-documents]
 permissions:
   contents: read
 jobs:

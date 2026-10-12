@@ -15,6 +15,50 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class BuiltinMcpUpgradeTest {
+    @Test fun originalSkillsUpgradeKeepsDocumentsActivationAndGrants() = runBlocking<Unit> {
+        fixture { market, _, _ ->
+            val app = RuntimeEnvironment.getApplication()
+            val file = File(app.filesDir, "extensions/dev.solvit.skills.solvit.json")
+            file.writeBytes(javaClass.getResourceAsStream("/skills-1.0.2.solvit.json")!!.use { it.readBytes() })
+            val doc = "---\nname: old-writing\ndescription: Original user skill\n---\nKeep this instruction."
+            val saved = buildJsonObject {
+                put("format", 1)
+                putJsonArray("skills") { add(buildJsonObject {
+                    put("name", "old-writing"); put("description", "Original user skill"); put("body", "Keep this instruction.")
+                    putJsonObject("files") { put("SKILL.md", doc) }
+                }) }
+            }.toString()
+            val data = app.getSharedPreferences("extension_data.dev.solvit.skills", 0)
+            data.edit().putString("skills.v1", saved).commit()
+            val prefs = app.getSharedPreferences("extension_permissions", 0)
+            prefs.edit().putBoolean("seeded.dev.solvit.skills.solvit.json", true)
+                .putBoolean("enabled.dev.solvit.skills", true).putStringSet("grants.dev.solvit.skills", setOf("storage")).commit()
+            market.restore()
+            val upgraded = market.installed.value.single { it.id == "dev.solvit.skills" }
+            assertEquals("1.1.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals(setOf("storage"), prefs.getStringSet("grants.dev.solvit.skills", emptySet()))
+            assertEquals(saved, data.getString("skills.v1", null))
+            val page = market.openPage("dev.solvit.skills", "main", "en")
+            try {
+                assertTrue(page.open().json.contains("old-writing")); assertNotNull(page.document())
+                assertTrue(page.resource("ui/index.html").content.contains("content"))
+            } finally { page.close() }
+            assertEquals(saved, data.getString("skills.v1", null))
+        }
+    }
+    @Test fun modifiedSkillsAreKeptAndAnUninstalledSkillsSeedIsNotRestored() = runBlocking<Unit> {
+        fixture { market, _, _ ->
+            val app = RuntimeEnvironment.getApplication()
+            val file = File(app.filesDir, "extensions/dev.solvit.skills.solvit.json")
+            val modified = javaClass.getResourceAsStream("/skills-1.0.2.solvit.json")!!.use { it.readBytes() } + "\n".toByteArray()
+            file.writeBytes(modified)
+            app.getSharedPreferences("extension_permissions", 0).edit().putBoolean("seeded.dev.solvit.skills.solvit.json", true).commit()
+            market.restore(); assertContentEquals(modified, file.readBytes())
+            assertEquals("1.0.2", market.installed.value.single { it.id == "dev.solvit.skills" }.version)
+            market.uninstall("dev.solvit.skills"); market.restore()
+            assertFalse(file.exists()); assertFalse(market.installed.value.any { it.id == "dev.solvit.skills" })
+        }
+    }
     private suspend fun fixture(block: suspend (AndroidMarketplace, EncryptedPluginConfiguration, File) -> Unit) {
         val app = RuntimeEnvironment.getApplication()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

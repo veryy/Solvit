@@ -7,6 +7,7 @@ timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-and
 case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   memory-click) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin' ;;
   model-settings) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations' ;;
+  skills-documents) solvit_diagnostic_class='dev.solvit.app.SkillsHtmlPageTest' ;;
   *) exit 2 ;;
 esac
 timeout 180s adb shell am instrument -w -e class "$solvit_diagnostic_class" dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner | tee ui-screenshots/result.txt
