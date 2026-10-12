@@ -4,6 +4,8 @@
 
 ## 当前优先方向（2026-10-12）
 
+自动记忆 [0.19.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.19.0)，[完整标签门禁通过](https://github.com/veryy/Solvit/actions/runs/38190322667)：213 个单元、33 个模拟器测试及 Lint/APK/固定签名/TS/公网搜索。后台保存默认关闭，须明确授权和开启；真实模型与真机验收待完成，具体边界见 [阶段记录](automatic-memory-stage.md)。下一优先项为插件自带页面，当前仍在独立分支开发，尚未交付。
+
 依据 [DSH、Operit、Claude Code 与智谱源码/官方文档对照](agent-direction.md)，先完善执行链和实际任务验收：聊天稳定性与角色/流式 → 搜索闭环 → 上下文预算与自动记忆 → 工作区执行及验证 → 手机操作。更多模型协议暂缓，已有长期范围继续保留。
 
 0.15.2 已分离事件接收与展示，角色身份只注入一次；[153 个单元测试、Lint、APK、签名和模拟器检查通过](https://github.com/veryy/Solvit/actions/runs/38158456320)。0.15.3 新增实际请求和接收/显示耗时诊断，[远程验证通过](https://github.com/veryy/Solvit/actions/runs/38160317381)。已实际克隆六个参考仓库并锁定版本，阶段参考规则与证据见 [源码参考](upstream-reference.md)。[0.16.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.16.0)：159 个单元测试、27 个模拟器测试、Lint、APK、签名、TS/市场、公网来源与官方版本时效检查通过，详见 [阶段记录](browser-search-stage.md)。上下文预算、自动记忆及真实模型/真机验收继续推进，远程通过不能替代这些验收。
