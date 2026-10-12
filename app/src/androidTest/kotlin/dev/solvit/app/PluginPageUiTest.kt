@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 
 /** Actual Android QuickJS -> generic Compose form -> callback -> native persistent storage. */
 class PluginPageUiTest {
@@ -150,6 +151,8 @@ class PluginPageUiTest {
             rule.onNodeWithTag("plugin_field_query").performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_query") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_query").performTextReplacement("plugin-memory-ui-original")
+            // Finish native IME layout before programmatically scrolling a focused lazy list.
+            closeSoftKeyboard()
             stage = "initial-scroll"
             rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_filter"))
             stage = "initial-filter-click"
@@ -172,6 +175,7 @@ class PluginPageUiTest {
             rule.onNodeWithTag("plugin_field_query").performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_query") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_query").performTextReplacement("plugin-memory-ui-edited")
+            closeSoftKeyboard()
             stage = "reopened-scroll"
             rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_filter"))
             stage = "reopened-filter-click"
