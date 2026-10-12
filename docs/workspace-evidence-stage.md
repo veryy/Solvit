@@ -100,3 +100,10 @@ QuickJS使用每次原生调用的宿主侧失败记录传递类型，不接受J
 465dadf的[Android38208643824](https://github.com/veryy/Solvit/actions/runs/38208643824) build114677647938已success，测试/Lint/APK及固定签名检查通过。下载实际单元产物11728357226，266个测试，失败/错误/跳过均零；授权前零读取、工具副作用前基线、返回后持久观察、拒绝/无关工具零读取与完整QuickJS→真实LinuxShell→SQLite重开快照断言确实执行。模拟器114678528820目前in_progress，不能宣称整个运行通过。
 
 前一扫描提交的模拟器报告11727744897实际40个测试，失败/错误/跳过零。聊天审阅c87c95f及补充脱敏/基线写失败回归070cffa已分别本地提交，等待当前模拟器终态后推送，避免取消正在进行的验证。尚未发布工作区新版本；正式最新版仍0.20.0，真实模型和真机验收未完成。
+
+
+## Android完整工作区任务候选
+
+读取Operit `StandardTerminalCommandExecutor.kt` 的完成输出/超时处理与DSH `agent-loop/tests/tool-calls.spec.ts` 的工具结果/调度测试。沿用自身已有Linux完整任务断言，移到实际APK的QuickJS引擎与默认 `/system/bin/sh`、toybox setsid执行：创建脚本、启动会话、取得失败退出码7、修改、重新执行并观察退出码0，再关闭重开SQLite核对逐步事实和前后快照。模型决策仍使用脚本fixture，不能证明真实模型会自行制定修复计划。
+
+测试使用独立ContextWrapper的文件目录、数据库及SharedPreferences，applicationContext也保留隔离，避免主应用后台初始化与测试日志互相干扰或清理用户数据。宿主模式和权限检查保持启用、逐次授权、结果成功与实际内容断言未削弱；使用默认Android执行器，不替换成Linux路径。等待远程编译与模拟器执行；仍非真机或真实模型验收。
