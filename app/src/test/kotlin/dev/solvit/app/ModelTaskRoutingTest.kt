@@ -114,7 +114,9 @@ class ModelTaskRoutingTest {
         val server = MockWebServer(); server.start()
         val client = OkHttpClient()
         try {
-            val config = ModelConfig(server.url("/v1").toString(), "fixture", "fixture", systemPrompt="通用助手风格")
+            // Exercise the actual untouched settings, not a hand-written prompt that
+            // accidentally removes the competing built-in identity before this test.
+            val config = ModelConfig(server.url("/v1").toString(), "fixture", "fixture")
             repeat(2) { server.enqueue(MockResponse().setHeader("Content-Type", "application/json")
                 .setBody("""{"choices":[{"message":{"content":"fixture answer"},"finish_reason":"stop"}]}""")) }
             val chat = dev.solvit.chat.DefaultChatService(store, ToolAgentRuntime(OpenAiProvider(client), ToolRegistry(EventBus())), EventBus(), roles)
@@ -127,6 +129,8 @@ class ModelTaskRoutingTest {
             assertTrue(first.getJSONObject(0).getString("content").contains("角色名称是“Solvit”"))
             assertTrue(next.getJSONObject(0).getString("content").contains("角色名称是“星辰”"))
             assertTrue(next.getJSONObject(0).getString("content").contains("使用简洁中文回答"))
+            assertFalse(next.getJSONObject(0).getString("content").contains(ModelConfig().systemPrompt),
+                "A selected character must replace the built-in Solvit introduction at the HTTP boundary")
             assertEquals(1, (0 until next.length()).count { next.getJSONObject(it).getString("role") == "system" })
             assertEquals("你现在是谁？", next.getJSONObject(next.length()-1).getString("content"))
         } finally {
