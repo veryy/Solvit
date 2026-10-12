@@ -8,7 +8,7 @@
 - 原版MCP1.0.0、记忆1.3.0/1.3.1仅在包哈希精确匹配时升级，保留事实、加密配置、启用及授权；用户修改包不覆盖、主动卸载不恢复。更早插件仍可从市场更新，不自动扩大旧授权。
 - HTML交互在发送时阻止连续重入，用当前页面快照执行；过期事件拒绝，删除仍经过真实宿主确认。关闭、撤权、替换后消息桥与资源租约失效。
 
-[干净候选运行38295011493](https://github.com/veryy/Solvit/actions/runs/38295011493)实际核对285个单元和44个模拟器测试，无失败、错误或跳过；Lint、APK、固定证书、覆盖安装、72 SDK/2市场及提交包一致性通过。核对首屏截图发现捕获早于实际绘制，截图探针追加等待硬件帧提交；该取证修正和正式标签发布仍待完成，不能把本文当作已发布证据。原图谱实体触摸、编辑保存、重开及取消/确认删除用例在[38293650208](https://github.com/veryy/Solvit/actions/runs/38293650208)通过；临时诊断已清理。[HTML阶段](plugin-html-stage.md)及[多MCP阶段](multi-mcp-stage.md)保留原失败和验证范围。
+[干净候选运行38295011493](https://github.com/veryy/Solvit/actions/runs/38295011493)实际核对285个单元和44个模拟器测试，无失败、错误或跳过；Lint、APK、固定证书、覆盖安装、72 SDK/2市场及提交包一致性通过。首屏取证追加等待硬件帧提交，并加入实际PNG像素检查。修正后的[单用例38296564937](https://github.com/veryy/Solvit/actions/runs/38296564937)通过，已核对实际[图谱截图](screenshots/0.22.0/memory-html-graph-home.png)和[编辑详情截图](screenshots/0.22.0/memory-html-edited-detail.png)。正式发布还须通过标签的完整测试、模拟器、插件、公开搜索和签名门禁；下方构建链接提供实际发布结果。原图谱实体触摸、编辑保存、重开及取消/确认删除用例在[38293650208](https://github.com/veryy/Solvit/actions/runs/38293650208)通过；临时诊断已清理。[HTML阶段](plugin-html-stage.md)及[多MCP阶段](multi-mcp-stage.md)保留原失败和验证范围。
 
 插件包由GitHub Actions生成，APK与市场使用相同字节；市场保留旧API包。采用Cytoscape.js 3.34.3及其MIT许可，没有复制Operit的LGPL页面代码。本地未运行Android/TS构建或测试。
 

@@ -60,3 +60,5 @@ cd09572运行38282268111：build成功；HTML notes真实保存/重开/取消与
 干净候选38295011493完整成功：实际285单元/44模拟器无失败、错误或跳过，72 SDK/2市场及提交包一致性成功。查看实际产物时发现首页截图仍捕获主题/图谱绘制前白屏，虽然后续实体点击和编辑已通过。Android官方VisualStateCallback只保证下一次draw可包含当前DOM，不保证画面已提交；截图探针改为随后等待硬件FrameCommit回调，并要求两实际节点已存在。该修改仅涉及测试探针，不能把原截图称为图谱可见证据；继续单用例及正式完整发布检查。参考[WebView契约](https://developer.android.com/reference/android/webkit/WebView#postVisualStateCallback(long,%20android.webkit.WebView.VisualStateCallback))及[帧提交契约](https://developer.android.com/reference/android/view/ViewTreeObserver#registerFrameCommitCallback(java.lang.Runnable))。
 
 实际首屏PNG增加像素回归：在显式深色主题下检查排除原生状态/导航栏的内容区域多数为深色，防止DOM/触摸通过但取证仍白屏。截图来自真实screencap并等待帧提交，不创建替代图片或放宽图谱实体触摸断言。此取证检查将随正式完整UI门禁执行。
+
+[实际帧取证38296564937](https://github.com/veryy/Solvit/actions/runs/38296564937)成功。查看产物PNG确认深色图谱、两个实际记忆节点和有向边、完整底部入口与编辑详情；原PNG仅因未等下一次实际draw而捕获初始画面。本轮不改业务实现。真实模拟器截图保留在`docs/screenshots/0.22.0`，均为固定测试资料，不包含用户记录。正式标签门禁继续执行实际PNG像素检查。
