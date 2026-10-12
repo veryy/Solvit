@@ -33,3 +33,5 @@ AndroidX参考：[Actions.kt](https://android.googlesource.com/platform/framewor
 读取Operit实际ModelConfigScreen.kt、ModelApiSettingsSection.kt及ComposeDslTextFieldEchoGuardTest.kt，核对Provider条件字段和编辑焦点状态边界；没有复制LGPL源码。当前Solvit协议按钮/菜单未清理仍在编辑的配置名称焦点，假设它导致IME重排及bring-into-view与列表滚动互相抢位置。聚焦原模型设置操作并增加协议选择后名称不再处于文本编辑焦点的回归，先在旧实现观察结果，再决定修复；不放宽超时、不跳过原滚动/保存/三次重开断言。
 
 聚焦旧实现[38300906008](https://github.com/veryy/Solvit/actions/runs/38300906008)失败于新增焦点回归：期望0个编辑中的model_profile_name，实际1个Focused=true。确认协议选择没有结束旧文本编辑。候选在FullScreenPage内部取得实际Dialog的LocalFocusManager/键盘控制器，打开协议与Provider参数菜单前clearFocus(force=true)并hide，不清空输入内容。仍需验证原模型名滚动/输入和保存/三次重开，才能判断原失败是否解决；当前仅确认焦点缺陷，不把假设和最终根因混为一谈。
+
+修正焦点的80bcd98在[38301626397](https://github.com/veryy/Solvit/actions/runs/38301626397)聚焦用例成功，新增无编辑焦点断言及原模型名滚动/输入、参数保存、三次重开全部执行。完整正式门禁仍待成功，不能把单用例等同全部发布验收。

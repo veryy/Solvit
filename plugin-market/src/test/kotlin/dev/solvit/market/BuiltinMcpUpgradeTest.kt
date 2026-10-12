@@ -96,4 +96,22 @@ class BuiltinMcpUpgradeTest {
             } finally { page.close() }
         }
     }
+    @Test fun originalWebSearchUpgradesWithoutLosingEnabledStateOrEncryptedProviderSettings() = runBlocking<Unit> {
+        fixture { market, config, _ ->
+            val app = RuntimeEnvironment.getApplication()
+            val file = File(app.filesDir, "extensions/dev.solvit.web-search.solvit.json")
+            file.writeBytes(javaClass.getResourceAsStream("/web-search-1.2.0.solvit.json")!!.use { it.readBytes() })
+            config.write("dev.solvit.web-search", mapOf("provider" to "tavily", "apiKey" to "fixture-search-upgrade-token"))
+            app.getSharedPreferences("extension_permissions", 0).edit()
+                .putBoolean("seeded.dev.solvit.web-search.solvit.json", true)
+                .putBoolean("enabled.dev.solvit.web-search", true)
+                .putStringSet("grants.dev.solvit.web-search", setOf("network")).commit()
+            market.restore()
+            val installed = market.installed.value.single { it.id == "dev.solvit.web-search" }
+            assertEquals("1.2.1", installed.version); assertTrue(installed.enabled)
+            assertEquals("tavily", config.read("dev.solvit.web-search")["provider"])
+            assertEquals("fixture-search-upgrade-token", config.read("dev.solvit.web-search")["apiKey"])
+        }
+    }
+
 }

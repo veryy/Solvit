@@ -27,3 +27,9 @@
 时效检查 [38163223079](https://github.com/veryy/Solvit/actions/runs/38163223079) 已通过；实际网页正文包含独立从 Kotlin 官方发布接口取得的当前稳定版本。27 个模拟器测试无失败、错误或跳过。标签发布新增公网来源与时效检查门禁，失败时不发布 APK。
 
 0.16.0 已发布：[标签 Actions 38163370140](https://github.com/veryy/Solvit/actions/runs/38163370140) 全部成功，包括 159 个单元、27 个模拟器测试（均无失败、错误或跳过）、Lint、APK、签名、TS/市场、公网来源及官方当前版本核对。公开 APK 下载返回 HTTP 200，22,641,279 字节，与 Release 资产大小一致；[下载入口](https://github.com/veryy/Solvit/releases/download/v0.16.0/solvit-debug.apk)。真实模型最终引用、真机与更广泛搜索问题集继续验收，后续推进上下文预算和自动记忆。
+
+## 0.22.2公开搜索故障候选
+
+0.22.1正式门禁两次在最新版查询遇www.bing.com人机验证及DDG错误，前两查询可得到官方来源。再次读取锁定Operit `examples/various_search.ts`的search_bing（实际cn.bing.com/search入口）、多平台分派，以及`standard/StandardWebVisitTool.kt`的WebView观察/正文边界。Solvit浏览器入口此前只尝试www与DDG，cn仅用于RSS。候选1.2.1在浏览器先尝试普通cn必应页面，再www/DDG，保持来源过滤、无凭据页面访问和原完整相关性/正文/当前官方版本检查；未复制LGPL代码，也不处理或破解人机验证。
+
+新增区域入口不可用时真正返回备用源数据及不转发密钥的SDK回归；保留原1.2.0下载包，原包精确哈希升级时保留加密搜索配置及启用/授权的Android回归。实际公网运行与远程生成尚待观察，不能宣称已经解决搜索可用性。

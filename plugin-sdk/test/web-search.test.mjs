@@ -55,7 +55,7 @@ test('browser search unwraps engine redirects, bounds and deduplicates safe sour
   const target='https://example.com/中文?q=1';
   const encoded=Buffer.from(target).toString('base64url');
   const {tools,ctx}=await plugin({apiKey:'PRIVATE'},undefined,async (...args) => {
-    assert.equal(args.length,1); assert.equal(args[0],'https://www.bing.com/search?q=Solvit');
+    assert.equal(args.length,1); assert.equal(args[0],'https://cn.bing.com/search?q=Solvit');
     return {url:args[0],title:'Search',text:'',truncated:false,links:[
       {url:'https://cn.bing.com/settings',title:'Settings',snippet:''},
       {url:'https://www.bing.com/ck/a?u=a1'+encoded,title:'Solvit 中文',snippet:'Useful source'},
@@ -73,13 +73,13 @@ test('browser search unwraps engine redirects, bounds and deduplicates safe sour
 test('browser denial falls back to DuckDuckGo and unwraps its source URL',async () => {
   const visits=[];
   const {tools,ctx}=await plugin({},undefined,async url => {
-    visits.push(url); if(visits.length===1) throw new Error('blocked');
+    visits.push(url); if(!url.startsWith('https://html.duckduckgo.com/')) throw new Error('blocked');
     return {url,title:'Search',text:'',truncated:false,links:[
       {url:'https://duckduckgo.com/l/?uddg='+encodeURIComponent('https://example.com/guide'),title:'中文 question guide',snippet:'Guide body'},
     ]};
   });
   const result=await tools.search({query:'中文 question'},ctx);
-  assert.equal(visits.length,2); assert.match(visits[1],/^https:\/\/html\.duckduckgo\.com\/html\/\?q=/);
+  assert.equal(visits.length,3); assert.match(visits[2],/^https:\/\/html\.duckduckgo\.com\/html\/\?q=/);
   assert.equal(result.provider,'duckduckgo-browser'); assert.equal(result.results[0].url,'https://example.com/guide');
 });
 test('RSS fallback rejects unrelated results and has a bounded HTTP timeout',async () => {
@@ -111,4 +111,19 @@ test('a redirected engine home page is never treated as search results',async ()
   });
   const result=await tools.search({query:'Solvit'},ctx);
   assert.equal(visits,2); assert.equal(result.results.length,0); assert.ok(result.error);
+});
+
+test('regional browser failure still obtains real result data from the alternate Bing origin',async () => {
+  const visits=[];
+  const {tools,ctx}=await plugin({apiKey:'PRIVATE'},undefined,async (...args)=>{
+    assert.equal(args.length,1);const url=args[0];visits.push(url);
+    if(url.startsWith('https://cn.bing.com/'))throw new Error('Public origin unavailable');
+    return {url,title:'Search',text:'',truncated:false,links:[
+      {url:'https://example.com/kotlin-guide',title:'Kotlin official guide',snippet:'Kotlin documentation'},
+    ]};
+  });
+  const result=await tools.search({query:'Kotlin'},ctx);
+  assert.deepEqual(visits,['https://cn.bing.com/search?q=Kotlin','https://www.bing.com/search?q=Kotlin']);
+  assert.equal(result.provider,'bing-browser');assert.equal(result.results[0].url,'https://example.com/kotlin-guide');
+  assert.equal(JSON.stringify(result).includes('PRIVATE'),false);
 });

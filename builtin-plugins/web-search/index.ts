@@ -19,7 +19,7 @@ function xmlText(value: string): string {
 }
 async function publicSearch(query: string, limit: number, ctx: PluginContext): Promise<JsonValue> {
   if (ctx.web) {
-    for (const origin of ['https://www.bing.com', 'https://html.duckduckgo.com']) {
+    for (const origin of ['https://cn.bing.com', 'https://www.bing.com', 'https://html.duckduckgo.com']) {
       try {
         const page = await ctx.web.visit(origin + (origin.includes('duckduckgo') ? '/html/?q=' : '/search?q=') + encodeURIComponent(query));
         // Public engines can redirect to a home/captcha page with valid unrelated links.
