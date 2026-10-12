@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.collect
 /** Uses service contracts; plugin-specific business logic lives in JS/TS. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, onDismiss: () -> Unit) {
+fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, embedded: Boolean = false, onDismiss: () -> Unit) {
     var session by remember { mutableStateOf<ExtensionPageSession?>(null) }
     var snapshot by remember { mutableStateOf<ExtensionPageSnapshot?>(null) }
     var view by remember { mutableStateOf<ScriptPageView?>(null) }
@@ -41,11 +41,8 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, on
         catch (_: Exception) { busy = false; error = "插件页面无法打开，请检查启用状态和权限。" }
         finally { withContext(NonCancellable) { owned?.close() } }
     }
-    FullScreenPage(onDismiss, secure = document?.sensitive == true) {
-        Scaffold(topBar = { TopAppBar(title = { Text(view?.title ?: title) }, navigationIcon = {
-            IconButton(onClick = onDismiss, modifier = Modifier.testTag("plugin_page_close")) { UiIcon(Icons.Default.Close, "关闭插件界面") }
-        }) }) { padding ->
-            Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
+    val content: @Composable (Modifier) -> Unit = { modifier ->
+            Column(modifier.fillMaxSize()) {
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { UiText(it, Modifier.padding(12.dp).testTag("plugin_page_error"), color = MaterialTheme.colorScheme.error) }
                 view?.let { displayed ->
@@ -67,6 +64,10 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, on
                     }
                 }
             }
-        }
+    }
+    if (embedded) content(Modifier) else FullScreenPage(onDismiss, secure = document?.sensitive == true) {
+        Scaffold(topBar = { TopAppBar(title = { Text(view?.title ?: title) }, navigationIcon = {
+            IconButton(onClick = onDismiss, modifier = Modifier.testTag("plugin_page_close")) { UiIcon(Icons.Default.Close, "关闭插件界面") }
+        }) }) { padding -> content(Modifier.padding(padding).consumeWindowInsets(padding)) }
     }
 }

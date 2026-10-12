@@ -667,9 +667,11 @@ class ChatLayoutTest {
         rule.onNodeWithText("Shell 2").assertIsDisplayed()
         screenshot("workspace-shell-real-process")
         rule.onNodeWithText("工作目录").performClick()
-        rule.onNodeWithText("新建文本").assertIsDisplayed()
-        rule.onNodeWithText("插件草稿", substring = true).assertIsDisplayed()
-        screenshot("workspace-directory")
+        val html = HtmlPageProbe(rule.activity)
+        rule.waitUntil(10_000) { runCatching { html.js("window.pluginPageReady===true && !!document.querySelector('[data-node=drafts]')") == "true" }.getOrDefault(false) }
+        html.js("document.querySelector('[data-node=directory]').click()")
+        rule.waitUntil(10_000) { runCatching { html.js("!!document.querySelector('[data-node=new]') && !document.querySelector('[data-node=new]').disabled") == "true" }.getOrDefault(false) }
+        html.screenshot("workspace-directory")
     }
     @Test fun javascriptPluginCanCreateShellAndRunActualAndroidCommand() {
         ready()

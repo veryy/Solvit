@@ -22,6 +22,9 @@ import dev.solvit.core.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, createOnOpen: Boolean = false, onDismiss: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val directoryManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context) }
+    val locale = LocalUiLanguage.current
     val executionModes by system.modes.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
     val jobs by vm.jobs.collectAsStateWithLifecycle()
@@ -29,12 +32,6 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     val id by vm.workspaceId.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
-    val fileText by vm.fileText.collectAsStateWithLifecycle()
-    val location by vm.location.collectAsStateWithLifecycle()
-    val directory by vm.directory.collectAsStateWithLifecycle()
-    val files by vm.files.collectAsStateWithLifecycle()
-    val drafts by vm.drafts.collectAsStateWithLifecycle()
-    val preview by vm.preview.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
     var chooser by remember { mutableStateOf(false) }
     var creating by remember { mutableStateOf(createOnOpen) }
@@ -43,9 +40,6 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     var command by rememberSaveable(id, shellId) { mutableStateOf("") }
     var interactive by rememberSaveable(id) { mutableStateOf(false) }
     var selectedTerminal by rememberSaveable(id, shellId) { mutableStateOf<String?>(null) }
-    var path by rememberSaveable(id) { mutableStateOf("notes.txt") }
-    var editor by rememberSaveable(id) { mutableStateOf(false) }
-    var showDrafts by rememberSaveable(id) { mutableStateOf(false) }
     val shells = state.shells.filter { it.workspaceId == id }
     val activeShell = shellId ?: shells.firstOrNull()?.id
     val shellTerminals = terminals.filter { it.workspaceId == id && it.shellId == activeShell }
@@ -142,56 +136,13 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                         } }, enabled = !busy && activeShell != null && (command.isNotBlank() || interactive)) { UiText(if (interactive) "发送输入" else "运行") }
                     }
                 } else {
-                    LazyColumn(Modifier.weight(1f).fillMaxWidth(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        item { SelectionContainer { Text(location + if (directory.isEmpty()) "" else "/$directory", style = MaterialTheme.typography.bodySmall) } }
-                        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (directory.isNotEmpty()) TextButton(onClick = { vm.browse(directory.substringBeforeLast('/', "")) }, enabled = !busy) { UiText("上级目录") }
-                            TextButton(onClick = { vm.browse(directory) }, enabled = !busy) { UiText("刷新") }
-                            TextButton(onClick = { path = if (directory.isEmpty()) "notes.txt" else "$directory/notes.txt"; editor = true }, enabled = !busy) { UiText("新建文本") }
-                        } }
-                        if (files.isEmpty()) item { UiText("目录为空", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                        items(files, key = { it.path }) { file ->
-                            OutlinedButton(onClick = { if (file.directory) vm.browse(file.path) else { path = file.path; editor = true; vm.read(file.path) } },
-                                enabled = !busy, modifier = Modifier.fillMaxWidth()) { UiText(uiString(if (file.directory) "目录  " else "文件  ") + file.name) }
-                        }
-                        if (editor) {
-                        item { OutlinedTextField(path, { path = it }, label = { UiText("工作区内相对路径") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
-                        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(onClick = { vm.read(path) }, enabled = !busy && id != null) { UiText("读取") }
-                            Button(onClick = { vm.write(path) }, enabled = !busy && id != null) { UiText("保存") }
-                        } }
-                        item { OutlinedTextField(fileText, { vm.fileText.value = it }, label = { UiText("文本内容") }, minLines = 12, modifier = Modifier.fillMaxWidth()) }
-                        }
-                        item { TextButton(onClick = { showDrafts = !showDrafts }) { UiText("插件草稿 (${drafts.count { it.workspaceId == id }})") } }
-                        if (showDrafts) {
-                        item { UiText("AI 生成的 JS 插件包保存在此工作目录。查看代码和权限后安装；到插件页单独启用。") }
-                        items(drafts.filter { it.workspaceId == id }.reversed(), key = { it.id }) { draft ->
-                            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(16.dp)) {
-                                Text(draft.name, style = MaterialTheme.typography.titleMedium)
-                                Text("${draft.pluginId} · ${draft.version}")
-                                UiText("已通过启动校验 · 尚未自动安装", style = MaterialTheme.typography.bodySmall)
-                                TextButton(onClick = { vm.review(draft) }, enabled = !busy) { UiText("查看代码并安装") }
-                            } }
-                        }
-                        }
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        key(locale) { PluginPageScreen("工作目录", { vm.directoryPage(directoryManager, locale) }, embedded = true) {} }
                     }
-                }
                 }
             }
         }
     }
-    preview?.let { (draft, text) -> FullScreenPage(onDismissRequest = { if (!busy) vm.preview.value = null }) {
-        Scaffold(topBar = { TopAppBar(title = { UiText("审阅 ${draft.name}") }, navigationIcon = {
-            IconButton(onClick = { vm.preview.value = null }, enabled = !busy) { UiIcon(Icons.Default.Close, "关闭草稿") }
-        }) }, bottomBar = { Button(onClick = { vm.install(draft) }, enabled = !busy,
-            modifier = Modifier.padding(16.dp).fillMaxWidth()) { UiText(if (busy) "安装中…" else "安装为停用插件") } }) { padding ->
-            LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                item { UiText("所需权限：${draft.permissions.joinToString().ifBlank { "无" }}\n同 ID 的已安装插件会被替换并停用，启用时需重新授权。") }
-                error?.let { message -> item { UiText(message, color = MaterialTheme.colorScheme.error) } }
-                item { SelectionContainer { Text(text, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall) } }
-            }
-        }
-    } }
     if (chooser) AlertDialog(onDismissRequest = { chooser = false }, title = { UiText("绑定工作区") }, text = {
         LazyColumn(Modifier.heightIn(max = 360.dp)) {
             items(state.workspaces, key = { it.id }) { workspace -> TextButton(onClick = { vm.bind(workspace.id); chooser = false }, modifier = Modifier.fillMaxWidth()) {

@@ -21,16 +21,24 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
     val preview = MutableStateFlow<Pair<PluginDraft, String>?>(null)
     fun review(draft: PluginDraft) = operation { preview.value = draft to plugins.payload(draft.id) }
     fun install(draft: PluginDraft) = operation { plugins.install(draft.id, draft.sha256); preview.value = null }
+    fun directoryPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
+        manager.openPage(locale, pageAccess(canInstallDrafts = true))
+    fun pageAccess(canInstallDrafts: Boolean = false): PageWorkspaceAccess =
+        dev.solvit.market.WorkspacePageBridge(service, plugins, checkNotNull(chatId), canInstallDrafts) { chatId }
     private var chatId: String? = null
     private var selection: Job? = null
     fun selectChat(id: String?) {
         if (id == chatId) return
         selection?.cancel(); chatId = id; workspaceId.value = null; fileText.value = ""; error.value = null
         if (id != null) selection = viewModelScope.launch {
-            try { val value = service.bound(id); if (chatId == id) {
-                workspaceId.value = value?.id
-                if (value != null) loadDirectory(value.id, "") else { location.value = ""; directory.value = ""; files.value = emptyList() }
-            } }
+            try {
+                service.state.map { it.bindings[id] }.distinctUntilChanged().collectLatest { bound ->
+                    if (chatId == id) {
+                        workspaceId.value = bound; fileText.value = ""
+                        if (bound != null) loadDirectory(bound, "") else { location.value = ""; directory.value = ""; files.value = emptyList() }
+                    }
+                }
+            }
             catch (e: CancellationException) { throw e }
             catch (e: Exception) { error.value = "无法打开工作区" }
         }

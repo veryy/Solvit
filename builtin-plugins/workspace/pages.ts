@@ -1,5 +1,5 @@
 import type {PluginContext,PluginPageInput,PluginPageView,PageNode,JsonObject,PageHostAction} from '../../plugin-sdk/src/index';
-type W={id:string;name:string};type Snapshot={workspaceId:string|null;workspaces:W[];shells:W[]};
+type W={id:string;name:string};type Snapshot={workspaceId:string|null;workspaces:W[];shells:W[];draftInstallAllowed:boolean};
 type FileEntry={name:string;path:string;directory:boolean;bytes:number};
 type Draft={id:string;name:string;pluginId:string;version:string;sha256:string;permissions:string[]};
 type Button=Extract<PageNode,{kind:'button'}>;
@@ -22,7 +22,15 @@ export function workspacePage(){
   const list=async()=>{const result=await api.query('list',{path:directory,offset}) as unknown as {files:FileEntry[];total:number};files=result.files;total=result.total};
   const loadDrafts=async()=>{drafts=await api.query('drafts') as unknown as Draft[]};
   const loadDraft=async()=>{if(!selected)return;const result=await api.query('draft',{id:selected.id,offset:draftOffset}) as unknown as {text:string;total:number;sha256:string};if(result.sha256!==selected.sha256)throw Error('Draft changed');draftText=result.text;draftTotal=result.total};
-  const prepare=(operation:Extract<PageHostAction,{kind:'workspace.perform'}>['operation'],args:JsonObject)=>{returnMode=mode;pending={kind:'workspace.perform',operation,arguments:args};mode='preview'};
+  const prepare=(operation:Extract<PageHostAction,{kind:'workspace.perform'}>['operation'],args:JsonObject)=>{
+   if(operation==='create'||operation==='createShell'){const name=String(args.name);if(!name.trim()||name.length>80||/[\u0000-\u001f\u007f]/.test(name))throw Error('Invalid name')}
+   if(operation==='write'){
+    const target=String(args.path),content=String(args.text);
+    const bytes=Array.from(content).reduce((n,c)=>n+((c.codePointAt(0)??0)>65535?4:(c.codePointAt(0)??0)>2047?3:(c.codePointAt(0)??0)>127?2:1),0);
+    if(!target||target.length>1024||target.startsWith('/')||target.split('/').includes('..')||content.includes('\u0000')||bytes>4096)throw Error('Invalid path or text exceeds 4 KB');
+   }
+   returnMode=mode;pending={kind:'workspace.perform',operation,arguments:args};mode='preview';
+  };
   if(event){
    message='';try{
     const action=event.action;
@@ -98,7 +106,7 @@ export function workspacePage(){
    footer.push(button('home',t[8]),button('refresh',t[9]));
   }else if(mode==='draft'&&selected){
    nodes.push(text('draft_name',selected.name,'title'),text('draft_sha',selected.sha256,'caption'),text('permissions',t[27]+': '+selected.permissions.join(', ')),text('source',draftText));
-   footer.push(button('drafts',t[8]),button('prepareInstall',t[25]));if(draftOffset>0)footer.push(button('draftPrev',t[17]));if(draftOffset+16000<draftTotal)footer.push(button('draftNext',t[18]));
+   footer.push(button('drafts',t[8]),{...button('prepareInstall',t[25]),enabled:snapshot.draftInstallAllowed});if(draftOffset>0)footer.push(button('draftPrev',t[17]));if(draftOffset+16000<draftTotal)footer.push(button('draftNext',t[18]));
   }
   return {title:t[0],nodes,footer};
  };

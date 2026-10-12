@@ -70,12 +70,13 @@ class AndroidMarketplace(
                 }
                 // Upgrade byte-identical original bundled packages. Keep
                 // enabled state and never replace a modified/user-installed package.
-                if (name in setOf("dev.solvit.clock.solvit.json", "dev.solvit.web-search.solvit.json", "dev.solvit.mcp.solvit.json", "dev.solvit.memory.solvit.json", "dev.solvit.skills.solvit.json")) {
+                if (name in setOf("dev.solvit.clock.solvit.json", "dev.solvit.web-search.solvit.json", "dev.solvit.mcp.solvit.json", "dev.solvit.memory.solvit.json", "dev.solvit.skills.solvit.json", "dev.solvit.workspace.solvit.json")) {
                     val base = File(directory, name)
                     if (base.isFile && base.length() <= ScriptPackage.MAX_BYTES) {
                         val original = AtomicFile(base).readFully()
                         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(original).joinToString("") { "%02x".format(it) }
-                        val originals = if (name == "dev.solvit.mcp.solvit.json") setOf("c2c4ad230e7ce37d841314deb162bc8e70d84ec40f1c1bbb8be47b0bb95d80fe", "111d17a33de9272b9b645e54ddc599aaed909e45960231b3254ba4dcb05f0f2c")
+                        val originals = if (name == "dev.solvit.workspace.solvit.json") setOf("7d80dbfc71c177b3a2a81df5c15bfa05b6d0cb274baf536a5d179dad55ce0004")
+                            else if (name == "dev.solvit.mcp.solvit.json") setOf("c2c4ad230e7ce37d841314deb162bc8e70d84ec40f1c1bbb8be47b0bb95d80fe", "111d17a33de9272b9b645e54ddc599aaed909e45960231b3254ba4dcb05f0f2c")
                             else if (name == "dev.solvit.skills.solvit.json") setOf("0c51650719024e18c45a38b8e631946972881d1953302ea92751263a276308a6", "585a182857fb58b2870f048cbdecef12d90b91859a09fe6870a3e0cbe359a3b2")
                             else if (name == "dev.solvit.memory.solvit.json") setOf("096b82abcd7f09de4a3445e05a13c3fc16c7f3a1c6e8b0d07c85f0bbd1741ffd", "7cce19572a842767f37dc21ade02762b08da4248a11558658debce9ebdd2915e")
                             else if (name == "dev.solvit.web-search.solvit.json") setOf("91dc9957e6c259626dbeba07d8ceb19799f36d000688e2532b322e0f860a409f", "914771c881ee879d0abecaecca48bb5627f9c6509afdf9ff06efe5af90b218bd", "175c0f5b7fdff2307d59462d31318a9773df27b8ac342a7376fc63c2bc96e39a") else setOf("511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445",

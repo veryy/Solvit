@@ -59,6 +59,11 @@ test('catalog downloads match their declared integrity and expose no write API',
     const api11 = await (await fetch(base + '/api/v1/plugins?hostApi=11')).json();
     const htmlSkills = api11.plugins.find(plugin => plugin.id === 'dev.solvit.skills');
     assert.equal(htmlSkills.version, '1.1.1'); assert.equal(htmlSkills.apiVersion, 11);
+    const api12 = await (await fetch(base + '/api/v1/plugins?hostApi=12')).json();
+    const htmlWorkspace = api12.plugins.find(plugin => plugin.id === 'dev.solvit.workspace');
+    assert.equal(htmlWorkspace.version, '1.1.0'); assert.equal(htmlWorkspace.apiVersion, 12);
+    assert.equal(htmlWorkspace.pages[0].entry, 'ui/index.html');
+    assert.equal(api11.plugins.find(plugin => plugin.id === 'dev.solvit.workspace').version, '1.0.0');
     assert.equal(htmlSkills.pages[0].entry, 'ui/index.html');
     const oldSkillsBytes = Buffer.from(await (await fetch(base + previousSkills.downloadPath)).arrayBuffer());
     assert.deepEqual(oldSkillsBytes, await readFile(new URL('./packages/legacy/dev.solvit.skills-1.0.2.solvit.json', import.meta.url)));
@@ -76,7 +81,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.deepEqual(previousSearch, await readFile(new URL('./packages/legacy/dev.solvit.web-search-1.2.0.solvit.json', import.meta.url)));
     assert.equal(api5.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.1.0');
     assert.ok(api4.plugins.every(plugin => plugin.apiVersion <= 4));
-    for (const plugin of [...api5.plugins, ...api7.plugins, ...api8.plugins, ...api9.plugins, ...api10.plugins, ...api11.plugins]) {
+    for (const plugin of [...api5.plugins, ...api7.plugins, ...api8.plugins, ...api9.plugins, ...api10.plugins, ...api11.plugins, ...api12.plugins]) {
       const response = await fetch(base + plugin.downloadPath);
       assert.equal(response.status, 200);
       const bytes = Buffer.from(await response.arrayBuffer());

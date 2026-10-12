@@ -9,7 +9,8 @@ import kotlinx.serialization.json.*
 
 /** One captured conversation. A background rebind invalidates it; it never follows another chat. */
 class WorkspacePageBridge(private val service: WorkspaceService, private val drafts: PluginDraftService?,
-    private val chatId: String, private val activeChat: () -> String? = { chatId }) : PageWorkspaceAccess {
+    private val chatId: String, private val canInstallDrafts: Boolean = false,
+    private val activeChat: () -> String? = { chatId }) : PageWorkspaceAccess {
     init { require(chatId.isNotBlank() && chatId.length <= 128) }
     private val mutex = Mutex()
     private var binding = service.state.value.bindings[chatId]
@@ -20,6 +21,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     private fun workspace() = checkNotNull(binding) { "此对话尚未绑定工作区" }
     private fun snapshot(): JsonObject = buildJsonObject {
         put("workspaceId", binding?.let(::JsonPrimitive) ?: JsonNull)
+        put("draftInstallAllowed", canInstallDrafts)
         put("workspaces", buildJsonArray { service.state.value.workspaces.forEach { w -> add(buildJsonObject { put("id", w.id); put("name", w.name) }) } })
         put("shells", buildJsonArray { service.state.value.shells.filter { it.workspaceId == binding }.forEach { s -> add(buildJsonObject { put("id", s.id); put("name", s.name) }) } })
     }
@@ -93,6 +95,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                 "createShell" -> service.createShell(workspace(), text("name"))
                 "write" -> service.writeForEdit(workspace(), text("path"), text("text"), args.getValue("expectedSha256").let { if (it == JsonNull) null else it.jsonPrimitive.content })
                 "installDraft" -> {
+                    check(canInstallDrafts) { "此页面未获插件草稿安装授权" }
                     val d = checkNotNull(drafts).drafts.value.first { it.id == text("id") && it.workspaceId == workspace() && it.sha256 == text("sha256") }
                     verify(authorize); drafts.install(d.id, d.sha256)
                 }

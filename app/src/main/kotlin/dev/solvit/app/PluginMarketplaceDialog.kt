@@ -28,7 +28,7 @@ import dev.solvit.core.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
+fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean) -> dev.solvit.core.PageWorkspaceAccess)? = null, onDismiss: () -> Unit) {
     val installed by vm.installed.collectAsStateWithLifecycle()
     val catalog by vm.catalog.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
@@ -169,7 +169,12 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
     openedPage?.let { (pluginId, page) ->
         val locale = LocalUiLanguage.current
         key(pluginId, page.id, locale) {
-            PluginPageScreen(page.title, { vm.openPage(pluginId, page.id, locale) }) { openedPage = null }
+            PluginPageScreen(page.title, {
+                vm.openPage(pluginId, page.id, locale).also { session ->
+                    val permissions = installed.firstOrNull { it.id == pluginId }?.permissions.orEmpty()
+                    if ("workspace" in permissions) workspaceAccess?.invoke("plugins" in permissions)?.let(session::attachWorkspace)
+                }
+            }) { openedPage = null }
         }
     }
 }
