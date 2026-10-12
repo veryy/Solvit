@@ -33,6 +33,10 @@ interface WorkspaceService {
     suspend fun snapshot(workspaceId: String): WorkspaceSnapshot = WorkspaceSnapshot(workspaceId,emptyMap(),false,System.currentTimeMillis())
     suspend fun list(workspaceId: String, path: String = ""): List<WorkspaceFile> { error("工作区目录服务不可用") }
     suspend fun read(workspaceId: String, path: String): String
+    suspend fun readForEdit(workspaceId: String, path: String): WorkspaceTextFile { error("安全文本编辑服务不可用") }
+    suspend fun writeForEdit(workspaceId: String, path: String, text: String, expectedSha256: String?): WorkspaceWriteEvidence {
+        error("安全文本编辑服务不可用")
+    }
     suspend fun write(workspaceId: String, path: String, text: String)
     suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence {
         write(workspaceId,path,text)

@@ -1,5 +1,6 @@
 import { definePlugin } from '../../plugin-sdk/src/index';
-export default definePlugin({ tools: {
+import {workspacePage} from './pages';
+export default definePlugin({ pages:{main:workspacePage()},tools: {
   info: (args, ctx) => ctx.workspace!.call('info', args),
   read_file: (args, ctx) => ctx.workspace!.call('read', args),
   write_file: (args, ctx) => ctx.workspace!.call('write', args),

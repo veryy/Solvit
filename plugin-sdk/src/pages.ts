@@ -1,5 +1,6 @@
 /** Page state and validated actions. API10 HTML owns layout; API9 uses native widgets. */
 export type PageHostAction =
+  | { kind:'workspace.perform'; operation:'create'|'createShell'|'bind'|'unbind'|'write'|'installDraft'; arguments:Record<string,import('./index.js').JsonValue> }
   | { kind:'document.open'; mimeTypes:string[]; maxBytes:number }
   | { kind:'document.save'; name:string; mimeType:string; maxBytes:number }
   | { kind:'postTurn.retry'; jobId:string; attempt:number }

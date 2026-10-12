@@ -58,6 +58,7 @@ internal class MarketplacePages(
         }
         override suspend fun document(): ExtensionPageDocument? { authorize(); return engine.document() }
         override fun attachDocuments(access: PageDocumentAccess) { authorize(); engine.attachDocuments(access) }
+        override fun attachWorkspace(access: PageWorkspaceAccess) { authorize(); engine.attachWorkspace(access) }
         override suspend fun resource(path: String): ExtensionPageResource { authorize(); return engine.resource(path) }
         private fun snapshot(next: ScriptPageView): ExtensionPageSnapshot {
             authorize(); view = next; revision++

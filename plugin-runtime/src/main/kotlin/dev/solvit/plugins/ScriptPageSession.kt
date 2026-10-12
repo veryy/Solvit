@@ -7,6 +7,7 @@ import kotlinx.coroutines.withContext
 import dev.solvit.core.ExtensionPageDocument
 import dev.solvit.core.ExtensionPageResource
 import dev.solvit.core.PageDocumentAccess
+import dev.solvit.core.PageWorkspaceAccess
 
 /** One independent QuickJS instance per open page, owned and closed by the host UI. */
 class ScriptPageSession(
@@ -27,6 +28,11 @@ class ScriptPageSession(
     private var view: ScriptPageView? = null
     @Volatile private var opened = false
     private var documents: PageDocumentAccess? = null
+    private var workspace: PageWorkspaceAccess? = null
+    fun attachWorkspace(access: PageWorkspaceAccess) {
+        check(!opened && !closed && workspace == null)
+        workspace = access
+    }
     private suspend fun authorize() { check(!closed); ensureAuthorized() }
     fun attachDocuments(access: PageDocumentAccess) {
         check(!opened && !closed && documents == null)
@@ -75,7 +81,7 @@ class ScriptPageSession(
     private suspend fun render(event: kotlinx.serialization.json.JsonObject?, approvedAction: kotlinx.serialization.json.JsonObject? = null): ScriptPageView {
         check(!closed)
         ensureAuthorized()
-        val invocation = ScriptPageExecutionContext(authority.pluginId, { authorize() }, approvedAction, documents)
+        val invocation = ScriptPageExecutionContext(authority.pluginId, { authorize() }, approvedAction, documents, workspace)
         val next = withContext(invocation) { executor.page(pageId, locale, event) }
         check(!closed)
         ensureAuthorized()
@@ -88,7 +94,7 @@ class ScriptPageSession(
         // Interrupt work before waiting for the page mutex; repeat after a racing start.
         withContext(NonCancellable) {
             executor.stop()
-            mutex.withLock { executor.stop(); view = null; documents = null }
+            mutex.withLock { executor.stop(); view = null; documents = null; workspace = null }
         }
     }
 }

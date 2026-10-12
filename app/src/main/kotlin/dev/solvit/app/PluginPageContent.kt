@@ -88,8 +88,14 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                 val metadata = node["hostAction"]?.jsonObject
                 val file = metadata?.takeIf { it["kind"]?.jsonPrimitive?.content?.startsWith("document.") == true }
                     ?.let(ScriptPageHostAction::document)
-                val native = metadata?.takeIf { file == null }?.let(ScriptPageHostAction::parse)
-                if (file != null) {
+                val workspace = metadata?.takeIf { it["kind"] == JsonPrimitive("workspace.perform") }?.let(ScriptPageHostAction::workspace)
+                val native = metadata?.takeIf { file == null && workspace == null }?.let(ScriptPageHostAction::parse)
+                if (workspace != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(workspace.operation)
+                        SelectionContainer { Text(workspace.argumentsJson) }
+                    }
+                } else if (file != null) {
                     UiText(when(file) {
                         is PageDocumentControl.Open -> "在系统文件选择器中选择一个文本文件或文本ZIP。只读取选中的文件。"
                         is PageDocumentControl.Save -> "在系统文件选择器中选择保存位置：${file.name}"

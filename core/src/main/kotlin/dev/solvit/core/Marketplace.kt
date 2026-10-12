@@ -22,6 +22,7 @@ interface ExtensionPageSession {
     suspend fun resource(path: String): ExtensionPageResource { error("此页面没有离线资源") }
     /** Attached by the page owner before open; never available to model tools or Hooks. */
     fun attachDocuments(access: PageDocumentAccess) { }
+    fun attachWorkspace(access: PageWorkspaceAccess) { }
     suspend fun close()
 }
 

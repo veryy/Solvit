@@ -1,0 +1,31 @@
+name: Plugin workspace contract diagnostic
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  workspace-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Verify actual QuickJS page authority and native workspace writes
+        run: ./gradlew :core:test :plugin-runtime:testDebugUnitTest :workspace-android:testDebugUnitTest :plugin-market:testDebugUnitTest :app:compileDebugKotlin --stacktrace
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugin-workspace-contract-reports
+          path: |
+            core/build/test-results/test/
+            plugin-runtime/build/test-results/testDebugUnitTest/
+            workspace-android/build/test-results/testDebugUnitTest/
+            plugin-market/build/test-results/testDebugUnitTest/

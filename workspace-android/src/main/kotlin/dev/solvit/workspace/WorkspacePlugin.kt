@@ -80,30 +80,39 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         save(old.copy(workspaces = old.workspaces + workspace, bindings = old.bindings + (sessionId to workspace.id), shells = old.shells + shell))
         workspace
     } }
+    private suspend fun verifyPage(workspaceId: String? = null, sessionId: String? = null) {
+        currentCoroutineContext().ensureActive()
+        currentCoroutineContext()[WorkspacePageAuthority]?.verify?.invoke(workspaceId, sessionId)
+    }
     override suspend fun create(name: String): Workspace = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage()
         val workspace = workspace(name)
         save(state.value.copy(workspaces = state.value.workspaces + workspace)); workspace
     } }
     override suspend fun bind(sessionId: String, workspaceId: String) = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(sessionId = sessionId)
         require(sessionId.isNotBlank() && sessionId.length <= 128)
         directory(workspaceId)
         save(state.value.copy(bindings = state.value.bindings + (sessionId to workspaceId)))
     } }
     override suspend fun unbind(sessionId: String) = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(sessionId = sessionId)
         // Keep reusable workspaces and files when a conversation is deleted.
         save(state.value.copy(bindings = state.value.bindings - sessionId))
     } }
     override suspend fun createShell(workspaceId: String, name: String): ShellSession = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
         directory(workspaceId)
         check(state.value.shells.count { it.workspaceId == workspaceId } < 16) { "每个工作区最多 16 个 Shell 会话" }
         val shell = ShellSession(UUID.randomUUID().toString(), workspaceId, name(name))
         save(state.value.copy(shells = state.value.shells + shell)); shell
     } }
-    override suspend fun location(workspaceId: String): String = withContext(Dispatchers.IO) { directory(workspaceId).canonicalPath }
+    override suspend fun location(workspaceId: String): String = withContext(Dispatchers.IO) { lock.withLock { verifyPage(workspaceId); directory(workspaceId).canonicalPath } }
     override suspend fun snapshot(workspaceId: String): WorkspaceSnapshot = withContext(Dispatchers.IO) { lock.withLock {
         WorkspaceSnapshots.capture(workspaceId,directory(workspaceId))
     } }
     override suspend fun list(workspaceId: String, path: String): List<WorkspaceFile> = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
         val base = directory(workspaceId).canonicalFile
         val folder = if (path.isEmpty()) base else file(workspaceId, path)
         require(folder.isDirectory) { "目录不存在" }
@@ -132,8 +141,27 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             }
         }
     }
+    override suspend fun readForEdit(workspaceId: String, path: String): WorkspaceTextFile = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val observed = FileObservations.capture(file(workspaceId, path), 4096, 4096)
+        require(observed.kind == FileObservationKind.TEXT) { "编辑器只支持不超过 4KB 的 UTF-8 文本；大文件请使用 Shell。" }
+        WorkspaceTextFile(checkNotNull(observed.excerpt), checkNotNull(observed.sha256))
+    } }
+    override suspend fun writeForEdit(workspaceId: String, path: String, text: String, expectedSha256: String?): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        require(text.toByteArray(Charsets.UTF_8).size <= 4096 && '\u0000' !in text)
+        val observed = FileObservations.capture(file(workspaceId, path))
+        check(if (expectedSha256 == null) observed.kind == FileObservationKind.ABSENT else observed.sha256 == expectedSha256) {
+            "文件已变化，请重新读取后保存。"
+        }
+        writeLocked(workspaceId, path, text)
+    } }
     override suspend fun write(workspaceId: String, path: String, text: String) { writeObserved(workspaceId,path,text) }
     override suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        writeLocked(workspaceId, path, text)
+    } }
+    private fun writeLocked(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence {
         val bytes = text.toByteArray(Charsets.UTF_8)
         if(bytes.size>MAX_TEXT) throw ToolExecutionException(ToolFailureCode.FILE_TOO_LARGE)
         val target = file(workspaceId, path)
@@ -149,9 +177,9 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             FileObservations.capture(target)
         } catch(e: Exception) { throw ToolExecutionException(ToolFailureCode.WRITE_OUTCOME_UNKNOWN) }
         if(after.sha256!=FileObservations.fromBytes(bytes).sha256) throw ToolExecutionException(ToolFailureCode.WRITE_OUTCOME_UNKNOWN)
-        WorkspaceWriteEvidence(workspaceId,target.relativeTo(directory(workspaceId)).invariantSeparatorsPath,
+        return WorkspaceWriteEvidence(workspaceId,target.relativeTo(directory(workspaceId)).invariantSeparatorsPath,
             before,after,FileObservations.changed(before,after),true)
-    } }
+    }
     override suspend fun run(workspaceId: String, shellId: String, command: String, timeoutMs: Long): ShellJob {
         check(state.value.shells.any { it.id == shellId && it.workspaceId == workspaceId }) { "Shell 会话不属于此工作区" }
         val context = currentCoroutineContext()

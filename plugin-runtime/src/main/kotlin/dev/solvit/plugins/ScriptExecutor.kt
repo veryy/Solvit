@@ -47,7 +47,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
                         "model.complete" -> "model"
                         "http.request", "web.visit" -> "network"
-                        "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
+                        "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspacePage.query", "workspacePage.perform" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
                         "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
                         "plugins.draft" -> "plugins"
@@ -64,6 +64,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(operation != "model.complete" || background) { "模型调用只允许在后台 Hook 中使用" }
                     check(operation != "settings.compareAndSet" || pkg.manifest.apiVersion >= 10 && !invokeLifecycle) { "配置写入仅供 API10 插件页面使用" }
                     check(!operation.startsWith("documents.") || pkg.manifest.apiVersion >= 11 && !invokeLifecycle && !background) { "文件选择仅供 API11 插件页面使用" }
+                    check(!operation.startsWith("workspacePage.") || pkg.manifest.apiVersion >= 12 && !invokeLifecycle && !background) { "工作区页面需要 API12" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
@@ -90,6 +91,17 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             require(arguments.keys == setOf("text")) { "文件保存只接受文本" }
                             val text = arguments.getValue("text").jsonPrimitive.also { require(it.isString) }.content
                             JsonPrimitive(checkNotNull(currentCoroutineContext()[ScriptPageExecutionContext]).saveDocument(text)).toString()
+                        } else if (operation.startsWith("workspacePage.")) {
+                            val page = checkNotNull(currentCoroutineContext()[ScriptPageExecutionContext]) { "工作区页面缺少授权" }
+                            check(page.pluginId == pkg.manifest.id)
+                            if (operation == "workspacePage.perform") {
+                                require(arguments.isEmpty()) { "原生操作只能来自已确认的页面控件" }
+                                page.performWorkspace()
+                            } else {
+                                require(arguments.keys == setOf("operation", "arguments"))
+                                val query = arguments.getValue("operation").jsonPrimitive.also { require(it.isString) }.content
+                                page.queryWorkspace(query, arguments.getValue("arguments").jsonObject)
+                            }
                         } else if (operation == "clock.now") {
                             clockSnapshot().toString()
                         } else try { host.call(pkg.manifest, operation, arguments).toString() }
@@ -109,6 +121,10 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                           jobs: Object.freeze({
                             list: async (options = {}) => JSON.parse(await __solvitHostCall('jobs.list', JSON.stringify(options))),
                             perform: async () => JSON.parse(await __solvitHostCall('jobs.perform', '{}'))
+                          }),
+                          workspacePage: Object.freeze({
+                            query: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspacePage.query', JSON.stringify({operation,arguments:args}))),
+                            perform: async () => JSON.parse(await __solvitHostCall('workspacePage.perform', '{}'))
                           }),
                           workspace: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspace.' + operation, JSON.stringify(args))) }),
                           terminal: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('terminal.' + operation, JSON.stringify(args))) }),

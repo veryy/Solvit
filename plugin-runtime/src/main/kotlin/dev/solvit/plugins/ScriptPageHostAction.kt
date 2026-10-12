@@ -7,7 +7,31 @@ import kotlinx.serialization.json.*
 object ScriptPageHostAction {
     fun validate(value: JsonObject) {
         if (value["kind"]?.jsonPrimitive?.content?.startsWith("document.") == true) document(value)
+        else if (value["kind"] == JsonPrimitive("workspace.perform")) workspace(value)
         else parse(value)
+    }
+    fun workspace(value: JsonObject): PageWorkspaceControl {
+        require(value.keys == setOf("kind", "operation", "arguments") && value["kind"] == JsonPrimitive("workspace.perform"))
+        val operation = value.getValue("operation").jsonPrimitive.also { require(it.isString) }.content
+        val args = value.getValue("arguments").jsonObject
+        fun text(key: String, max: Int, empty: Boolean = false): String = args.getValue(key).jsonPrimitive.also {
+            require(it.isString && it.content.length <= max && (empty || it.content.isNotBlank()) && '\u0000' !in it.content)
+        }.content
+        val keys = when (operation) {
+            "create", "createShell" -> { text("name", 80); setOf("name") }
+            "bind" -> { text("id", 128); setOf("id") }
+            "unbind" -> emptySet()
+            "write" -> {
+                text("path", 1024); text("text", 4096, true)
+                val expected = args.getValue("expectedSha256")
+                require(expected == JsonNull || expected.jsonPrimitive.let { it.isString && it.content.matches(Regex("[a-f0-9]{64}")) })
+                setOf("path", "text", "expectedSha256")
+            }
+            "installDraft" -> { text("id", 128); require(text("sha256", 64).matches(Regex("[a-f0-9]{64}"))); setOf("id", "sha256") }
+            else -> error("Unsupported workspace page control")
+        }
+        require(args.keys == keys)
+        return PageWorkspaceControl(operation, args.toString())
     }
     fun document(value: JsonObject): PageDocumentControl {
         fun text(key: String) = value.getValue(key).jsonPrimitive.also { require(it.isString) }.content
