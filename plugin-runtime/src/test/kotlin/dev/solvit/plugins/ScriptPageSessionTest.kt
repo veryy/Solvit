@@ -26,7 +26,7 @@ class ScriptPageSessionTest {
           ]};
         }}};
     """
-    @Test fun actualQuickJsCanOnlyConsumeTheConfirmedDocumentControlOnce() = runBlocking {
+    @Test fun actualQuickJsCanOnlyConsumeTheConfirmedDocumentControlOnce() = runBlocking<Unit> {
         var opens = 0; var saves = 0; var selected: JsonElement? = null
         val page = ScriptPageSession(pkg(documentSource, 11), "manage", "zh-CN", ScriptHost { _, operation, args ->
             assertEquals("storage.set", operation); selected = args.getValue("value"); JsonNull
@@ -52,7 +52,7 @@ class ScriptPageSessionTest {
             assertFails { page.dispatch(initial, "save", confirmed = true) }; assertEquals(1, saves)
         } finally { page.close() }
     }
-    @Test fun revokedAndClosedPageCannotReceiveOrPersistAPendingFileResult() = runBlocking {
+    @Test fun revokedAndClosedPageCannotReceiveOrPersistAPendingFileResult() = runBlocking<Unit> {
         var authorized = true; var writes = 0
         val entered = CompletableDeferred<Unit>()
         val result = CompletableDeferred<PageTextDocument?>()
@@ -70,7 +70,7 @@ class ScriptPageSessionTest {
         assertTrue(invocation.await().isFailure); assertEquals(0, writes)
         page.close(); assertFails { page.dispatch(initial, "open", confirmed = true) }
     }
-    @Test fun lowerApiPagesAndModelExecutionsCannotOpenDocuments() = runBlocking {
+    @Test fun lowerApiPagesAndModelExecutionsCannotOpenDocuments() = runBlocking<Unit> {
         var opens = 0
         val host = ScriptHost { _, _, _ -> opens++; JsonNull }
         val old = ScriptPageSession(pkg(documentSource, 10), "manage", "zh-CN", host, {})

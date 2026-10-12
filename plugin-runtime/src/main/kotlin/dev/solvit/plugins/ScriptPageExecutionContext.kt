@@ -12,6 +12,7 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<ScriptPageExecutionContext>
     private val consumed = AtomicBoolean(false)
+    val documentInvocation: Boolean get() = approvedAction?.get("kind")?.toString()?.trim('"')?.startsWith("document.") == true
     suspend fun ensureAuthorized() = verify()
     suspend fun consumeTaskControl(): PostTurnTaskControl {
         ensureAuthorized()

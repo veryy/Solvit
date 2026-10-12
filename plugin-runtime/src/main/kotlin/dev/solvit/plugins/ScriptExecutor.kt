@@ -221,15 +221,20 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
     private suspend fun invoke(expression: String, readOnly: Boolean): String = mutex.withLock {
         val js = engine ?: error("插件未启用")
         withContext(Dispatchers.Default) {
+            // Human file selection may take longer than a model/tool invocation.
+            // Only a confirmed document control receives this bounded allowance.
+            val deadline = if (pkg.manifest.apiVersion >= 11 && !invokeLifecycle &&
+                currentCoroutineContext()[ScriptPageExecutionContext]?.documentInvocation == true) 180_000L else timeoutMs
             // Let the native execution deadline fire first; this also bounds
             // promises waiting on asynchronous host operations.
-            withTimeout(timeoutMs + 1_000) {
+            withTimeout(deadline + 1_000) {
                 executionJob = currentCoroutineContext().job
                 val nativeCalls = SupervisorJob(executionJob)
                 executionContext = currentCoroutineContext() + nativeCalls
                 readOnlyHost = readOnly
                 nativeToolFailure = null
                 try {
+                    js.evaluationTimeoutMillis = deadline
                     // Resolve the JS evaluation with an explicit result envelope.
                     // After Kotlin cancels an evaluation, a native binding may
                     // still reject its JS promise. Catch that rejection inside
@@ -260,6 +265,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     // async binding has finished native HTTP/Shell cleanup.
                     withContext(NonCancellable) { nativeCalls.cancel(); nativeCalls.join() }
                     executionJob = null; executionContext = null; readOnlyHost = false; nativeToolFailure = null
+                    js.evaluationTimeoutMillis = timeoutMs
                 }
             }
         }

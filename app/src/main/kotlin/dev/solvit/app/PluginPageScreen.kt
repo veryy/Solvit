@@ -24,11 +24,13 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, on
     var busy by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val documents = rememberPluginPageDocuments()
     // LaunchedEffect owns lifetime, including a racing open during dismissal.
     LaunchedEffect(Unit) {
         var owned: ExtensionPageSession? = null
         try {
             val current = open(); owned = current; session = current
+            current.attachDocuments(documents)
             val initial = current.open()
             document = current.document()
             snapshot = initial; view = ScriptPageView.parse(initial.json); busy = false

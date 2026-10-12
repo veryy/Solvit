@@ -19,7 +19,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Validate document controls and existing page contracts
-        run: ./gradlew :core:test :plugin-runtime:testDebugUnitTest --stacktrace
+        run: ./gradlew :core:test :plugin-runtime:testDebugUnitTest :app:compileDebugKotlin --stacktrace
       - uses: actions/upload-artifact@v4
         if: always()
         with:
