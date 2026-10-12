@@ -68,14 +68,15 @@ class AndroidMarketplace(
                     }
                     check(prefs.edit().putBoolean("seeded.$name", true).commit()) { "内置插件配置保存失败" }
                 }
-                // Upgrade byte-identical original bundled clock/search packages. Keep
+                // Upgrade byte-identical original bundled packages. Keep
                 // enabled state and never replace a modified/user-installed package.
-                if (name in setOf("dev.solvit.clock.solvit.json", "dev.solvit.web-search.solvit.json")) {
+                if (name in setOf("dev.solvit.clock.solvit.json", "dev.solvit.web-search.solvit.json", "dev.solvit.mcp.solvit.json")) {
                     val base = File(directory, name)
                     if (base.isFile && base.length() <= ScriptPackage.MAX_BYTES) {
                         val original = AtomicFile(base).readFully()
                         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(original).joinToString("") { "%02x".format(it) }
-                        val originals = if (name == "dev.solvit.web-search.solvit.json") setOf("91dc9957e6c259626dbeba07d8ceb19799f36d000688e2532b322e0f860a409f", "914771c881ee879d0abecaecca48bb5627f9c6509afdf9ff06efe5af90b218bd") else setOf("511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445",
+                        val originals = if (name == "dev.solvit.mcp.solvit.json") setOf("c2c4ad230e7ce37d841314deb162bc8e70d84ec40f1c1bbb8be47b0bb95d80fe")
+                            else if (name == "dev.solvit.web-search.solvit.json") setOf("91dc9957e6c259626dbeba07d8ceb19799f36d000688e2532b322e0f860a409f", "914771c881ee879d0abecaecca48bb5627f9c6509afdf9ff06efe5af90b218bd") else setOf("511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445",
                                 "0f32b5b2e5e684b1d95b275b71d72864f9463cbd55eb549f150e2196a6e80ed7")
                         if (digest in originals) {
                             val payload = context.assets.open("builtin-plugins/$name").use { it.readBytes() }
