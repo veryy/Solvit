@@ -660,7 +660,12 @@ class ChatLayoutTest {
         openWorkspace()
         rule.onNodeWithTag("shell_command").performClick().performTextInput("printf hello-solvit")
         rule.onNodeWithText("运行").performClick()
-        rule.waitUntil(10_000) { rule.onAllNodesWithText("hello-solvit").fetchSemanticsNodes().isNotEmpty() }
+        try { rule.waitUntil(10_000) { rule.onAllNodesWithText("hello-solvit").fetchSemanticsNodes().isNotEmpty() } }
+        catch (failure: Throwable) {
+            screenshot("workspace-command-failure")
+            val app = rule.activity.application as SolvitApplication
+            throw AssertionError("[DEBUG-shell-ui] " + app.workspaces.jobs.value.filter { it.command == "printf hello-solvit" } + "\n" + rule.onRoot().printToString(), failure)
+        }
         rule.onNodeWithText("hello-solvit").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("＋ Shell").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("Shell 2").fetchSemanticsNodes().isNotEmpty() }
