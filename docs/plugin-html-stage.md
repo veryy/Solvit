@@ -38,3 +38,5 @@ HTML页面复用现有QuickJS业务回调、实际页面版本、字段/动作�
 远程TypeScript生成运行38279589604（0cc8808）成功：SDK typecheck、69项SDK回归、2项市场回归和公开搜索验证通过。取回实际solvit-builtin-plugins产物，1.4.0包538841字节、SHA256 ad6fea902fc1549340159b3c4cfdb655b4b01eaf4ec694e2fb736150bf09e3c6，HTML/CSS/JS/许可均在包内；市场与APK资源使用同一字节。生成工作流明确允许生成尚未提交的包，后续正式发布仍须执行提交包一致性门禁。
 
 桥接候选38278158546已编译到app，但新撤权/替换测试在重新打开fixture时失败：fixture直接撤销grants后，enabled仍为true，enable是幂等操作而非重新授权。修正测试在下一检查前先明确disable，再enable；前半段真实撤权后的资源/文档拒绝断言保留，没有修改权限机制绕过错误。待下一完整运行验证。已有终端超时的异常类型未被原Exception诊断捕获，临时加Throwable捕获保留真实失败和状态/截图，并核对发送前输入字段；不是放宽超时或跳过测试。
+
+完整Android候选38279936308暴露实际市场目录缺陷：catalog过去把清单包装成无资源假包来复用解析，API10有HTML入口后严格入口校验使目录失败。改为独立`parseManifest`校验清单，真实下载仍使用完整`parse(bytes,expectedSha256)`并强制入口资源存在。新增回归证明目录可保留HTML声明，而缺资源的可执行包仍拒绝；实际MockWebServer目录→下载→安装回归升级为API10，继续证明不自动启用或授予权限。

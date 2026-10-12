@@ -32,13 +32,24 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
                 require(hash == expectedSha256) { "插件下载校验失败" }
             }
             val root = Json.parseToJsonElement(bytes.toString(Charsets.UTF_8)).jsonObject
-            val m = root.getValue("manifest").jsonObject
-            val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..10) { "插件需要其他版本的宿主 API" }
+            val manifest = parseManifest(root.getValue("manifest").jsonObject)
             val resources = root["resources"]?.let { value ->
-                require(apiVersion >= 10) { "HTML 页面资源需要 API 10" }
+                require(manifest.apiVersion >= 10) { "HTML 页面资源需要 API 10" }
                 ScriptWebResources.parse(value.jsonObject)
             }.orEmpty()
+            manifest.pages.mapNotNull { it.entry }.forEach { entry ->
+                require(entry in resources) { "HTML 页面入口资源缺失" }
+            }
+            val source = root.getValue("source").jsonPrimitive.content
+            require(source.isNotBlank()) { "插件缺少 JavaScript 代码" }
+            return ScriptPackage(manifest, source, bytes.copyOf(), resources)
+        }
+
+        /** Catalog metadata validates declarations; only parse accepts executable packages. */
+        fun parseManifest(m: JsonObject): ScriptManifest {
+            require(m.toString().toByteArray(Charsets.UTF_8).size <= MAX_BYTES)
+            val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
+            require(apiVersion in 1..10) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -74,14 +85,12 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
                 ExtensionSetting(key, label, kind, field["required"]?.jsonPrimitive?.boolean ?: false, defaultValue)
             }.orEmpty()
             require(settings.size <= 16 && settings.map { it.key }.toSet().size == settings.size && (settings.isEmpty() || apiVersion >= 2))
-            val source = root.getValue("source").jsonPrimitive.content
             val hooks = m["hooks"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty()
             require(hooks.all { it == "beforeModel" && apiVersion >= 3 || it == "afterTurn" && apiVersion >= 8 }) { "插件 Hook 声明无效" }
             val afterTurnSetting = m["afterTurnEnabledSetting"]?.jsonPrimitive?.content
             if ("afterTurn" in hooks) {
                 require(afterTurnSetting != null && settings.any { it.key == afterTurnSetting && it.kind == "boolean" && it.defaultValue != "true" }) { "后台 Hook 必须声明默认关闭的开关" }
             } else require(afterTurnSetting == null && "model" !in permissions) { "后台模型权限需要 afterTurn Hook" }
-            require(source.isNotBlank()) { "插件缺少 JavaScript 代码" }
             val pages = m["pages"]?.jsonArray?.map { element ->
                 val page = element.jsonObject
                 require(page.keys == setOf("id", "title") ||
@@ -91,13 +100,13 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
                 require(pageId.matches(Regex("[a-z][a-zA-Z0-9_-]{0,39}")) && title.isNotBlank() && title.length <= 128)
                 val entry = page["entry"]?.jsonPrimitive?.also { require(it.isString) }?.content
                 if (entry != null) {
-                    require(ScriptWebResources.mimeType(entry) == "text/html" && entry in resources) { "HTML 页面入口缺失或无效" }
+                    require(ScriptWebResources.mimeType(entry) == "text/html") { "HTML 页面入口缺失或无效" }
                 }
                 ScriptPage(pageId, title, entry)
             }.orEmpty()
             require(pages.size <= 8 && pages.map { it.id }.distinct().size == pages.size && (pages.isEmpty() || apiVersion >= 9)) { "插件页面需要 API 9 且 ID 不得重复" }
-            return ScriptPackage(ScriptManifest(id, string("name"), string("description"), version,
-                permissions, dependencies, tools, apiVersion, settings, hooks, afterTurnSetting, pages), source, bytes.copyOf(), resources)
+            return ScriptManifest(id, string("name"), string("description"), version,
+                permissions, dependencies, tools, apiVersion, settings, hooks, afterTurnSetting, pages)
         }
     }
 }

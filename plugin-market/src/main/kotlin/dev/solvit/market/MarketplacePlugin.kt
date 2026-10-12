@@ -131,14 +131,14 @@ class AndroidMarketplace(
         check(root.getValue("apiVersion").jsonPrimitive.int == 1) { "市场 API 版本不兼容" }
         val entries = root.getValue("plugins").jsonArray.map { element ->
             val m = element.jsonObject
-            val pkg = ScriptPackage.parse(buildJsonObject { put("manifest", m); put("source", "// Metadata only") }.toString().toByteArray())
+            val manifest = ScriptPackage.parseManifest(m)
             val sha = m.getValue("sha256").jsonPrimitive.content
             val bytes = m.getValue("bytes").jsonPrimitive.long
             val path = m.getValue("downloadPath").jsonPrimitive.content
             check(sha.matches(Regex("[a-f0-9]{64}")) && bytes in 1..ScriptPackage.MAX_BYTES.toLong()) { "市场包校验数据无效" }
-            check(path == "/api/v1/packages/${pkg.manifest.id}/${pkg.manifest.version}") { "市场下载地址无效" }
-            MarketEntry(pkg.manifest.id, pkg.manifest.name, pkg.manifest.description, pkg.manifest.version,
-                pkg.manifest.permissions, pkg.manifest.dependencies, sha, bytes, path)
+            check(path == "/api/v1/packages/${manifest.id}/${manifest.version}") { "市场下载地址无效" }
+            MarketEntry(manifest.id, manifest.name, manifest.description, manifest.version,
+                manifest.permissions, manifest.dependencies, sha, bytes, path)
         }
         check(entries.map { it.id }.toSet().size == entries.size) { "市场存在重复插件" }
         latestCatalog = entries

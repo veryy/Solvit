@@ -7,6 +7,13 @@ import org.junit.Test
 
 /** Package contract for offline HTML/JS plugin pages, before the Android renderer. */
 class ScriptWebResourcesTest {
+    @Test fun catalogMetadataKeepsTheHtmlDeclarationButCannotBeInstalledAsAPackage() {
+        val root = Json.parseToJsonElement(packageBytes().toString(Charsets.UTF_8)).jsonObject
+        assertEquals("ui/index.html", ScriptPackage.parseManifest(root.getValue("manifest").jsonObject).pages.single().entry)
+        assertFails { ScriptPackage.parse(JsonObject(root - "resources").toString().toByteArray()) }
+        val invalid = Json.parseToJsonElement(packageBytes(entry = "../outside.html").toString(Charsets.UTF_8)).jsonObject
+        assertFails { ScriptPackage.parseManifest(invalid.getValue("manifest").jsonObject) }
+    }
     private fun packageBytes(api: Int = 10, entry: String = "ui/index.html",
         resources: Map<String, String> = mapOf(
             "ui/index.html" to "<!doctype html><html><script src=\"main.js\"></script><div id=\"graph\"></div></html>",
