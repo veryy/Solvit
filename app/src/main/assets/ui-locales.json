@@ -359,30 +359,6 @@
     "es": "Organiza ideas y responde preguntas juntos.",
     "fr": "Organize ideas and answer questions together"
   },
-  "上下文估计：{0} / {1}": {
-    "zh": "上下文估计：{0} / {1}",
-    "en": "Context estimate: {0} / {1}",
-    "ja": "コンテキスト推定：{0} / {1}",
-    "ko": "컨텍스트 추정: {0} / {1}",
-    "es": "Estimación del contexto: {0} / {1}",
-    "fr": "Estimation du contexte : {0} / {1}"
-  },
-  "上下文窗口": {
-    "zh": "上下文窗口",
-    "en": "Context window",
-    "ja": "コンテキストウィンドウ",
-    "ko": "컨텍스트 창",
-    "es": "Ventana de contexto",
-    "fr": "Fenêtre de contexte"
-  },
-  "上下文管理": {
-    "zh": "上下文管理",
-    "en": "Context management",
-    "ja": "コンテキスト管理",
-    "ko": "컨텍스트 관리",
-    "es": "Gestión del contexto",
-    "fr": "Gestion du contexte"
-  },
   "上级目录": {
     "zh": "上级目录",
     "en": "Parent directory",
@@ -527,30 +503,6 @@
     "es": "Mantener solo la salida reciente",
     "fr": "Conserver uniquement les résultats récents"
   },
-  "仅处理启用自动保存后完成的回复；重试可能产生额外模型费用。": {
-    "zh": "仅处理启用自动保存后完成的回复；重试可能产生额外模型费用。",
-    "en": "Only replies completed after enabling automatic saving are processed. Retries may incur model charges.",
-    "ja": "自動保存を有効にした後の完了済み返信のみ処理します。再試行にはモデル料金が発生する場合があります。",
-    "ko": "자동 저장을 켠 후 완료된 응답만 처리합니다. 재시도 시 모델 비용이 발생할 수 있습니다.",
-    "es": "Solo se procesan respuestas completadas tras activar el guardado automático. Los reintentos pueden generar costes.",
-    "fr": "Seules les réponses terminées après activation sont traitées. Les relances peuvent entraîner des frais."
-  },
-  "仅展示最近请求的元数据，不保存提示词、密钥或工具参数。": {
-    "en": "Shows metadata only; does not store prompts, keys or tool arguments.",
-    "ja": "メタデータのみ表示します。プロンプト、キー、ツール引数は保存しません。",
-    "ko": "메타데이터만 표시하며 프롬프트, 키, 도구 인수는 저장하지 않습니다.",
-    "es": "Solo muestra metadatos; no guarda instrucciones, claves ni argumentos.",
-    "fr": "Affiche uniquement les métadonnées, sans conserver les instructions, clés ou arguments.",
-    "zh": "仅展示最近请求的元数据，不保存提示词、密钥或工具参数。"
-  },
-  "仅显示已记录的事实，不会自动重跑操作": {
-    "zh": "仅显示已记录的事实，不会自动重跑操作",
-    "en": "Recorded facts only; operations will not run again automatically",
-    "ja": "記録済みの事実のみ表示し、操作を自動再実行しません",
-    "ko": "기록된 사실만 표시하며 작업을 자동으로 다시 실행하지 않습니다",
-    "es": "Solo hechos registrados; las operaciones no se repetirán automáticamente",
-    "fr": "Faits enregistrés uniquement ; aucune opération ne sera relancée automatiquement"
-  },
   "从一个想法开始": {
     "zh": "从一个想法开始",
     "en": "Start with an idea",
@@ -591,14 +543,6 @@
     "es": "Ejecute comandos no interactivos como esta aplicación para acceder a los archivos y la red de la aplicación. Cada comando se inicia desde el directorio del espacio de trabajo.",
     "fr": "Exécutez des commandes non interactives en tant qu'application pour accéder aux fichiers et au réseau de l'application. Chaque commande est lancée depuis le répertoire de l'espace de travail."
   },
-  "任务操作未完成，请刷新核对。": {
-    "zh": "任务操作未完成，请刷新核对。",
-    "en": "Task operation did not complete. Refresh to check.",
-    "ja": "タスク操作が完了しませんでした。更新して確認してください。",
-    "ko": "작업이 완료되지 않았습니다. 새로고침하여 확인하세요.",
-    "es": "La operación no se completó. Actualiza para comprobar.",
-    "fr": "Opération inachevée. Actualisez pour vérifier."
-  },
   "任务模型": {
     "zh": "任务模型",
     "en": "Task model",
@@ -607,22 +551,6 @@
     "es": "Modelo de tarea",
     "fr": "Modèle de tâche"
   },
-  "任务状态已变化或已达重试上限，请刷新查看。": {
-    "zh": "任务状态已变化或已达重试上限，请刷新查看。",
-    "en": "Task changed or retry limit reached. Refresh to check.",
-    "ja": "タスクが変更されたか再試行上限に達しました。更新してください。",
-    "ko": "작업이 변경되었거나 재시도 한도에 도달했습니다. 새로고침하세요.",
-    "es": "La tarea cambió o alcanzó el límite. Actualiza para comprobar.",
-    "fr": "La tâche a changé ou la limite est atteinte. Actualisez."
-  },
-  "任务状态已变化，请刷新查看。": {
-    "zh": "任务状态已变化，请刷新查看。",
-    "en": "Task status changed. Refresh to check.",
-    "ja": "タスクの状態が変更されました。更新してください。",
-    "ko": "작업 상태가 변경되었습니다. 새로고침하세요.",
-    "es": "Cambió el estado de la tarea. Actualiza.",
-    "fr": "L’état de la tâche a changé. Actualisez."
-  },
   "任务绑定的模型配置不存在": {
     "zh": "任务绑定的模型配置不存在",
     "en": "The model configuration for task binding does not exist",
@@ -630,22 +558,6 @@
     "ko": "작업 바인딩에 대한 모델 구성이 존재하지 않습니다.",
     "es": "La configuración del modelo para el enlace de tareas no existe",
     "fr": "La configuration du modèle pour la liaison de tâches n'existe pas"
-  },
-  "会话 ID：{0}": {
-    "zh": "会话 ID：{0}",
-    "en": "Session ID: {0}",
-    "ja": "セッション ID：{0}",
-    "ko": "세션 ID: {0}",
-    "es": "ID de sesión: {0}",
-    "fr": "ID de session : {0}"
-  },
-  "估计包含消息与工具定义，不是服务商实际 Token 用量。": {
-    "zh": "估计包含消息与工具定义，不是服务商实际 Token 用量。",
-    "en": "The estimate includes messages and tool definitions, not actual provider token usage.",
-    "ja": "メッセージとツール定義を含む推定値であり、プロバイダーの実際のトークン使用量ではありません。",
-    "ko": "메시지와 도구 정의를 포함한 추정값이며 제공자의 실제 토큰 사용량이 아닙니다.",
-    "es": "La estimación incluye mensajes y herramientas, no el uso real de tokens del proveedor.",
-    "fr": "L’estimation comprend les messages et les outils, et non l’utilisation réelle des tokens du fournisseur."
   },
   "你": {
     "zh": "你",
@@ -678,14 +590,6 @@
     "ko": "예: https://api.anthropic.com/v1 (/messages 제외)",
     "es": "Por ejemplo, https://api.anthropic.com/v1; omite /messages",
     "fr": "Par exemple, https://api.anthropic.com/v1 ; omettez /messages"
-  },
-  "例如 https://api.deepseek.com/v1；无需填写 /chat/completions": {
-    "zh": "例如 https://api.deepseek.com/v1；无需填写 /chat/completions",
-    "en": "For example https://api.deepseek.com/v1; no need to fill in /chat/completions",
-    "ja": "たとえば、https://api.deepseek.com/v1; /chat/complements に記入する必要はありません",
-    "ko": "예를 들어 https://api.deepseek.com/v1; /chat/completions를 작성할 필요가 없습니다.",
-    "es": "Por ejemplo https://api.deepseek.com/v1; no es necesario completar /chat/completions",
-    "fr": "For example https://api.deepseek.com/v1; no need to fill in /chat/completions"
   },
   "依赖：{0}": {
     "zh": "依赖：{0}",
@@ -727,14 +631,6 @@
     "es": "Guardar configuración",
     "fr": "Enregistrer la configuration"
   },
-  "修改记忆": {
-    "zh": "修改记忆",
-    "en": "Edit memory",
-    "ja": "メモリを編集",
-    "ko": "메모리 수정",
-    "es": "Editar recuerdo",
-    "fr": "Modifier la mémoire"
-  },
   "修改问题": {
     "zh": "修改问题",
     "en": "Modify question",
@@ -750,14 +646,6 @@
     "ko": "중지",
     "es": "Detenerse",
     "fr": "Arrêter"
-  },
-  "停止此任务的当前处理，需要手动重试才能再次执行。": {
-    "zh": "停止此任务的当前处理，需要手动重试才能再次执行。",
-    "en": "Stop this task. Running it again requires an explicit retry.",
-    "ja": "このタスクの処理を停止します。再実行には手動の再試行が必要です。",
-    "ko": "이 작업 처리를 중지합니다. 다시 실행하려면 수동 재시도가 필요합니다.",
-    "es": "Detener esta tarea. Para ejecutarla de nuevo se requiere un reintento explícito.",
-    "fr": "Arrêter cette tâche. Une nouvelle exécution nécessite une tentative explicite."
   },
   "停止生成": {
     "zh": "停止生成",
@@ -839,14 +727,6 @@
     "es": "Acerca de Solvit",
     "fr": "À propos de Solvit"
   },
-  "关系图：拖动移动，双指缩放": {
-    "zh": "关系图：拖动移动，双指缩放",
-    "en": "Relations: drag to move, pinch to zoom",
-    "ja": "関係図：ドラッグで移動、ピンチで拡大縮小",
-    "ko": "관계도: 드래그로 이동, 두 손가락으로 확대/축소",
-    "es": "Relaciones: arrastra para mover, pellizca para ampliar",
-    "fr": "Relations : glissez pour déplacer, pincez pour zoomer"
-  },
   "关闭": {
     "zh": "关闭",
     "en": "Close",
@@ -870,14 +750,6 @@
     "ko": "프롬프트 닫기",
     "es": "Cerrar mensaje",
     "fr": "Fermer l'invite"
-  },
-  "关闭插件界面": {
-    "zh": "关闭插件界面",
-    "en": "Close plugin view",
-    "ja": "プラグイン画面を閉じる",
-    "ko": "플러그인 화면 닫기",
-    "es": "Cerrar vista del complemento",
-    "fr": "Fermer la vue du plugin"
   },
   "关闭插件页面": {
     "zh": "关闭插件页面",
@@ -1023,14 +895,6 @@
     "es": "Eliminar descarga",
     "fr": "Supprimer le téléchargement"
   },
-  "删除任务": {
-    "zh": "删除任务",
-    "en": "Delete task",
-    "ja": "タスクを削除",
-    "ko": "작업 삭제",
-    "es": "Borrar tarea",
-    "fr": "Supprimer la tâche"
-  },
   "删除对话失败": {
     "zh": "删除对话失败",
     "en": "Failed to delete conversation",
@@ -1063,22 +927,6 @@
     "es": "¿Eliminar la configuración del modelo?",
     "fr": "Supprimer la configuration du modèle ?"
   },
-  "删除此事实。保留来源去重记录，避免任务重试重新生成。": {
-    "zh": "删除此事实。保留来源去重记录，避免任务重试重新生成。",
-    "en": "Delete this fact. Retain source deduplication records to prevent retries from recreating it.",
-    "ja": "この事実を削除します。再試行による再生成を防ぐため、出典の重複防止記録は保持します。",
-    "ko": "이 사실을 삭제합니다. 재시도로 다시 생성되지 않도록 출처 중복 방지 기록은 유지합니다.",
-    "es": "Borrar este hecho. Se conserva el registro de origen para impedir que un reintento lo recree.",
-    "fr": "Supprimer ce fait. Conserver le registre des sources pour empêcher sa recréation lors d’une relance."
-  },
-  "删除此任务将取消后续处理和重试，已保存记忆和聊天仍然保留。": {
-    "zh": "删除此任务将取消后续处理和重试，已保存记忆和聊天仍然保留。",
-    "en": "Deleting this task cancels future processing and retries. Saved memories and chats remain.",
-    "ja": "このタスクを削除すると今後の処理と再試行を取り消します。保存済みの記憶とチャットは残ります。",
-    "ko": "이 작업을 삭제하면 이후 처리와 재시도가 취소됩니다. 저장된 기억과 대화는 유지됩니다.",
-    "es": "Eliminar esta tarea cancela el procesamiento futuro y los reintentos. Se conservan los recuerdos y chats guardados.",
-    "fr": "Supprimer cette tâche annule le traitement futur et les nouvelles tentatives. Les souvenirs et discussions enregistrés sont conservés."
-  },
   "删除角色？": {
     "zh": "删除角色？",
     "en": "Delete role?",
@@ -1086,22 +934,6 @@
     "ko": "역할을 삭제하시겠습니까?",
     "es": "¿Eliminar rol?",
     "fr": "Supprimer le rôle ?"
-  },
-  "删除记忆": {
-    "zh": "删除记忆",
-    "en": "Delete memory",
-    "ja": "メモリを削除",
-    "ko": "메모리 삭제",
-    "es": "Borrar recuerdo",
-    "fr": "Supprimer la mémoire"
-  },
-  "到达应用的时间包含网络、解析和执行等待，不能单独证明服务端缓冲。": {
-    "en": "App receipt times include network, parsing and execution waits; they alone cannot prove server buffering.",
-    "ja": "受信時間にはネットワーク、解析、実行待機が含まれ、これだけでサーバーのバッファリングは断定できません。",
-    "ko": "앱 수신 시간에는 네트워크, 파싱, 실행 대기가 포함되며 서버 버퍼링을 단독으로 입증하지 않습니다.",
-    "es": "Los tiempos incluyen red, análisis y esperas; por sí solos no prueban almacenamiento en búfer del servidor.",
-    "fr": "Les délais incluent réseau, analyse et attente ; ils ne prouvent pas à eux seuls une mise en tampon du serveur.",
-    "zh": "到达应用的时间包含网络、解析和执行等待，不能单独证明服务端缓冲。"
   },
   "刷新": {
     "zh": "刷新",
@@ -1143,14 +975,6 @@
     "es": "Coincidencia de colores dinámica",
     "fr": "Correspondance dynamique des couleurs"
   },
-  "协议：{0}": {
-    "en": "Protocol: {0}",
-    "ja": "プロトコル：{0}",
-    "ko": "프로토콜: {0}",
-    "es": "Protocolo: {0}",
-    "fr": "Protocole : {0}",
-    "zh": "协议：{0}"
-  },
   "卸载": {
     "zh": "卸载",
     "en": "Uninstall",
@@ -1167,14 +991,6 @@
     "es": "¿Desinstalar {0}?",
     "fr": "Désinstaller {0} ?"
   },
-  "历史摘要": {
-    "zh": "历史摘要",
-    "en": "History summary",
-    "ja": "履歴の要約",
-    "ko": "대화 요약",
-    "es": "Resumen del historial",
-    "fr": "Résumé de l’historique"
-  },
   "历史转录包含尚未支持的 Claude 内容类型": {
     "zh": "历史转录包含尚未支持的 Claude 内容类型",
     "en": "Historical transcripts contain Claude content types that are not yet supported",
@@ -1183,14 +999,6 @@
     "es": "Las transcripciones históricas contienen tipos de contenido de Claude que aún no son compatibles",
     "fr": "Les transcriptions historiques contiennent des types de contenu Claude qui ne sont pas encore pris en charge"
   },
-  "压缩余量": {
-    "zh": "压缩余量",
-    "en": "Compaction headroom",
-    "ja": "圧縮の余裕",
-    "ko": "압축 여유",
-    "es": "Margen de compactación",
-    "fr": "Marge de compression"
-  },
   "原对话保持完整。已有工作区会共享同一目录和 Shell；没有工作区时不会自动创建。": {
     "zh": "原对话保持完整。已有工作区会共享同一目录和 Shell；没有工作区时不会自动创建。",
     "en": "The original dialogue remains intact. Existing workspaces will share the same directory and shell; if there is no workspace, it will not be automatically created.",
@@ -1198,22 +1006,6 @@
     "ko": "원래 대화는 그대로 유지됩니다. 기존 작업공간은 동일한 디렉토리와 셸을 공유합니다. 작업공간이 없으면 자동으로 생성되지 않습니다.",
     "es": "El diálogo original permanece intacto. Los espacios de trabajo existentes compartirán el mismo directorio y shell; si no hay espacio de trabajo, no se creará automáticamente.",
     "fr": "Le dialogue original reste intact. Les espaces de travail existants partageront le même répertoire et le même shell ; s'il n'y a pas d'espace de travail, il ne sera pas créé automatiquement."
-  },
-  "原模型配置不可用。": {
-    "zh": "原模型配置不可用。",
-    "en": "Original model configuration is unavailable.",
-    "ja": "元のモデル設定は利用できません。",
-    "ko": "원래 모델 설정을 사용할 수 없습니다.",
-    "es": "La configuración original del modelo no está disponible.",
-    "fr": "Configuration initiale du modèle indisponible."
-  },
-  "原聊天记录保留；摘要只用于后续模型上下文。": {
-    "zh": "原聊天记录保留；摘要只用于后续模型上下文。",
-    "en": "Original messages remain saved; the summary is only used in later model context.",
-    "ja": "元の会話は保存されます。要約は以後のモデルコンテキストにのみ使われます。",
-    "ko": "원본 대화는 보존되며 요약은 이후 모델 컨텍스트에만 사용됩니다.",
-    "es": "Se conservan los mensajes originales; el resumen solo se usa en el contexto posterior del modelo.",
-    "fr": "Les messages originaux sont conservés ; le résumé sert uniquement au contexte ultérieur du modèle."
   },
   "参数": {
     "zh": "参数",
@@ -1271,14 +1063,6 @@
     "es": "Cancelar descarga",
     "fr": "Annuler le téléchargement"
   },
-  "取消此任务的后续处理和重试，保留已保存记忆。": {
-    "zh": "取消此任务的后续处理和重试，保留已保存记忆。",
-    "en": "Cancel further processing and retries of this task, keeping saved memories.",
-    "ja": "このタスクの今後の処理と再試行を取り消し、保存済みメモリを保持します。",
-    "ko": "이 작업의 후속 처리와 재시도를 취소하고 저장된 메모리를 유지합니다.",
-    "es": "Cancelar el procesamiento y reintentos de esta tarea, conservando los recuerdos.",
-    "fr": "Annuler le traitement et les relances de cette tâche en conservant les mémoires."
-  },
   "可用技能。只加载勾选技能的目录和正文；未勾选时不会提供技能。": {
     "zh": "可用技能。只加载勾选技能的目录和正文；未勾选时不会提供技能。",
     "en": "Available skills. Only the directory and text of checked skills are loaded; skills will not be provided if unchecked.",
@@ -1310,14 +1094,6 @@
     "ko": "이름",
     "es": "Nombre",
     "fr": "Nom"
-  },
-  "后台模型调用，可能产生模型服务费用": {
-    "zh": "后台模型调用，可能产生模型服务费用",
-    "en": "Background model calls may incur model service charges",
-    "ja": "バックグラウンドのモデル呼び出しには利用料金が発生する場合があります",
-    "ko": "백그라운드 모델 호출에 서비스 요금이 발생할 수 있습니다",
-    "es": "Las llamadas al modelo en segundo plano pueden generar cargos",
-    "fr": "Les appels au modèle en arrière-plan peuvent entraîner des frais"
   },
   "启动中": {
     "zh": "启动中",
@@ -1351,14 +1127,6 @@
     "es": "Cuando están habilitados, los complementos pueden ejecutarse dentro de estos permisos y, cuando están deshabilitados, las herramientas registradas serán revocadas.",
     "fr": "Lorsqu'ils sont activés, les plugins peuvent s'exécuter avec ces autorisations, et lorsqu'ils sont désactivés, les outils enregistrés seront révoqués."
   },
-  "启用插件后可打开它的页面。": {
-    "zh": "启用插件后可打开它的页面。",
-    "en": "Enable the plugin to open its pages.",
-    "ja": "プラグインを有効にするとページを開けます。",
-    "ko": "플러그인을 활성화하면 페이지를 열 수 있습니다.",
-    "es": "Activa el complemento para abrir sus páginas.",
-    "fr": "Activez le plugin pour ouvrir ses pages."
-  },
   "命令或交互输入": {
     "zh": "命令或交互输入",
     "en": "Command or interactive input",
@@ -1391,30 +1159,6 @@
     "es": "Respuesta fallida · Esta respuesta no participa en el contexto posterior",
     "fr": "Échec de la réponse · Cette réponse ne participe pas au contexte ultérieur"
   },
-  "回复完成后自动保存明确的用户事实（额外模型调用）": {
-    "zh": "回复完成后自动保存明确的用户事实（额外模型调用）",
-    "en": "Automatically save explicit user facts after replies (additional model calls)",
-    "ja": "返信後にユーザーの明示的な事実を自動保存（追加のモデル呼び出し）",
-    "ko": "답변 후 명시적인 사용자 사실 자동 저장 (추가 모델 호출)",
-    "es": "Guardar hechos explícitos del usuario tras responder (llamadas adicionales al modelo)",
-    "fr": "Enregistrer les faits explicites après les réponses (appels supplémentaires au modèle)"
-  },
-  "回复已结束": {
-    "zh": "回复已结束",
-    "en": "Reply ended",
-    "ja": "返信終了",
-    "ko": "응답 종료",
-    "es": "Respuesta finalizada",
-    "fr": "Réponse terminée"
-  },
-  "回复消息：{0}": {
-    "zh": "回复消息：{0}",
-    "en": "Reply message: {0}",
-    "ja": "返信メッセージ：{0}",
-    "ko": "응답 메시지: {0}",
-    "es": "Mensaje de respuesta: {0}",
-    "fr": "Message de réponse : {0}"
-  },
   "回复超过模型输出限制，请调整最大输出令牌": {
     "zh": "回复超过模型输出限制，请调整最大输出令牌",
     "en": "Reply exceeds model output limit, please adjust the maximum output token",
@@ -1431,30 +1175,6 @@
     "es": "Dirección:",
     "fr": "Adresse :"
   },
-  "处理失败": {
-    "zh": "处理失败",
-    "en": "Failed",
-    "ja": "失敗",
-    "ko": "실패",
-    "es": "Fallida",
-    "fr": "Échec"
-  },
-  "处理完成": {
-    "zh": "处理完成",
-    "en": "Completed",
-    "ja": "完了",
-    "ko": "완료",
-    "es": "Completada",
-    "fr": "Terminée"
-  },
-  "处理已中断，需要手动重试。": {
-    "zh": "处理已中断，需要手动重试。",
-    "en": "Interrupted; retry manually.",
-    "ja": "中断されました。手動で再試行してください。",
-    "ko": "중단되었습니다. 수동으로 재시도하세요.",
-    "es": "Interrumpida; reintenta manualmente.",
-    "fr": "Interrompue ; relancez manuellement."
-  },
   "备份包含全部模型配置、API Key、提示词、任务模型绑定、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。": {
     "zh": "备份包含全部模型配置、API Key、提示词、任务模型绑定、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。",
     "en": "The backup contains all model configurations, API keys, prompt words, task model bindings, roles, languages ​​and appearance settings. Files are encrypted with a password and can be restored after reinstalling or changing machines.",
@@ -1462,14 +1182,6 @@
     "ko": "백업에는 모든 모델 구성, API 키, 프롬프트 단어, 작업 모델 바인딩, 역할, 언어 및 모양 설정이 포함됩니다. 파일은 비밀번호로 암호화되며 기기를 재설치하거나 변경한 후에 복원할 수 있습니다.",
     "es": "La copia de seguridad contiene todas las configuraciones del modelo, claves API, palabras de aviso, enlaces de modelos de tareas, roles, idiomas y configuraciones de apariencia. Los archivos se cifran con una contraseña y se pueden restaurar después de reinstalar o cambiar de máquina.",
     "fr": "La sauvegarde contient toutes les configurations du modèle, les clés API, les mots d'invite, les liaisons du modèle de tâche, les rôles, les langues et les paramètres d'apparence. Les fichiers sont cryptés avec un mot de passe et peuvent être restaurés après réinstallation ou changement de machine."
-  },
-  "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。": {
-    "zh": "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。",
-    "en": "The backup contains model address, API Key, prompt words, role, language and appearance settings. Files are encrypted with a password and can be restored after reinstalling or changing machines.",
-    "ja": "バックアップには、モデルのアドレス、API キー、プロンプトの単語、役割、言語、外観の設定が含まれています。ファイルはパスワードで暗号化されており、マシンを再インストールまたは変更した後に復元できます。",
-    "ko": "백업에는 모델 주소, API 키, 프롬프트 단어, 역할, 언어 및 모양 설정이 포함됩니다. 파일은 비밀번호로 암호화되며 기기를 재설치하거나 변경한 후에 복원할 수 있습니다.",
-    "es": "La copia de seguridad contiene la dirección del modelo, la clave API, las palabras clave, la función, el idioma y la configuración de apariencia. Los archivos se cifran con una contraseña y se pueden restaurar después de reinstalar o cambiar de máquina.",
-    "fr": "La sauvegarde contient l'adresse du modèle, la clé API, les mots d'invite, les paramètres de rôle, de langue et d'apparence. Les fichiers sont cryptés avec un mot de passe et peuvent être restaurés après réinstallation ou changement de machine."
   },
   "备份密码（至少 8 位）": {
     "zh": "备份密码（至少 8 位）",
@@ -1575,14 +1287,6 @@
     "es": "Después de la instalación, puede habilitar complementos, administrar permisos y probar herramientas de ejecución aquí.",
     "fr": "Après l'installation, vous pouvez activer les plug-ins, gérer les autorisations et tester les outils ici."
   },
-  "安装后可以在这里启用插件、管理权限和配置。": {
-    "zh": "安装后可以在这里启用插件、管理权限和配置。",
-    "en": "After installation, manage plugin activation, permissions and settings here.",
-    "ja": "インストール後、ここでプラグインの有効化、権限、設定を管理できます。",
-    "ko": "설치 후 여기에서 플러그인 활성화, 권한 및 설정을 관리할 수 있습니다.",
-    "es": "Después de instalar, administra aquí la activación, los permisos y la configuración de los complementos.",
-    "fr": "Après installation, gérez ici l’activation, les autorisations et les paramètres des extensions."
-  },
   "安装更新": {
     "zh": "安装更新",
     "en": "Install updates",
@@ -1599,14 +1303,6 @@
     "es": "Completado · {0}",
     "fr": "Terminé · {0}"
   },
-  "实际角色：{0}": {
-    "en": "Effective role: {0}",
-    "ja": "有効なロール：{0}",
-    "ko": "실제 역할: {0}",
-    "es": "Rol efectivo: {0}",
-    "fr": "Rôle effectif : {0}",
-    "zh": "实际角色：{0}"
-  },
   "审阅 {0}": {
     "zh": "审阅 {0}",
     "en": "Review {0}",
@@ -1622,14 +1318,6 @@
     "ko": "키 암호화는 로컬에 저장됩니다. 인증이 필요하지 않은 로컬 모델은 비워둘 수 있습니다.",
     "es": "El cifrado de claves se almacena localmente; Los modelos locales que no requieren autenticación se pueden dejar en blanco.",
     "fr": "Le chiffrement des clés est stocké localement ; les modèles locaux qui ne nécessitent pas d’authentification peuvent rester vides."
-  },
-  "对话中断 · 已保留执行记录": {
-    "zh": "对话中断 · 已保留执行记录",
-    "en": "Conversation interrupted · execution facts preserved",
-    "ja": "会話が中断されました · 実行記録は保存されています",
-    "ko": "대화 중단 · 실행 기록 보존됨",
-    "es": "Conversación interrumpida · registro conservado",
-    "fr": "Conversation interrompue · journal conservé"
   },
   "对话历史": {
     "zh": "对话历史",
@@ -1679,22 +1367,6 @@
     "es": "Exportar copia de seguridad",
     "fr": "Exporter la sauvegarde"
   },
-  "将使用原模型配置重新尝试，可能产生额外费用。权限、角色和插件状态会重新检查。": {
-    "zh": "将使用原模型配置重新尝试，可能产生额外费用。权限、角色和插件状态会重新检查。",
-    "en": "Retries use the original model configuration and may incur charges. Permissions, role and plugin status are checked again.",
-    "ja": "元のモデル設定で再試行します。追加料金が発生する場合があります。権限・役割・プラグイン状態を再確認します。",
-    "ko": "원래 모델 설정으로 재시도하며 추가 비용이 발생할 수 있습니다. 권한, 역할, 플러그인 상태를 다시 확인합니다.",
-    "es": "Se usará la configuración original y puede haber costes. Se comprobarán de nuevo permisos, rol y complemento.",
-    "fr": "La configuration initiale sera utilisée ; des frais sont possibles. Les droits, le rôle et le plugin seront revérifiés."
-  },
-  "尚未组装模型请求": {
-    "en": "No model request prepared yet",
-    "ja": "モデルリクエストはまだありません",
-    "ko": "준비된 모델 요청이 없습니다",
-    "es": "Todavía no se preparó una solicitud",
-    "fr": "Aucune requête préparée",
-    "zh": "尚未组装模型请求"
-  },
   "尚未请求 Root": {
     "zh": "尚未请求 Root",
     "en": "Root not requested yet",
@@ -1702,14 +1374,6 @@
     "ko": "아직 루트가 요청되지 않았습니다.",
     "es": "Root aún no solicitado",
     "fr": "Root pas encore demandé"
-  },
-  "尝试次数：{0}/3": {
-    "zh": "尝试次数：{0}/3",
-    "en": "Attempts: {0}/3",
-    "ja": "試行回数：{0}/3",
-    "ko": "시도 횟수: {0}/3",
-    "es": "Intentos: {0}/3",
-    "fr": "Tentatives : {0}/3"
   },
   "工作区": {
     "zh": "工作区",
@@ -1767,14 +1431,6 @@
     "es": "Modelo de seguimiento de herramientas.",
     "fr": "Modèle de suivi des outils"
   },
-  "工具已返回": {
-    "zh": "工具已返回",
-    "en": "Tool returned",
-    "ja": "ツールが応答しました",
-    "ko": "도구가 응답했습니다",
-    "es": "La herramienta respondió",
-    "fr": "L’outil a répondu"
-  },
   "工具授权服务不可用": {
     "zh": "工具授权服务不可用",
     "en": "Tool licensing service is unavailable",
@@ -1806,14 +1462,6 @@
     "ko": "도구 호출 형식이 잘못되었습니다.",
     "es": "El formato de llamada de herramienta no es válido",
     "fr": "Le format d'appel d'outil n'est pas valide"
-  },
-  "已人工修改": {
-    "zh": "已人工修改",
-    "en": "Edited manually",
-    "ja": "手動で編集済み",
-    "ko": "수동 수정됨",
-    "es": "Editado manualmente",
-    "fr": "Modifié manuellement"
   },
   "已保存的配置": {
     "zh": "已保存的配置",
@@ -1919,14 +1567,6 @@
     "es": "Tiempo agotado",
     "fr": "Délai expiré"
   },
-  "已跳过": {
-    "zh": "已跳过",
-    "en": "Skipped",
-    "ja": "スキップ済み",
-    "ko": "건너뜀",
-    "es": "Omitida",
-    "fr": "Ignorée"
-  },
   "已通过启动校验 · 尚未自动安装": {
     "zh": "已通过启动校验 · 尚未自动安装",
     "en": "Passed startup verification · Not automatically installed yet",
@@ -1959,14 +1599,6 @@
     "es": "UID de la aplicación: {0}",
     "fr": "UID de l'application : {0}"
   },
-  "应用中断": {
-    "zh": "应用中断",
-    "en": "App interrupted",
-    "ja": "アプリ中断",
-    "ko": "앱 중단",
-    "es": "Aplicación interrumpida",
-    "fr": "Application interrompue"
-  },
   "应用更新": {
     "zh": "应用更新",
     "en": "App updates",
@@ -1982,14 +1614,6 @@
     "ko": "앱 권한, 루트 인증 및 플러그인 셸 모드",
     "es": "Permisos de aplicaciones, autorización de root y modo Shell de complemento",
     "fr": "Autorisations d'application, autorisation racine et mode Shell de plug-in"
-  },
-  "应用输入": {
-    "zh": "应用输入",
-    "en": "Apply input",
-    "ja": "入力を適用",
-    "ko": "입력 적용",
-    "es": "Aplicar entrada",
-    "fr": "Appliquer la saisie"
   },
   "当前存储不支持聊天分支": {
     "zh": "当前存储不支持聊天分支",
@@ -2191,14 +1815,6 @@
     "es": "El modo de ejecución ha cambiado, vuelva a confirmar",
     "fr": "Le mode d'exécution a changé, veuillez reconfirmer"
   },
-  "执行记录": {
-    "zh": "执行记录",
-    "en": "Execution log",
-    "ja": "実行記録",
-    "ko": "실행 기록",
-    "es": "Registro de ejecución",
-    "fr": "Journal d’exécution"
-  },
   "执行身份：Root（设备最高权限）": {
     "zh": "执行身份：Root（设备最高权限）",
     "en": "Execution identity: Root (highest authority on the device)",
@@ -2239,38 +1855,6 @@
     "es": "Rechazar",
     "fr": "Rejeter"
   },
-  "按服务地址选择": {
-    "zh": "按服务地址选择",
-    "en": "Choose by service address",
-    "ja": "サービスアドレスで選択",
-    "ko": "서비스 주소로 선택",
-    "es": "Elegir según la dirección del servicio",
-    "fr": "Choisir selon l’adresse du service"
-  },
-  "按服务实际容量设置窗口。使用保守 UTF-8 字节估计，并非模型实际 Token 用量；默认窗口是本机预算，不代表模型容量。摘要会额外调用当前模型，原聊天记录保留。": {
-    "zh": "按服务实际容量设置窗口。使用保守 UTF-8 字节估计，并非模型实际 Token 用量；默认窗口是本机预算，不代表模型容量。摘要会额外调用当前模型，原聊天记录保留。",
-    "en": "Set the window to your service capacity. The conservative UTF-8 byte estimate is not actual model token usage; the default is a local budget, not model capacity. Summaries make additional calls to the current model. Original messages remain saved.",
-    "ja": "サービスの容量に合わせて設定してください。保守的な UTF-8 バイト推定であり、実際のトークン使用量ではありません。既定値は端末の予算で、モデル容量ではありません。要約には追加のモデル呼び出しが必要です。元の会話は保存されます。",
-    "ko": "서비스 용량에 맞게 설정하세요. 보수적인 UTF-8 바이트 추정값으로 실제 토큰 사용량이 아닙니다. 기본값은 로컬 예산이며 모델 용량이 아닙니다. 요약에는 추가 모델 호출이 필요합니다. 원본 대화는 보존됩니다.",
-    "es": "Ajusta la ventana a la capacidad del servicio. La estimación conservadora de bytes UTF-8 no es el uso real de tokens. El valor predeterminado es un presupuesto local, no la capacidad del modelo. Los resúmenes requieren llamadas adicionales. Se conservan los mensajes originales.",
-    "fr": "Réglez la fenêtre selon la capacité du service. L’estimation prudente en octets UTF-8 n’est pas l’usage réel des tokens. La valeur par défaut est un budget local, pas la capacité du modèle. Les résumés nécessitent des appels supplémentaires. Les messages originaux sont conservés."
-  },
-  "接收字符数：{0}": {
-    "en": "Received characters: {0}",
-    "ja": "受信文字数：{0}",
-    "ko": "수신 문자 수: {0}",
-    "es": "Caracteres recibidos: {0}",
-    "fr": "Caractères reçus : {0}",
-    "zh": "接收字符数：{0}"
-  },
-  "提供的工具数：{0}": {
-    "en": "Available tools: {0}",
-    "ja": "提供ツール数：{0}",
-    "ko": "제공된 도구 수: {0}",
-    "es": "Herramientas disponibles: {0}",
-    "fr": "Outils disponibles : {0}",
-    "zh": "提供的工具数：{0}"
-  },
   "提示词、角色绑定、技能导入和管理": {
     "zh": "提示词、角色绑定、技能导入和管理",
     "en": "Prompt words, role binding, skill import and management",
@@ -2287,22 +1871,6 @@
     "es": "Complemento",
     "fr": "Plug-in"
   },
-  "插件会为聊天提供上下文，已保存的资料可能发送给当前模型服务。": {
-    "zh": "插件会为聊天提供上下文，已保存的资料可能发送给当前模型服务。",
-    "en": "The plugin contributes chat context. Saved information may be sent to the selected model service.",
-    "ja": "プラグインは会話のコンテキストを提供し、保存済みの情報が選択したモデルサービスへ送信される場合があります。",
-    "ko": "플러그인은 대화 맥락을 제공하며 저장된 정보가 선택한 모델 서비스로 전송될 수 있습니다.",
-    "es": "El complemento aporta contexto al chat. La información guardada puede enviarse al servicio del modelo seleccionado.",
-    "fr": "Le plugin fournit du contexte au chat. Les informations enregistrées peuvent être envoyées au service du modèle sélectionné."
-  },
-  "插件可为聊天提供上下文；停用后停止提供。": {
-    "zh": "插件可为聊天提供上下文；停用后停止提供。",
-    "en": "The plugin can contribute chat context; disabling it stops these contributions.",
-    "ja": "プラグインは会話のコンテキストを提供できます。無効にすると提供を停止します。",
-    "ko": "플러그인은 대화 맥락을 제공할 수 있으며 비활성화하면 제공이 중단됩니다.",
-    "es": "El complemento puede aportar contexto al chat; al desactivarlo deja de hacerlo.",
-    "fr": "Le plugin peut fournir du contexte au chat ; sa désactivation arrête ces contributions."
-  },
   "插件市场": {
     "zh": "插件市场",
     "en": "Plug-in market",
@@ -2311,14 +1879,6 @@
     "es": "Mercado de complementos",
     "fr": "Marché des plug-ins"
   },
-  "插件授权已失效。": {
-    "zh": "插件授权已失效。",
-    "en": "Plugin permission is no longer valid.",
-    "ja": "プラグインの権限が無効になりました。",
-    "ko": "플러그인 권한이 유효하지 않습니다.",
-    "es": "El permiso del complemento ya no es válido.",
-    "fr": "Autorisation du plugin invalide."
-  },
   "插件操作失败": {
     "zh": "插件操作失败",
     "en": "Plug-in operation failed",
@@ -2326,14 +1886,6 @@
     "ko": "플러그인 작업 실패",
     "es": "Error en la operación del complemento",
     "fr": "L'opération du plug-in a échoué"
-  },
-  "插件版本已变化。": {
-    "zh": "插件版本已变化。",
-    "en": "Plugin version changed.",
-    "ja": "プラグインのバージョンが変更されました。",
-    "ko": "플러그인 버전이 변경되었습니다.",
-    "es": "Cambió la versión del complemento.",
-    "fr": "La version du plugin a changé."
   },
   "插件管理": {
     "zh": "插件管理",
@@ -2359,30 +1911,6 @@
     "es": "Borrador del complemento ({0})",
     "fr": "Brouillon de plug-in ({0})"
   },
-  "插件页面已关闭，请检查启用状态和权限。": {
-    "zh": "插件页面已关闭，请检查启用状态和权限。",
-    "en": "This plugin page has closed. Check its enabled state and permissions.",
-    "ja": "プラグインページが閉じられました。有効状態と権限を確認してください。",
-    "ko": "플러그인 페이지가 닫혔습니다. 활성 상태와 권한을 확인하세요.",
-    "es": "La página del complemento se ha cerrado. Comprueba su estado y permisos.",
-    "fr": "La page du plugin est fermée. Vérifiez son activation et ses autorisations."
-  },
-  "插件页面操作失败，请重新打开后重试。": {
-    "zh": "插件页面操作失败，请重新打开后重试。",
-    "en": "The plugin page action failed. Reopen the page and try again.",
-    "ja": "プラグインページの操作に失敗しました。開き直して再試行してください。",
-    "ko": "플러그인 페이지 작업이 실패했습니다. 페이지를 다시 열고 재시도하세요.",
-    "es": "La acción ha fallado. Vuelve a abrir la página e inténtalo de nuevo.",
-    "fr": "L’action a échoué. Rouvrez la page et réessayez."
-  },
-  "插件页面无法打开，请检查启用状态和权限。": {
-    "zh": "插件页面无法打开，请检查启用状态和权限。",
-    "en": "Unable to open this plugin page. Check its enabled state and permissions.",
-    "ja": "プラグインページを開けません。有効状態と権限を確認してください。",
-    "ko": "플러그인 페이지를 열 수 없습니다. 활성 상태와 권한을 확인하세요.",
-    "es": "No se puede abrir la página del complemento. Comprueba su estado y permisos.",
-    "fr": "Impossible d’ouvrir la page du plugin. Vérifiez son activation et ses autorisations."
-  },
   "搜索模型名称": {
     "zh": "搜索模型名称",
     "en": "Search model name",
@@ -2398,14 +1926,6 @@
     "ko": "작업 실패",
     "es": "Operación fallida",
     "fr": "L'opération a échoué"
-  },
-  "支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。": {
-    "zh": "支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。",
-    "en": "Supports OpenAI, DeepSeek and other services compatible with Chat Completions API.",
-    "ja": "OpenAI、DeepSeek、およびChat Completions APIと互換性のあるその他のサービスをサポートします。",
-    "ko": "OpenAI, DeepSeek 및 Chat Completions API와 호환되는 기타 서비스를 지원합니다.",
-    "es": "Admite OpenAI, DeepSeek y otros servicios compatibles con Chat Completions API.",
-    "fr": "Prend en charge OpenAI, DeepSeek et d'autres services compatibles avec l'API Chat Completions."
   },
   "数据与备份": {
     "zh": "数据与备份",
@@ -2575,30 +2095,6 @@
     "es": "No se puede leer el archivo de habilidades",
     "fr": "Impossible de lire le fichier de compétences"
   },
-  "无法读取摘要，原聊天记录仍保留": {
-    "zh": "无法读取摘要，原聊天记录仍保留",
-    "en": "Could not read the summary. Original messages remain saved.",
-    "ja": "要約を読み込めません。元の会話は保存されています。",
-    "ko": "요약을 읽을 수 없습니다. 원본 대화는 보존됩니다.",
-    "es": "No se pudo leer el resumen. Se conservan los mensajes originales.",
-    "fr": "Impossible de lire le résumé. Les messages originaux sont conservés."
-  },
-  "无法读取记忆任务，请刷新重试。": {
-    "zh": "无法读取记忆任务，请刷新重试。",
-    "en": "Could not load memory tasks. Refresh to retry.",
-    "ja": "メモリのタスクを読み込めません。更新してください。",
-    "ko": "메모리 작업을 불러올 수 없습니다. 새로고침하세요.",
-    "es": "No se pudieron cargar las tareas. Actualiza.",
-    "fr": "Impossible de charger les tâches. Actualisez."
-  },
-  "无法重试记忆任务，请稍后重试。": {
-    "zh": "无法重试记忆任务，请稍后重试。",
-    "en": "Could not retry the memory task. Try later.",
-    "ja": "メモリのタスクを再試行できません。後でお試しください。",
-    "ko": "메모리 작업을 재시도할 수 없습니다. 나중에 시도하세요.",
-    "es": "No se pudo reintentar. Prueba más tarde.",
-    "fr": "Impossible de relancer. Réessayez plus tard."
-  },
   "无需额外权限": {
     "zh": "无需额外权限",
     "en": "No additional permissions required",
@@ -2622,14 +2118,6 @@
     "ko": "키 표시",
     "es": "Mostrar clave",
     "fr": "Afficher la clé"
-  },
-  "显示结束：{0} ms": {
-    "en": "Display ended: {0} ms",
-    "ja": "表示終了：{0} ms",
-    "ko": "표시 종료: {0} ms",
-    "es": "Fin de visualización: {0} ms",
-    "fr": "Fin de l’affichage : {0} ms",
-    "zh": "显示结束：{0} ms"
   },
   "普通": {
     "zh": "普通",
@@ -2687,14 +2175,6 @@
     "es": "El modo normal utiliza la identidad de la aplicación; Root utiliza los permisos más altos del dispositivo. Cada complemento se selecciona individualmente y las llamadas de IA siguen la configuración de autorización de la herramienta. El cambio de modo detiene los comandos que está ejecutando el complemento.",
     "fr": "Le mode normal utilise l'identité de l'application ; Root utilise les autorisations les plus élevées de l'appareil. Chaque plugin est sélectionné individuellement et les appels AI suivent les paramètres d'autorisation de l'outil. Le changement de mode arrête les commandes exécutées par le plugin."
   },
-  "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。": {
-    "zh": "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。",
-    "en": "Normal chat uses the chat model; after a model initiates a tool call, subsequent rounds can use another model, which receives the full conversation and tool results. Inherit the chat model when not selected separately.",
-    "ja": "通常のチャットはチャット モデルを使用します。モデルがツール呼び出しを開始すると、後続のラウンドでは別のモデルを使用でき、完全な会話とツールの結果を受け取ります。別途選択しない場合はチャットモデルを継承します。",
-    "ko": "일반 채팅은 채팅 모델을 사용합니다. 모델이 도구 호출을 시작한 후 후속 라운드에서는 전체 대화 및 도구 결과를 수신하는 다른 모델을 사용할 수 있습니다. 별도로 선택하지 않으면 채팅 모델을 상속받습니다.",
-    "es": "El chat normal utiliza el modelo de chat; Después de que un modelo inicia una llamada a la herramienta, las rondas posteriores pueden usar otro modelo, que recibe la conversación completa y los resultados de la herramienta. Hereda el modelo de chat cuando no se selecciona por separado.",
-    "fr": "Le chat normal utilise le modèle de chat ; une fois qu'un modèle a lancé un appel d'outil, les cycles suivants peuvent utiliser un autre modèle, qui reçoit la conversation complète et les résultats de l'outil. Héritez du modèle de chat lorsqu'il n'est pas sélectionné séparément."
-  },
   "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。工具后续只切换连接和模型，系统提示词仍采用聊天配置与角色。": {
     "zh": "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。工具后续只切换连接和模型，系统提示词仍采用聊天配置与角色。",
     "en": "Normal chat uses the chat model; after a model initiates a tool call, subsequent rounds can use another model, which receives the full conversation and tool results. Inherit the chat model when not selected separately. The tool will only switch the connection and model in the future, and the system prompt words will still use the chat configuration and role.",
@@ -2703,22 +2183,6 @@
     "es": "El chat normal utiliza el modelo de chat; Después de que un modelo inicia una llamada a la herramienta, las rondas posteriores pueden usar otro modelo, que recibe la conversación completa y los resultados de la herramienta. Hereda el modelo de chat cuando no se selecciona por separado. La herramienta solo cambiará la conexión y el modelo en el futuro, y las palabras de aviso del sistema seguirán usando la configuración y el rol del chat.",
     "fr": "Le chat normal utilise le modèle de chat ; une fois qu'un modèle a lancé un appel d'outil, les cycles suivants peuvent utiliser un autre modèle, qui reçoit la conversation complète et les résultats de l'outil. Héritez du modèle de chat lorsqu'il n'est pas sélectionné séparément. L'outil ne changera que la connexion et le modèle à l'avenir, et les mots d'invite du système utiliseront toujours la configuration et le rôle du chat."
   },
-  "暂无已保存记忆": {
-    "zh": "暂无已保存记忆",
-    "en": "No saved memories",
-    "ja": "保存済みメモリはありません",
-    "ko": "저장된 메모리가 없습니다",
-    "es": "No hay recuerdos guardados",
-    "fr": "Aucune mémoire enregistrée"
-  },
-  "暂无执行记录": {
-    "zh": "暂无执行记录",
-    "en": "No execution events recorded",
-    "ja": "実行記録はまだありません",
-    "ko": "기록된 실행 이벤트가 없습니다",
-    "es": "No hay eventos registrados",
-    "fr": "Aucun événement enregistré"
-  },
   "暂无插件，点击右上角刷新市场。": {
     "zh": "暂无插件，点击右上角刷新市场。",
     "en": "There is no plug-in yet, click on the upper right corner to refresh the market.",
@@ -2726,14 +2190,6 @@
     "ko": "아직 플러그인이 없습니다. 오른쪽 상단을 클릭하여 마켓을 새로고침하세요.",
     "es": "Aún no hay ningún complemento, haga clic en la esquina superior derecha para actualizar el mercado.",
     "fr": "Il n'y a pas encore de plug-in, cliquez sur le coin supérieur droit pour actualiser le marché."
-  },
-  "暂无自动记忆任务": {
-    "zh": "暂无自动记忆任务",
-    "en": "No automatic memory tasks",
-    "ja": "自動メモリのタスクはありません",
-    "ko": "자동 메모리 작업이 없습니다",
-    "es": "No hay tareas de memoria automática",
-    "fr": "Aucune tâche de mémoire automatique"
   },
   "更新插件": {
     "zh": "更新插件",
@@ -2767,14 +2223,6 @@
     "es": "El token de salida máximo debe ser un número entero del 1 al 1000000",
     "fr": "Le jeton de sortie maximum doit être un nombre entier compris entre 1 et 1 000 000."
   },
-  "最近请求诊断": {
-    "en": "Latest request diagnostics",
-    "ja": "最新リクエストの診断",
-    "ko": "최근 요청 진단",
-    "es": "Diagnóstico de la última solicitud",
-    "fr": "Diagnostic de la dernière requête",
-    "zh": "最近请求诊断"
-  },
   "服务未返回响应正文": {
     "zh": "服务未返回响应正文",
     "en": "Service did not return response body",
@@ -2782,14 +2230,6 @@
     "ko": "서비스가 응답 본문을 반환하지 않았습니다.",
     "es": "El servicio no devolvió el cuerpo de respuesta",
     "fr": "Le service n'a pas renvoyé le corps de la réponse"
-  },
-  "未开始执行": {
-    "zh": "未开始执行",
-    "en": "Execution did not start",
-    "ja": "実行は開始されていません",
-    "ko": "실행되지 않았습니다",
-    "es": "La ejecución no comenzó",
-    "fr": "L’exécution n’a pas commencé"
   },
   "未收到回复": {
     "zh": "未收到回复",
@@ -2839,30 +2279,6 @@
     "es": "Error en la operación de permiso",
     "fr": "L'opération d'autorisation a échoué"
   },
-  "来源消息：{0}": {
-    "zh": "来源消息：{0}",
-    "en": "Source message: {0}",
-    "ja": "元のメッセージ：{0}",
-    "ko": "출처 메시지: {0}",
-    "es": "Mensaje de origen: {0}",
-    "fr": "Message source : {0}"
-  },
-  "来源：{0} · {1} · {2}": {
-    "en": "Source: {0} · {1} · {2}",
-    "ja": "出典：{0} · {1} · {2}",
-    "ko": "출처: {0} · {1} · {2}",
-    "es": "Fuente: {0} · {1} · {2}",
-    "fr": "Source : {0} · {1} · {2}",
-    "zh": "来源：{0} · {1} · {2}"
-  },
-  "来自对话中的用户原文": {
-    "zh": "来自对话中的用户原文",
-    "en": "From the original user message",
-    "ja": "ユーザーの元の発言から",
-    "ko": "사용자 원문에서 가져옴",
-    "es": "Del mensaje original del usuario",
-    "fr": "Issu du message original de l’utilisateur"
-  },
   "查看": {
     "zh": "查看",
     "en": "View",
@@ -2879,22 +2295,6 @@
     "es": "Ver código e instalar",
     "fr": "Afficher le code et installer"
   },
-  "查看历史摘要": {
-    "zh": "查看历史摘要",
-    "en": "View history summary",
-    "ja": "履歴の要約を表示",
-    "ko": "대화 요약 보기",
-    "es": "Ver resumen del historial",
-    "fr": "Voir le résumé de l’historique"
-  },
-  "查看处理状态、失败原因与手动重试": {
-    "zh": "查看处理状态、失败原因与手动重试",
-    "en": "Status, failures and manual retry",
-    "ja": "処理状況・失敗理由・手動再試行",
-    "ko": "처리 상태, 실패 원인 및 수동 재시도",
-    "es": "Estado, errores y reintentos manuales",
-    "fr": "État, erreurs et relance manuelle"
-  },
   "查看思考过程": {
     "zh": "查看思考过程",
     "en": "View thought process",
@@ -2902,22 +2302,6 @@
     "ko": "사고 과정 보기",
     "es": "Ver proceso de pensamiento",
     "fr": "Voir le processus de réflexion"
-  },
-  "查看所有角色的已保存事实；停用插件后仍可修改或删除。": {
-    "zh": "查看所有角色的已保存事实；停用插件后仍可修改或删除。",
-    "en": "View saved facts for all roles. Editing and deletion remain available with the plugin disabled.",
-    "ja": "すべての役割の保存済み事実を表示します。プラグイン無効時も編集・削除できます。",
-    "ko": "모든 역할의 저장된 사실을 봅니다. 플러그인이 꺼져 있어도 수정 및 삭제할 수 있습니다.",
-    "es": "Ver hechos de todos los roles. Se pueden editar y borrar con el complemento desactivado.",
-    "fr": "Voir les faits de tous les rôles. Modification et suppression restent possibles si le plugin est désactivé."
-  },
-  "查看来源、修改与删除已保存事实": {
-    "zh": "查看来源、修改与删除已保存事实",
-    "en": "View sources, edit and delete saved facts",
-    "ja": "保存済みの事実の出典確認・編集・削除",
-    "ko": "저장된 사실의 출처 보기, 수정 및 삭제",
-    "es": "Ver fuentes, editar y borrar hechos guardados",
-    "fr": "Voir les sources, modifier et supprimer les faits"
   },
   "查看版本说明": {
     "zh": "查看版本说明",
@@ -2950,14 +2334,6 @@
     "ko": "모델 및 연결",
     "es": "Modelos y conexiones",
     "fr": "Modèles et connexions"
-  },
-  "模型事件结束：{0} ms": {
-    "en": "Model events ended: {0} ms",
-    "ja": "モデルイベント終了：{0} ms",
-    "ko": "모델 이벤트 종료: {0} ms",
-    "es": "Fin de eventos del modelo: {0} ms",
-    "fr": "Fin des événements du modèle : {0} ms",
-    "zh": "模型事件结束：{0} ms"
   },
   "模型内容块尚未开始或已经结束": {
     "zh": "模型内容块尚未开始或已经结束",
@@ -3175,14 +2551,6 @@
     "es": "La respuesta del modelo excede el límite",
     "fr": "La réponse du modèle dépasse la limite"
   },
-  "模型处理超时。": {
-    "zh": "模型处理超时。",
-    "en": "Model request timed out.",
-    "ja": "モデルの処理がタイムアウトしました。",
-    "ko": "모델 요청 시간이 초과되었습니다.",
-    "es": "La solicitud al modelo agotó el tiempo.",
-    "fr": "Délai du modèle dépassé."
-  },
   "模型工具调用未完整结束": {
     "zh": "模型工具调用未完整结束",
     "en": "Model tool call is not completed completely",
@@ -3207,14 +2575,6 @@
     "es": "El servicio modelo devuelve una respuesta vacía",
     "fr": "Le service de modèle renvoie une réponse vide"
   },
-  "模型步骤": {
-    "zh": "模型步骤",
-    "en": "Model step",
-    "ja": "モデルのステップ",
-    "ko": "모델 단계",
-    "es": "Paso del modelo",
-    "fr": "Étape du modèle"
-  },
   "模型流开始事件无效": {
     "zh": "模型流开始事件无效",
     "en": "Model flow start event is invalid",
@@ -3238,22 +2598,6 @@
     "ko": "모델 설정",
     "es": "Ajustes del modelo",
     "fr": "Paramètres du modèle"
-  },
-  "模型请求失败。": {
-    "zh": "模型请求失败。",
-    "en": "Model request failed.",
-    "ja": "モデルへのリクエストに失敗しました。",
-    "ko": "모델 요청에 실패했습니다.",
-    "es": "Falló la solicitud al modelo.",
-    "fr": "Échec de la requête au modèle."
-  },
-  "模型输出不符合记忆格式。": {
-    "zh": "模型输出不符合记忆格式。",
-    "en": "Model output has an invalid memory format.",
-    "ja": "モデル出力のメモリ形式が無効です。",
-    "ko": "모델 출력의 메모리 형식이 잘못되었습니다.",
-    "es": "El formato de memoria del modelo no es válido.",
-    "fr": "Format de mémoire du modèle invalide."
   },
   "模型配置": {
     "zh": "模型配置",
@@ -3351,14 +2695,6 @@
     "es": "El modelo lo determina el servidor de forma predeterminada; La compatibilidad con los modos adaptativo, de presupuesto manual y desactivado varía según el modelo. Si se rechaza el servicio, puede ver los detalles de la devolución. Los parámetros de pensamiento de la ronda inicial se heredan durante la ejecución de la herramienta.",
     "fr": "Le modèle est déterminé par le serveur par défaut ; la prise en charge des modes adaptatif, de budgétisation manuelle et d'arrêt varie selon le modèle. Si le service est refusé, vous pouvez consulter les détails du retour. Les paramètres de réflexion du cycle de lancement sont hérités lors de l'exécution de l'outil."
   },
-  "模型：{0}": {
-    "en": "Model: {0}",
-    "ja": "モデル：{0}",
-    "ko": "모델: {0}",
-    "es": "Modelo: {0}",
-    "fr": "Modèle : {0}",
-    "zh": "模型：{0}"
-  },
   "模型：{0}\n角色：{1} 个\n\n将替换全部模型配置、任务绑定和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。": {
     "zh": "模型：{0}\n角色：{1} 个\n\n将替换全部模型配置、任务绑定和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。",
     "en": "Models: {0}\nCharacters: {1}\n\nwill replace all model configurations, mission bindings, and appearance configurations, and merge characters (same IDs will be overwritten). Plugins still need to be reinstalled and authorized.",
@@ -3367,22 +2703,6 @@
     "es": "Modelos: {0}\nPersonajes: {1}\n\nreemplazará todas las configuraciones de modelo, enlaces de misión y configuraciones de apariencia, y fusionará personajes (se sobrescribirán las mismas ID). Aún es necesario reinstalar y autorizar los complementos.",
     "fr": "Modèles : {0}\nCaractères : {1}\n\nremplacera toutes les configurations de modèle, les liaisons de mission et les configurations d'apparence, et fusionnera les caractères (les mêmes identifiants seront écrasés). Les plugins doivent encore être réinstallés et autorisés."
   },
-  "模型：{0}\n角色：{1} 个\n\n将替换当前模型和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。": {
-    "zh": "模型：{0}\n角色：{1} 个\n\n将替换当前模型和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。",
-    "en": "Models: {0}\nCharacters: {1}\n\nwill replace the current model and appearance configuration, and merge characters (same IDs will be overwritten). Plugins still need to be reinstalled and authorized.",
-    "ja": "モデル: {0}\nキャラクター: {1}\n\nは現在のモデルと外観構成を置き換え、キャラクターをマージします (同じ ID は上書きされます)。プラグインを再インストールして認証する必要があります。",
-    "ko": "모델: {0}\n문자: {1}\n\n는 현재 모델 및 모양 구성을 대체하고 문자를 병합합니다(동일한 ID는 덮어쓰게 됩니다). 플러그인을 다시 설치하고 승인해야 합니다.",
-    "es": "Modelos: {0}\nCaracteres: {1}\n\nreemplazará el modelo actual y la configuración de apariencia, y fusionará caracteres (se sobrescribirán los mismos ID). Aún es necesario reinstalar y autorizar los complementos.",
-    "fr": "Modèles : {0}\nCaractères : {1}\n\nremplacera le modèle et la configuration d'apparence actuels, et fusionnera les caractères (les mêmes identifiants seront écrasés). Les plugins doivent encore être réinstallés et autorisés."
-  },
-  "正在压缩历史，第 {0} 批": {
-    "zh": "正在压缩历史，第 {0} 批",
-    "en": "Summarizing history, batch {0}",
-    "ja": "履歴を圧縮中：バッチ {0}",
-    "ko": "대화 압축 중: 배치 {0}",
-    "es": "Resumiendo el historial, lote {0}",
-    "fr": "Résumé de l’historique, lot {0}"
-  },
   "正在回复…": {
     "zh": "正在回复…",
     "en": "Replying…",
@@ -3390,14 +2710,6 @@
     "ko": "응답 중…",
     "es": "Respondiendo…",
     "fr": "Répondre…"
-  },
-  "正在处理": {
-    "zh": "正在处理",
-    "en": "Processing",
-    "ja": "処理中",
-    "ko": "처리 중",
-    "es": "Procesando",
-    "fr": "En cours"
   },
   "正在校验安装包…": {
     "zh": "正在校验安装包…",
@@ -3430,14 +2742,6 @@
     "ko": "점점…",
     "es": "Conseguir…",
     "fr": "Obtenir…"
-  },
-  "正在读取执行记录…": {
-    "zh": "正在读取执行记录…",
-    "en": "Loading execution log…",
-    "ja": "実行記録を読み込み中…",
-    "ko": "실행 기록을 불러오는 중…",
-    "es": "Cargando registro de ejecución…",
-    "fr": "Chargement du journal…"
   },
   "此协议插件没有提供模型列表，请手动填写模型名称": {
     "zh": "此协议插件没有提供模型列表，请手动填写模型名称",
@@ -3519,14 +2823,6 @@
     "es": "Operaciones de mensajes",
     "fr": "Opérations sur les messages"
   },
-  "消息数：{0}": {
-    "en": "Messages: {0}",
-    "ja": "メッセージ数：{0}",
-    "ko": "메시지 수: {0}",
-    "es": "Mensajes: {0}",
-    "fr": "Messages : {0}",
-    "zh": "消息数：{0}"
-  },
   "深色": {
     "zh": "深色",
     "en": "Dark",
@@ -3542,22 +2838,6 @@
     "ko": "모델 구성 추가",
     "es": "Agregar configuración de modelo",
     "fr": "Ajouter une configuration de modèle"
-  },
-  "清理已完成任务": {
-    "zh": "清理已完成任务",
-    "en": "Clean up completed tasks",
-    "ja": "完了済みタスクを整理",
-    "ko": "완료된 작업 정리",
-    "es": "Limpiar tareas completadas",
-    "fr": "Nettoyer les tâches terminées"
-  },
-  "清理最多 100 个已完成或跳过的任务，保留失败、等待和运行中的任务。": {
-    "zh": "清理最多 100 个已完成或跳过的任务，保留失败、等待和运行中的任务。",
-    "en": "Remove up to 100 completed or skipped tasks. Failed, waiting and running tasks remain.",
-    "ja": "完了またはスキップしたタスクを最大100件削除します。失敗、待機中、実行中のタスクは残ります。",
-    "ko": "완료되거나 건너뛴 작업을 최대 100개 삭제합니다. 실패, 대기, 실행 중인 작업은 유지됩니다.",
-    "es": "Eliminar hasta 100 tareas completadas u omitidas. Se conservan las fallidas, en espera y en ejecución.",
-    "fr": "Supprimer jusqu’à 100 tâches terminées ou ignorées. Les tâches en échec, en attente et en cours sont conservées."
   },
   "清除任务": {
     "zh": "清除任务",
@@ -3590,14 +2870,6 @@
     "ko": "버전 {0}",
     "es": "Versión {0}",
     "fr": "Version {0}"
-  },
-  "状态：{0}": {
-    "en": "Status: {0}",
-    "ja": "状態：{0}",
-    "ko": "상태: {0}",
-    "es": "Estado: {0}",
-    "fr": "État : {0}",
-    "zh": "状态：{0}"
   },
   "生成和校验插件草稿；安装与启用需单独操作": {
     "zh": "生成和校验插件草稿；安装与启用需单独操作",
@@ -3655,22 +2927,6 @@
     "es": "Confirmar recuperación",
     "fr": "Confirmer la récupération"
   },
-  "确认操作": {
-    "zh": "确认操作",
-    "en": "Confirm action",
-    "ja": "操作を確認",
-    "ko": "작업 확인",
-    "es": "Confirmar acción",
-    "fr": "Confirmer"
-  },
-  "确认清理": {
-    "zh": "确认清理",
-    "en": "Confirm cleanup",
-    "ja": "整理を確認",
-    "ko": "정리 확인",
-    "es": "Confirmar limpieza",
-    "fr": "Confirmer le nettoyage"
-  },
   "确认运行工具": {
     "zh": "确认运行工具",
     "en": "Confirm running tool",
@@ -3679,14 +2935,6 @@
     "es": "Confirmar herramienta en ejecución",
     "fr": "Confirmer l'exécution de l'outil"
   },
-  "确认重试": {
-    "zh": "确认重试",
-    "en": "Confirm retry",
-    "ja": "再試行を確認",
-    "ko": "재시도 확인",
-    "es": "Confirmar reintento",
-    "fr": "Confirmer la relance"
-  },
   "移除插件和权限配置。插件保存的数据会保留，重新安装后可继续使用。": {
     "zh": "移除插件和权限配置。插件保存的数据会保留，重新安装后可继续使用。",
     "en": "Remove plug-ins and permission configurations. The data saved by the plug-in will be retained and can continue to be used after reinstallation.",
@@ -3694,14 +2942,6 @@
     "ko": "플러그인 및 권한 구성을 제거합니다. 플러그인에 의해 저장된 데이터는 유지되며 재설치 후에도 계속 사용할 수 있습니다.",
     "es": "Elimine complementos y configuraciones de permisos. Los datos guardados por el complemento se conservarán y podrán seguir utilizándose después de la reinstalación.",
     "fr": "Supprimez les plug-ins et les configurations d'autorisations. Les données enregistrées par le plug-in seront conservées et pourront continuer à être utilisées après la réinstallation."
-  },
-  "等待处理": {
-    "zh": "等待处理",
-    "en": "Waiting",
-    "ja": "待機中",
-    "ko": "대기 중",
-    "es": "En espera",
-    "fr": "En attente"
   },
   "等待确认": {
     "zh": "等待确认",
@@ -3718,14 +2958,6 @@
     "ko": "네트워크를 기다리는 중 ·",
     "es": "Esperando red ·",
     "fr": "En attente du réseau ·"
-  },
-  "系统上下文字符数：{0}": {
-    "en": "System context characters: {0}",
-    "ja": "システムコンテキスト文字数：{0}",
-    "ko": "시스템 문맥 문자 수: {0}",
-    "es": "Caracteres del contexto de sistema: {0}",
-    "fr": "Caractères du contexte système : {0}",
-    "zh": "系统上下文字符数：{0}"
   },
   "系统提示词": {
     "zh": "系统提示词",
@@ -3774,14 +3006,6 @@
     "ko": "결과",
     "es": "Resultado",
     "fr": "Résultat"
-  },
-  "结果未知，请先检查实际状态": {
-    "zh": "结果未知，请先检查实际状态",
-    "en": "Outcome unknown; check the actual state first",
-    "ja": "結果不明：先に実際の状態を確認してください",
-    "ko": "결과를 알 수 없습니다. 실제 상태를 먼저 확인하세요",
-    "es": "Resultado desconocido; comprueba primero el estado real",
-    "fr": "Résultat inconnu ; vérifiez d’abord l’état réel"
   },
   "编辑": {
     "zh": "编辑",
@@ -3847,38 +3071,6 @@
     "es": "Los registros de chat, los paquetes de complementos, las claves de complementos y las memorias de complementos aún no están incluidos; Las habilidades se pueden exportar por separado en la biblioteca de habilidades. Haga una copia de seguridad antes de desinstalar. Los datos eliminados y sin respaldo no se pueden recuperar.",
     "fr": "Les enregistrements de discussion, les packages de plug-ins, les clés de plug-in et les mémoires de plug-in ne sont pas encore inclus ; Les compétences peuvent être exportées séparément dans la bibliothèque de compétences. Veuillez sauvegarder avant de désinstaller. Les données supprimées et non sauvegardées ne peuvent pas être récupérées."
   },
-  "自动保存记录：{0}/512": {
-    "zh": "自动保存记录：{0}/512",
-    "en": "Automatic save records: {0}/512",
-    "ja": "自動保存の記録：{0}/512",
-    "ko": "자동 저장 기록: {0}/512",
-    "es": "Registros automáticos: {0}/512",
-    "fr": "Enregistrements automatiques : {0}/512"
-  },
-  "自动将相关记忆用于聊天": {
-    "zh": "自动将相关记忆用于聊天",
-    "en": "Use relevant memories automatically in chat",
-    "ja": "関連する記憶をチャットで自動的に使用",
-    "ko": "관련 기억을 대화에 자동으로 사용",
-    "es": "Usar recuerdos relevantes automáticamente en el chat",
-    "fr": "Utiliser automatiquement les souvenirs pertinents dans le chat"
-  },
-  "自动摘要旧回合": {
-    "zh": "自动摘要旧回合",
-    "en": "Automatically summarize older turns",
-    "ja": "古い会話を自動要約",
-    "ko": "이전 대화 자동 요약",
-    "es": "Resumir turnos anteriores automáticamente",
-    "fr": "Résumer automatiquement les anciens échanges"
-  },
-  "自动记忆任务": {
-    "zh": "自动记忆任务",
-    "en": "Automatic memory tasks",
-    "ja": "自動メモリのタスク",
-    "ko": "자동 메모리 작업",
-    "es": "Tareas de memoria automática",
-    "fr": "Tâches de mémoire automatique"
-  },
   "自适应思考": {
     "zh": "自适应思考",
     "en": "Adaptive thinking",
@@ -3943,14 +3135,6 @@
     "es": "Roles",
     "fr": "Rôles"
   },
-  "角色、上下文来源、工具与回复耗时": {
-    "en": "Role, context sources, tools and response timing",
-    "ja": "ロール、コンテキストの出典、ツールと応答時間",
-    "ko": "역할, 문맥 출처, 도구 및 응답 시간",
-    "es": "Rol, fuentes de contexto, herramientas y tiempos",
-    "fr": "Rôle, sources du contexte, outils et délais",
-    "zh": "角色、上下文来源、工具与回复耗时"
-  },
   "角色与 Skills": {
     "zh": "角色与 Skills",
     "en": "Roles and Skills",
@@ -3991,46 +3175,6 @@
     "es": "Roles y Skills",
     "fr": "Rôles et Skills"
   },
-  "记录片段已截断": {
-    "zh": "记录片段已截断",
-    "en": "Recorded excerpt truncated",
-    "ja": "記録の抜粋は切り詰められています",
-    "ko": "기록 일부가 잘렸습니다",
-    "es": "Fragmento registrado truncado",
-    "fr": "Extrait enregistré tronqué"
-  },
-  "记忆内容": {
-    "zh": "记忆内容",
-    "en": "Memory content",
-    "ja": "メモリの内容",
-    "ko": "메모리 내용",
-    "es": "Contenido del recuerdo",
-    "fr": "Contenu de la mémoire"
-  },
-  "记忆存储失败或达到容量限制。": {
-    "zh": "记忆存储失败或达到容量限制。",
-    "en": "Memory storage failed or reached its limit.",
-    "ja": "メモリの保存に失敗したか、容量上限に達しました。",
-    "ko": "메모리 저장에 실패했거나 용량 한도에 도달했습니다.",
-    "es": "Falló el almacenamiento o se alcanzó su límite.",
-    "fr": "Échec du stockage ou limite atteinte."
-  },
-  "记忆操作未完成，请刷新核对数据。": {
-    "zh": "记忆操作未完成，请刷新核对数据。",
-    "en": "Memory operation did not complete. Refresh to check the data.",
-    "ja": "メモリ操作が完了しませんでした。更新してデータを確認してください。",
-    "ko": "메모리 작업이 완료되지 않았습니다. 새로고침하여 데이터를 확인하세요.",
-    "es": "La operación no se completó. Actualiza para comprobar los datos.",
-    "fr": "Opération inachevée. Actualisez pour vérifier les données."
-  },
-  "记忆管理": {
-    "zh": "记忆管理",
-    "en": "Memory management",
-    "ja": "メモリ管理",
-    "ko": "메모리 관리",
-    "es": "Gestión de memoria",
-    "fr": "Gestion de la mémoire"
-  },
   "设备权限": {
     "zh": "设备权限",
     "en": "Device permissions",
@@ -4054,14 +3198,6 @@
     "ko": "HTTPS 웹 서비스에 액세스",
     "es": "Acceder a servicios web HTTPS",
     "fr": "Accéder aux services Web HTTPS"
-  },
-  "诊断": {
-    "en": "Diagnostics",
-    "ja": "診断",
-    "ko": "진단",
-    "es": "Diagnóstico",
-    "fr": "Diagnostic",
-    "zh": "诊断"
   },
   "试运行：{0}": {
     "zh": "试运行：{0}",
@@ -4199,14 +3335,6 @@
     "es": "Leer y modificar archivos y sesiones en el espacio de trabajo de conversación actual",
     "fr": "Lire et modifier des fichiers et des sessions dans l'espace de travail de conversation actuel"
   },
-  "读取执行记录失败": {
-    "zh": "读取执行记录失败",
-    "en": "Could not load execution log",
-    "ja": "実行記録の読み込みに失敗しました",
-    "ko": "실행 기록을 불러오지 못했습니다",
-    "es": "No se pudo cargar el registro",
-    "fr": "Impossible de charger le journal"
-  },
   "读取聊天记录失败": {
     "zh": "读取聊天记录失败",
     "en": "Failed to read chat history",
@@ -4255,14 +3383,6 @@
     "es": "Abra la terminal después de ingresar el comando.",
     "fr": "Ouvrez le terminal après avoir entré la commande."
   },
-  "输入超过自动记忆预算。": {
-    "zh": "输入超过自动记忆预算。",
-    "en": "Input exceeds the automatic memory budget.",
-    "ja": "入力が自動メモリの予算を超えています。",
-    "ko": "입력이 자동 메모리 예산을 초과합니다.",
-    "es": "La entrada supera el límite de memoria automática.",
-    "fr": "La saisie dépasse le budget de mémoire automatique."
-  },
   "输入过快，请稍后重试": {
     "zh": "输入过快，请稍后重试",
     "en": "Input too fast, please try again later",
@@ -4270,22 +3390,6 @@
     "ko": "입력이 너무 빠릅니다. 나중에 다시 시도해 주세요.",
     "es": "Ingrese demasiado rápido, intente nuevamente más tarde.",
     "fr": "Saisie trop rapide, veuillez réessayer plus tard"
-  },
-  "输出限制参数": {
-    "zh": "输出限制参数",
-    "en": "Output limit parameter",
-    "ja": "出力上限パラメータ",
-    "ko": "출력 제한 매개변수",
-    "es": "Parámetro de límite de salida",
-    "fr": "Paramètre de limite de sortie"
-  },
-  "输出预留": {
-    "zh": "输出预留",
-    "en": "Output reservation",
-    "ja": "出力用の予約枠",
-    "ko": "출력 예약량",
-    "es": "Reserva para salida",
-    "fr": "Réserve de sortie"
   },
   "运行": {
     "zh": "运行",
@@ -4326,14 +3430,6 @@
     "ko": "반품 세부정보",
     "es": "Detalles de devolución",
     "fr": "Détails du retour"
-  },
-  "这个对话尚未生成摘要": {
-    "zh": "这个对话尚未生成摘要",
-    "en": "This chat has no summary yet",
-    "ja": "この会話にはまだ要約がありません",
-    "ko": "이 대화에는 아직 요약이 없습니다",
-    "es": "Este chat aún no tiene resumen",
-    "fr": "Cette conversation n’a pas encore de résumé"
   },
   "连接你选择的模型": {
     "zh": "连接你选择的模型",
@@ -4431,14 +3527,6 @@
     "es": "Configurar complemento",
     "fr": "Configurer le plugin"
   },
-  "释放自动保存容量，保留已保存记忆和可重试任务。": {
-    "zh": "释放自动保存容量，保留已保存记忆和可重试任务。",
-    "en": "Free automatic saving capacity while keeping saved memories and retryable tasks.",
-    "ja": "保存済みメモリと再試行可能なタスクを保持し、自動保存の容量を解放します。",
-    "ko": "저장된 메모리와 재시도 가능한 작업을 유지하면서 자동 저장 용량을 확보합니다.",
-    "es": "Liberar capacidad conservando recuerdos y tareas que pueden reintentarse.",
-    "fr": "Libérer de la capacité en conservant les mémoires et les tâches pouvant être relancées."
-  },
   "重新下载": {
     "zh": "重新下载",
     "en": "Download again",
@@ -4463,22 +3551,6 @@
     "es": "Inténtalo de nuevo",
     "fr": "Réessayez"
   },
-  "重试将使用原模型配置，可能产生额外费用。": {
-    "zh": "重试将使用原模型配置，可能产生额外费用。",
-    "en": "Retry uses the original model configuration and may incur additional charges.",
-    "ja": "再試行は元のモデル設定を使い、追加料金が発生する場合があります。",
-    "ko": "재시도는 원래 모델 설정을 사용하며 추가 비용이 발생할 수 있습니다.",
-    "es": "El reintento usa la configuración original del modelo y puede generar cargos adicionales.",
-    "fr": "La nouvelle tentative utilise la configuration initiale du modèle et peut entraîner des frais supplémentaires."
-  },
-  "重试自动记忆": {
-    "zh": "重试自动记忆",
-    "en": "Retry automatic memory",
-    "ja": "自動メモリを再試行",
-    "ko": "자동 메모리 재시도",
-    "es": "Reintentar memoria automática",
-    "fr": "Relancer la mémoire automatique"
-  },
   "问点什么，或描述你的想法…": {
     "zh": "问点什么，或描述你的想法…",
     "en": "Ask something, or describe your thoughts…",
@@ -4494,6 +3566,174 @@
     "ko": "키 숨기기",
     "es": "Ocultar clave",
     "fr": "Masquer la clé"
+  },
+  "默认中文；切换后立即生效": {
+    "zh": "默认中文；切换后立即生效",
+    "en": "Chinese by default; changes apply immediately",
+    "ja": "初期設定は中国語です。変更はすぐに反映されます",
+    "ko": "기본 언어는 중국어이며 변경 즉시 적용됩니다",
+    "es": "Chino por defecto; los cambios se aplican al instante",
+    "fr": "Chinois par défaut ; les changements sont immédiats"
+  },
+  "默认配置": {
+    "zh": "默认配置",
+    "en": "Default configuration",
+    "ja": "デフォルト構成",
+    "ko": "기본 구성",
+    "es": "Configuración predeterminada",
+    "fr": "Configuration par défaut"
+  },
+  "例如 https://api.deepseek.com/v1；无需填写 /chat/completions": {
+    "zh": "例如 https://api.deepseek.com/v1；无需填写 /chat/completions",
+    "en": "For example https://api.deepseek.com/v1; no need to fill in /chat/completions",
+    "ja": "たとえば、https://api.deepseek.com/v1; /chat/complements に記入する必要はありません",
+    "ko": "예를 들어 https://api.deepseek.com/v1; /chat/completions를 작성할 필요가 없습니다.",
+    "es": "Por ejemplo https://api.deepseek.com/v1; no es necesario completar /chat/completions",
+    "fr": "For example https://api.deepseek.com/v1; no need to fill in /chat/completions"
+  },
+  "支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。": {
+    "zh": "支持 OpenAI、DeepSeek 等兼容 Chat Completions API 的服务。",
+    "en": "Supports OpenAI, DeepSeek and other services compatible with Chat Completions API.",
+    "ja": "OpenAI、DeepSeek、およびChat Completions APIと互換性のあるその他のサービスをサポートします。",
+    "ko": "OpenAI, DeepSeek 및 Chat Completions API와 호환되는 기타 서비스를 지원합니다.",
+    "es": "Admite OpenAI, DeepSeek y otros servicios compatibles con Chat Completions API.",
+    "fr": "Prend en charge OpenAI, DeepSeek et d'autres services compatibles avec l'API Chat Completions."
+  },
+  "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。": {
+    "zh": "普通聊天使用聊天模型；模型发起工具调用后，后续轮次可使用另一个模型，它会收到完整对话和工具结果。未单独选择时沿用聊天模型。",
+    "en": "Normal chat uses the chat model; after a model initiates a tool call, subsequent rounds can use another model, which receives the full conversation and tool results. Inherit the chat model when not selected separately.",
+    "ja": "通常のチャットはチャット モデルを使用します。モデルがツール呼び出しを開始すると、後続のラウンドでは別のモデルを使用でき、完全な会話とツールの結果を受け取ります。別途選択しない場合はチャットモデルを継承します。",
+    "ko": "일반 채팅은 채팅 모델을 사용합니다. 모델이 도구 호출을 시작한 후 후속 라운드에서는 전체 대화 및 도구 결과를 수신하는 다른 모델을 사용할 수 있습니다. 별도로 선택하지 않으면 채팅 모델을 상속받습니다.",
+    "es": "El chat normal utiliza el modelo de chat; Después de que un modelo inicia una llamada a la herramienta, las rondas posteriores pueden usar otro modelo, que recibe la conversación completa y los resultados de la herramienta. Hereda el modelo de chat cuando no se selecciona por separado.",
+    "fr": "Le chat normal utilise le modèle de chat ; une fois qu'un modèle a lancé un appel d'outil, les cycles suivants peuvent utiliser un autre modèle, qui reçoit la conversation complète et les résultats de l'outil. Héritez du modèle de chat lorsqu'il n'est pas sélectionné séparément."
+  },
+  "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。": {
+    "zh": "备份包含模型地址、API Key、提示词、角色、语言和外观设置。文件使用密码加密，可在重装或换机后恢复。",
+    "en": "The backup contains model address, API Key, prompt words, role, language and appearance settings. Files are encrypted with a password and can be restored after reinstalling or changing machines.",
+    "ja": "バックアップには、モデルのアドレス、API キー、プロンプトの単語、役割、言語、外観の設定が含まれています。ファイルはパスワードで暗号化されており、マシンを再インストールまたは変更した後に復元できます。",
+    "ko": "백업에는 모델 주소, API 키, 프롬프트 단어, 역할, 언어 및 모양 설정이 포함됩니다. 파일은 비밀번호로 암호화되며 기기를 재설치하거나 변경한 후에 복원할 수 있습니다.",
+    "es": "La copia de seguridad contiene la dirección del modelo, la clave API, las palabras clave, la función, el idioma y la configuración de apariencia. Los archivos se cifran con una contraseña y se pueden restaurar después de reinstalar o cambiar de máquina.",
+    "fr": "La sauvegarde contient l'adresse du modèle, la clé API, les mots d'invite, les paramètres de rôle, de langue et d'apparence. Les fichiers sont cryptés avec un mot de passe et peuvent être restaurés après réinstallation ou changement de machine."
+  },
+  "模型：{0}\n角色：{1} 个\n\n将替换当前模型和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。": {
+    "zh": "模型：{0}\n角色：{1} 个\n\n将替换当前模型和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。",
+    "en": "Models: {0}\nCharacters: {1}\n\nwill replace the current model and appearance configuration, and merge characters (same IDs will be overwritten). Plugins still need to be reinstalled and authorized.",
+    "ja": "モデル: {0}\nキャラクター: {1}\n\nは現在のモデルと外観構成を置き換え、キャラクターをマージします (同じ ID は上書きされます)。プラグインを再インストールして認証する必要があります。",
+    "ko": "모델: {0}\n문자: {1}\n\n는 현재 모델 및 모양 구성을 대체하고 문자를 병합합니다(동일한 ID는 덮어쓰게 됩니다). 플러그인을 다시 설치하고 승인해야 합니다.",
+    "es": "Modelos: {0}\nCaracteres: {1}\n\nreemplazará el modelo actual y la configuración de apariencia, y fusionará caracteres (se sobrescribirán los mismos ID). Aún es necesario reinstalar y autorizar los complementos.",
+    "fr": "Modèles : {0}\nCaractères : {1}\n\nremplacera le modèle et la configuration d'apparence actuels, et fusionnera les caractères (les mêmes identifiants seront écrasés). Les plugins doivent encore être réinstallés et autorisés."
+  },
+  "安装后可以在这里启用插件、管理权限和配置。": {
+    "zh": "安装后可以在这里启用插件、管理权限和配置。",
+    "en": "After installation, manage plugin activation, permissions and settings here.",
+    "ja": "インストール後、ここでプラグインの有効化、権限、設定を管理できます。",
+    "ko": "설치 후 여기에서 플러그인 활성화, 권한 및 설정을 관리할 수 있습니다.",
+    "es": "Después de instalar, administra aquí la activación, los permisos y la configuración de los complementos.",
+    "fr": "Après installation, gérez ici l’activation, les autorisations et les paramètres des extensions."
+  },
+  "诊断": {
+    "en": "Diagnostics",
+    "ja": "診断",
+    "ko": "진단",
+    "es": "Diagnóstico",
+    "fr": "Diagnostic",
+    "zh": "诊断"
+  },
+  "最近请求诊断": {
+    "en": "Latest request diagnostics",
+    "ja": "最新リクエストの診断",
+    "ko": "최근 요청 진단",
+    "es": "Diagnóstico de la última solicitud",
+    "fr": "Diagnostic de la dernière requête",
+    "zh": "最近请求诊断"
+  },
+  "角色、上下文来源、工具与回复耗时": {
+    "en": "Role, context sources, tools and response timing",
+    "ja": "ロール、コンテキストの出典、ツールと応答時間",
+    "ko": "역할, 문맥 출처, 도구 및 응답 시간",
+    "es": "Rol, fuentes de contexto, herramientas y tiempos",
+    "fr": "Rôle, sources du contexte, outils et délais",
+    "zh": "角色、上下文来源、工具与回复耗时"
+  },
+  "仅展示最近请求的元数据，不保存提示词、密钥或工具参数。": {
+    "en": "Shows metadata only; does not store prompts, keys or tool arguments.",
+    "ja": "メタデータのみ表示します。プロンプト、キー、ツール引数は保存しません。",
+    "ko": "메타데이터만 표시하며 프롬프트, 키, 도구 인수는 저장하지 않습니다.",
+    "es": "Solo muestra metadatos; no guarda instrucciones, claves ni argumentos.",
+    "fr": "Affiche uniquement les métadonnées, sans conserver les instructions, clés ou arguments.",
+    "zh": "仅展示最近请求的元数据，不保存提示词、密钥或工具参数。"
+  },
+  "尚未组装模型请求": {
+    "en": "No model request prepared yet",
+    "ja": "モデルリクエストはまだありません",
+    "ko": "준비된 모델 요청이 없습니다",
+    "es": "Todavía no se preparó una solicitud",
+    "fr": "Aucune requête préparée",
+    "zh": "尚未组装模型请求"
+  },
+  "实际角色：{0}": {
+    "en": "Effective role: {0}",
+    "ja": "有効なロール：{0}",
+    "ko": "실제 역할: {0}",
+    "es": "Rol efectivo: {0}",
+    "fr": "Rôle effectif : {0}",
+    "zh": "实际角色：{0}"
+  },
+  "协议：{0}": {
+    "en": "Protocol: {0}",
+    "ja": "プロトコル：{0}",
+    "ko": "프로토콜: {0}",
+    "es": "Protocolo: {0}",
+    "fr": "Protocole : {0}",
+    "zh": "协议：{0}"
+  },
+  "模型：{0}": {
+    "en": "Model: {0}",
+    "ja": "モデル：{0}",
+    "ko": "모델: {0}",
+    "es": "Modelo: {0}",
+    "fr": "Modèle : {0}",
+    "zh": "模型：{0}"
+  },
+  "消息数：{0}": {
+    "en": "Messages: {0}",
+    "ja": "メッセージ数：{0}",
+    "ko": "메시지 수: {0}",
+    "es": "Mensajes: {0}",
+    "fr": "Messages : {0}",
+    "zh": "消息数：{0}"
+  },
+  "系统上下文字符数：{0}": {
+    "en": "System context characters: {0}",
+    "ja": "システムコンテキスト文字数：{0}",
+    "ko": "시스템 문맥 문자 수: {0}",
+    "es": "Caracteres del contexto de sistema: {0}",
+    "fr": "Caractères du contexte système : {0}",
+    "zh": "系统上下文字符数：{0}"
+  },
+  "来源：{0} · {1} · {2}": {
+    "en": "Source: {0} · {1} · {2}",
+    "ja": "出典：{0} · {1} · {2}",
+    "ko": "출처: {0} · {1} · {2}",
+    "es": "Fuente: {0} · {1} · {2}",
+    "fr": "Source : {0} · {1} · {2}",
+    "zh": "来源：{0} · {1} · {2}"
+  },
+  "提供的工具数：{0}": {
+    "en": "Available tools: {0}",
+    "ja": "提供ツール数：{0}",
+    "ko": "제공된 도구 수: {0}",
+    "es": "Herramientas disponibles: {0}",
+    "fr": "Outils disponibles : {0}",
+    "zh": "提供的工具数：{0}"
+  },
+  "首段文本到达应用：{0} ms": {
+    "en": "First text received by app: {0} ms",
+    "ja": "最初のテキスト受信：{0} ms",
+    "ko": "앱의 첫 텍스트 수신: {0} ms",
+    "es": "Primer texto recibido: {0} ms",
+    "fr": "Premier texte reçu : {0} ms",
+    "zh": "首段文本到达应用：{0} ms"
   },
   "首段思考到达应用：{0} ms": {
     "en": "First reasoning received by app: {0} ms",
@@ -4511,28 +3751,788 @@
     "fr": "Premier texte affiché : {0} ms",
     "zh": "首段文字显示：{0} ms"
   },
-  "首段文本到达应用：{0} ms": {
-    "en": "First text received by app: {0} ms",
-    "ja": "最初のテキスト受信：{0} ms",
-    "ko": "앱의 첫 텍스트 수신: {0} ms",
-    "es": "Primer texto recibido: {0} ms",
-    "fr": "Premier texte reçu : {0} ms",
-    "zh": "首段文本到达应用：{0} ms"
+  "模型事件结束：{0} ms": {
+    "en": "Model events ended: {0} ms",
+    "ja": "モデルイベント終了：{0} ms",
+    "ko": "모델 이벤트 종료: {0} ms",
+    "es": "Fin de eventos del modelo: {0} ms",
+    "fr": "Fin des événements du modèle : {0} ms",
+    "zh": "模型事件结束：{0} ms"
   },
-  "默认中文；切换后立即生效": {
-    "zh": "默认中文；切换后立即生效",
-    "en": "Chinese by default; changes apply immediately",
-    "ja": "初期設定は中国語です。変更はすぐに反映されます",
-    "ko": "기본 언어는 중국어이며 변경 즉시 적용됩니다",
-    "es": "Chino por defecto; los cambios se aplican al instante",
-    "fr": "Chinois par défaut ; les changements sont immédiats"
+  "显示结束：{0} ms": {
+    "en": "Display ended: {0} ms",
+    "ja": "表示終了：{0} ms",
+    "ko": "표시 종료: {0} ms",
+    "es": "Fin de visualización: {0} ms",
+    "fr": "Fin de l’affichage : {0} ms",
+    "zh": "显示结束：{0} ms"
   },
-  "默认配置": {
-    "zh": "默认配置",
-    "en": "Default configuration",
-    "ja": "デフォルト構成",
-    "ko": "기본 구성",
-    "es": "Configuración predeterminada",
-    "fr": "Configuration par défaut"
+  "接收字符数：{0}": {
+    "en": "Received characters: {0}",
+    "ja": "受信文字数：{0}",
+    "ko": "수신 문자 수: {0}",
+    "es": "Caracteres recibidos: {0}",
+    "fr": "Caractères reçus : {0}",
+    "zh": "接收字符数：{0}"
+  },
+  "状态：{0}": {
+    "en": "Status: {0}",
+    "ja": "状態：{0}",
+    "ko": "상태: {0}",
+    "es": "Estado: {0}",
+    "fr": "État : {0}",
+    "zh": "状态：{0}"
+  },
+  "到达应用的时间包含网络、解析和执行等待，不能单独证明服务端缓冲。": {
+    "en": "App receipt times include network, parsing and execution waits; they alone cannot prove server buffering.",
+    "ja": "受信時間にはネットワーク、解析、実行待機が含まれ、これだけでサーバーのバッファリングは断定できません。",
+    "ko": "앱 수신 시간에는 네트워크, 파싱, 실행 대기가 포함되며 서버 버퍼링을 단독으로 입증하지 않습니다.",
+    "es": "Los tiempos incluyen red, análisis y esperas; por sí solos no prueban almacenamiento en búfer del servidor.",
+    "fr": "Les délais incluent réseau, analyse et attente ; ils ne prouvent pas à eux seuls une mise en tampon du serveur.",
+    "zh": "到达应用的时间包含网络、解析和执行等待，不能单独证明服务端缓冲。"
+  },
+  "自动将相关记忆用于聊天": {
+    "zh": "自动将相关记忆用于聊天",
+    "en": "Use relevant memories automatically in chat",
+    "ja": "関連する記憶をチャットで自動的に使用",
+    "ko": "관련 기억을 대화에 자동으로 사용",
+    "es": "Usar recuerdos relevantes automáticamente en el chat",
+    "fr": "Utiliser automatiquement les souvenirs pertinents dans le chat"
+  },
+  "插件会为聊天提供上下文，已保存的资料可能发送给当前模型服务。": {
+    "zh": "插件会为聊天提供上下文，已保存的资料可能发送给当前模型服务。",
+    "en": "The plugin contributes chat context. Saved information may be sent to the selected model service.",
+    "ja": "プラグインは会話のコンテキストを提供し、保存済みの情報が選択したモデルサービスへ送信される場合があります。",
+    "ko": "플러그인은 대화 맥락을 제공하며 저장된 정보가 선택한 모델 서비스로 전송될 수 있습니다.",
+    "es": "El complemento aporta contexto al chat. La información guardada puede enviarse al servicio del modelo seleccionado.",
+    "fr": "Le plugin fournit du contexte au chat. Les informations enregistrées peuvent être envoyées au service du modèle sélectionné."
+  },
+  "插件可为聊天提供上下文；停用后停止提供。": {
+    "zh": "插件可为聊天提供上下文；停用后停止提供。",
+    "en": "The plugin can contribute chat context; disabling it stops these contributions.",
+    "ja": "プラグインは会話のコンテキストを提供できます。無効にすると提供を停止します。",
+    "ko": "플러그인은 대화 맥락을 제공할 수 있으며 비활성화하면 제공이 중단됩니다.",
+    "es": "El complemento puede aportar contexto al chat; al desactivarlo deja de hacerlo.",
+    "fr": "Le plugin peut fournir du contexte au chat ; sa désactivation arrête ces contributions."
+  },
+  "上下文管理": {
+    "zh": "上下文管理",
+    "en": "Context management",
+    "ja": "コンテキスト管理",
+    "ko": "컨텍스트 관리",
+    "es": "Gestión del contexto",
+    "fr": "Gestion du contexte"
+  },
+  "上下文窗口": {
+    "zh": "上下文窗口",
+    "en": "Context window",
+    "ja": "コンテキストウィンドウ",
+    "ko": "컨텍스트 창",
+    "es": "Ventana de contexto",
+    "fr": "Fenêtre de contexte"
+  },
+  "输出预留": {
+    "zh": "输出预留",
+    "en": "Output reservation",
+    "ja": "出力用の予約枠",
+    "ko": "출력 예약량",
+    "es": "Reserva para salida",
+    "fr": "Réserve de sortie"
+  },
+  "压缩余量": {
+    "zh": "压缩余量",
+    "en": "Compaction headroom",
+    "ja": "圧縮の余裕",
+    "ko": "압축 여유",
+    "es": "Margen de compactación",
+    "fr": "Marge de compression"
+  },
+  "自动摘要旧回合": {
+    "zh": "自动摘要旧回合",
+    "en": "Automatically summarize older turns",
+    "ja": "古い会話を自動要約",
+    "ko": "이전 대화 자동 요약",
+    "es": "Resumir turnos anteriores automáticamente",
+    "fr": "Résumer automatiquement les anciens échanges"
+  },
+  "查看历史摘要": {
+    "zh": "查看历史摘要",
+    "en": "View history summary",
+    "ja": "履歴の要約を表示",
+    "ko": "대화 요약 보기",
+    "es": "Ver resumen del historial",
+    "fr": "Voir le résumé de l’historique"
+  },
+  "历史摘要": {
+    "zh": "历史摘要",
+    "en": "History summary",
+    "ja": "履歴の要約",
+    "ko": "대화 요약",
+    "es": "Resumen del historial",
+    "fr": "Résumé de l’historique"
+  },
+  "这个对话尚未生成摘要": {
+    "zh": "这个对话尚未生成摘要",
+    "en": "This chat has no summary yet",
+    "ja": "この会話にはまだ要約がありません",
+    "ko": "이 대화에는 아직 요약이 없습니다",
+    "es": "Este chat aún no tiene resumen",
+    "fr": "Cette conversation n’a pas encore de résumé"
+  },
+  "无法读取摘要，原聊天记录仍保留": {
+    "zh": "无法读取摘要，原聊天记录仍保留",
+    "en": "Could not read the summary. Original messages remain saved.",
+    "ja": "要約を読み込めません。元の会話は保存されています。",
+    "ko": "요약을 읽을 수 없습니다. 원본 대화는 보존됩니다.",
+    "es": "No se pudo leer el resumen. Se conservan los mensajes originales.",
+    "fr": "Impossible de lire le résumé. Les messages originaux sont conservés."
+  },
+  "原聊天记录保留；摘要只用于后续模型上下文。": {
+    "zh": "原聊天记录保留；摘要只用于后续模型上下文。",
+    "en": "Original messages remain saved; the summary is only used in later model context.",
+    "ja": "元の会話は保存されます。要約は以後のモデルコンテキストにのみ使われます。",
+    "ko": "원본 대화는 보존되며 요약은 이후 모델 컨텍스트에만 사용됩니다.",
+    "es": "Se conservan los mensajes originales; el resumen solo se usa en el contexto posterior del modelo.",
+    "fr": "Les messages originaux sont conservés ; le résumé sert uniquement au contexte ultérieur du modèle."
+  },
+  "上下文估计：{0} / {1}": {
+    "zh": "上下文估计：{0} / {1}",
+    "en": "Context estimate: {0} / {1}",
+    "ja": "コンテキスト推定：{0} / {1}",
+    "ko": "컨텍스트 추정: {0} / {1}",
+    "es": "Estimación del contexto: {0} / {1}",
+    "fr": "Estimation du contexte : {0} / {1}"
+  },
+  "估计包含消息与工具定义，不是服务商实际 Token 用量。": {
+    "zh": "估计包含消息与工具定义，不是服务商实际 Token 用量。",
+    "en": "The estimate includes messages and tool definitions, not actual provider token usage.",
+    "ja": "メッセージとツール定義を含む推定値であり、プロバイダーの実際のトークン使用量ではありません。",
+    "ko": "메시지와 도구 정의를 포함한 추정값이며 제공자의 실제 토큰 사용량이 아닙니다.",
+    "es": "La estimación incluye mensajes y herramientas, no el uso real de tokens del proveedor.",
+    "fr": "L’estimation comprend les messages et les outils, et non l’utilisation réelle des tokens du fournisseur."
+  },
+  "按服务实际容量设置窗口。使用保守 UTF-8 字节估计，并非模型实际 Token 用量；默认窗口是本机预算，不代表模型容量。摘要会额外调用当前模型，原聊天记录保留。": {
+    "zh": "按服务实际容量设置窗口。使用保守 UTF-8 字节估计，并非模型实际 Token 用量；默认窗口是本机预算，不代表模型容量。摘要会额外调用当前模型，原聊天记录保留。",
+    "en": "Set the window to your service capacity. The conservative UTF-8 byte estimate is not actual model token usage; the default is a local budget, not model capacity. Summaries make additional calls to the current model. Original messages remain saved.",
+    "ja": "サービスの容量に合わせて設定してください。保守的な UTF-8 バイト推定であり、実際のトークン使用量ではありません。既定値は端末の予算で、モデル容量ではありません。要約には追加のモデル呼び出しが必要です。元の会話は保存されます。",
+    "ko": "서비스 용량에 맞게 설정하세요. 보수적인 UTF-8 바이트 추정값으로 실제 토큰 사용량이 아닙니다. 기본값은 로컬 예산이며 모델 용량이 아닙니다. 요약에는 추가 모델 호출이 필요합니다. 원본 대화는 보존됩니다.",
+    "es": "Ajusta la ventana a la capacidad del servicio. La estimación conservadora de bytes UTF-8 no es el uso real de tokens. El valor predeterminado es un presupuesto local, no la capacidad del modelo. Los resúmenes requieren llamadas adicionales. Se conservan los mensajes originales.",
+    "fr": "Réglez la fenêtre selon la capacité du service. L’estimation prudente en octets UTF-8 n’est pas l’usage réel des tokens. La valeur par défaut est un budget local, pas la capacité du modèle. Les résumés nécessitent des appels supplémentaires. Les messages originaux sont conservés."
+  },
+  "正在压缩历史，第 {0} 批": {
+    "zh": "正在压缩历史，第 {0} 批",
+    "en": "Summarizing history, batch {0}",
+    "ja": "履歴を圧縮中：バッチ {0}",
+    "ko": "대화 압축 중: 배치 {0}",
+    "es": "Resumiendo el historial, lote {0}",
+    "fr": "Résumé de l’historique, lot {0}"
+  },
+  "输出限制参数": {
+    "zh": "输出限制参数",
+    "en": "Output limit parameter",
+    "ja": "出力上限パラメータ",
+    "ko": "출력 제한 매개변수",
+    "es": "Parámetro de límite de salida",
+    "fr": "Paramètre de limite de sortie"
+  },
+  "按服务地址选择": {
+    "zh": "按服务地址选择",
+    "en": "Choose by service address",
+    "ja": "サービスアドレスで選択",
+    "ko": "서비스 주소로 선택",
+    "es": "Elegir según la dirección del servicio",
+    "fr": "Choisir selon l’adresse du service"
+  },
+  "后台模型调用，可能产生模型服务费用": {
+    "zh": "后台模型调用，可能产生模型服务费用",
+    "en": "Background model calls may incur model service charges",
+    "ja": "バックグラウンドのモデル呼び出しには利用料金が発生する場合があります",
+    "ko": "백그라운드 모델 호출에 서비스 요금이 발생할 수 있습니다",
+    "es": "Las llamadas al modelo en segundo plano pueden generar cargos",
+    "fr": "Les appels au modèle en arrière-plan peuvent entraîner des frais"
+  },
+  "回复完成后自动保存明确的用户事实（额外模型调用）": {
+    "zh": "回复完成后自动保存明确的用户事实（额外模型调用）",
+    "en": "Automatically save explicit user facts after replies (additional model calls)",
+    "ja": "返信後にユーザーの明示的な事実を自動保存（追加のモデル呼び出し）",
+    "ko": "답변 후 명시적인 사용자 사실 자동 저장 (추가 모델 호출)",
+    "es": "Guardar hechos explícitos del usuario tras responder (llamadas adicionales al modelo)",
+    "fr": "Enregistrer les faits explicites après les réponses (appels supplémentaires au modèle)"
+  },
+  "自动记忆任务": {
+    "zh": "自动记忆任务",
+    "en": "Automatic memory tasks",
+    "ja": "自動メモリのタスク",
+    "ko": "자동 메모리 작업",
+    "es": "Tareas de memoria automática",
+    "fr": "Tâches de mémoire automatique"
+  },
+  "查看处理状态、失败原因与手动重试": {
+    "zh": "查看处理状态、失败原因与手动重试",
+    "en": "Status, failures and manual retry",
+    "ja": "処理状況・失敗理由・手動再試行",
+    "ko": "처리 상태, 실패 원인 및 수동 재시도",
+    "es": "Estado, errores y reintentos manuales",
+    "fr": "État, erreurs et relance manuelle"
+  },
+  "仅处理启用自动保存后完成的回复；重试可能产生额外模型费用。": {
+    "zh": "仅处理启用自动保存后完成的回复；重试可能产生额外模型费用。",
+    "en": "Only replies completed after enabling automatic saving are processed. Retries may incur model charges.",
+    "ja": "自動保存を有効にした後の完了済み返信のみ処理します。再試行にはモデル料金が発生する場合があります。",
+    "ko": "자동 저장을 켠 후 완료된 응답만 처리합니다. 재시도 시 모델 비용이 발생할 수 있습니다.",
+    "es": "Solo se procesan respuestas completadas tras activar el guardado automático. Los reintentos pueden generar costes.",
+    "fr": "Seules les réponses terminées après activation sont traitées. Les relances peuvent entraîner des frais."
+  },
+  "暂无自动记忆任务": {
+    "zh": "暂无自动记忆任务",
+    "en": "No automatic memory tasks",
+    "ja": "自動メモリのタスクはありません",
+    "ko": "자동 메모리 작업이 없습니다",
+    "es": "No hay tareas de memoria automática",
+    "fr": "Aucune tâche de mémoire automatique"
+  },
+  "等待处理": {
+    "zh": "等待处理",
+    "en": "Waiting",
+    "ja": "待機中",
+    "ko": "대기 중",
+    "es": "En espera",
+    "fr": "En attente"
+  },
+  "正在处理": {
+    "zh": "正在处理",
+    "en": "Processing",
+    "ja": "処理中",
+    "ko": "처리 중",
+    "es": "Procesando",
+    "fr": "En cours"
+  },
+  "处理完成": {
+    "zh": "处理完成",
+    "en": "Completed",
+    "ja": "完了",
+    "ko": "완료",
+    "es": "Completada",
+    "fr": "Terminée"
+  },
+  "处理失败": {
+    "zh": "处理失败",
+    "en": "Failed",
+    "ja": "失敗",
+    "ko": "실패",
+    "es": "Fallida",
+    "fr": "Échec"
+  },
+  "已跳过": {
+    "zh": "已跳过",
+    "en": "Skipped",
+    "ja": "スキップ済み",
+    "ko": "건너뜀",
+    "es": "Omitida",
+    "fr": "Ignorée"
+  },
+  "处理已中断，需要手动重试。": {
+    "zh": "处理已中断，需要手动重试。",
+    "en": "Interrupted; retry manually.",
+    "ja": "中断されました。手動で再試行してください。",
+    "ko": "중단되었습니다. 수동으로 재시도하세요.",
+    "es": "Interrumpida; reintenta manualmente.",
+    "fr": "Interrompue ; relancez manuellement."
+  },
+  "模型处理超时。": {
+    "zh": "模型处理超时。",
+    "en": "Model request timed out.",
+    "ja": "モデルの処理がタイムアウトしました。",
+    "ko": "모델 요청 시간이 초과되었습니다.",
+    "es": "La solicitud al modelo agotó el tiempo.",
+    "fr": "Délai du modèle dépassé."
+  },
+  "输入超过自动记忆预算。": {
+    "zh": "输入超过自动记忆预算。",
+    "en": "Input exceeds the automatic memory budget.",
+    "ja": "入力が自動メモリの予算を超えています。",
+    "ko": "입력이 자동 메모리 예산을 초과합니다.",
+    "es": "La entrada supera el límite de memoria automática.",
+    "fr": "La saisie dépasse le budget de mémoire automatique."
+  },
+  "模型请求失败。": {
+    "zh": "模型请求失败。",
+    "en": "Model request failed.",
+    "ja": "モデルへのリクエストに失敗しました。",
+    "ko": "모델 요청에 실패했습니다.",
+    "es": "Falló la solicitud al modelo.",
+    "fr": "Échec de la requête au modèle."
+  },
+  "模型输出不符合记忆格式。": {
+    "zh": "模型输出不符合记忆格式。",
+    "en": "Model output has an invalid memory format.",
+    "ja": "モデル出力のメモリ形式が無効です。",
+    "ko": "모델 출력의 메모리 형식이 잘못되었습니다.",
+    "es": "El formato de memoria del modelo no es válido.",
+    "fr": "Format de mémoire du modèle invalide."
+  },
+  "记忆存储失败或达到容量限制。": {
+    "zh": "记忆存储失败或达到容量限制。",
+    "en": "Memory storage failed or reached its limit.",
+    "ja": "メモリの保存に失敗したか、容量上限に達しました。",
+    "ko": "메모리 저장에 실패했거나 용량 한도에 도달했습니다.",
+    "es": "Falló el almacenamiento o se alcanzó su límite.",
+    "fr": "Échec du stockage ou limite atteinte."
+  },
+  "插件授权已失效。": {
+    "zh": "插件授权已失效。",
+    "en": "Plugin permission is no longer valid.",
+    "ja": "プラグインの権限が無効になりました。",
+    "ko": "플러그인 권한이 유효하지 않습니다.",
+    "es": "El permiso del complemento ya no es válido.",
+    "fr": "Autorisation du plugin invalide."
+  },
+  "插件版本已变化。": {
+    "zh": "插件版本已变化。",
+    "en": "Plugin version changed.",
+    "ja": "プラグインのバージョンが変更されました。",
+    "ko": "플러그인 버전이 변경되었습니다.",
+    "es": "Cambió la versión del complemento.",
+    "fr": "La version du plugin a changé."
+  },
+  "原模型配置不可用。": {
+    "zh": "原模型配置不可用。",
+    "en": "Original model configuration is unavailable.",
+    "ja": "元のモデル設定は利用できません。",
+    "ko": "원래 모델 설정을 사용할 수 없습니다.",
+    "es": "La configuración original del modelo no está disponible.",
+    "fr": "Configuration initiale du modèle indisponible."
+  },
+  "重试自动记忆": {
+    "zh": "重试自动记忆",
+    "en": "Retry automatic memory",
+    "ja": "自動メモリを再試行",
+    "ko": "자동 메모리 재시도",
+    "es": "Reintentar memoria automática",
+    "fr": "Relancer la mémoire automatique"
+  },
+  "将使用原模型配置重新尝试，可能产生额外费用。权限、角色和插件状态会重新检查。": {
+    "zh": "将使用原模型配置重新尝试，可能产生额外费用。权限、角色和插件状态会重新检查。",
+    "en": "Retries use the original model configuration and may incur charges. Permissions, role and plugin status are checked again.",
+    "ja": "元のモデル設定で再試行します。追加料金が発生する場合があります。権限・役割・プラグイン状態を再確認します。",
+    "ko": "원래 모델 설정으로 재시도하며 추가 비용이 발생할 수 있습니다. 권한, 역할, 플러그인 상태를 다시 확인합니다.",
+    "es": "Se usará la configuración original y puede haber costes. Se comprobarán de nuevo permisos, rol y complemento.",
+    "fr": "La configuration initiale sera utilisée ; des frais sont possibles. Les droits, le rôle et le plugin seront revérifiés."
+  },
+  "确认重试": {
+    "zh": "确认重试",
+    "en": "Confirm retry",
+    "ja": "再試行を確認",
+    "ko": "재시도 확인",
+    "es": "Confirmar reintento",
+    "fr": "Confirmer la relance"
+  },
+  "任务状态已变化或已达重试上限，请刷新查看。": {
+    "zh": "任务状态已变化或已达重试上限，请刷新查看。",
+    "en": "Task changed or retry limit reached. Refresh to check.",
+    "ja": "タスクが変更されたか再試行上限に達しました。更新してください。",
+    "ko": "작업이 변경되었거나 재시도 한도에 도달했습니다. 새로고침하세요.",
+    "es": "La tarea cambió o alcanzó el límite. Actualiza para comprobar.",
+    "fr": "La tâche a changé ou la limite est atteinte. Actualisez."
+  },
+  "无法读取记忆任务，请刷新重试。": {
+    "zh": "无法读取记忆任务，请刷新重试。",
+    "en": "Could not load memory tasks. Refresh to retry.",
+    "ja": "メモリのタスクを読み込めません。更新してください。",
+    "ko": "메모리 작업을 불러올 수 없습니다. 새로고침하세요.",
+    "es": "No se pudieron cargar las tareas. Actualiza.",
+    "fr": "Impossible de charger les tâches. Actualisez."
+  },
+  "无法重试记忆任务，请稍后重试。": {
+    "zh": "无法重试记忆任务，请稍后重试。",
+    "en": "Could not retry the memory task. Try later.",
+    "ja": "メモリのタスクを再試行できません。後でお試しください。",
+    "ko": "메모리 작업을 재시도할 수 없습니다. 나중에 시도하세요.",
+    "es": "No se pudo reintentar. Prueba más tarde.",
+    "fr": "Impossible de relancer. Réessayez plus tard."
+  },
+  "尝试次数：{0}/3": {
+    "zh": "尝试次数：{0}/3",
+    "en": "Attempts: {0}/3",
+    "ja": "試行回数：{0}/3",
+    "ko": "시도 횟수: {0}/3",
+    "es": "Intentos: {0}/3",
+    "fr": "Tentatives : {0}/3"
+  },
+  "会话 ID：{0}": {
+    "zh": "会话 ID：{0}",
+    "en": "Session ID: {0}",
+    "ja": "セッション ID：{0}",
+    "ko": "세션 ID: {0}",
+    "es": "ID de sesión: {0}",
+    "fr": "ID de session : {0}"
+  },
+  "来源消息：{0}": {
+    "zh": "来源消息：{0}",
+    "en": "Source message: {0}",
+    "ja": "元のメッセージ：{0}",
+    "ko": "출처 메시지: {0}",
+    "es": "Mensaje de origen: {0}",
+    "fr": "Message source : {0}"
+  },
+  "回复消息：{0}": {
+    "zh": "回复消息：{0}",
+    "en": "Reply message: {0}",
+    "ja": "返信メッセージ：{0}",
+    "ko": "응답 메시지: {0}",
+    "es": "Mensaje de respuesta: {0}",
+    "fr": "Message de réponse : {0}"
+  },
+  "记忆管理": {
+    "zh": "记忆管理",
+    "en": "Memory management",
+    "ja": "メモリ管理",
+    "ko": "메모리 관리",
+    "es": "Gestión de memoria",
+    "fr": "Gestion de la mémoire"
+  },
+  "查看来源、修改与删除已保存事实": {
+    "zh": "查看来源、修改与删除已保存事实",
+    "en": "View sources, edit and delete saved facts",
+    "ja": "保存済みの事実の出典確認・編集・削除",
+    "ko": "저장된 사실의 출처 보기, 수정 및 삭제",
+    "es": "Ver fuentes, editar y borrar hechos guardados",
+    "fr": "Voir les sources, modifier et supprimer les faits"
+  },
+  "查看所有角色的已保存事实；停用插件后仍可修改或删除。": {
+    "zh": "查看所有角色的已保存事实；停用插件后仍可修改或删除。",
+    "en": "View saved facts for all roles. Editing and deletion remain available with the plugin disabled.",
+    "ja": "すべての役割の保存済み事実を表示します。プラグイン無効時も編集・削除できます。",
+    "ko": "모든 역할의 저장된 사실을 봅니다. 플러그인이 꺼져 있어도 수정 및 삭제할 수 있습니다.",
+    "es": "Ver hechos de todos los roles. Se pueden editar y borrar con el complemento desactivado.",
+    "fr": "Voir les faits de tous les rôles. Modification et suppression restent possibles si le plugin est désactivé."
+  },
+  "记忆操作未完成，请刷新核对数据。": {
+    "zh": "记忆操作未完成，请刷新核对数据。",
+    "en": "Memory operation did not complete. Refresh to check the data.",
+    "ja": "メモリ操作が完了しませんでした。更新してデータを確認してください。",
+    "ko": "메모리 작업이 완료되지 않았습니다. 새로고침하여 데이터를 확인하세요.",
+    "es": "La operación no se completó. Actualiza para comprobar los datos.",
+    "fr": "Opération inachevée. Actualisez pour vérifier les données."
+  },
+  "暂无已保存记忆": {
+    "zh": "暂无已保存记忆",
+    "en": "No saved memories",
+    "ja": "保存済みメモリはありません",
+    "ko": "저장된 메모리가 없습니다",
+    "es": "No hay recuerdos guardados",
+    "fr": "Aucune mémoire enregistrée"
+  },
+  "来自对话中的用户原文": {
+    "zh": "来自对话中的用户原文",
+    "en": "From the original user message",
+    "ja": "ユーザーの元の発言から",
+    "ko": "사용자 원문에서 가져옴",
+    "es": "Del mensaje original del usuario",
+    "fr": "Issu du message original de l’utilisateur"
+  },
+  "已人工修改": {
+    "zh": "已人工修改",
+    "en": "Edited manually",
+    "ja": "手動で編集済み",
+    "ko": "수동 수정됨",
+    "es": "Editado manualmente",
+    "fr": "Modifié manuellement"
+  },
+  "修改记忆": {
+    "zh": "修改记忆",
+    "en": "Edit memory",
+    "ja": "メモリを編集",
+    "ko": "메모리 수정",
+    "es": "Editar recuerdo",
+    "fr": "Modifier la mémoire"
+  },
+  "记忆内容": {
+    "zh": "记忆内容",
+    "en": "Memory content",
+    "ja": "メモリの内容",
+    "ko": "메모리 내용",
+    "es": "Contenido del recuerdo",
+    "fr": "Contenu de la mémoire"
+  },
+  "删除记忆": {
+    "zh": "删除记忆",
+    "en": "Delete memory",
+    "ja": "メモリを削除",
+    "ko": "메모리 삭제",
+    "es": "Borrar recuerdo",
+    "fr": "Supprimer la mémoire"
+  },
+  "删除此事实。保留来源去重记录，避免任务重试重新生成。": {
+    "zh": "删除此事实。保留来源去重记录，避免任务重试重新生成。",
+    "en": "Delete this fact. Retain source deduplication records to prevent retries from recreating it.",
+    "ja": "この事実を削除します。再試行による再生成を防ぐため、出典の重複防止記録は保持します。",
+    "ko": "이 사실을 삭제합니다. 재시도로 다시 생성되지 않도록 출처 중복 방지 기록은 유지합니다.",
+    "es": "Borrar este hecho. Se conserva el registro de origen para impedir que un reintento lo recree.",
+    "fr": "Supprimer ce fait. Conserver le registre des sources pour empêcher sa recréation lors d’une relance."
+  },
+  "自动保存记录：{0}/512": {
+    "zh": "自动保存记录：{0}/512",
+    "en": "Automatic save records: {0}/512",
+    "ja": "自動保存の記録：{0}/512",
+    "ko": "자동 저장 기록: {0}/512",
+    "es": "Registros automáticos: {0}/512",
+    "fr": "Enregistrements automatiques : {0}/512"
+  },
+  "清理已完成任务": {
+    "zh": "清理已完成任务",
+    "en": "Clean up completed tasks",
+    "ja": "完了済みタスクを整理",
+    "ko": "완료된 작업 정리",
+    "es": "Limpiar tareas completadas",
+    "fr": "Nettoyer les tâches terminées"
+  },
+  "释放自动保存容量，保留已保存记忆和可重试任务。": {
+    "zh": "释放自动保存容量，保留已保存记忆和可重试任务。",
+    "en": "Free automatic saving capacity while keeping saved memories and retryable tasks.",
+    "ja": "保存済みメモリと再試行可能なタスクを保持し、自動保存の容量を解放します。",
+    "ko": "저장된 메모리와 재시도 가능한 작업을 유지하면서 자동 저장 용량을 확보합니다.",
+    "es": "Liberar capacidad conservando recuerdos y tareas que pueden reintentarse.",
+    "fr": "Libérer de la capacité en conservant les mémoires et les tâches pouvant être relancées."
+  },
+  "确认清理": {
+    "zh": "确认清理",
+    "en": "Confirm cleanup",
+    "ja": "整理を確認",
+    "ko": "정리 확인",
+    "es": "Confirmar limpieza",
+    "fr": "Confirmer le nettoyage"
+  },
+  "删除任务": {
+    "zh": "删除任务",
+    "en": "Delete task",
+    "ja": "タスクを削除",
+    "ko": "작업 삭제",
+    "es": "Borrar tarea",
+    "fr": "Supprimer la tâche"
+  },
+  "取消此任务的后续处理和重试，保留已保存记忆。": {
+    "zh": "取消此任务的后续处理和重试，保留已保存记忆。",
+    "en": "Cancel further processing and retries of this task, keeping saved memories.",
+    "ja": "このタスクの今後の処理と再試行を取り消し、保存済みメモリを保持します。",
+    "ko": "이 작업의 후속 처리와 재시도를 취소하고 저장된 메모리를 유지합니다.",
+    "es": "Cancelar el procesamiento y reintentos de esta tarea, conservando los recuerdos.",
+    "fr": "Annuler le traitement et les relances de cette tâche en conservant les mémoires."
+  },
+  "任务状态已变化，请刷新查看。": {
+    "zh": "任务状态已变化，请刷新查看。",
+    "en": "Task status changed. Refresh to check.",
+    "ja": "タスクの状態が変更されました。更新してください。",
+    "ko": "작업 상태가 변경되었습니다. 새로고침하세요.",
+    "es": "Cambió el estado de la tarea. Actualiza.",
+    "fr": "L’état de la tâche a changé. Actualisez."
+  },
+  "任务操作未完成，请刷新核对。": {
+    "zh": "任务操作未完成，请刷新核对。",
+    "en": "Task operation did not complete. Refresh to check.",
+    "ja": "タスク操作が完了しませんでした。更新して確認してください。",
+    "ko": "작업이 완료되지 않았습니다. 새로고침하여 확인하세요.",
+    "es": "La operación no se completó. Actualiza para comprobar.",
+    "fr": "Opération inachevée. Actualisez pour vérifier."
+  },
+  "确认操作": {
+    "zh": "确认操作",
+    "en": "Confirm action",
+    "ja": "操作を確認",
+    "ko": "작업 확인",
+    "es": "Confirmar acción",
+    "fr": "Confirmer"
+  },
+  "应用输入": {
+    "zh": "应用输入",
+    "en": "Apply input",
+    "ja": "入力を適用",
+    "ko": "입력 적용",
+    "es": "Aplicar entrada",
+    "fr": "Appliquer la saisie"
+  },
+  "关系图：拖动移动，双指缩放": {
+    "zh": "关系图：拖动移动，双指缩放",
+    "en": "Relations: drag to move, pinch to zoom",
+    "ja": "関係図：ドラッグで移動、ピンチで拡大縮小",
+    "ko": "관계도: 드래그로 이동, 두 손가락으로 확대/축소",
+    "es": "Relaciones: arrastra para mover, pellizca para ampliar",
+    "fr": "Relations : glissez pour déplacer, pincez pour zoomer"
+  },
+  "插件页面已关闭，请检查启用状态和权限。": {
+    "zh": "插件页面已关闭，请检查启用状态和权限。",
+    "en": "This plugin page has closed. Check its enabled state and permissions.",
+    "ja": "プラグインページが閉じられました。有効状態と権限を確認してください。",
+    "ko": "플러그인 페이지가 닫혔습니다. 활성 상태와 권한을 확인하세요.",
+    "es": "La página del complemento se ha cerrado. Comprueba su estado y permisos.",
+    "fr": "La page du plugin est fermée. Vérifiez son activation et ses autorisations."
+  },
+  "插件页面无法打开，请检查启用状态和权限。": {
+    "zh": "插件页面无法打开，请检查启用状态和权限。",
+    "en": "Unable to open this plugin page. Check its enabled state and permissions.",
+    "ja": "プラグインページを開けません。有効状態と権限を確認してください。",
+    "ko": "플러그인 페이지를 열 수 없습니다. 활성 상태와 권한을 확인하세요.",
+    "es": "No se puede abrir la página del complemento. Comprueba su estado y permisos.",
+    "fr": "Impossible d’ouvrir la page du plugin. Vérifiez son activation et ses autorisations."
+  },
+  "插件页面操作失败，请重新打开后重试。": {
+    "zh": "插件页面操作失败，请重新打开后重试。",
+    "en": "The plugin page action failed. Reopen the page and try again.",
+    "ja": "プラグインページの操作に失敗しました。開き直して再試行してください。",
+    "ko": "플러그인 페이지 작업이 실패했습니다. 페이지를 다시 열고 재시도하세요.",
+    "es": "La acción ha fallado. Vuelve a abrir la página e inténtalo de nuevo.",
+    "fr": "L’action a échoué. Rouvrez la page et réessayez."
+  },
+  "启用插件后可打开它的页面。": {
+    "zh": "启用插件后可打开它的页面。",
+    "en": "Enable the plugin to open its pages.",
+    "ja": "プラグインを有効にするとページを開けます。",
+    "ko": "플러그인을 활성화하면 페이지를 열 수 있습니다.",
+    "es": "Activa el complemento para abrir sus páginas.",
+    "fr": "Activez le plugin pour ouvrir ses pages."
+  },
+  "关闭插件界面": {
+    "zh": "关闭插件界面",
+    "en": "Close plugin view",
+    "ja": "プラグイン画面を閉じる",
+    "ko": "플러그인 화면 닫기",
+    "es": "Cerrar vista del complemento",
+    "fr": "Fermer la vue du plugin"
+  },
+  "重试将使用原模型配置，可能产生额外费用。": {
+    "zh": "重试将使用原模型配置，可能产生额外费用。",
+    "en": "Retry uses the original model configuration and may incur additional charges.",
+    "ja": "再試行は元のモデル設定を使い、追加料金が発生する場合があります。",
+    "ko": "재시도는 원래 모델 설정을 사용하며 추가 비용이 발생할 수 있습니다.",
+    "es": "El reintento usa la configuración original del modelo y puede generar cargos adicionales.",
+    "fr": "La nouvelle tentative utilise la configuration initiale du modèle et peut entraîner des frais supplémentaires."
+  },
+  "删除此任务将取消后续处理和重试，已保存记忆和聊天仍然保留。": {
+    "zh": "删除此任务将取消后续处理和重试，已保存记忆和聊天仍然保留。",
+    "en": "Deleting this task cancels future processing and retries. Saved memories and chats remain.",
+    "ja": "このタスクを削除すると今後の処理と再試行を取り消します。保存済みの記憶とチャットは残ります。",
+    "ko": "이 작업을 삭제하면 이후 처리와 재시도가 취소됩니다. 저장된 기억과 대화는 유지됩니다.",
+    "es": "Eliminar esta tarea cancela el procesamiento futuro y los reintentos. Se conservan los recuerdos y chats guardados.",
+    "fr": "Supprimer cette tâche annule le traitement futur et les nouvelles tentatives. Les souvenirs et discussions enregistrés sont conservés."
+  },
+  "停止此任务的当前处理，需要手动重试才能再次执行。": {
+    "zh": "停止此任务的当前处理，需要手动重试才能再次执行。",
+    "en": "Stop this task. Running it again requires an explicit retry.",
+    "ja": "このタスクの処理を停止します。再実行には手動の再試行が必要です。",
+    "ko": "이 작업 처리를 중지합니다. 다시 실행하려면 수동 재시도가 필요합니다.",
+    "es": "Detener esta tarea. Para ejecutarla de nuevo se requiere un reintento explícito.",
+    "fr": "Arrêter cette tâche. Une nouvelle exécution nécessite une tentative explicite."
+  },
+  "清理最多 100 个已完成或跳过的任务，保留失败、等待和运行中的任务。": {
+    "zh": "清理最多 100 个已完成或跳过的任务，保留失败、等待和运行中的任务。",
+    "en": "Remove up to 100 completed or skipped tasks. Failed, waiting and running tasks remain.",
+    "ja": "完了またはスキップしたタスクを最大100件削除します。失敗、待機中、実行中のタスクは残ります。",
+    "ko": "완료되거나 건너뛴 작업을 최대 100개 삭제합니다. 실패, 대기, 실행 중인 작업은 유지됩니다.",
+    "es": "Eliminar hasta 100 tareas completadas u omitidas. Se conservan las fallidas, en espera y en ejecución.",
+    "fr": "Supprimer jusqu’à 100 tâches terminées ou ignorées. Les tâches en échec, en attente et en cours sont conservées."
+  },
+  "仅显示已记录的事实，不会自动重跑操作": {
+    "zh": "仅显示已记录的事实，不会自动重跑操作",
+    "en": "Recorded facts only; operations will not run again automatically",
+    "ja": "記録済みの事実のみ表示し、操作を自動再実行しません",
+    "ko": "기록된 사실만 표시하며 작업을 자동으로 다시 실행하지 않습니다",
+    "es": "Solo hechos registrados; las operaciones no se repetirán automáticamente",
+    "fr": "Faits enregistrés uniquement ; aucune opération ne sera relancée automatiquement"
+  },
+  "回复已结束": {
+    "zh": "回复已结束",
+    "en": "Reply ended",
+    "ja": "返信終了",
+    "ko": "응답 종료",
+    "es": "Respuesta finalizada",
+    "fr": "Réponse terminée"
+  },
+  "对话中断 · 已保留执行记录": {
+    "zh": "对话中断 · 已保留执行记录",
+    "en": "Conversation interrupted · execution facts preserved",
+    "ja": "会話が中断されました · 実行記録は保存されています",
+    "ko": "대화 중단 · 실행 기록 보존됨",
+    "es": "Conversación interrumpida · registro conservado",
+    "fr": "Conversation interrompue · journal conservé"
+  },
+  "工具已返回": {
+    "zh": "工具已返回",
+    "en": "Tool returned",
+    "ja": "ツールが応答しました",
+    "ko": "도구가 응답했습니다",
+    "es": "La herramienta respondió",
+    "fr": "L’outil a répondu"
+  },
+  "应用中断": {
+    "zh": "应用中断",
+    "en": "App interrupted",
+    "ja": "アプリ中断",
+    "ko": "앱 중단",
+    "es": "Aplicación interrumpida",
+    "fr": "Application interrompue"
+  },
+  "执行记录": {
+    "zh": "执行记录",
+    "en": "Execution log",
+    "ja": "実行記録",
+    "ko": "실행 기록",
+    "es": "Registro de ejecución",
+    "fr": "Journal d’exécution"
+  },
+  "暂无执行记录": {
+    "zh": "暂无执行记录",
+    "en": "No execution events recorded",
+    "ja": "実行記録はまだありません",
+    "ko": "기록된 실행 이벤트가 없습니다",
+    "es": "No hay eventos registrados",
+    "fr": "Aucun événement enregistré"
+  },
+  "未开始执行": {
+    "zh": "未开始执行",
+    "en": "Execution did not start",
+    "ja": "実行は開始されていません",
+    "ko": "실행되지 않았습니다",
+    "es": "La ejecución no comenzó",
+    "fr": "L’exécution n’a pas commencé"
+  },
+  "模型步骤": {
+    "zh": "模型步骤",
+    "en": "Model step",
+    "ja": "モデルのステップ",
+    "ko": "모델 단계",
+    "es": "Paso del modelo",
+    "fr": "Étape du modèle"
+  },
+  "正在读取执行记录…": {
+    "zh": "正在读取执行记录…",
+    "en": "Loading execution log…",
+    "ja": "実行記録を読み込み中…",
+    "ko": "실행 기록을 불러오는 중…",
+    "es": "Cargando registro de ejecución…",
+    "fr": "Chargement du journal…"
+  },
+  "结果未知，请先检查实际状态": {
+    "zh": "结果未知，请先检查实际状态",
+    "en": "Outcome unknown; check the actual state first",
+    "ja": "結果不明：先に実際の状態を確認してください",
+    "ko": "결과를 알 수 없습니다. 실제 상태를 먼저 확인하세요",
+    "es": "Resultado desconocido; comprueba primero el estado real",
+    "fr": "Résultat inconnu ; vérifiez d’abord l’état réel"
+  },
+  "记录片段已截断": {
+    "zh": "记录片段已截断",
+    "en": "Recorded excerpt truncated",
+    "ja": "記録の抜粋は切り詰められています",
+    "ko": "기록 일부가 잘렸습니다",
+    "es": "Fragmento registrado truncado",
+    "fr": "Extrait enregistré tronqué"
+  },
+  "读取执行记录失败": {
+    "zh": "读取执行记录失败",
+    "en": "Could not load execution log",
+    "ja": "実行記録の読み込みに失敗しました",
+    "ko": "실행 기록을 불러오지 못했습니다",
+    "es": "No se pudo cargar el registro",
+    "fr": "Impossible de charger le journal"
   }
 }
