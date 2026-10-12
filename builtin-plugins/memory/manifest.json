@@ -2,8 +2,9 @@
   "id": "dev.solvit.memory",
   "name": "本地记忆",
   "description": "TS 本地记忆：自动检索已保存资料；可明确开启后台抽取，按角色关联原消息保存。支持查看来源、手动修改与删除。后台调用模型可能产生费用。",
-  "version": "1.2.0",
-  "apiVersion": 8,
+  "version": "1.3.0",
+  "apiVersion": 9,
+  "pages": [{ "id": "main", "title": "记忆" }],
   "permissions": [
     "storage",
     "model"

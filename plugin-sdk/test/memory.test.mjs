@@ -18,8 +18,20 @@ function runtime(data = new Map(), rejectWrite = false, options = {}) {
       data.set(key,clone(value));return true;
     },
   } };
-  return { afterTurn: async input => sandbox.solvitPlugin.afterTurn(input,ctx), recall: async (userText, settings={}) => sandbox.solvitPlugin.beforeModel({userText,settings,role:ctx.role},ctx), data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
+  return { page: async (action,fields={}) => clone(await sandbox.solvitPlugin.pages.main({locale:'zh',event:action?{nodeId:action,action,fields}:null},ctx)),
+    afterTurn: async input => sandbox.solvitPlugin.afterTurn(input,ctx), recall: async (userText, settings={}) => sandbox.solvitPlugin.beforeModel({userText,settings,role:ctx.role},ctx), data, run: async (name, args = {}) => clone(await sandbox.solvitPlugin.tools[name](args, ctx)) };
 }
+test('packaged memory page uses the validated production database and persists edits across engines',async()=>{
+  assert.equal(pkg.manifest.apiVersion,9);assert.deepEqual(pkg.manifest.pages,[{id:'main',title:'记忆'}]);
+  const first=runtime();await first.run('memory_put',{text:'喜欢 Kotlin',tags:['旧标签']});
+  await first.page();await first.page('open_0');await first.page('edit');
+  await first.page('save',{text:'喜欢 Kotlin 和 TypeScript',edit_category:'preference',tags:'新标签'});
+  const reloaded=runtime(first.data);const db=await reloaded.run('memory_export');
+  assert.equal(db.facts[0].text,'喜欢 Kotlin 和 TypeScript');assert.deepEqual(db.facts[0].tags,['新标签']);
+  assert.equal(db.facts[0].modifiedByUser,true);
+  await reloaded.page();await reloaded.page('open_0');await reloaded.page('remove');
+  assert.equal((await runtime(first.data).run('memory_export')).facts.length,0);
+});
 test('memory persists across engine reload and merges duplicates without losing tags', async () => {
   const first = runtime();
   const saved = await first.run('memory_put', { text: '喜欢 Kotlin', tags: ['开发'] });

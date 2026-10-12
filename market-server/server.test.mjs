@@ -33,6 +33,11 @@ test('catalog downloads match their declared integrity and expose no write API',
     const api8 = await (await fetch(base + '/api/v1/plugins?hostApi=8')).json();
     assert.ok(api8.plugins.every(plugin => plugin.apiVersion <= 8));
     assert.equal(api8.plugins.find(plugin => plugin.id === 'dev.solvit.memory').version, '1.2.0');
+    const api9 = await (await fetch(base + '/api/v1/plugins?hostApi=9')).json();
+    const memoryPage = api9.plugins.find(plugin => plugin.id === 'dev.solvit.memory');
+    assert.equal(memoryPage.version, '1.3.0');
+    assert.equal(memoryPage.apiVersion, 9);
+    assert.deepEqual(memoryPage.pages, [{id:'main',title:'记忆'}]);
     const api7 = await (await fetch(base + '/api/v1/plugins?hostApi=7')).json();
     assert.ok(api7.plugins.every(plugin => plugin.apiVersion <= 7));
     assert.ok(api7.plugins.length >= api6.plugins.length);
@@ -41,7 +46,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(api6.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.2.0');
     assert.equal(api5.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.1.0');
     assert.ok(api4.plugins.every(plugin => plugin.apiVersion <= 4));
-    for (const plugin of api5.plugins) {
+    for (const plugin of [...api5.plugins, ...api7.plugins, ...api8.plugins, ...api9.plugins]) {
       const response = await fetch(base + plugin.downloadPath);
       assert.equal(response.status, 200);
       const bytes = Buffer.from(await response.arrayBuffer());

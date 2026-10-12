@@ -1,5 +1,7 @@
 import { definePlugin, textArgument, type JsonObject, type JsonValue, type PluginContext } from '../../plugin-sdk/src/index';
 import { transact, parseCandidates, validSource, failure, EXTRACTION_INSTRUCTIONS, MAX_PROCESSED_SOURCES, type MemorySource, type CompletedInput } from './automatic';
+import { createMemoryPage } from './pages';
+import { createMemoryPageBackend } from './page-storage';
 
 type Fact = { id: string; text: string; category: string; tags: string[]; createdAt: string; updatedAt: string; source?: MemorySource; modifiedByUser?: boolean };
 type Edge = { from: string; to: string; relation: string };
@@ -293,4 +295,6 @@ const plugin = definePlugin({
 const writers = new Set(['memory_put','memory_extract','memory_delete','memory_profile','memory_link','memory_document','memory_prune_sources']);
 const tools = Object.fromEntries(Object.entries(plugin.tools).map(([name, handler]) => [name, writers.has(name)
   ? (args: JsonObject, ctx: PluginContext) => transact(ctx, local => handler(args, local)) : handler]));
-export default definePlugin({ ...plugin, tools });
+export default definePlugin({ ...plugin, tools, pages: {
+  main: createMemoryPage(createMemoryPageBackend(load, save)),
+} });
