@@ -861,18 +861,19 @@ class ChatLayoutTest {
         rule.onNodeWithText("发送输入").assertIsEnabled().performClick()
         try {
             rule.waitUntil(8000) { rule.onAllNodes(hasText("__UI_READY__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
-        } catch(e: Exception) {
+        } catch(e: Throwable) {
             screenshot("workspace-interactive-initial-failure")
             throw AssertionError("PTY initial state="+app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }+
                 "\n"+rule.onRoot().printToString(),e)
         }
         rule.onNodeWithTag("shell_command").performClick().performTextInput("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
+        rule.onNodeWithTag("shell_command").assertTextContains("UI_PTY_STATE")
         try {
             rule.waitUntil(8000) { rule.onAllNodes(hasText("发送输入") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             rule.waitUntil(8000) { rule.onNodeWithText("发送输入").isDisplayed() }
             rule.onNodeWithText("发送输入").assertIsDisplayed().performClick()
             rule.waitUntil(8000) { rule.onAllNodes(hasText("ui-result:retained", substring=true)).fetchSemanticsNodes().isNotEmpty() }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             screenshot("workspace-interactive-failure")
             throw AssertionError("PTY UI state=" + app.terminals.sessions.value.filter { it.owner == TERMINAL_OWNER } +
                 "\n" + rule.onRoot().printToString(), e)

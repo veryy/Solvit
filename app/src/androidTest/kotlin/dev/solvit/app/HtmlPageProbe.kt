@@ -3,7 +3,12 @@ package dev.solvit.app
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
+import android.view.MotionEvent
+import android.os.SystemClock
+import android.os.ParcelFileDescriptor
+import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.*
+import kotlinx.serialization.json.*
 
 /** Evaluate the actual loaded document; callbacks and storage are never mocked. */
 internal class HtmlPageProbe(private val activity: MainActivity) {
@@ -17,5 +22,29 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
             else web.evaluateJavascript(code) { result.complete(it) }
         }
         withTimeout(10_000) { result.await() }
+    }
+    fun tapMemoryNode(id: String) {
+        val point = Json.parseToJsonElement(js("(()=>{const node=document.querySelector('[data-memory-id='+${JsonPrimitive(id)}+']');return [Number(node.dataset.x),Number(node.dataset.y),innerWidth]})()")) .jsonArray
+        var x = 0f; var y = 0f
+        val ready = CompletableDeferred<Unit>()
+        activity.runOnUiThread {
+            val web = checkNotNull(browser(activity.window.decorView)); val location = IntArray(2)
+            web.getLocationOnScreen(location)
+            val scale = web.width / point[2].jsonPrimitive.float
+            x = location[0] + point[0].jsonPrimitive.float * scale
+            y = location[1] + point[1].jsonPrimitive.float * scale
+            ready.complete(Unit)
+        }
+        runBlocking { withTimeout(10_000) { ready.await() } }
+        val instrument = InstrumentationRegistry.getInstrumentation()
+        val now = SystemClock.uptimeMillis()
+        MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0).let { instrument.sendPointerSync(it); it.recycle() }
+        MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_UP, x, y, 0).let { instrument.sendPointerSync(it); it.recycle() }
+    }
+    fun screenshot(name: String) {
+        require(name.matches(Regex("[a-z-]+")))
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
+        ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
 }

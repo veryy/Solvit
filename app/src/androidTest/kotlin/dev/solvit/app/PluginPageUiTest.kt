@@ -122,15 +122,17 @@ class PluginPageUiTest {
         try {
             rule.runOnUiThread { present() }
             waitDom("window.memoryPageReady===true")
+            html.screenshot("memory-html-graph-home")
             rule.onNodeWithTag("plugin_field_query").assertDoesNotExist()
             html.js("document.getElementById('query').value='plugin-memory-ui-original';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
             waitDom("!document.getElementById('search-button').disabled && !!document.querySelector('[data-memory-id=$id]')")
-            select()
+            html.tapMemoryNode(id)
             waitDom("!!document.querySelector('[data-node=edit]')")
             html.js("document.querySelector('[data-node=edit]').click()")
             waitDom("!!document.getElementById('field-text')")
             html.js("const input=document.getElementById('field-text');input.value='plugin-memory-ui-edited';input.dispatchEvent(new Event('input'));document.querySelector('[data-node=save]').click()")
             waitDom("document.querySelector('[data-node=body]')?.textContent==='plugin-memory-ui-edited'")
+            html.screenshot("memory-html-edited-detail")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
             rule.onNodeWithContentDescription("关闭插件界面").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_web_page").fetchSemanticsNodes().isEmpty() }
