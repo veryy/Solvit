@@ -45,6 +45,9 @@ function graph(graphNode,theme) {
   if(!cy){cy=cytoscape({container:$('graph'),elements:[],minZoom:.15,maxZoom:4,layout:{name:'preset'},
     style:[],wheelSensitivity:.25});
     cy.on('tap','node',event=>send('relations',event.target.id()));
+    window.__testGraphEvents=[];
+    cy.on('tapstart tapend tap',event=>window.__testGraphEvents.push([event.type,event.target===cy?'background':event.target.id(),state?.busy]));
+    window.__testGraphHit=(x,y)=>{const renderer=cy.renderer(),point=renderer.projectIntoViewport(x,y),node=renderer.findNearestElement(...point,true,true);return {point,id:node?.id(),nodes:cy.nodes().map(n=>({id:n.id(),position:n.position(),width:n.width(),height:n.height()}))}};
     cy.on('tap','edge',event=>{const e=event.target;const p=e.renderedMidpoint();cy.elements().unselect();e.select();
       $('status').textContent=e.data('label');$('status').hidden=false;});
     cy.on('tap',event=>{if(event.target===cy){$('status').hidden=true;$('menu').hidden=true}});
