@@ -66,7 +66,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                 }
                 TabRow(selectedTabIndex = tab) {
                     Tab(selected = tab == 0, onClick = { tab = 0 }, text = { UiText("Shell") })
-                    Tab(selected = tab == 1, onClick = { tab = 1; vm.browse(directory) }, text = { UiText("工作目录") })
+                    Tab(selected = tab == 1, onClick = { tab = 1 }, text = { UiText("工作目录") })
                 }
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
@@ -139,6 +139,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                     Box(Modifier.weight(1f).fillMaxWidth()) {
                         key(locale) { PluginPageScreen("工作目录", { vm.directoryPage(directoryManager, locale) }, embedded = true) {} }
                     }
+                }
                 }
             }
         }
