@@ -38,6 +38,7 @@ class ModelRoutingPlugin : SolvitPlugin {
         val registry=context.require(ModelProvidersServiceKey)
         context.register(Services.Model,object:ModelProvider {
             override val id="model-router"
+            override fun separatesRuntimeContext(config: ModelConfig) = registry.provider(config.providerId).separatesRuntimeContext(config)
             override fun reservedOutputTokens(request: ModelRequest) = registry.provider(request.config.providerId).reservedOutputTokens(request)
             override fun stream(request:ModelRequest)=flow { emitAll(registry.provider(request.config.providerId).stream(request)) }
         })
@@ -47,11 +48,12 @@ class ModelRoutingPlugin : SolvitPlugin {
     }
 }
 /** Opaque provider content is never displayed as JSON or reinterpreted as instructions. */
-data class ProviderTranscript(val providerId: String, val model: String, val blocksJson: String, val options: Map<String,String> = emptyMap(), val prefixHash: String = "") {
+data class ProviderTranscript(val providerId: String, val model: String, val blocksJson: String, val options: Map<String,String> = emptyMap(), val prefixHash: String = "", val requestPrefixJson: String = "") {
     init {
         require(providerId.matches(Regex("[A-Za-z0-9_.-]{1,80}")))
         require(model.isNotBlank() && model.length <= 256)
         require(blocksJson.toByteArray(Charsets.UTF_8).size <= MAX_BYTES) { "模型原始转录超过限制" }
+        require(requestPrefixJson.toByteArray(Charsets.UTF_8).size <= MAX_BYTES) { "模型请求投影超过限制" }
         require(prefixHash.isEmpty() || prefixHash.matches(Regex("[a-f0-9]{64}")))
         require(options.size <= 32 && options.all { it.key.length <= 80 && it.value.length <= 1024 })
     }

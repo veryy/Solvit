@@ -88,6 +88,8 @@ data class ModelRequest(
     val sessionId: String? = null,
     val promptSources: List<PromptSourceInfo> = emptyList(),
     val contextMeasurement: ContextMeasurement? = null,
+    /** Dynamic plugin data, projected by adapters independently of immutable system rules. */
+    val runtimeContext: List<String> = emptyList(),
 )
 sealed interface ModelChunk {
     data class Text(val value: String) : ModelChunk
@@ -101,6 +103,7 @@ sealed interface ModelChunk {
 }
 interface ModelProvider {
     val id: String
+    fun separatesRuntimeContext(config: ModelConfig): Boolean = false
     fun validate(config: ModelConfig): String? = config.validate()
     /** Adapter-owned output reservation, including parameters retained by a pending native tool turn. */
     fun reservedOutputTokens(request: ModelRequest): Int = maxOf(request.config.contextBudget.outputTokens,

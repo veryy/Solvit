@@ -26,6 +26,7 @@ class AnthropicProvider(private val client: OkHttpClient) : ModelProvider {
             else request.config.providerOptions["max_tokens"] ?: "8192"
         return value.toInt()
     }
+    override fun separatesRuntimeContext(config: ModelConfig) = true
     override fun stream(request:ModelRequest):Flow<ModelChunk> = flow {
         validate(request.config)?.let { throw ModelException(it) }
         val native = nativeRequest(request)
@@ -76,7 +77,7 @@ class AnthropicProvider(private val client: OkHttpClient) : ModelProvider {
                     stopReason=root["stop_reason"]?.jsonPrimitive?.contentOrNull
                 }
                 val completed=blocks.complete(stopReason)
-                emit(ModelChunk.NativeTranscript(ProviderTranscript(id,request.config.model,completed.first.toString(),native.options,native.prefixHash)))
+                emit(ModelChunk.NativeTranscript(ProviderTranscript(id,request.config.model,completed.first.toString(),native.options,native.prefixHash,native.requestPrefixJson)))
                 if(completed.second.isNotEmpty()) emit(ModelChunk.ToolCalls(completed.second))
                 emit(ModelChunk.Done)
             }

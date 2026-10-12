@@ -302,11 +302,12 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         }
     }
     private fun encodeTranscript(value: ProviderTranscript): String = JSONObject().put("provider",value.providerId).put("model",value.model)
-        .put("blocks",value.blocksJson).put("options",JSONObject(value.options)).put("prefix",value.prefixHash).toString()
+        .put("blocks",value.blocksJson).put("options",JSONObject(value.options)).put("prefix",value.prefixHash)
+        .put("request_prefix",value.requestPrefixJson).toString()
     private fun decodeTranscript(value: String): ProviderTranscript {
         val root=JSONObject(value);val options=root.optJSONObject("options") ?: JSONObject()
         return ProviderTranscript(root.getString("provider"),root.getString("model"),root.getString("blocks"),
-            options.keys().asSequence().associateWith { options.getString(it) },root.optString("prefix",""))
+            options.keys().asSequence().associateWith { options.getString(it) },root.optString("prefix",""),root.optString("request_prefix",""))
     }
     override fun close() { helper.close() }
     private companion object { const val READ_CHUNK=16*1024 }

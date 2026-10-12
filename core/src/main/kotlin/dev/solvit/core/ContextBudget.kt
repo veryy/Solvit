@@ -45,7 +45,12 @@ class Utf8ContextTokenMeter : ContextTokenMeter {
         return maxOf(canonical, native) + 32
     }
     override fun measure(request: ModelRequest, policy: ContextBudgetPolicy): ContextMeasurement {
-        val messages = request.messages.sumOf(::messageTokens)
+        val canonicalMessages = request.messages.sumOf(::messageTokens)
+        val replayIndex = request.messages.indexOfLast { it.providerTranscript?.requestPrefixJson?.isNotEmpty() == true }
+        val replayMessages = if (replayIndex < 0) 0L else textTokens(request.messages[replayIndex].providerTranscript!!.requestPrefixJson) +
+            request.messages.drop(replayIndex).sumOf(::messageTokens)
+        val messages = maxOf(canonicalMessages, replayMessages) + request.runtimeContext.sumOf(::textTokens) +
+            if (request.runtimeContext.isEmpty()) 0L else 256L
         val tools = request.tools.sumOf { textTokens(it.name) + textTokens(it.description) + textTokens(it.inputSchema) + 64 }
         return ContextMeasurement(messages + tools + 128, messages, tools, policy.inputTokens, id)
     }

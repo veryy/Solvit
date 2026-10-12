@@ -126,3 +126,9 @@ TS 新增未列入公共清单的内部 `memory_prune_sources` 处理器：只�
 `b2fa948d7ccf44d742cb65701bc67b619cda6bab` 的 [Android 运行 38186221476](https://github.com/veryy/Solvit/actions/runs/38186221476) 已 completed/success；下载报告核对 209 个单元与 33 个模拟器测试，失败/错误/跳过均为零。build 与 verify-ui 均成功，Lint、APK、固定签名及覆盖升级检查通过。APK 产物 11720225699、单元报告 11720475833、UI 报告 11719861765。本运行的插件与搜索作业按分支规则跳过，不算本次验证；独立 TS/市场运行另行核验。未发布新版本或部署 API 8 市场。
 
 下一项先增加实际 AnthropicProvider→HTTP→工具→动态 Hook→HTTP 的回归：工具修改工作区上下文后，模型应收到新状态，同时签名、原始消息前缀、顶层 system 与 tools 保持不变。使用受控响应中的不透明签名，不证明真实账户签名校验。DSH `system-prompt-projection.spec.ts` 与 `runtime-context.ts` 提供继续请求时追加上下文的参考；Anthropic [preserved thinking 文档](https://platform.claude.com/docs/en/build-with-claude/preserved-thinking) 明确前缀约束，不能删除本地保护来隐藏不兼容。先远程复现，再修改协议投影和必要的持久元数据。
+
+`151c56f` 的 [远程回归 38187211841](https://github.com/veryy/Solvit/actions/runs/38187211841) 在 App 测试失败：`nativeSignedToolContinuationKeepsItsPrefixAndReceivesRefreshedPluginContext` 抛出 `ModelException`，定位 `AnthropicPayload.kt:61` 的签名前缀检查；28 个 App 测试中 1 个失败，模拟器未执行。受控工具和历史保持不变，Hook 改变了顶层 system，是此次触发路径。
+
+修复候选通过 Provider 能力接口区分动态资料与系统规则。Anthropic 把资料追加到真实用户或工具结果消息的文本块，不虚构新用户回合，也不把第三方资料升级成系统指令；相关约束对照官方 [mid-conversation 文档](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages)。原始转录新增有界请求投影，保存模型实际收到的 system/tools/messages 及规范消息指纹；凭据、端点和配置对象不进入投影。仅在规范历史、规则、工具与投影完整性检查一致时重放，编辑旧消息或更改规则/工具仍由原前缀保护拒绝。旧记录没有投影时维持原校验路径。
+
+SQLite 在既有 JSON 转录字段保存投影，无需删除数据或重建表；旧记录缺字段按空值读取。预算纳入动态资料与保存投影，摘要指纹纳入非空投影。回归增加连续两次签名工具调用、资料停用、旧历史/规则编辑拒绝，实际 HTTP→SQLite 关闭重开→HTTP，以及投影在分支保留。上述修复尚待远程验证，不证明真实 Claude 账户或真机行为。工具列表在签名回合中动态改变仍需独立的协议能力适配，本次不宣称已支持。

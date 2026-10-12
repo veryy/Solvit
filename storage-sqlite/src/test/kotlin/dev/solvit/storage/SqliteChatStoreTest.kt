@@ -217,7 +217,7 @@ class SqliteChatStoreTest {
     @Test fun nativeContentSurvivesReopeningAndBranchingWithoutChangingOpaqueData() = runBlocking<Unit> {
         val native = ProviderTranscript("anthropic", "test-model",
             """[{"type":"thinking","thinking":"reason","signature":"opaque+/=="},{"type":"text","text":"answer"}]""",
-            mapOf("thinking_mode" to "enabled"), "a".repeat(64))
+            mapOf("thinking_mode" to "enabled"), "a".repeat(64), """{"system":"fixture","tools":[],"messages":[],"canonicalHash":"fixture","runtimeContext":["saved data"]}""")
         lateinit var session: ChatSession
         SqliteChatStore(context).use { store ->
             session = store.createSession()

@@ -58,6 +58,39 @@ class ModelTaskRoutingTest {
             assertTrue(continuedMessages.toString().contains("actual UTC tool result"))
             assertTrue(continuedMessages.toString().contains(contextText), "Refresh must reach the model without changing the signed prefix")
             assertEquals(2, server.requestCount)
+            // Persist the actual provider projection and rebuild canonical history after closing SQLite.
+            val context = RuntimeEnvironment.getApplication()
+            context.deleteDatabase("solvit.db")
+            lateinit var session: ChatSession
+            val finalNative = output.filterIsInstance<ModelChunk.NativeTranscript>().single().value
+            dev.solvit.storage.SqliteChatStore(context).use { store ->
+                session = store.createSession()
+                store.append(ChatMessage("u", session.id, Role.USER, "Check current workspace"))
+                output.filterIsInstance<ModelChunk.Transcript>().forEachIndexed { i, chunk ->
+                    val message = chunk.message
+                    store.append(ChatMessage("step-$i", session.id, message.role, message.content,
+                        toolCalls = message.toolCalls, toolCallId = message.toolCallId,
+                        toolStage = message.toolStage, providerTranscript = message.providerTranscript))
+                }
+                store.append(ChatMessage("answer", session.id, Role.ASSISTANT, "Verified tool result", providerTranscript = finalNative))
+            }
+            contextText = "workspace state after reopen"
+            server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setBody("""{"role":"assistant","content":[{"type":"text","text":"Reopened successfully"}],"stop_reason":"end_turn"}"""))
+            dev.solvit.storage.SqliteChatStore(context).use { store ->
+                val rows = store.history(session.id).map { message -> ModelMessage(message.role, message.content,
+                    message.toolCalls, message.toolCallId, toolStage = message.toolStage, providerTranscript = message.providerTranscript) }
+                val resumed = ToolAgentRuntime(AnthropicProvider(client), tools, hooks = hooks).run(ModelRequest(config,
+                    listOf(ModelMessage(Role.SYSTEM, "fixture identity")) + rows + ModelMessage(Role.USER, "Continue checking"),
+                    authorization = allow)).toList()
+                assertEquals("Reopened successfully", resumed.filterIsInstance<ModelChunk.Text>().single().value)
+            }
+            val reopened = JSONObject(server.takeRequest(2, TimeUnit.SECONDS)!!.body.readUtf8()).getJSONArray("messages")
+            for (i in 0 until continuedMessages.length())
+                assertEquals(continuedMessages.getJSONObject(i).toString(), reopened.getJSONObject(i).toString())
+            assertTrue(reopened.toString().contains("opaque-prefix-signature"))
+            assertTrue(reopened.getJSONObject(reopened.length() - 1).toString().contains(contextText))
+            assertEquals(3, server.requestCount)
+            context.deleteDatabase("solvit.db")
         } finally {
             server.shutdown(); client.dispatcher.executorService.shutdown(); client.connectionPool.evictAll()
         }

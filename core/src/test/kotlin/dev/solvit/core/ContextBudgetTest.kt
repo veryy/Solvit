@@ -6,6 +6,15 @@ class ContextBudgetTest {
     private val meter = Utf8ContextTokenMeter()
     private val planner = BalancedContextBudgetPlanner(meter)
     private val policy = ContextBudgetPolicy(4_096, 512, 128)
+    @Test fun includesDynamicDataAndPersistedNativeProjectionInTheRequestBudget() {
+        val native = ProviderTranscript("anthropic", "test", "[]", requestPrefixJson = "x".repeat(4_000))
+        val request = ModelRequest(ModelConfig(), listOf(ModelMessage(Role.USER, "question"),
+            ModelMessage(Role.ASSISTANT, "", providerTranscript = native)), runtimeContext = listOf("中文".repeat(100)))
+        val measured = meter.measure(request, policy)
+        assertFalse(measured.fits)
+        assertTrue(measured.messageTokens >= 4_600)
+        assertFalse(native.toString().contains("xxxx"))
+    }
     @Test fun accountsForToolsNativeReasoningUnicodeAndOutputReservation() {
         val plain = ModelMessage(Role.ASSISTANT, "a")
         val native = plain.copy(providerTranscript = ProviderTranscript("anthropic", "test", "x".repeat(2_000)))

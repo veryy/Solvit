@@ -42,6 +42,7 @@ fun contextPrefixDigest(messages: List<ChatMessage>): String {
         field((native != null).toString())
         if (native != null) {
             field(native.providerId); field(native.model); field(native.blocksJson); field(native.prefixHash)
+            if (native.requestPrefixJson.isNotEmpty()) field(native.requestPrefixJson)
             field(native.options.size.toString())
             native.options.toSortedMap().forEach { (key, value) -> field(key); field(value) }
         }
