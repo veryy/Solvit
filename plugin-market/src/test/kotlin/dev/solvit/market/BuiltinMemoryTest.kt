@@ -22,7 +22,7 @@ class BuiltinMemoryTest {
     private val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
     private fun result(value: String) = Json.parseToJsonElement(value).jsonObject
 
-    @Test fun api8CatalogCanInstallAutomaticMemoryWithoutEnablingOrGrantingIt() = runBlocking<Unit> {
+    @Test fun api9CatalogCanInstallMemoryPagesWithoutEnablingOrGrantingIt() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val manager = PluginManager(scope = scope)
         val server = MockWebServer(); server.start()
@@ -36,7 +36,7 @@ class BuiltinMemoryTest {
             val payload = context.assets.open("builtin-plugins/dev.solvit.memory.solvit.json").use { it.readBytes() }
             val manifest = Json.parseToJsonElement(payload.toString(Charsets.UTF_8)).jsonObject.getValue("manifest").jsonObject
             val sha = MessageDigest.getInstance("SHA-256").digest(payload).joinToString("") { "%02x".format(it) }
-            val path = "/api/v1/packages/dev.solvit.memory/1.2.0"
+            val path = "/api/v1/packages/dev.solvit.memory/1.3.0"
             val catalog = buildJsonObject {
                 put("apiVersion", 1)
                 put("plugins", JsonArray(listOf(JsonObject(manifest + mapOf("sha256" to JsonPrimitive(sha),
@@ -49,10 +49,11 @@ class BuiltinMemoryTest {
             val entry = market.catalog().single()
             assertEquals(setOf("storage", "model"), entry.permissions.toSet())
             market.install(entry)
-            assertEquals("/api/v1/plugins?hostApi=8", server.takeRequest(2, TimeUnit.SECONDS)!!.path)
+            assertEquals("/api/v1/plugins?hostApi=9", server.takeRequest(2, TimeUnit.SECONDS)!!.path)
             assertEquals(path, server.takeRequest(2, TimeUnit.SECONDS)!!.path)
             val installed = market.installed.value.single { it.id == "dev.solvit.memory" }
-            assertEquals("1.2.0", installed.version); assertFalse(installed.enabled)
+            assertEquals("1.3.0", installed.version); assertFalse(installed.enabled)
+            assertEquals(listOf(ExtensionPage("main", "记忆")), installed.pages)
             assertTrue(context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
                 .getStringSet("grants.dev.solvit.memory", emptySet()).orEmpty().isEmpty())
         } finally {

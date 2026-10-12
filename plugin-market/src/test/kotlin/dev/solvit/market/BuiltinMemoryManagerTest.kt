@@ -22,6 +22,38 @@ class BuiltinMemoryManagerTest {
         context.getSharedPreferences("extension_data.dev.solvit.memory", Context.MODE_PRIVATE).edit().clear().commit()
         context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).edit().clear().commit()
     }
+    @Test fun packagedPageWorksWithoutGrantsAndProtectsConcurrentEditsAndConfirmation() = runBlocking<Unit> {
+        val manager = BuiltinMemoryManager(context)
+        val id = manager.save("Original", "fact", listOf("old")).getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
+        val page = manager.openPage("en")
+        try {
+            var snapshot = page.open()
+            assertTrue(snapshot.json.contains("Original"))
+            val stale = snapshot.revision
+            snapshot = page.dispatch(snapshot.revision, "open_0", null, emptyMap(), false)
+            assertFailsWith<IllegalStateException> { page.dispatch(stale, "open_0", null, emptyMap(), false) }
+            snapshot = page.dispatch(snapshot.revision, "edit", null, emptyMap(), false)
+            manager.save("Concurrent change", "fact", listOf("other"), id)
+            snapshot = page.dispatch(snapshot.revision, "save", null, mapOf("text" to "My draft", "edit_category" to "fact", "tags" to "new"), false)
+            assertTrue(snapshot.json.contains("My draft"))
+            assertTrue(snapshot.json.contains("changed"))
+            assertEquals("Concurrent change", manager.snapshot().getValue("facts").jsonArray.single().jsonObject.getValue("text").jsonPrimitive.content)
+            snapshot = page.dispatch(snapshot.revision, "reload", null, emptyMap(), true)
+            snapshot = page.dispatch(snapshot.revision, "save", null, mapOf("text" to "My edit", "edit_category" to "preference", "tags" to "new"), false)
+            assertEquals(JsonArray(listOf(JsonPrimitive("new"))), manager.snapshot().getValue("facts").jsonArray.single().jsonObject["tags"])
+            assertFailsWith<IllegalArgumentException> { page.dispatch(snapshot.revision, "remove", null, emptyMap(), false) }
+            assertEquals(1, manager.snapshot().getValue("facts").jsonArray.size)
+            page.dispatch(snapshot.revision, "remove", null, emptyMap(), true)
+            assertTrue(manager.snapshot().getValue("facts").jsonArray.isEmpty())
+            page.close()
+            assertTrue(page.closed.value)
+            assertFailsWith<IllegalStateException> { page.dispatch(snapshot.revision, "remove", null, emptyMap(), true) }
+            assertTrue(context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).all.isEmpty())
+        } finally { page.close() }
+        val reopened = BuiltinMemoryManager(context).openPage("ja")
+        try { assertEquals("記憶", Json.parseToJsonElement(reopened.open().json).jsonObject.getValue("title").jsonPrimitive.content) }
+        finally { reopened.close() }
+    }
     @Test fun humanManagementWorksWithoutEnablingPluginOrGrantingModelAndSurvivesRestart() = runBlocking<Unit> {
         val manager = BuiltinMemoryManager(context)
         assertTrue(manager.snapshot().getValue("facts").jsonArray.isEmpty())

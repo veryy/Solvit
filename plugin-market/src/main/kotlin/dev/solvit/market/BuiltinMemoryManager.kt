@@ -5,7 +5,17 @@ import dev.solvit.plugins.ScriptExecutor
 import dev.solvit.plugins.ScriptHost
 import dev.solvit.plugins.ScriptTool
 import dev.solvit.plugins.ScriptPackage
+import dev.solvit.plugins.ScriptPageSession
+import dev.solvit.plugins.ScriptPageView
+import dev.solvit.plugins.ScriptPageExecutionContext
+import dev.solvit.core.ExtensionPageSession
+import dev.solvit.core.ExtensionPageSnapshot
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
@@ -17,7 +27,38 @@ class BuiltinMemoryManager(context: Context) {
     private val data = PluginDataStore(app)
     private val pkg by lazy {
         ScriptPackage.parse(app.assets.open("builtin-plugins/dev.solvit.memory.solvit.json").use { it.readBytes() })
-            .also { check(it.manifest.id == ID && it.manifest.apiVersion == 8) }
+            .also { check(it.manifest.id == ID && it.manifest.apiVersion == 9) }
+    }
+    /** Human access uses only the immutable packaged page, never downloaded code. */
+    fun openPage(locale: String): ExtensionPageSession {
+        require(locale.matches(Regex("[a-zA-Z0-9_-]{1,20}")))
+        return object : ExtensionPageSession {
+            private val mutableClosed = MutableStateFlow(false)
+            override val closed = mutableClosed.asStateFlow()
+            private val mutex = Mutex()
+            private var revision = 0L
+            private var view: ScriptPageView? = null
+            private val engine = ScriptPageSession(pkg, "main", locale, managementHost()) {
+                check(!mutableClosed.value) { "Memory page closed" }
+            }
+            private fun snapshot(next: ScriptPageView): ExtensionPageSnapshot {
+                check(!mutableClosed.value)
+                view = next
+                return ExtensionPageSnapshot(++revision, next.toJson())
+            }
+            override suspend fun open(): ExtensionPageSnapshot = mutex.withLock {
+                try { snapshot(engine.open()) }
+                catch (error: Throwable) { close(); throw error }
+            }
+            override suspend fun dispatch(revision: Long, nodeId: String, value: String?, fields: Map<String, String>, confirmed: Boolean): ExtensionPageSnapshot = mutex.withLock {
+                check(!mutableClosed.value && revision == this.revision) { "Memory page changed or closed" }
+                snapshot(engine.dispatch(checkNotNull(view), nodeId, value, fields, confirmed))
+            }
+            override suspend fun close() {
+                mutableClosed.value = true
+                withContext(NonCancellable) { engine.close() }
+            }
+        }
     }
     suspend fun snapshot(): JsonObject = invoke("memory_export", buildJsonObject {})
     suspend fun save(text: String, category: String, tags: List<String>, id: String? = null): JsonObject {
@@ -43,22 +84,28 @@ class BuiltinMemoryManager(context: Context) {
         }
         return result.getValue("deleted").jsonPrimitive.int.also { check(it in 0..512) }
     }
-    private suspend fun invoke(tool: String, arguments: JsonObject, verifyWrite: suspend () -> Unit = {}): JsonObject {
-        val host = ScriptHost { manifest, operation, args ->
+    private fun managementHost(verifyWrite: suspend () -> Unit = {}) = ScriptHost { manifest, operation, args ->
             check(manifest.id == ID && args["key"] == JsonPrimitive("memory.v1"))
+            val authority = currentCoroutineContext()[ScriptPageExecutionContext]
+            val verifyPage: suspend () -> Unit = {
+                if (authority != null) { check(authority.pluginId == ID); authority.ensureAuthorized() }
+            }
+            val verify: suspend () -> Unit = { verifyPage(); verifyWrite() }
             when (operation) {
-                "storage.get" -> { check(args.keys == setOf("key")); data.get(ID, "memory.v1") }
+                "storage.get" -> { check(args.keys == setOf("key")); data.get(ID, "memory.v1", verifyPage) }
                 "storage.set" -> {
                     check(args.keys == setOf("key", "value"))
-                    data.set(ID, "memory.v1", args.getValue("value"), true, verifyWrite); JsonNull
+                    data.set(ID, "memory.v1", args.getValue("value"), true, verify); JsonNull
                 }
                 "storage.compareAndSet" -> {
                     check(args.keys == setOf("key", "expected", "value"))
-                    JsonPrimitive(data.compareAndSet(ID, "memory.v1", args.getValue("expected"), args.getValue("value"), verifyWrite))
+                    JsonPrimitive(data.compareAndSet(ID, "memory.v1", args.getValue("expected"), args.getValue("value"), verify))
                 }
                 else -> error("Memory management does not expose this capability")
             }
-        }
+    }
+    private suspend fun invoke(tool: String, arguments: JsonObject, verifyWrite: suspend () -> Unit = {}): JsonObject {
+        val host = managementHost(verifyWrite)
         val managementPackage = if (tool == PRUNE) {
             check(pkg.manifest.tools.none { it.name == PRUNE })
             pkg.copy(manifest = pkg.manifest.copy(tools = pkg.manifest.tools + ScriptTool(

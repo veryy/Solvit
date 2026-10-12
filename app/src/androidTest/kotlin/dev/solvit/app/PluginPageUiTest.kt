@@ -2,6 +2,7 @@ package dev.solvit.app
 
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,55 @@ import org.junit.Assert.*
 /** Actual Android QuickJS -> generic Compose form -> callback -> native persistent storage. */
 class PluginPageUiTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    @Test fun packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin() {
+        val app = rule.activity.application as SolvitApplication
+        val manager = dev.solvit.market.BuiltinMemoryManager(app)
+        val id = runBlocking {
+            withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }
+            app.marketplace.disable("dev.solvit.memory")
+            manager.save("plugin-memory-ui-original", "fact", emptyList()).getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
+        }
+        var visible by mutableStateOf(true)
+        fun present() { rule.activity.setContent { MaterialTheme(colorScheme = darkColorScheme()) {
+            if (visible) PluginPageScreen("记忆", { manager.openPage("zh") }) { visible = false }
+        } } }
+        try {
+            rule.runOnUiThread { present() }
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_query").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_field_query").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_query") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_field_query").performTextReplacement("plugin-memory-ui-original")
+            rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_filter"))
+            rule.onNodeWithTag("plugin_node_filter").performClick()
+            rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))
+            rule.onNodeWithTag("plugin_node_open_0").performClick()
+            rule.onNodeWithTag("plugin_node_edit").performClick()
+            rule.onNodeWithTag("plugin_field_text").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_text") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_field_text").performTextReplacement("plugin-memory-ui-edited")
+            rule.onNodeWithTag("plugin_node_save").assertIsDisplayed().performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_node_body") and hasText("plugin-memory-ui-edited")).fetchSemanticsNodes().isNotEmpty() }
+            assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
+            rule.onNodeWithContentDescription("关闭插件页面").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_content").fetchSemanticsNodes().isEmpty() }
+            rule.runOnUiThread { visible = true }
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_query").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_field_query").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_query") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_field_query").performTextReplacement("plugin-memory-ui-edited")
+            rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_filter"))
+            rule.onNodeWithTag("plugin_node_filter").performClick()
+            rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))
+            rule.onNodeWithTag("plugin_node_open_0").performClick()
+            rule.onNodeWithTag("plugin_node_remove").performClick()
+            rule.onNodeWithText("取消").performClick()
+            assertEquals("plugin-memory-ui-edited", runBlocking { manager.snapshot().getValue("facts").jsonArray.first { it.jsonObject["id"]==JsonPrimitive(id) }.jsonObject.getValue("text").jsonPrimitive.content })
+            rule.onNodeWithTag("plugin_node_remove").performClick()
+            rule.onNodeWithTag("plugin_page_confirm").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_node_empty").fetchSemanticsNodes().isNotEmpty() }
+            assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
+        } finally { rule.runOnUiThread { visible = false }; runBlocking { runCatching { manager.delete(id) } } }
+    }
     @Test fun installedPluginOpensGenericPageFromDetailsAndPersistsThroughRealMarket() {
         val app = rule.activity.application as SolvitApplication
         val id = "test.page-entry"
