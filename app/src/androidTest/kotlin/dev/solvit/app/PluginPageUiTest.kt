@@ -19,37 +19,10 @@ import org.junit.Assert.*
 import dev.solvit.core.*
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicInteger
-import android.os.ParcelFileDescriptor
-import android.util.Log
-import androidx.test.platform.app.InstrumentationRegistry
 
 /** Actual Android QuickJS -> generic Compose form -> callback -> native persistent storage. */
 class PluginPageUiTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
-    /** Failure-only fixture diagnostics; never suppresses the original assertion. */
-    private fun captureMemoryFilterFailure(stage: String, failure: Throwable) {
-        val marker = "[DEBUG-memory-filter]"
-        runCatching {
-            val tags = listOf("plugin_page_content", "plugin_field_query", "plugin_node_filter", "plugin_node_open_0", "plugin_page_error")
-            val nodes = tags.joinToString("\n") { tag ->
-                val matches = rule.onAllNodesWithTag(tag).fetchSemanticsNodes()
-                "$tag: count=${matches.size}, bounds=${matches.map { it.boundsInRoot }}"
-            }
-            val focused = rule.onAllNodes(hasTestTag("plugin_field_query") and isFocused()).fetchSemanticsNodes().size
-            Log.e("SolvitMemoryUi", "$marker stage=$stage queryFocused=$focused\n$nodes")
-        }.onFailure { failure.addSuppressed(it) }
-        runCatching {
-            val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-            ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("dumpsys input_method")).use { input ->
-                val state = input.bufferedReader().readLines().filter {
-                    it.contains("mInputShown") || it.contains("mShowRequested") || it.contains("mImeWindowVis")
-                }.joinToString("\n")
-                Log.e("SolvitMemoryUi", "$marker $state")
-            }
-            ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
-            ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/memory-filter-failure.png")).use { it.readBytes() }
-        }.onFailure { failure.addSuppressed(it) }
-    }
     @Test fun packagedTaskPageShowsSourcesAndUsesNativeCostConfirmationBeforeServiceControl() {
         val app = rule.activity.application as SolvitApplication
         runBlocking {
@@ -143,25 +116,20 @@ class PluginPageUiTest {
         fun present() { rule.activity.setContent { MaterialTheme(colorScheme = darkColorScheme()) {
             if (visible) PluginPageScreen("记忆", { manager.openPage("zh") }) { visible = false }
         } } }
-        var stage = "initial-open"
         try {
             rule.runOnUiThread { present() }
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_query").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_query").performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_query") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_query").performTextReplacement("plugin-memory-ui-original")
-            stage = "initial-scroll"
             rule.onNodeWithTag("plugin_page_content").performScrollToKey("filters")
-            stage = "initial-filter-click"
             rule.onNodeWithTag("plugin_node_filter").assertIsDisplayed()
             rule.onNodeWithTag("plugin_node_clear").assertIsDisplayed()
             rule.onNodeWithTag("plugin_node_filter").performClick()
-            stage = "initial-open-result"
             rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))
             rule.onNodeWithTag("plugin_node_open_0").performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_node_edit") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_node_edit").performClick()
-            stage = "initial-edit-input"
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_text") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_text").performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_text") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
@@ -172,18 +140,14 @@ class PluginPageUiTest {
             rule.onNodeWithContentDescription("关闭插件界面").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_content").fetchSemanticsNodes().isEmpty() }
             rule.runOnUiThread { visible = true }
-            stage = "reopened-query"
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_query").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_query").performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_query") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_query").performTextReplacement("plugin-memory-ui-edited")
-            stage = "reopened-scroll"
             rule.onNodeWithTag("plugin_page_content").performScrollToKey("filters")
-            stage = "reopened-filter-click"
             rule.onNodeWithTag("plugin_node_filter").assertIsDisplayed()
             rule.onNodeWithTag("plugin_node_clear").assertIsDisplayed()
             rule.onNodeWithTag("plugin_node_filter").performClick()
-            stage = "reopened-open-result"
             rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))
             rule.onNodeWithTag("plugin_node_open_0").performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_node_remove") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
@@ -194,9 +158,6 @@ class PluginPageUiTest {
             rule.onNodeWithTag("plugin_page_confirm").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_node_empty").fetchSemanticsNodes().isNotEmpty() }
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
-        } catch (failure: Throwable) {
-            captureMemoryFilterFailure(stage, failure)
-            throw failure
         } finally { rule.runOnUiThread { visible = false }; runBlocking { runCatching { manager.delete(id) } } }
     }
     @Test fun installedPluginOpensGenericPageFromDetailsAndPersistsThroughRealMarket() {
