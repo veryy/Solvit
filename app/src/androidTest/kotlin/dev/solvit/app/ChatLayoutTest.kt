@@ -765,7 +765,13 @@ class ChatLayoutTest {
         rule.onNodeWithText("交互终端").performClick()
         rule.onNodeWithTag("shell_command").performTextInput("stty -echo; export UI_PTY_STATE=retained; printf '__UI_%s__\\n' READY")
         rule.onNodeWithText("发送输入").assertIsEnabled().performClick()
-        rule.waitUntil(8000) { rule.onAllNodes(hasText("__UI_READY__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
+        try {
+            rule.waitUntil(8000) { rule.onAllNodes(hasText("__UI_READY__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
+        } catch(e: Exception) {
+            screenshot("workspace-interactive-initial-failure")
+            throw AssertionError("PTY initial state="+app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }+
+                "\n"+rule.onRoot().printToString(),e)
+        }
         rule.onNodeWithTag("shell_command").performClick().performTextInput("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
         try {
             rule.waitUntil(8000) { rule.onAllNodes(hasText("发送输入") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
