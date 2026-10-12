@@ -14,8 +14,20 @@ import kotlinx.serialization.json.*
 internal class HtmlPageProbe(private val activity: MainActivity) {
     private fun browser(view: View): WebView? = if (view is WebView) view else
         (view as? ViewGroup)?.let { group -> (0 until group.childCount).firstNotNullOfOrNull { browser(group.getChildAt(it)) } }
+    private fun owned(web: WebView): Boolean {
+        var context: android.content.Context = web.context
+        while (context is android.content.ContextWrapper) {
+            if (context === activity) return true
+            val next = context.baseContext
+            if (next === context) break
+            context = next
+        }
+        return context === activity
+    }
     private fun activeBrowser(): WebView? = android.view.inspector.WindowInspector.getGlobalWindowViews()
-        .firstNotNullOfOrNull { browser(it) }
+        .asReversed().firstNotNullOfOrNull { root ->
+            if (!root.hasWindowFocus()) null else browser(root)?.takeIf { it.isShown && owned(it) }
+        }
     fun js(code: String): String = runBlocking {
         val result = CompletableDeferred<String>()
         activity.runOnUiThread {
@@ -40,8 +52,12 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         runBlocking { withTimeout(10_000) { ready.await() } }
         val instrument = InstrumentationRegistry.getInstrumentation()
         val now = SystemClock.uptimeMillis()
-        MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0).let { instrument.sendPointerSync(it); it.recycle() }
-        MotionEvent.obtain(now, now + 40, MotionEvent.ACTION_UP, x, y, 0).let { instrument.sendPointerSync(it); it.recycle() }
+        MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0).let {
+            it.source = android.view.InputDevice.SOURCE_TOUCHSCREEN; instrument.sendPointerSync(it); it.recycle()
+        }
+        MotionEvent.obtain(now, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, x, y, 0).let {
+            it.source = android.view.InputDevice.SOURCE_TOUCHSCREEN; instrument.sendPointerSync(it); it.recycle()
+        }
     }
     fun screenshot(name: String) {
         require(name.matches(Regex("[a-z-]+")))
