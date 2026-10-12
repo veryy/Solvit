@@ -132,3 +132,9 @@ TS 新增未列入公共清单的内部 `memory_prune_sources` 处理器：只�
 修复候选通过 Provider 能力接口区分动态资料与系统规则。Anthropic 把资料追加到真实用户或工具结果消息的文本块，不虚构新用户回合，也不把第三方资料升级成系统指令；相关约束对照官方 [mid-conversation 文档](https://platform.claude.com/docs/en/build-with-claude/mid-conversation-system-messages)。原始转录新增有界请求投影，保存模型实际收到的 system/tools/messages 及规范消息指纹；凭据、端点和配置对象不进入投影。仅在规范历史、规则、工具与投影完整性检查一致时重放，编辑旧消息或更改规则/工具仍由原前缀保护拒绝。旧记录没有投影时维持原校验路径。
 
 SQLite 在既有 JSON 转录字段保存投影，无需删除数据或重建表；旧记录缺字段按空值读取。预算纳入动态资料与保存投影，摘要指纹纳入非空投影。回归增加连续两次签名工具调用、资料停用、旧历史/规则编辑拒绝，实际 HTTP→SQLite 关闭重开→HTTP，以及投影在分支保留。上述修复尚待远程验证，不证明真实 Claude 账户或真机行为。工具列表在签名回合中动态改变仍需独立的协议能力适配，本次不宣称已支持。
+
+`9250964` 的运行 38187818942 已编译通过，AnthropicPayload 4 个、上下文预算 7 个及 SQLite 12 个测试通过；App 的 `ModelTaskRoutingTest` 在 JUnit 初始化时失败，报告明确 `nativeSignedToolContinuationKeepsItsPrefixAndReceivesRefreshedPluginContext() should be void`。测试末尾数据库清理返回 Boolean，已通过显式 `runBlocking<Unit>` 修正，未删除断言或更改生产校验。
+
+`2e58cb4` 的 [运行 38188145150](https://github.com/veryy/Solvit/actions/runs/38188145150) 已通过测试/Lint/APK 步骤及固定签名检查。下载单元产物 11719664585 核对 212 个测试，失败/错误/跳过均为零；原失败的实际 HTTP 工具后刷新与 SQLite 重开回归、连续两次签名工具及编辑旧前缀拒绝、预算、持久化/分支回归均通过。APK 产物 11719674695。模拟器门禁仍待最终结果，尚不能称整次运行完成。
+
+同时核验线上市场：hostApi=7 的记忆仍为 1.1.0/SHA-256 `8845efcc0175c34995b8be576ef040d18bc05458003bf09770e6c2f4500bc323`，hostApi=8 当前返回旧 1.0.0，尚未部署候选 1.2.0。后续顺序保持模拟器最终结果→API 8 市场及旧客户端兼容核验→客户端切换与完整功能版本。公开最新版仍是 0.18.0；真实模型与真机验收继续保留。
