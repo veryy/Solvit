@@ -6,6 +6,28 @@ import { tmpdir } from 'node:os';
 import vm from 'node:vm';
 import { buildPlugin } from '../scripts/build-plugin.mjs';
 
+test('notes example supplies localized native pages and persists through plugin callbacks', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'solvit-notes-'));
+  try {
+    const output = join(dir,'notes.solvit.json');
+    await buildPlugin(resolve('../plugin-examples/notes/index.ts'),resolve('../plugin-examples/notes/manifest.json'),output);
+    const pkg = JSON.parse(await readFile(output,'utf8'));
+    const sandbox = vm.createContext({}); vm.runInContext(pkg.source,sandbox);
+    const storage = new Map();
+    const context = {storage:{get:async key=>storage.get(key)??null,set:async(key,value)=>{storage.set(key,value);return null}}};
+    const main=sandbox.solvitPlugin.pages.main;
+    const initial=await main({locale:'en',event:null},context);
+    assert.equal(initial.title,'Notes'); assert.equal(initial.nodes[0].value,'');
+    const edited=await main({locale:'en',event:{nodeId:'save',action:'save',fields:{note:'a persistent note'}}},context);
+    assert.equal(edited.nodes[0].value,'a persistent note');
+    const reopened=await main({locale:'ja',event:null},context);
+    assert.equal(reopened.title,'メモ'); assert.equal(reopened.nodes[0].value,'a persistent note');
+    assert.ok(reopened.footer.find(node=>node.id==='delete').confirm);
+    await main({locale:'zh',event:{nodeId:'delete',action:'delete',fields:{}}},context);
+    assert.equal(storage.get('note'),'');
+  } finally { await rm(dir,{recursive:true}); }
+});
+
 test('API 9 page declarations bundle callbacks and reject ambiguous or older manifests', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'solvit-pages-'));
   try {

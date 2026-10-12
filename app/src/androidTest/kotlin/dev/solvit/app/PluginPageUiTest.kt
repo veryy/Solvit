@@ -9,6 +9,8 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import dev.solvit.plugins.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.*
 import org.junit.Rule
 import org.junit.Test
@@ -17,6 +19,53 @@ import org.junit.Assert.*
 /** Actual Android QuickJS -> generic Compose form -> callback -> native persistent storage. */
 class PluginPageUiTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    @Test fun installedPluginOpensGenericPageFromDetailsAndPersistsThroughRealMarket() {
+        val app = rule.activity.application as SolvitApplication
+        val id = "test.page-entry"
+        val payload = buildJsonObject {
+            putJsonObject("manifest") {
+                put("id", id); put("name", "Page entry fixture"); put("description", "Test"); put("version", "1.0.0"); put("apiVersion", 9)
+                put("permissions", JsonArray(listOf(JsonPrimitive("storage"))))
+                put("dependencies", JsonArray(emptyList())); put("tools", JsonArray(emptyList()))
+                putJsonArray("pages") { add(buildJsonObject { put("id", "main"); put("title", "Entry notes") }) }
+            }
+            put("source", """
+                globalThis.solvitPlugin={tools:{},pages:{main:async(input,ctx)=>{
+                  if(input.event?.action==='save')await ctx.storage.set('note',input.event.fields.note);
+                  return {title:'Entry notes',nodes:[{id:'note',kind:'field',label:'Note',value:await ctx.storage.get('note')??''}],
+                    footer:[{id:'save',kind:'button',text:'Save entry',action:'save'}]};
+                }}};
+            """.trimIndent())
+        }.toString().toByteArray()
+        runBlocking {
+            withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }
+            app.getSharedPreferences("extension_data.$id", 0).edit().clear().commit()
+            app.marketplace.installLocal(payload); app.marketplace.enable(id, setOf("storage"))
+        }
+        val vm = MarketplaceViewModel(app.marketplace)
+        try {
+            rule.runOnUiThread { rule.activity.setContent { MaterialTheme { PluginMarketplaceDialog(vm) {} } } }
+            rule.onNode(hasText("已安装 (", substring = true)).performClick()
+            rule.onNodeWithTag("plugins_list").performScrollToNode(hasTestTag("installed_plugin_$id"))
+            rule.onNodeWithTag("installed_plugin_$id").performClick()
+            rule.onNodeWithTag("open_plugin_page_${id}_main").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_note").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_field_note").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_note") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_field_note").performTextReplacement("real market page note")
+            rule.onNodeWithTag("plugin_node_save").performClick()
+            rule.waitUntil(10_000) {
+                app.getSharedPreferences("extension_data.$id", 0).getString("note", "") == JsonPrimitive("real market page note").toString()
+            }
+            rule.onNodeWithContentDescription("关闭插件页面").performClick()
+            rule.onNodeWithTag("installed_plugin_$id").performClick()
+            rule.onNodeWithTag("open_plugin_page_${id}_main").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_note") and hasText("real market page note")).fetchSemanticsNodes().isNotEmpty() }
+        } finally {
+            runBlocking { app.marketplace.uninstall(id) }
+            app.getSharedPreferences("extension_data.$id", 0).edit().clear().commit()
+        }
+    }
     @Test fun pluginFormPersistsAndReopensAndDestructiveActionNeedsConfirmation() {
         val prefs = rule.activity.getSharedPreferences("plugin-page-ui-fixture", 0)
         prefs.edit().clear().putString("note", "old note").commit()

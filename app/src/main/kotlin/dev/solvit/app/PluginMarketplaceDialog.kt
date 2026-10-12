@@ -41,6 +41,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
     var deleteTarget by remember { mutableStateOf<InstalledExtension?>(null) }
     var marketTarget by remember { mutableStateOf<MarketEntry?>(null) }
     var installedTarget by remember { mutableStateOf<String?>(null) }
+    var openedPage by remember { mutableStateOf<Pair<String, ExtensionPage>?>(null) }
 
     FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize()) {
@@ -153,6 +154,11 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
                 if (extension.enabled) item { UiText("AI 可发现 ${extension.tools.count { it.chatVisible }} 个工具；角色需允许此插件，执行时会请求确认。") }
                 extension.failure?.let { item { UiText(it, color = MaterialTheme.colorScheme.error) } }
                 if (extension.settings.isNotEmpty()) item { TextButton(enabled = !busy && !extension.enabled, onClick = { installedTarget = null; vm.openConfiguration(extension) }) { UiText(if (extension.enabled) "停用后可配置" else "配置插件") } }
+                items(extension.pages, key = { "page_" + it.id }) { page ->
+                    TextButton(enabled = !busy && extension.enabled, modifier = Modifier.testTag("open_plugin_page_${extension.id}_${page.id}"),
+                        onClick = { installedTarget = null; openedPage = extension.id to page }) { Text(page.title) }
+                }
+                if (extension.pages.isNotEmpty() && !extension.enabled) item { UiText("启用插件后可打开它的页面。") }
                 item { TextButton(enabled = !busy, onClick = { installedTarget = null; deleteTarget = extension }) { UiText("卸载") } }
             } }, confirmButton = { TextButton(enabled = !busy, onClick = {
                 if (extension.enabled) vm.disable(extension.id) else { installedTarget = null; enableTarget = extension }
@@ -160,6 +166,12 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, onDismiss: () -> Unit) {
             dismissButton = { TextButton(onClick = { installedTarget = null }) { UiText("关闭") } })
     }
 
+    openedPage?.let { (pluginId, page) ->
+        val locale = LocalUiLanguage.current
+        key(pluginId, page.id, locale) {
+            PluginPageScreen(page.title, { vm.openPage(pluginId, page.id, locale) }) { openedPage = null }
+        }
+    }
 }
 
 @Composable

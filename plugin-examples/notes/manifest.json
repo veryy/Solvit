@@ -1,0 +1,11 @@
+{
+  "id": "example.notes",
+  "name": "插件便签示例",
+  "description": "用 TS 定义原生表单、保存和删除确认，数据保存在插件自己的命名空间。",
+  "version": "1.0.0",
+  "apiVersion": 9,
+  "permissions": ["storage"],
+  "dependencies": [],
+  "tools": [],
+  "pages": [{"id": "main", "title": "便签"}]
+}

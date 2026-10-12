@@ -41,6 +41,14 @@ class AndroidMarketplace(
     private val mutableInstalled = MutableStateFlow<List<InstalledExtension>>(emptyList())
     override val installed = mutableInstalled.asStateFlow()
     private var latestCatalog = emptyList<MarketEntry>()
+    private val pages = MarketplacePages(manager, { pkg ->
+        check(manager.states.value[pkg.manifest.id] == PluginState.ENABLED && prefs.getBoolean("enabled.${pkg.manifest.id}", false)) { "请先启用插件" }
+        check(prefs.getStringSet("grants.${pkg.manifest.id}", emptySet()).orEmpty().containsAll(pkg.manifest.permissions)) { "插件权限已撤销" }
+    }, ScriptHost { manifest, operation, arguments -> hostCall(manifest, operation, arguments) })
+
+    override suspend fun openPage(pluginId: String, pageId: String, locale: String): ExtensionPageSession = mutex.withLock {
+        pages.open(packages[pluginId] ?: error("插件未安装"), pageId, locale)
+    }
 
     suspend fun restore() = mutex.withLock {
         withContext(Dispatchers.IO) {
@@ -107,6 +115,7 @@ class AndroidMarketplace(
     override suspend fun installLocal(payload: ByteArray) = mutex.withLock {
         val pkg = ScriptPackage.parse(payload)
         val id = pkg.manifest.id
+        pages.closePlugin(id)
         if (manager.states.value[id] == PluginState.ENABLED) manager.unload(id)
         withContext(Dispatchers.IO) {
             val file = AtomicFile(File(directory, "$id.solvit.json")); val stream = file.startWrite()
@@ -143,6 +152,7 @@ class AndroidMarketplace(
         val pkg = ScriptPackage.parse(bytes, entry.sha256)
         check(pkg.manifest.id == entry.id && pkg.manifest.version == entry.version &&
             pkg.manifest.permissions == entry.permissions && pkg.manifest.dependencies == entry.dependencies) { "插件包与市场声明不符" }
+        pages.closePlugin(entry.id)
         if (packages.containsKey(entry.id) && manager.states.value[entry.id] == PluginState.ENABLED) manager.unload(entry.id)
         withContext(Dispatchers.IO) {
             val file = AtomicFile(File(directory, "${entry.id}.solvit.json"))
@@ -185,6 +195,7 @@ class AndroidMarketplace(
 
     override suspend fun disable(id: String) = mutex.withLock {
         check(id in packages) { "插件未安装" }
+        pages.closePlugin(id)
         try {
             if (manager.states.value[id] in setOf(PluginState.LOADED, PluginState.INITIALIZED, PluginState.DISABLED, PluginState.ENABLED))
                 manager.disable(id)
@@ -200,6 +211,7 @@ class AndroidMarketplace(
 
     override suspend fun uninstall(id: String) = mutex.withLock {
         check(id in packages) { "插件未安装" }
+        pages.closePlugin(id)
         if (manager.states.value[id] in setOf(PluginState.LOADED, PluginState.INITIALIZED, PluginState.DISABLED, PluginState.ENABLED)) manager.unload(id)
         withContext(Dispatchers.IO) { AtomicFile(File(directory, "$id.solvit.json")).delete() }
         prefs.edit().remove("enabled.$id").remove("grants.$id").commit()
@@ -245,11 +257,14 @@ class AndroidMarketplace(
             val prefix = pkg.manifest.id.replace('.', '_').replace('-', '_') + "_"
             val names = pkg.manifest.tools.map { prefix + it.name }.toSet()
             InstalledExtension(pkg.manifest.id, pkg.manifest.name, pkg.manifest.version, pkg.manifest.permissions,
-                enabled, if (enabled) tools.descriptors().filter { it.name in names } else emptyList(), failures[pkg.manifest.id], pkg.manifest.settings, pkg.manifest.hooks)
+                enabled, if (enabled) tools.descriptors().filter { it.name in names } else emptyList(), failures[pkg.manifest.id], pkg.manifest.settings, pkg.manifest.hooks,
+                pkg.manifest.pages.map { ExtensionPage(it.id, it.title) })
         }
     }
 
     private suspend fun hostCall(manifest: ScriptManifest, operation: String, arguments: JsonObject): JsonElement {
+        val page = currentCoroutineContext()[ScriptPageExecutionContext]
+        if (page != null) { check(page.pluginId == manifest.id); page.ensureAuthorized() }
         if (operation == "settings.get") {
             check(manifest.apiVersion >= 2)
             val key = arguments.getValue("key").jsonPrimitive.content
@@ -359,6 +374,7 @@ class AndroidMarketplace(
                     currentCoroutineContext().ensureActive()
                     verifyGrants()
                     background?.ensureAuthorized()
+                    page?.ensureAuthorized()
                 }
                 try {
                     when (operation) {

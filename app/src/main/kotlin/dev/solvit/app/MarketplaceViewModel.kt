@@ -49,4 +49,5 @@ class MarketplaceViewModel(private val service: MarketplaceService) : ViewModel(
     fun enable(extension: InstalledExtension) = operation { service.enable(extension.id, extension.permissions) }
     fun disable(id: String) = operation { service.disable(id) }
     fun uninstall(id: String) = operation { service.uninstall(id) }
+    suspend fun openPage(pluginId: String, pageId: String, locale: String): ExtensionPageSession = service.openPage(pluginId, pageId, locale)
 }

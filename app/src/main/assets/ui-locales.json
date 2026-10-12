@@ -4358,5 +4358,37 @@
     "ko": "관계도: 드래그로 이동, 두 손가락으로 확대/축소",
     "es": "Relaciones: arrastra para mover, pellizca para ampliar",
     "fr": "Relations : glissez pour déplacer, pincez pour zoomer"
+  },
+  "插件页面已关闭，请检查启用状态和权限。": {
+    "zh": "插件页面已关闭，请检查启用状态和权限。",
+    "en": "This plugin page has closed. Check its enabled state and permissions.",
+    "ja": "プラグインページが閉じられました。有効状態と権限を確認してください。",
+    "ko": "플러그인 페이지가 닫혔습니다. 활성 상태와 권한을 확인하세요.",
+    "es": "La página del complemento se ha cerrado. Comprueba su estado y permisos.",
+    "fr": "La page du plugin est fermée. Vérifiez son activation et ses autorisations."
+  },
+  "插件页面无法打开，请检查启用状态和权限。": {
+    "zh": "插件页面无法打开，请检查启用状态和权限。",
+    "en": "Unable to open this plugin page. Check its enabled state and permissions.",
+    "ja": "プラグインページを開けません。有効状態と権限を確認してください。",
+    "ko": "플러그인 페이지를 열 수 없습니다. 활성 상태와 권한을 확인하세요.",
+    "es": "No se puede abrir la página del complemento. Comprueba su estado y permisos.",
+    "fr": "Impossible d’ouvrir la page du plugin. Vérifiez son activation et ses autorisations."
+  },
+  "插件页面操作失败，请重新打开后重试。": {
+    "zh": "插件页面操作失败，请重新打开后重试。",
+    "en": "The plugin page action failed. Reopen the page and try again.",
+    "ja": "プラグインページの操作に失敗しました。開き直して再試行してください。",
+    "ko": "플러그인 페이지 작업이 실패했습니다. 페이지를 다시 열고 재시도하세요.",
+    "es": "La acción ha fallado. Vuelve a abrir la página e inténtalo de nuevo.",
+    "fr": "L’action a échoué. Rouvrez la page et réessayez."
+  },
+  "启用插件后可打开它的页面。": {
+    "zh": "启用插件后可打开它的页面。",
+    "en": "Enable the plugin to open its pages.",
+    "ja": "プラグインを有効にするとページを開けます。",
+    "ko": "플러그인을 활성화하면 페이지를 열 수 있습니다.",
+    "es": "Activa el complemento para abrir sus páginas.",
+    "fr": "Activez le plugin pour ouvrir ses pages."
   }
 }

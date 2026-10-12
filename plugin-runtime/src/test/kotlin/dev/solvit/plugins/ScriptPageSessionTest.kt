@@ -40,7 +40,11 @@ class ScriptPageSessionTest {
 
     @Test fun actualQuickJsPageEditsPersistWithIndependentStateAndNoChatLifecycle() = runBlocking<Unit> {
         var fact: JsonElement = JsonPrimitive("原始记忆")
-        val host = ScriptHost { _, operation, args -> when (operation) {
+        val host = ScriptHost { _, operation, args ->
+            val authority = currentCoroutineContext()[ScriptPageExecutionContext]
+            assertNotNull(authority); assertEquals("test.pages", authority.pluginId)
+            withContext(Dispatchers.IO) { authority.ensureAuthorized() }
+            when (operation) {
             "storage.get" -> fact
             "storage.set" -> { fact = args.getValue("value"); JsonNull }
             else -> error("Unexpected operation")

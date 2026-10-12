@@ -15,6 +15,7 @@ class ScriptPageSession(
 ) {
     init { require(pkg.manifest.apiVersion >= 9 && pkg.manifest.pages.any { it.id == pageId }) }
     private val mutex = Mutex()
+    private val authority = ScriptPageExecutionContext(pkg.manifest.id, ensureAuthorized)
     private val executor = ScriptExecutor(pkg, ScriptHost { manifest, operation, args ->
         ensureAuthorized()
         host.call(manifest, operation, args)
@@ -27,7 +28,7 @@ class ScriptPageSession(
         check(!closed && !opened)
         ensureAuthorized()
         try {
-            executor.start(); opened = true
+            withContext(authority) { executor.start() }; opened = true
             render(null)
         } catch (e: Throwable) {
             closed = true
@@ -46,7 +47,7 @@ class ScriptPageSession(
     private suspend fun render(event: kotlinx.serialization.json.JsonObject?): ScriptPageView {
         check(!closed)
         ensureAuthorized()
-        val next = executor.page(pageId, locale, event)
+        val next = withContext(authority) { executor.page(pageId, locale, event) }
         check(!closed)
         ensureAuthorized()
         view = next

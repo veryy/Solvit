@@ -9,6 +9,10 @@ class ScriptPageView private constructor(
     val footer: List<JsonObject>,
     private val byId: Map<String, JsonObject>,
 ) {
+    fun toJson(): String = buildJsonObject {
+        put("title", title); put("nodes", JsonArray(nodes))
+        if (footer.isNotEmpty()) put("footer", JsonArray(footer))
+    }.toString()
     /** Resolve the action from the displayed page, never from caller-supplied action text. */
     fun event(nodeId: String, value: String? = null, fields: Map<String, String> = emptyMap(), confirmed: Boolean = false): JsonObject {
         val node = byId[nodeId] ?: error("Page node no longer exists")
