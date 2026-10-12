@@ -65,6 +65,17 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
     }
     fun screenshot(name: String) {
         require(name.matches(Regex("[a-z-]+")))
+        runBlocking {
+            val frame = CompletableDeferred<Unit>()
+            activity.runOnUiThread {
+                val web = activeBrowser()
+                if (web == null) frame.completeExceptionally(IllegalStateException("No visible HTML page"))
+                else web.postVisualStateCallback(0, object : WebView.VisualStateCallback() {
+                    override fun onComplete(requestId: Long) { frame.complete(Unit) }
+                })
+            }
+            withTimeout(10_000) { frame.await() }
+        }
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
