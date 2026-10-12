@@ -33,23 +33,6 @@ try{
   assert.ok(!source.error&&source.text?.length>=100&&/kotlin/i.test(source.text));
   console.log('Controlled primary outage: real regional browser results and source body passed. This does not guarantee external service availability.');
 }finally{
-  // Diagnostic only: Operit's other ordinary public entrances. These observations
-  // cannot make the regional acceptance pass or substitute for plugin results.
-  const alternatives=[];
-  if(result?.error){
-    for(const url of [
-      'https://www.baidu.com/s?wd=Kotlin%20official%20documentation&pn=0',
-      'https://www.sogou.com/web?query=Kotlin%20official%20documentation&page=1',
-      'https://quark.sm.cn/s?q=Kotlin%20official%20documentation&page=1',
-    ]){
-      const page=await context.newPage();
-      try{
-        await page.goto(url,{waitUntil:'load',timeout:7000});await page.waitForTimeout(500);
-        alternatives.push({requested:url,observation:JSON.parse(await page.evaluate(script))});
-      }catch(error){alternatives.push({requested:url,error:String(error)})}
-      finally{await page.close()}
-    }
-  }
-  await writeFile('browser-regional-evidence.json',JSON.stringify({injectedPrimaryFailure:true,injected,result,source:source?{url:source.url,title:source.title,characters:source.text?.length,error:source.error}:null,observations,alternatives},null,2));
+  await writeFile('browser-regional-evidence.json',JSON.stringify({injectedPrimaryFailure:true,injected,result,source:source?{url:source.url,title:source.title,characters:source.text?.length,error:source.error}:null,observations},null,2));
   await context.close();await browser.close();
 }
