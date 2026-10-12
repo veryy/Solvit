@@ -159,7 +159,10 @@ class PluginPageUiTest {
             stage = "initial-open-result"
             rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))
             rule.onNodeWithTag("plugin_node_open_0").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_node_edit") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_node_edit").performClick()
+            stage = "initial-edit-input"
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_text") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_text").performClick()
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_text") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_text").performTextReplacement("plugin-memory-ui-edited")
@@ -183,6 +186,7 @@ class PluginPageUiTest {
             stage = "reopened-open-result"
             rule.onNodeWithTag("plugin_page_content").performScrollToNode(hasTestTag("plugin_node_open_0"))
             rule.onNodeWithTag("plugin_node_open_0").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_node_remove") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_node_remove").performClick()
             rule.onNodeWithText("取消").performClick()
             assertEquals("plugin-memory-ui-edited", runBlocking { manager.snapshot().getValue("facts").jsonArray.first { it.jsonObject["id"]==JsonPrimitive(id) }.jsonObject.getValue("text").jsonPrimitive.content })
