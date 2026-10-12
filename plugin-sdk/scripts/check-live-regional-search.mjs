@@ -20,7 +20,8 @@ const ctx={settings:{get:async()=>null},http:{request:async()=>{throw new Error(
   try{
     await page.goto(url,{waitUntil:'load',timeout:7000});await page.waitForTimeout(500);
     const snapshot=JSON.parse(await page.evaluate(script));
-    observations.push({requested:url,final:snapshot.url,title:snapshot.title,searchResults:snapshot.searchResults,links:snapshot.links.length,characters:snapshot.text.length});
+    observations.push({requested:url,final:snapshot.url,title:snapshot.title,searchResults:snapshot.searchResults,links:snapshot.links.length,characters:snapshot.text.length,
+      dom:await page.evaluate(()=>({readyState:document.readyState,bodyText:document.body.innerText.slice(0,2000),bodyResults:document.querySelectorAll('li.b_algo h2 a[href],a.result__a[href]').length,main:document.querySelector('main,article,[role="main"]')?.outerHTML.slice(0,2000)}))});
     return snapshot;
   }finally{await page.close()}
 }}};
