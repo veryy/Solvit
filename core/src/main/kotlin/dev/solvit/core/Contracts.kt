@@ -178,6 +178,8 @@ interface AgentRuntime {
     fun run(request: ModelRequest): Flow<ModelChunk>
 }
 interface ChatService {
+    fun executionRuns(sessionId: String): Flow<List<ExecutionRun>> = kotlinx.coroutines.flow.flowOf(emptyList())
+    suspend fun executionEvents(sessionId: String, runId: String): List<RecordedExecutionEvent> = emptyList()
     fun sessions(): Flow<List<ChatSession>>
     fun messages(sessionId: String): Flow<List<ChatMessage>>
     suspend fun createSession(): ChatSession

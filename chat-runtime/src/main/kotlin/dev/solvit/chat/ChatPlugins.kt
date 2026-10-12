@@ -29,6 +29,8 @@ class DefaultChatService(
     private val turn = Mutex()
     override fun sessions() = store.sessions()
     override fun messages(sessionId: String) = store.messages(sessionId)
+    override fun executionRuns(sessionId: String) = store.executionRuns(sessionId)
+    override suspend fun executionEvents(sessionId: String, runId: String) = store.executionEvents(sessionId,runId)
     override suspend fun createSession() = store.createSession()
     override suspend fun deleteSession(sessionId: String) {
         check(turn.tryLock()) { "请先停止生成" }

@@ -15,7 +15,7 @@ internal object ExecutionJournalDatabase {
         db.execSQL("CREATE TABLE execution_events (run_id TEXT NOT NULL REFERENCES execution_runs(id) ON DELETE CASCADE, sequence INTEGER NOT NULL, recorded_at INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(run_id, sequence))")
     }
     fun begin(db: SQLiteDatabase, run: ExecutionRun): Boolean {
-        run.validate(); require(run.status == ExecutionStatus.RUNNING)
+        run.validate(); require(run.status == ExecutionStatus.RUNNING && run.eventCount == 0)
         val source = db.rawQuery("SELECT id FROM messages WHERE session_id=? AND role='USER' AND status='COMPLETE' ORDER BY sequence DESC LIMIT 1", arrayOf(run.sessionId)).use {
             it.moveToFirst() && it.getString(0) == run.userMessageId
         }
@@ -27,9 +27,9 @@ internal object ExecutionJournalDatabase {
         });return true
     }
     fun runs(db: SQLiteDatabase, sessionId: String): List<ExecutionRun> =
-        db.rawQuery("SELECT id,user_message_id,role_id,workspace_id,started_at,updated_at,status FROM execution_runs WHERE session_id=? ORDER BY started_at,id", arrayOf(sessionId)).use { c ->
+        db.rawQuery("SELECT id,user_message_id,role_id,workspace_id,started_at,updated_at,status,(SELECT COUNT(*) FROM execution_events WHERE run_id=execution_runs.id) FROM execution_runs WHERE session_id=? ORDER BY started_at,id", arrayOf(sessionId)).use { c ->
             buildList { while(c.moveToNext()) add(ExecutionRun(c.getString(0),sessionId,c.getString(1),
-                if(c.isNull(2)) null else c.getString(2),if(c.isNull(3)) null else c.getString(3),c.getLong(4),c.getLong(5),ExecutionStatus.valueOf(c.getString(6)))) }
+                if(c.isNull(2)) null else c.getString(2),if(c.isNull(3)) null else c.getString(3),c.getLong(4),c.getLong(5),ExecutionStatus.valueOf(c.getString(6)),c.getInt(7))) }
         }
     private fun run(db: SQLiteDatabase, id: String): ExecutionRun? =
         db.rawQuery("SELECT session_id FROM execution_runs WHERE id=?",arrayOf(id)).use { c ->

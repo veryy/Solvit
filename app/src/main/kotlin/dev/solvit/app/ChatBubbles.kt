@@ -21,7 +21,8 @@ import com.mikepenz.markdown.m3.Markdown
 import dev.solvit.core.*
 
 @Composable
-fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = null) {
+fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = null,
+    loadExecutionEvents: (suspend (ExecutionRun) -> List<RecordedExecutionEvent>)? = null) {
     val user = row.user
     val width = LocalConfiguration.current.screenWidthDp.dp * .88f
     Column(Modifier.fillMaxWidth().testTag(if (user != null) "user_message" else "assistant_message"),
@@ -50,7 +51,10 @@ fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = nu
             color = if (user != null) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow) {
             Column(Modifier.padding(14.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 if (user != null) SelectionContainer { Text(user.content, style=MaterialTheme.typography.bodyLarge) }
-                else AssistantContents(row)
+                else {
+                    AssistantContents(row)
+                    row.execution?.let { ExecutionDetails(it,loadExecutionEvents) }
+                }
             }
         }
     }
@@ -78,7 +82,7 @@ private fun AssistantContents(row: ChatRow) {
     }
     // A tool can enter confirming/running before its assistant transcript is delivered.
     row.activity.filter { it.call.id !in emitted }.forEach { ToolSection(it); hasContent = true }
-    if (!hasContent) UiText(if (row.generating) "正在回复…" else if (row.messages.any { it.status == MessageStatus.INTERRUPTED }) "已停止生成" else "未收到回复",
+    if (!hasContent) UiText(if (row.generating) "正在回复…" else if (row.execution!=null && row.messages.isEmpty()) "对话中断 · 已保留执行记录" else if (row.messages.any { it.status == MessageStatus.INTERRUPTED }) "已停止生成" else "未收到回复",
         color=MaterialTheme.colorScheme.onSurfaceVariant)
     if (!row.generating) row.messages.lastOrNull { it.status != MessageStatus.COMPLETE }?.let { message ->
         UiText(if (message.status == MessageStatus.INTERRUPTED) "已停止 · 此回复不参与后续上下文" else "回复失败 · 此回复不参与后续上下文",

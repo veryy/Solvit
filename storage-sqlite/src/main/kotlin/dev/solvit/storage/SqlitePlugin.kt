@@ -48,6 +48,7 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     }
     private val lock = Mutex()
     private val revision = MutableStateFlow(0L)
+    private val executionRevision = MutableStateFlow(0L)
     private suspend fun <T> read(verify: suspend () -> Unit = {}, block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
         lock.withLock {
             verify()
@@ -57,13 +58,13 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
             try { block(db).also { db.setTransactionSuccessful() } } finally { db.endTransaction() }
         }
     }
-    private suspend fun <T> write(verify: suspend () -> Unit = {}, block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
+    private suspend fun <T> write(verify: suspend () -> Unit = {}, notifyChats: Boolean = true, block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
         lock.withLock {
             verify()
             val db = helper.writableDatabase
             db.beginTransaction()
             val result = try { block(db).also { db.setTransactionSuccessful() } } finally { db.endTransaction() }
-            revision.value += 1
+            if(notifyChats) revision.value += 1 else executionRevision.value += 1
             result
         }
     }
@@ -75,15 +76,15 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     override fun messages(sessionId: String): Flow<List<ChatMessage>> = revision.map { history(sessionId) }.distinctUntilChanged()
     override suspend fun history(sessionId: String): List<ChatMessage> = read { history(it, sessionId) }
     override val supportsExecutionJournal = true
-    override fun executionRuns(sessionId: String): Flow<List<ExecutionRun>> = revision.map {
+    override fun executionRuns(sessionId: String): Flow<List<ExecutionRun>> = combine(revision,executionRevision) { _,_ ->
         read { ExecutionJournalDatabase.runs(it,sessionId) }
     }.distinctUntilChanged()
     override suspend fun executionEvents(sessionId: String, runId: String) = read { ExecutionJournalDatabase.events(it,sessionId,runId) }
-    override suspend fun beginExecutionRun(run: ExecutionRun) = write { ExecutionJournalDatabase.begin(it,run) }
+    override suspend fun beginExecutionRun(run: ExecutionRun) = write(notifyChats=false) { ExecutionJournalDatabase.begin(it,run) }
     override suspend fun appendExecutionEvents(runId: String, expectedSequence: Int, events: List<ExecutionEvent>, now: Long) =
-        write { ExecutionJournalDatabase.append(it,runId,expectedSequence,events,now) }
-    override suspend fun finishExecutionRun(runId: String, status: ExecutionStatus, now: Long) = write { ExecutionJournalDatabase.finish(it,runId,status,now) }
-    override suspend fun recoverInterruptedExecutions(now: Long) = write { ExecutionJournalDatabase.recover(it,now) }
+        write(notifyChats=false) { ExecutionJournalDatabase.append(it,runId,expectedSequence,events,now) }
+    override suspend fun finishExecutionRun(runId: String, status: ExecutionStatus, now: Long) = write(notifyChats=false) { ExecutionJournalDatabase.finish(it,runId,status,now) }
+    override suspend fun recoverInterruptedExecutions(now: Long) = write(notifyChats=false) { ExecutionJournalDatabase.recover(it,now) }
     override suspend fun contextSummary(sessionId: String): ContextSummary? = read { loadSummary(it, sessionId) }
     override suspend fun saveContextSummary(sessionId: String, expected: ContextSummary?, replacement: ContextSummary): Boolean {
         replacement.validate()

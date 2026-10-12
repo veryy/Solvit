@@ -4,11 +4,12 @@ package dev.solvit.core
 enum class ExecutionStatus { RUNNING, COMPLETE, CANCELLED, FAILED, PROCESS_INTERRUPTED }
 data class ExecutionRun(val id: String, val sessionId: String, val userMessageId: String,
     val roleId: String?, val workspaceId: String?, val startedAt: Long, val updatedAt: Long = startedAt,
-    val status: ExecutionStatus = ExecutionStatus.RUNNING) {
+    val status: ExecutionStatus = ExecutionStatus.RUNNING, val eventCount: Int = 0) {
     fun validate() {
         require(listOf(id, sessionId, userMessageId).all { it.isNotBlank() && it.length <= 128 })
         require(listOfNotNull(roleId, workspaceId).all { it.isNotBlank() && it.length <= 128 })
         require(startedAt >= 0 && updatedAt >= startedAt)
+        require(eventCount in 0..512)
     }
 }
 enum class ExecutionKind { STEP_STARTED, TOOL_PROPOSED, TOOL_STARTED, TOOL_FINISHED, STEP_FINISHED }

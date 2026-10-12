@@ -5,7 +5,25 @@ import dev.solvit.core.*
 /** One assistant bubble per user turn, including every tool round and its final answer. */
 data class ChatRow(val id: String, val user: ChatMessage? = null,
     val messages: List<ChatMessage> = emptyList(), val activity: List<ModelChunk.ToolActivity> = emptyList(),
-    val generating: Boolean = false)
+    val generating: Boolean = false, val execution: ExecutionRun? = null)
+
+/** Recovered observations belong to the same reply bubble, even if no reply was settled. */
+fun attachExecutions(rows: List<ChatRow>, runs: List<ExecutionRun>): List<ChatRow> {
+    val byUser=runs.associateBy { it.userMessageId }
+    val result=mutableListOf<ChatRow>()
+    rows.forEachIndexed { index,row ->
+        if(row.user!=null) {
+            result+=row
+            val run=byUser[row.user.id]
+            if(run!=null && run.eventCount>0 && rows.getOrNull(index+1)?.id!="reply-${row.user.id}")
+                result+=ChatRow("reply-${row.user.id}",execution=run)
+        } else {
+            val run=byUser[row.id.removePrefix("reply-")]
+            result+=row.copy(execution=run?.takeIf { it.eventCount>0 && (it.workspaceId!=null || it.status!=ExecutionStatus.COMPLETE) })
+        }
+    }
+    return result
+}
 
 fun presentChat(history: List<ChatMessage>, busy: Boolean = false, baseline: String? = null,
     sendingText: String = "", transcript: List<ModelMessage> = emptyList(), draft: String = "",

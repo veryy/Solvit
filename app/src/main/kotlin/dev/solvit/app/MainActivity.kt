@@ -141,7 +141,9 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val saving by vm.saving.collectAsStateWithLifecycle()
     val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
     val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
-    val chatRows = presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity,holdSettlement=busy)
+    val executionRuns by vm.executionRuns.collectAsStateWithLifecycle()
+    val chatRows = attachExecutions(presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity,holdSettlement=busy),
+        executionRuns.filter { it.sessionId==selected })
     val missingRole by agents.missingRole.collectAsStateWithLifecycle()
     val agentBusy by agents.busy.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }
@@ -291,7 +293,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                         hideInput(); vm.branchError.value = null; branchTarget = message to mode
                     }, footer = if (workspaceId == null && !busy) ({
                         TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { UiText("新建工作区") }
-                    }) else null)
+                    }) else null, loadExecutionEvents=vm::executionEvents)
 
             }
             }

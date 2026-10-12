@@ -15,7 +15,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 /** Follow a tail item, including replies taller than the viewport, after layout. */
 @Composable
 fun ChatTimeline(rows: List<ChatRow>, sessionId: String?, modifier: Modifier = Modifier,
-    onBranch: ((ChatMessage, BranchMode) -> Unit)? = null, footer: (@Composable () -> Unit)? = null) {
+    onBranch: ((ChatMessage, BranchMode) -> Unit)? = null, footer: (@Composable () -> Unit)? = null,
+    loadExecutionEvents: (suspend (ExecutionRun) -> List<RecordedExecutionEvent>)? = null) {
     val list = rememberLazyListState()
     val dragging by list.interactionSource.collectIsDraggedAsState()
     var follow by remember(sessionId) { mutableStateOf(true) }
@@ -35,7 +36,7 @@ fun ChatTimeline(rows: List<ChatRow>, sessionId: String?, modifier: Modifier = M
     }
     LazyColumn(state = list, modifier = modifier.fillMaxWidth().testTag("chat_messages"),
         contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        items(rows, key = { it.id }) { ChatBubble(it, onBranch) }
+        items(rows, key = { it.id }) { ChatBubble(it, onBranch, loadExecutionEvents) }
         if (footer != null) item(key = "create-workspace") { footer() }
         item(key = "stream-tail") { Spacer(Modifier.fillMaxWidth().height(1.dp).testTag("chat_tail")) }
     }

@@ -23,6 +23,15 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     val messages = selected.flatMapLatest { id -> if (id == null) flowOf(emptyList()) else chat.messages(id) }
         .catch { error.value = "读取聊天记录失败" }
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val executionRuns = selected.flatMapLatest { id -> if(id==null) flowOf(emptyList()) else chat.executionRuns(id) }
+        .catch { error.value="读取执行记录失败" }
+        .stateIn(viewModelScope,SharingStarted.Eagerly,emptyList())
+    suspend fun executionEvents(run: ExecutionRun): List<RecordedExecutionEvent> {
+        check(selected.value==run.sessionId)
+        val events=chat.executionEvents(run.sessionId,run.id)
+        check(selected.value==run.sessionId)
+        return events
+    }
     val config = MutableStateFlow(ModelConfig())
     val ready = MutableStateFlow(false)
     val modelConfigured = MutableStateFlow(false)

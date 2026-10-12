@@ -4,6 +4,24 @@ import dev.solvit.core.*
 import kotlin.test.*
 
 class ChatPresentationTest {
+    @Test fun recoveredExecutionUsesOriginalReplyBubbleWithoutInventingChatMessages() {
+        val history=listOf(message("first",Role.USER,"task one"),message("answer",Role.ASSISTANT,"reply"),message("second",Role.USER,"run"))
+        val first=ExecutionRun("r1","s","first",null,"workspace",1,status=ExecutionStatus.COMPLETE,eventCount=5)
+        val second=ExecutionRun("r2","s","second",null,"workspace",2,status=ExecutionStatus.PROCESS_INTERRUPTED,eventCount=3)
+        val rows=attachExecutions(presentChat(history),listOf(first,second))
+        assertEquals(listOf("first","reply-first","second","reply-second"),rows.map { it.id })
+        assertEquals(first,rows[1].execution);assertEquals("reply",rows[1].messages.single().content)
+        assertEquals(second,rows.last().execution);assertTrue(rows.last().messages.isEmpty())
+        assertFalse(rows.last().generating)
+    }
+    @Test fun journalDoesNotDuplicateLiveReplyOrAddDetailsToCompletedPlainChat() {
+        val user=message("u",Role.USER,"question")
+        val run=ExecutionRun("run","s","u",null,null,1,eventCount=1)
+        val live=attachExecutions(presentChat(listOf(user),busy=true,draft="answer"),listOf(run))
+        assertEquals(2,live.size);assertTrue(live.last().generating);assertEquals(run,live.last().execution)
+        val done=attachExecutions(presentChat(listOf(user,message("a",Role.ASSISTANT,"answer"))),listOf(run.copy(status=ExecutionStatus.COMPLETE,eventCount=2)))
+        assertEquals(2,done.size);assertNull(done.last().execution)
+    }
     private fun message(id: String, role: Role, text: String = "") = ChatMessage(id,"s",role,text)
     @Test fun toolRoundsAndFinalAnswerShareOneAssistantBubble() {
         val call = ToolCall("call","clock","{}")
