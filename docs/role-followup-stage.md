@@ -24,4 +24,12 @@ Solvit 的 `ChatContextComposer` 原来把模型设置的内置“你是 Solvit�
 
 [修复候选远程运行 38237983149](https://github.com/veryy/Solvit/actions/runs/38237983149)全部成功：测试、Lint、APK、固定签名、模拟器和覆盖升级。实际下载 XML 核对271个单元和42个模拟器测试，均无失败、错误或跳过。上述 HTTP 检查、全局规则保留检查及 `roleAppliedThroughSettingsReachesProviderAndNewChatRequest`、`applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist` 均通过；UI报告包含 `role-settings-to-provider-new-chat.png`。取得的是默认身份冲突及实际界面到请求链路的验证证据，尚非用户真实模型回答的失败→成功验收。未运行本地 Android 构建或测试。正式标签发布继续通过完整发布门禁。
 
-仍需发布新 APK，并使用用户实际模型复核选择角色后、新对话及重开对话的身份回答。现有源码发现不能断言为用户症状的唯一原因。
+## 正式发布与范围
+
+[0.21.1 Release](https://github.com/veryy/Solvit/releases/tag/v0.21.1)已公开发布，源提交 `fc220939e250a2ca9d981465d1ba83b4235c65eb`。[正式标签运行38239629561](https://github.com/veryy/Solvit/actions/runs/38239629561)第二次尝试全部成功：构建、固定签名、插件、公开搜索、模拟器及发布。
+
+第一次正式尝试保留两项失败证据：公开搜索第三个查询的 Bing 和 DuckDuckGo 页面都要求人机验证；已有 `nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations` 用例在 `performScrollToNode` 时触发 Compose `SnapshotStateObserver` 跨线程读取异常。角色界面到请求的用例在该次尝试仍通过。原条件重跑失败任务后，搜索三项查询的相关官方来源及正文验证通过；42个模拟器测试无失败、错误或跳过，包括首次失败的模型设置用例。未确定或修复该测试框架异常根因，不把重跑成功称为根因修复。
+
+实际下载正式单元XML核对271个测试均无失败、错误或跳过；正式UI成功报告来自产物11743755455，公开搜索成功证据来自11742894488。Release为非草稿、非预发布，最新版本API返回 `v0.21.1`。实际下载公开APK与正式构建产物11743116102内的APK逐字节一致，23,067,851字节，SHA-256 `a1340c497c42b6a8f4d2c8d97d8554776bc60bc699e2647d7020cd06c007e47d`。
+
+仍需使用用户实际模型复核选择角色后、新对话及重开对话的身份回答。现有源码发现不能断言为用户症状的唯一原因，未进行真机或真实模型身份回答验收。
