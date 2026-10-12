@@ -4,10 +4,12 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import dev.solvit.core.ExtensionPageDocument
+import dev.solvit.core.ExtensionPageResource
 
 /** One independent QuickJS instance per open page, owned and closed by the host UI. */
 class ScriptPageSession(
-    pkg: ScriptPackage,
+    private val pkg: ScriptPackage,
     private val pageId: String,
     private val locale: String,
     host: ScriptHost,
@@ -22,7 +24,7 @@ class ScriptPageSession(
     }, invokeLifecycle = false)
     @Volatile private var closed = false
     private var view: ScriptPageView? = null
-    private var opened = false
+    @Volatile private var opened = false
 
     suspend fun open(): ScriptPageView = mutex.withLock {
         check(!closed && !opened)
@@ -42,6 +44,23 @@ class ScriptPageSession(
         check(view === expectedView) { "Page has changed; use the current view" }
         val event = checkNotNull(view).event(nodeId, value, fields, confirmed)
         render(event, view!!.hostAction(nodeId))
+    }
+
+    suspend fun document(): ExtensionPageDocument? {
+        check(!closed && opened)
+        ensureAuthorized()
+        return pkg.manifest.pages.single { it.id == pageId }.entry?.let(::ExtensionPageDocument)
+    }
+
+    suspend fun resource(path: String): ExtensionPageResource {
+        check(!closed && opened)
+        ensureAuthorized()
+        check(pkg.manifest.pages.single { it.id == pageId }.entry != null)
+        val mime = ScriptWebResources.mimeType(path)
+        val content = pkg.resources[path] ?: error("插件页面资源不存在")
+        ensureAuthorized()
+        check(!closed)
+        return ExtensionPageResource(mime, content)
     }
 
     private suspend fun render(event: kotlinx.serialization.json.JsonObject?, approvedAction: kotlinx.serialization.json.JsonObject? = null): ScriptPageView {

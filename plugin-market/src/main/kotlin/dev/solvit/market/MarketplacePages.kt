@@ -56,6 +56,8 @@ internal class MarketplacePages(
             check(revision == this.revision) { "页面已变化，请使用当前页面" }
             snapshot(engine.dispatch(checkNotNull(view), nodeId, value, fields, confirmed))
         }
+        override suspend fun document(): ExtensionPageDocument? { authorize(); return engine.document() }
+        override suspend fun resource(path: String): ExtensionPageResource { authorize(); return engine.resource(path) }
         private fun snapshot(next: ScriptPageView): ExtensionPageSnapshot {
             authorize(); view = next; revision++
             return ExtensionPageSnapshot(revision, next.toJson())

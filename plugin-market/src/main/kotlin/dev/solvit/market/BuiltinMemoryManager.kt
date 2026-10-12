@@ -56,6 +56,8 @@ class BuiltinMemoryManager(context: Context) {
                 check(!mutableClosed.value && revision == this.revision) { "Memory page changed or closed" }
                 snapshot(engine.dispatch(checkNotNull(view), nodeId, value, fields, confirmed))
             }
+            override suspend fun document(): dev.solvit.core.ExtensionPageDocument? = engine.document()
+            override suspend fun resource(path: String): dev.solvit.core.ExtensionPageResource = engine.resource(path)
             override suspend fun close() {
                 mutableClosed.value = true
                 withContext(NonCancellable) { engine.close() }

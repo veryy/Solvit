@@ -10,11 +10,15 @@ data class MarketEntry(
 data class ExtensionSetting(val key: String, val label: String, val kind: String, val required: Boolean = false, val defaultValue: String? = null)
 data class ExtensionPage(val id: String, val title: String)
 data class ExtensionPageSnapshot(val revision: Long, val json: String)
+data class ExtensionPageDocument(val entry: String)
+data class ExtensionPageResource(val mimeType: String, val content: String)
 interface ExtensionPageSession {
     val closed: StateFlow<Boolean>
     suspend fun open(): ExtensionPageSnapshot
     suspend fun dispatch(revision: Long, nodeId: String, value: String? = null,
         fields: Map<String, String> = emptyMap(), confirmed: Boolean = false): ExtensionPageSnapshot
+    suspend fun document(): ExtensionPageDocument? = null
+    suspend fun resource(path: String): ExtensionPageResource { error("此页面没有离线资源") }
     suspend fun close()
 }
 
