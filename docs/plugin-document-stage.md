@@ -17,3 +17,7 @@ Android官方[Storage Access Framework](https://developer.android.com/training/d
 真实系统选择器运行38313346912已确认取消导入不写数据，随后DocumentsUI的Downloads行ACTION_CLICK返回false，未到文件导入。测试驱动改为点击实际观察到的可见控件坐标，仍使用系统窗口和真实触摸，未模拟选择结果；新运行38313891124待确认。完整Android运行38313790898仍待结果，不能称为新APK交付。
 
 系统选择器第三/第四次运行38314531603、38315085385的真实窗口证实文件可见而触摸未激活；没有发生数据导入。实际读取Android DocumentsUI `e033e3454cbfd7a57df6b4d7eb2ea769736b9302` 的`src/com/android/documentsui/dirlist/DirectoryFragment.java`，SelectionTracker显式仅接受FINGER/STYLUS。旧测试短MotionEvent.obtain创建UNKNOWN工具类型，被文件列表忽略，工具栏仍正常响应；修正为真实FINGER指针事件并等待系统窗口状态。原生/HTML失败现场仅使用生成的测试资料并作为诊断产物保留，未修改或模拟文件选择器结果。
+
+实际系统选择器回合38316739694（fc45495）成功，取消不写数据、ZIP导入预览后确认保存、重开保留、导出JSON后系统选择重新导入、同名默认保留、脚本仅展示，以及删除取消/确认均已通过。导入/重开的真实截图一度发现DOM存在但内容高度塌缩，Skills/MCP改为插件CSS固定viewport并固定底部操作区；新模拟器断言检查内容/操作区高度及卡片实际可见位置。截图保存在`docs/screenshots/0.22.2/skills-html-library.png`和`skills-html-import-preview.png`，不是设计稿。
+
+当前候选0.22.2/build36：Skills1.1.1/API11，255403字节，SHA-256 `83a8912346d3e120f8795a5f35a7ed41a97d90005706305031f3fe34e68bbebf`；MCP1.1.1/API10，37542字节，SHA-256 `1d437a9297e6d570ce34d8c306e2acae02d0b899a94f3d058f27835073a23a66`。原1.1.0字节作为legacy与升级测试资源保留，原始精确哈希可以升级，修改/卸载不恢复。正常SDK一致性38316833290成功，服务器修复包仅准备到独立stage，尚未切换。完整运行38316830794因新增回归夹具包含连接协议不接受的id字段失败；2d4ce42去掉错误夹具字段，没有放松生产校验。完整Android验证待当前运行结果。
