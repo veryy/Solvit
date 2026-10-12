@@ -346,7 +346,7 @@ class AndroidMarketplace(
             require(arguments.keys == setOf("url")) { "网页观察只接受 URL" }
             val page = (webPages ?: error("网页观察服务不可用")).visit(arguments.getValue("url").jsonPrimitive.content)
             return buildJsonObject {
-                put("url", page.url); put("title", page.title); put("text", page.text); put("truncated", page.truncated)
+                put("url", page.url); put("title", page.title); put("text", page.text); put("truncated", page.truncated); put("searchResults", page.searchResults)
                 put("links", buildJsonArray { page.links.forEach { link -> add(buildJsonObject {
                     put("url", link.url); put("title", link.title); put("snippet", link.snippet)
                 }) } })

@@ -21,5 +21,14 @@ class WebPagesTest {
         assertTrue(page.text.contains("Rendered by browser"))
         assertFalse(page.text.contains("getElementById"))
         assertEquals("https://example.org/source", page.links.single().url)
+        assertFalse(page.searchResults)
+        val search = service.observeFixture("https://www.bing.com/?q=Kotlin", """
+            <html><head><title>Search fixture</title></head><body><main>
+            <li class="b_algo"><h2><a href="https://kotlinlang.org/docs/home.html">Kotlin docs</a></h2><p>Official source</p></li>
+            <a href="https://example.org/footer">Footer</a>
+            </main></body></html>
+        """.trimIndent())
+        assertTrue(search.searchResults)
+        assertEquals("https://kotlinlang.org/docs/home.html", search.links.single().url)
     }
 }

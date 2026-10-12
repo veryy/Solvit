@@ -30,7 +30,7 @@ internal object PageObservation {
         }
         val text = json.optString("text")
         return WebPage(url, json.optString("title").take(256), text.take(16_000), result,
-            json.optBoolean("truncated") || text.length > 16_000)
+            json.optBoolean("truncated") || text.length > 16_000, json.opt("searchResults") == true)
     }
 
     // Observe the DOM after page loading; no native JavaScript interface is installed.
@@ -49,7 +49,7 @@ internal object PageObservation {
           clone.querySelectorAll('p,div,li,h1,h2,h3,h4,h5,h6,br,tr').forEach(n => n.appendChild(document.createTextNode('\n')));
           const text = (clone.textContent || '').replace(/[ \t]+/g,' ').replace(/\n[ \t]*\n+/g,'\n').trim();
           return JSON.stringify({url:location.href,title:document.title,text:text.slice(0,16000),
-            truncated:text.length>16000,links});
+            truncated:text.length>16000,links,searchResults:searchLinks.length>0});
         })()
     """.trimIndent()
 }

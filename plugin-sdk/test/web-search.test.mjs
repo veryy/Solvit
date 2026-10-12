@@ -127,3 +127,19 @@ test('default browser failure still obtains real result data from the upstream r
   assert.equal(result.provider,'bing-browser');assert.equal(result.results[0].url,'https://example.com/kotlin-guide');
   assert.equal(JSON.stringify(result).includes('PRIVATE'),false);
 });
+
+test('observed search DOM permits the Bing root route only for the actual query',async () => {
+  const {tools,ctx}=await plugin({},undefined,async ()=>({
+    url:'https://www.bing.com/?q=Kotlin&mkt=zh-CN',title:'Search',text:'Kotlin',truncated:false,searchResults:true,
+    links:[{url:'https://kotlinlang.org/docs/home.html',title:'Kotlin documentation',snippet:'Official Kotlin docs'}],
+  }));
+  const result=await tools.search({query:'Kotlin'},ctx);
+  assert.equal(result.provider,'bing-browser');assert.equal(result.results[0].url,'https://kotlinlang.org/docs/home.html');
+});
+test('a root route with result markers for a different query remains rejected',async () => {
+  const {tools,ctx}=await plugin({},async ()=>({status:503,headers:{},body:''}),async ()=>({
+    url:'https://www.bing.com/?q=Other',title:'Search',text:'Kotlin',truncated:false,searchResults:true,
+    links:[{url:'https://kotlinlang.org/docs/home.html',title:'Kotlin documentation',snippet:'Footer'}],
+  }));
+  const result=await tools.search({query:'Kotlin'},ctx);assert.equal(result.results.length,0);assert.ok(result.error);
+});

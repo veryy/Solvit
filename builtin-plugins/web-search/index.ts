@@ -25,7 +25,8 @@ async function publicSearch(query: string, limit: number, ctx: PluginContext): P
         // Public engines can redirect to a home/captcha page with valid unrelated links.
         const searchPage = origin.includes('duckduckgo')
           ? /^https:\/\/(?:[a-z0-9-]+\.)?duckduckgo\.com\/html\//i.test(page.url)
-          : /^https:\/\/(?:[a-z0-9-]+\.)?bing\.com\/search(?:[?\/]|$)/i.test(page.url);
+          : /^https:\/\/(?:[a-z0-9-]+\.)?bing\.com\/search(?:[?\/]|$)/i.test(page.url) ||
+            (page.searchResults === true && /^https:\/\/(?:[a-z0-9-]+\.)?bing\.com\/\?/i.test(page.url) && parameter(page.url, 'q') === query);
         if (!searchPage) continue;
         const results: { index: number; title: string; url: string; snippet: string }[] = [];
         const seen = new Set<string>();

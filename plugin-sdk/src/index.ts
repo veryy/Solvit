@@ -17,7 +17,7 @@ export interface PluginContext {
   /** API 8: available only during an opted-in afterTurn invocation; at most one call. */
   readonly model?: { complete(options: { instructions: string; input: string }): Promise<string> };
   /** API 6: anonymous Android browser observation; requires network permission. */
-  readonly web?: { visit(url: string): Promise<{ url: string; title: string; text: string; truncated: boolean;
+  readonly web?: { visit(url: string): Promise<{ url: string; title: string; text: string; truncated: boolean; searchResults?: boolean;
     links: { url: string; title: string; snippet: string }[] }> };
   /** API 5: persistent Android PTY, scoped to the approved chat/plugin/role. */
   readonly terminal?: { call(operation: 'open' | 'status' | 'input' | 'interrupt' | 'close', args: JsonObject): Promise<JsonValue> };
