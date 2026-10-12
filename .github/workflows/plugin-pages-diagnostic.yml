@@ -1,0 +1,54 @@
+name: Plugin page diagnostic
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  memory-click:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: plugin-sdk/package-lock.json
+      - name: Build current plugin source for diagnosis
+        working-directory: plugin-sdk
+        run: |
+          npm ci
+          npm run build:builtins
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare actual APKs
+        env:
+          SOLVIT_KEYSTORE: ${{ secrets.SOLVIT_DEBUG_KEYSTORE }}
+        run: |
+          test -n "$SOLVIT_KEYSTORE"
+          mkdir -p .signing
+          printf '%s' "$SOLVIT_KEYSTORE" | base64 --decode > .signing/debug.keystore
+          chmod 600 .signing/debug.keystore
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
+          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_2
+          disable-animations: true
+          script: bash scripts/diagnose-plugin-page.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plugin-page-diagnostic
+          path: ui-screenshots/
