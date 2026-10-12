@@ -1,0 +1,21 @@
+{
+  "manifest": {
+    "id": "example.notes",
+    "name": "插件便签示例",
+    "description": "用 TS 定义原生表单、保存和删除确认，数据保存在插件自己的命名空间。",
+    "version": "1.0.0",
+    "apiVersion": 9,
+    "permissions": [
+      "storage"
+    ],
+    "dependencies": [],
+    "tools": [],
+    "pages": [
+      {
+        "id": "main",
+        "title": "便签"
+      }
+    ]
+  },
+  "source": "var __solvitBundle = (() => {\n  var __defProp = Object.defineProperty;\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // ../plugin-examples/notes/index.ts\n  var index_exports = {};\n  __export(index_exports, {\n    default: () => index_default\n  });\n\n  // src/index.ts\n  function definePlugin(definition) {\n    return definition;\n  }\n\n  // ../plugin-examples/notes/index.ts\n  var labels = {\n    zh: [\"\\u4FBF\\u7B7E\", \"\\u5185\\u5BB9\", \"\\u4FDD\\u5B58\", \"\\u5220\\u9664\", \"\\u786E\\u8BA4\\u5220\\u9664\\u4FBF\\u7B7E\\uFF1F\"],\n    en: [\"Notes\", \"Note\", \"Save\", \"Delete\", \"Delete this note?\"],\n    ja: [\"\\u30E1\\u30E2\", \"\\u5185\\u5BB9\", \"\\u4FDD\\u5B58\", \"\\u524A\\u9664\", \"\\u3053\\u306E\\u30E1\\u30E2\\u3092\\u524A\\u9664\\u3057\\u307E\\u3059\\u304B\\uFF1F\"],\n    ko: [\"\\uBA54\\uBAA8\", \"\\uB0B4\\uC6A9\", \"\\uC800\\uC7A5\", \"\\uC0AD\\uC81C\", \"\\uC774 \\uBA54\\uBAA8\\uB97C \\uC0AD\\uC81C\\uD560\\uAE4C\\uC694?\"],\n    es: [\"Notas\", \"Contenido\", \"Guardar\", \"Eliminar\", \"\\xBFEliminar esta nota?\"],\n    fr: [\"Notes\", \"Contenu\", \"Enregistrer\", \"Supprimer\", \"Supprimer cette note ?\"]\n  };\n  var index_default = definePlugin({\n    tools: {},\n    pages: {\n      async main(input, ctx) {\n        if (input.event?.action === \"save\") {\n          const note = input.event.fields.note;\n          if (typeof note !== \"string\" || note.length > 4096) throw new Error(\"Invalid note\");\n          await ctx.storage.set(\"note\", note);\n        } else if (input.event?.action === \"delete\") {\n          await ctx.storage.set(\"note\", \"\");\n        }\n        const text = labels[input.locale.split(\"-\")[0]] ?? labels.zh;\n        const stored = await ctx.storage.get(\"note\");\n        return {\n          title: text[0],\n          nodes: [{ id: \"note\", kind: \"field\", label: text[1], value: typeof stored === \"string\" ? stored : \"\", multiline: true }],\n          footer: [\n            { id: \"save\", kind: \"button\", text: text[2], action: \"save\" },\n            { id: \"delete\", kind: \"button\", text: text[3], action: \"delete\", confirm: text[4] }\n          ]\n        };\n      }\n    }\n  });\n  return __toCommonJS(index_exports);\n})();\nglobalThis.solvitPlugin = __solvitBundle.default;\n"
+}
