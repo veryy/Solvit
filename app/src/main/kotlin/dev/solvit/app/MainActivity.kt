@@ -447,9 +447,9 @@ internal fun ModelSettings(config: ModelConfig, saving: Boolean, error: String?,
                         UiText(fetchError!!, color = MaterialTheme.colorScheme.error)
                         if (fetchDetails != null) TextButton(onClick = { showFetchDetails = true }) { UiText("查看详细信息") }
                     }
-                    item { OutlinedTextField(model, { model = it }, label = { UiText("模型名称") },
+                    item(key = "model_name") { OutlinedTextField(model, { model = it }, label = { UiText("模型名称") },
                         modifier = Modifier.fillMaxWidth().testTag("model_name"), singleLine = true, enabled = !saving) }
-                    descriptor?.options?.forEach { option -> item {
+                    descriptor?.options?.forEach { option -> item(key = "provider_option_${protocol}_${option.key}") {
                         val current = options[option.key] ?: option.defaultValue
                         if(option.choices.isEmpty()) OutlinedTextField(current,{ options=options+(option.key to it) },label={ UiText(option.label) },singleLine=true,enabled=!saving,modifier=Modifier.fillMaxWidth().testTag("provider_option_${option.key}"))
                         else {

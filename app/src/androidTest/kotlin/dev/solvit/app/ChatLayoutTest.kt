@@ -748,7 +748,7 @@ class ChatLayoutTest {
             rule.onNodeWithTag("model_protocol").performScrollTo().performClick()
             rule.onNodeWithTag("model_protocol_anthropic").performClick()
             rule.onNodeWithTag("save_model_profile").assertIsNotEnabled()
-            rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("model_name"))
+            rule.onNodeWithTag("model_settings_list").performScrollToKey("model_name")
             // Focusing a lazy-list field can replace its semantics node during IME layout.
             // Establish focus first, then acquire the current node for text input.
             rule.onNodeWithTag("model_name").performClick()
@@ -756,9 +756,9 @@ class ChatLayoutTest {
                 rule.onAllNodes(hasTestTag("model_name") and isFocused()).fetchSemanticsNodes().isNotEmpty()
             }
             rule.onNodeWithTag("model_name").performTextInput("native-test-model")
-            rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("provider_option_max_tokens"))
+            rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_max_tokens")
             rule.onNodeWithTag("provider_option_max_tokens").performClick().performTextReplacement("16384")
-            rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("provider_option_thinking_mode"))
+            rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_thinking_mode")
             rule.onNodeWithTag("provider_option_thinking_mode").performClick()
             rule.onNodeWithText("自适应思考").performClick()
             rule.onNodeWithTag("save_model_profile").assertIsEnabled().performClick()
@@ -768,11 +768,16 @@ class ChatLayoutTest {
             assertEquals("anthropic",stored.providerId)
             assertEquals("adaptive",stored.providerOptions["thinking_mode"])
             assertEquals("16384",stored.providerOptions["max_tokens"])
-            rule.onNodeWithTag("model_profiles_list").performScrollToNode(hasTestTag("edit_model_${profile.id}"))
-            rule.onNodeWithTag("edit_model_${profile.id}").performClick()
-            rule.onNodeWithTag("model_protocol").assertTextContains("Claude / Anthropic")
-            rule.onNodeWithTag("model_settings_list").performScrollToNode(hasTestTag("provider_option_max_tokens"))
-            rule.onNodeWithTag("provider_option_max_tokens").assertTextContains("16384")
+            repeat(3) {
+                rule.onNodeWithTag("model_profiles_list").performScrollToKey(profile.id)
+                rule.onNodeWithTag("edit_model_${profile.id}").performClick()
+                rule.onNodeWithTag("model_protocol").assertTextContains("Claude / Anthropic")
+                rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_max_tokens")
+                rule.onNodeWithTag("provider_option_max_tokens").assertTextContains("16384")
+                rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_thinking_mode")
+                rule.onNodeWithTag("provider_option_thinking_mode").assertTextContains("自适应思考")
+                rule.onNodeWithContentDescription("关闭设置").performClick()
+            }
         } finally { runBlocking { app.modelProfiles.replace(previous) } }
     }
     @Test fun largeNativeTranscriptReopensAndBranchesThroughRealAndroidCursorWindows() = runBlocking<Unit> {

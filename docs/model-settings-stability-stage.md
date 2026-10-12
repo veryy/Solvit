@@ -1,0 +1,11 @@
+# 模型设置字段与滚动验证（0.21.2候选）
+
+0.21.1正式发布第一次尝试中的旧模型设置用例触发 `SnapshotStateObserver` 跨线程异常，发生于重新打开配置后 `performScrollToNode` 查找参数字段。原始堆栈保存在[运行38239629561第一次尝试](https://github.com/veryy/Solvit/actions/runs/38239629561/attempts/1)，原条件重跑通过不等于异常根因修复。
+
+本轮实际读取 Operit 锁定版本 `ui/features/settings/screens/ModelConfigScreen.kt` 中 `ThinkingOptionEditor.editorKey` 与 `itemsIndexed(key=...)` 的字段身份方式，以及 AndroidX `Actions.kt` 的滚动实现。`performScrollToNode` 在查找后代时遍历语义树；`performScrollToKey` 通过键获取索引并在UI线程执行滚动。本轮采用官方按键滚动API，无直接复制上游实现代码、无升级Compose依赖。
+
+模型名称和协议声明的参数现在具有稳定列表键。参数键包含协议ID及参数名称，避免不同协议或条件行插入后让参数菜单沿用另一位置的remember状态。已有配置、角色及密钥的持久化格式没有修改。
+
+原有真实模型设置用例采用按键定位，仍验证保存后的加密配置值，并重复三次打开、滚到输出限制和思考参数、检查保存值及关闭。没有删除断言或捕获忽略线程异常。此前失败证据对应旧滚动路径，本轮仍需远程验证新路径；不宣称修复了AndroidX所有语义树读取问题。
+
+AndroidX参考：[Actions.kt](https://android.googlesource.com/platform/frameworks/support/+/202b4bda8adfeb303ac30e359e8436a3752fe2b0/compose/ui/ui-test/src/commonMain/kotlin/androidx/compose/ui/test/Actions.kt)、[官方滚动API](https://developer.android.com/reference/kotlin/androidx/compose/ui/test/SemanticsNodeInteraction)。未运行本地Android或TS构建/测试，候选尚未发布。
