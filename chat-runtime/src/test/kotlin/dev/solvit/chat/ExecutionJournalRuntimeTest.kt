@@ -57,9 +57,10 @@ class ExecutionJournalRuntimeTest {
         override val jobs=MutableStateFlow<List<ShellJob>>(emptyList())
         var snapshots=0
         var written=false
+        var supplied: Map<String,FileObservation>?=null
         override suspend fun snapshot(workspaceId: String): WorkspaceSnapshot {
             snapshots++
-            val files=if(written) mapOf("main.sh" to FileObservation(FileObservationKind.TEXT,2,"a".repeat(64),"ok")) else emptyMap()
+            val files=supplied ?: if(written) mapOf("main.sh" to FileObservation(FileObservationKind.TEXT,2,"a".repeat(64),"ok")) else emptyMap()
             return WorkspaceSnapshot(workspaceId,files,true,0)
         }
         override suspend fun forChat(sessionId: String): Workspace=error("No implicit creation")
@@ -99,6 +100,33 @@ class ExecutionJournalRuntimeTest {
             assertEquals(0,ws.snapshots);assertTrue(store.events.none { it.workspace!=null })
             assertEquals(if(denied) 0 else 1,effects)
         }
+    }
+    @Test fun failedBaselinePersistencePreventsWorkspaceEffects() = runTest {
+        val store=JournalStore().apply { reject=ExecutionKind.WORKSPACE_BASELINE };val ws=ObservedWorkspace();var effects=0
+        val agent=ToolAgentRuntime(provider(),tools(setOf("workspace")) { effects++;"ok" })
+        assertFailsWith<ExecutionJournalException> {
+            DefaultChatService(store,agent,EventBus(),workspaces=ws).send("session","write",ModelConfig(),allow).toList()
+        }
+        assertEquals(0,effects);assertEquals(1,ws.snapshots)
+        assertEquals(ExecutionStatus.FAILED,store.run!!.status)
+        assertTrue(store.events.none { it.kind==ExecutionKind.TOOL_STARTED || it.workspace!=null })
+    }
+    @Test fun workspaceJournalRedactsPreviewAndOmitsSecretPathsWithoutChangingSourceSnapshot() = runTest {
+        val secret="private-model-key"
+        val file=FileObservation(FileObservationKind.TEXT,12,"a".repeat(64),"Bearer upstream-key $secret")
+        val source=mapOf("$secret.txt" to file,"public.txt" to file)
+        val ws=ObservedWorkspace().apply { supplied=source };val store=JournalStore()
+        DefaultChatService(store,ToolAgentRuntime(provider(),tools(setOf("workspace")) { "ok" }),EventBus(),workspaces=ws)
+            .send("session","run",ModelConfig(apiKey=secret),allow).toList()
+        val snapshots=store.events.mapNotNull { it.workspace }
+        assertEquals(2,snapshots.size)
+        snapshots.forEach { snapshot ->
+            assertFalse(snapshot.complete);assertEquals(setOf("public.txt"),snapshot.files.keys)
+            assertEquals(file.sha256,snapshot.files.getValue("public.txt").sha256)
+            assertFalse(snapshot.files.getValue("public.txt").excerpt!!.contains(secret))
+            assertFalse(snapshot.files.getValue("public.txt").excerpt!!.contains("upstream-key"))
+        }
+        assertEquals(file,source.getValue("$secret.txt"));assertEquals(file,source.getValue("public.txt"))
     }
     @Test fun recordsProposalBeforeApprovalAndStartBeforeEffectsAndResultBeforeFollowUp() = runTest {
         val store=JournalStore()
