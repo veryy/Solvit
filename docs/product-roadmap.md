@@ -4,7 +4,7 @@
 
 ## 当前优先方向（2026-10-12）
 
-自动记忆 [0.19.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.19.0)，[完整标签门禁通过](https://github.com/veryy/Solvit/actions/runs/38190322667)：213 个单元、33 个模拟器测试及 Lint/APK/固定签名/TS/公网搜索。后台保存默认关闭，须明确授权和开启；真实模型与真机验收待完成，具体边界见 [阶段记录](automatic-memory-stage.md)。下一优先项为插件自带页面，当前仍在独立分支开发，尚未交付。
+自动记忆 [0.19.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.19.0)，[完整标签门禁通过](https://github.com/veryy/Solvit/actions/runs/38190322667)：213 个单元、33 个模拟器测试及 Lint/APK/固定签名/TS/公网搜索。后台保存默认关闭，须明确授权和开启；真实模型与真机验收待完成，具体边界见 [阶段记录](automatic-memory-stage.md)。插件自带页面已在 [0.20.0](https://github.com/veryy/Solvit/releases/tag/v0.20.0) 交付；当前继续工作区执行、错误修复、验证和持久事实审阅。真实模型与真机验收保留，不以机制通过代替。
 
 依据 [DSH、Operit、Claude Code 与智谱源码/官方文档对照](agent-direction.md)，先完善执行链和实际任务验收：聊天稳定性与角色/流式 → 搜索闭环 → 上下文预算与自动记忆 → 工作区执行及验证 → 手机操作。更多模型协议暂缓，已有长期范围继续保留。
 
@@ -70,3 +70,10 @@
 原生模型协议的下一步与数据保留要求见 [Provider 扩展计划](provider-extension-plan.md)。
 
 - 0.20.0：[正式标签 Actions](https://github.com/veryy/Solvit/actions/runs/38201381181)全部成功，实际报告236个单元/39个模拟器测试无失败、错误或跳过；Lint、固定签名、旧版本覆盖升级、68个SDK/2个市场测试、公网MCP/Skills及联网搜索门禁通过。JS/TS记忆/任务页面和可安装便签示例已交付，API9市场与API8兼容包下载已核验。真机和真实模型质量未验收，不把此结果当作完整Agent任务验收。
+
+
+## 工作区执行候选进展
+
+参考DSH工作区变更/步骤事件与Operit会话终端实现，逐步日志、文件写前/写后证据、安全失败代码及有界工作区快照已在候选分支验证。[授权快照运行38208643824](https://github.com/veryy/Solvit/actions/runs/38208643824)全成功，实际266个单元和40个模拟器测试均无失败/错误/跳过。聊天内文件审阅和实际APK QuickJS→AndroidShell→失败修复→SQLite重开→聊天查看任务尚在远程验证，首次编译失败已按日志补充App测试的直接OkHttp依赖；当前修复运行38209958118进行中。
+
+0.21.0版本号和候选说明已提交，不等于正式发布。后续仍包括完整逐行文件diff、项目规则自动加载、真实模型自主任务及真机验收，再推进手机观察/动作闭环。完整长期范围保持不变，详情见[阶段记录](workspace-evidence-stage.md)。
