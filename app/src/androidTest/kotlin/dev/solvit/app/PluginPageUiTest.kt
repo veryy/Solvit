@@ -140,7 +140,7 @@ class PluginPageUiTest {
             try { waitDom("!!document.querySelector('[data-node=edit]')") }
             catch (failure: Throwable) {
                 html.screenshot("memory-html-tap-failure")
-                println("[DEBUG-html-tap] " + html.js("(()=>{const n=document.querySelector('[data-memory-id=$id]'),g=document.getElementById('graph'),r=g.getBoundingClientRect();return JSON.stringify({ready:window.memoryPageReady,background:getComputedStyle(document.body).backgroundColor,width:innerWidth,height:innerHeight,graph:[r.x,r.y,r.width,r.height],node:n?[n.dataset.x,n.dataset.y]:null,hit:n?document.elementFromPoint(Number(n.dataset.x),Number(n.dataset.y))?.tagName:null,sheetHidden:document.getElementById('sheet').hidden})})()"))
+                println("[DEBUG-html-tap] " + html.js("(()=>{const n=document.querySelector('[data-memory-id=$id]'),g=document.getElementById('graph'),r=g.getBoundingClientRect();return JSON.stringify({touches:window.__testTouches,canvases:[...g.querySelectorAll('canvas')].map(c=>[c.width,c.height,c.getBoundingClientRect().width,c.getBoundingClientRect().height]),zoom:g.dataset.zoom,ready:window.memoryPageReady,background:getComputedStyle(document.body).backgroundColor,width:innerWidth,height:innerHeight,graph:[r.x,r.y,r.width,r.height],node:n?[n.dataset.x,n.dataset.y]:null,hit:n?document.elementFromPoint(Number(n.dataset.x),Number(n.dataset.y))?.tagName:null,sheetHidden:document.getElementById('sheet').hidden})})()"))
                 throw failure
             }
             html.js("document.querySelector('[data-node=edit]').click()")

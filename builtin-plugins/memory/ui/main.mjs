@@ -5,6 +5,13 @@ let state, signature='', revision='', fields={}, cy;
 const labels = {zh:['筛选','关系图已为空','页面操作未完成'],en:['Filters','No relations yet','Page action failed'],ja:['絞り込み','関係がありません','操作に失敗しました'],ko:['필터','관계가 없습니다','작업 실패'],es:['Filtros','Sin relaciones','Acción fallida'],fr:['Filtres','Aucune relation','Action impossible']};
 const words = () => labels[state?.locale?.split('-')[0]] ?? labels.zh;
 const flatten = view => {const result=[];const walk=node=>{result.push(node);(node.children??[]).forEach(walk)};[...view.nodes,...view.footer??[]].forEach(walk);return result};
+function syncGraphCoordinates() {
+  if(!cy)return;
+  for(const button of document.querySelectorAll('[data-memory-id]')) {
+    const node=cy.getElementById(button.dataset.memoryId);if(node.empty())continue;
+    const position=node.renderedPosition();button.dataset.x=String(position.x);button.dataset.y=String(position.y);
+  }
+}
 function send(id,value) {
   if (!state || state.busy) return;
   const node=flatten(state.view).find(n=>n.id===id);
@@ -41,7 +48,7 @@ function graph(graphNode,theme) {
     cy.on('tap','edge',event=>{const e=event.target;const p=e.renderedMidpoint();cy.elements().unselect();e.select();
       $('status').textContent=e.data('label');$('status').hidden=false;});
     cy.on('tap',event=>{if(event.target===cy){$('status').hidden=true;$('menu').hidden=true}});
-    cy.on('viewport',()=>{$('graph').dataset.zoom=String(cy.zoom())});
+    cy.on('render viewport layoutstop',()=>{$('graph').dataset.zoom=String(cy.zoom());syncGraphCoordinates()});
   }
   cy.style([{selector:'node',style:{'background-color':theme.primary,'label':'data(label)','color':theme.onSurface,
     'font-size':11,'text-wrap':'wrap','text-max-width':100,'text-valign':'bottom','text-margin-y':10,'width':20,'height':20}},
