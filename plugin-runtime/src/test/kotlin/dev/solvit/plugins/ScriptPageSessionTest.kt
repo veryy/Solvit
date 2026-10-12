@@ -108,6 +108,22 @@ class ScriptPageSessionTest {
             ScriptPageExecutionContext("test.pages", {}).consumeTaskControl()
         }
     }
+    @Test fun foregroundToolCannotUseTaskBridgeEvenWithStoragePermission() = runBlocking<Unit> {
+        var calls = 0
+        val base = pkg("""
+            globalThis.solvitPlugin={tools:{inspect:async(_args,ctx)=>await ctx.jobs.list()},
+              pages:{manage:()=>({title:'Page',nodes:[]})}};
+        """.trimIndent())
+        val declared = base.copy(manifest = base.manifest.copy(tools = listOf(
+            ScriptTool("inspect", "Test", buildJsonObject { put("type", "object") }))))
+        val executor = ScriptExecutor(declared, ScriptHost { _, _, _ -> calls++; JsonNull }, invokeLifecycle = false)
+        try {
+            executor.start()
+            val error = assertFailsWith<IllegalStateException> { executor.execute("inspect", "{}") }
+            assertTrue(error.message.orEmpty().contains("任务管理仅供插件页面使用"))
+            assertEquals(0, calls)
+        } finally { executor.stop() }
+    }
 
     @Test fun closingPageCancelsPendingNativeCallWithoutBlockingOtherPage() = runBlocking<Unit> {
         val entered = CompletableDeferred<Unit>(); val cancelled = CompletableDeferred<Unit>()

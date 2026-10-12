@@ -43,7 +43,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(!readOnlyHost || operation in setOf("storage.get", "clock.now")) { "上下文 Hook 只允许读取插件存储和当前时间" }
                     val arguments = Json.parseToJsonElement(args[1] as String).jsonObject
                     val permission = when (operation) {
-                        "storage.get", "storage.set", "storage.compareAndSet" -> "storage"
+                        "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
                         "model.complete" -> "model"
                         "http.request", "web.visit" -> "network"
                         "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
@@ -59,11 +59,17 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(!operation.startsWith("terminal.") || pkg.manifest.apiVersion >= 5) { "交互终端需要 API 5" }
                     check(operation != "web.visit" || pkg.manifest.apiVersion >= 6) { "浏览器观察需要 API 6" }
                     check(operation !in setOf("model.complete", "storage.compareAndSet") || pkg.manifest.apiVersion >= 8) { "此操作需要 API 8" }
+                    check(!operation.startsWith("jobs.") || pkg.manifest.apiVersion >= 9) { "任务页面需要 API 9" }
                     check(operation != "model.complete" || background) { "模型调用只允许在后台 Hook 中使用" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
                     withContext(parent) {
+                        if (operation.startsWith("jobs.")) {
+                            val page = currentCoroutineContext()[ScriptPageExecutionContext] ?: error("任务管理仅供插件页面使用")
+                            check(page.pluginId == pkg.manifest.id)
+                            page.ensureAuthorized()
+                        }
                         if (background) {
                             val execution = currentCoroutineContext()[PostTurnExecutionContext] ?: error("后台执行缺少任务授权")
                             check(execution.target.pluginId == pkg.manifest.id)
