@@ -1,12 +1,20 @@
 name: Plugin page diagnostic
 on:
   workflow_dispatch:
+    inputs:
+      diagnostic_case:
+        description: Actual page scenario to reproduce
+        type: choice
+        default: memory-click
+        options: [memory-click, model-settings]
 permissions:
   contents: read
 jobs:
   memory-click:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      SOLVIT_PAGE_DIAGNOSTIC: ${{ inputs.diagnostic_case || 'memory-click' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

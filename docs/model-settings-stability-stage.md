@@ -25,3 +25,9 @@ AndroidX参考：[Actions.kt](https://android.googlesource.com/platform/framewor
 [正式运行第二次尝试](https://github.com/veryy/Solvit/actions/runs/38246821214/attempts/2)已全部成功，[0.21.2 Release](https://github.com/veryy/Solvit/releases/tag/v0.21.2)为非草稿、非预发布，最新版本API确认 `v0.21.2`。实际下载成功UI产物11747267156及正式单元产物11746118127，XML核对271个单元和42个模拟器测试均无失败、错误或跳过；记忆筛选、模型设置三次重开、角色请求链路都通过。公开APK已实际下载，与构建产物11745948120中的APK逐字节一致：23,067,851字节，SHA-256 `7ca187938d8539bcf28a47d355533e963487ecb323ad526288fd4ae5fc616da5`，亦与Release资产元数据一致。
 
 本次设置用例在候选和正式首轮都通过；首次失败属于另一个记忆页面用例，其根因仍未确认。该问题优先继续诊断，同时保留用户真实模型角色回答、流式、搜索及真机任务验收。测试门禁通过不代替这些验收。
+
+## 0.22正式门禁中的再次失败
+
+0.22.1运行38298054367的第1、2次尝试都在同一处失败：协议切换后performScrollToKey已返回，model_name字段在performClick获取节点时不存在，ChatLayoutTest.kt:754。新版HTML记忆/多MCP及实际图谱PNG检查通过，不能把这两次设置失败记为已修复。公开搜索两次另遇Bing人机验证和DDG错误。原发布未产生APK。
+
+读取Operit实际ModelConfigScreen.kt、ModelApiSettingsSection.kt及ComposeDslTextFieldEchoGuardTest.kt，核对Provider条件字段和编辑焦点状态边界；没有复制LGPL源码。当前Solvit协议按钮/菜单未清理仍在编辑的配置名称焦点，假设它导致IME重排及bring-into-view与列表滚动互相抢位置。聚焦原模型设置操作并增加协议选择后名称不再处于文本编辑焦点的回归，先在旧实现观察结果，再决定修复；不放宽超时、不跳过原滚动/保存/三次重开断言。

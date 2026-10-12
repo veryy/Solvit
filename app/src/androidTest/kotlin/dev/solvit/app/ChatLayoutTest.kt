@@ -747,6 +747,8 @@ class ChatLayoutTest {
             rule.onNodeWithTag("model_profile_name").performTextInput("Native UI model")
             rule.onNodeWithTag("model_protocol").performScrollTo().performClick()
             rule.onNodeWithTag("model_protocol_anthropic").performClick()
+            // Choosing a non-text control must release the edited name before later scrolling.
+            rule.onAllNodes(hasTestTag("model_profile_name") and isFocused()).assertCountEquals(0)
             rule.onNodeWithTag("save_model_profile").assertIsNotEnabled()
             rule.onNodeWithTag("model_settings_list").performScrollToKey("model_name")
             // Focusing a lazy-list field can replace its semantics node during IME layout.
