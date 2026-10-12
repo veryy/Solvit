@@ -1,4 +1,5 @@
 /** JSON-only bridge. No Node, DOM, timers, filesystem or credentials are exposed. */
+export type { PageNode, PluginPageView, PluginPageEvent, PluginPageInput } from './pages.js';
 export type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 export type JsonObject = { [key: string]: JsonValue };
 export interface PluginContext {
