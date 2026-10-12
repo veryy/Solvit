@@ -107,10 +107,20 @@ class PluginPageUiTest {
     @Test fun packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin() {
         val app = rule.activity.application as SolvitApplication
         val manager = dev.solvit.market.BuiltinMemoryManager(app)
-        val id = runBlocking {
+        val (id, relatedId) = runBlocking {
             withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }
             app.marketplace.disable("dev.solvit.memory")
-            manager.save("plugin-memory-ui-original", "fact", emptyList()).getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
+            val first = manager.save("plugin-memory-ui-original", "fact", emptyList()).getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
+            val related = manager.save("plugin-memory-ui-original related", "fact", emptyList()).getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
+            try {
+                app.marketplace.enable("dev.solvit.memory", setOf("storage"))
+                app.marketplace.runTool("dev_solvit_memory_memory_link", buildJsonObject {
+                    put("from", first); put("to", related); put("relation", "关联")
+                }.toString(), object : ToolAuthorization {
+                    override suspend fun authorize(descriptor: ToolDescriptor) = true
+                })
+            } finally { app.marketplace.disable("dev.solvit.memory") }
+            first to related
         }
         var visible by mutableStateOf(true)
         fun present() { rule.activity.setContent { MaterialTheme(colorScheme = darkColorScheme()) {
@@ -125,7 +135,7 @@ class PluginPageUiTest {
             html.screenshot("memory-html-graph-home")
             rule.onNodeWithTag("plugin_field_query").assertDoesNotExist()
             html.js("document.getElementById('query').value='plugin-memory-ui-original';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
-            waitDom("!document.getElementById('search-button').disabled && !!document.querySelector('[data-memory-id=$id]')")
+            waitDom("!document.getElementById('search-button').disabled && !!document.querySelector('[data-memory-id=$id]') && !!document.querySelector('[data-memory-id=$relatedId]')")
             html.tapMemoryNode(id)
             try { waitDom("!!document.querySelector('[data-node=edit]')") }
             catch (failure: Throwable) {
@@ -153,7 +163,10 @@ class PluginPageUiTest {
             rule.onNodeWithTag("plugin_page_confirm").performClick()
             waitDom("!document.querySelector('[data-memory-id=$id]') && document.getElementById('sheet').hidden")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.memory" }.enabled)
-        } finally { rule.runOnUiThread { visible = false }; runBlocking { runCatching { manager.delete(id) } } }
+        } finally {
+            rule.runOnUiThread { visible = false }
+            runBlocking { runCatching { manager.delete(id) }; runCatching { manager.delete(relatedId) } }
+        }
     }
     @Test fun installedPluginOpensGenericPageFromDetailsAndPersistsThroughRealMarket() {
         val app = rule.activity.application as SolvitApplication
