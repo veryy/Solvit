@@ -6,6 +6,7 @@ import kotlinx.serialization.json.*
 class ScriptPageView private constructor(
     val title: String,
     val nodes: List<JsonObject>,
+    val footer: List<JsonObject>,
     private val byId: Map<String, JsonObject>,
 ) {
     /** Resolve the action from the displayed page, never from caller-supplied action text. */
@@ -41,7 +42,7 @@ class ScriptPageView private constructor(
         fun parse(json: String): ScriptPageView {
             require(json.toByteArray(Charsets.UTF_8).size <= MAX_BYTES) { "Plugin page too large" }
             val root = Json.parseToJsonElement(json).jsonObject
-            require(root.keys == setOf("title", "nodes"))
+            require(root.keys.all { it in setOf("title", "nodes", "footer") })
             fun JsonObject.text(key: String, max: Int, nonEmpty: Boolean = false): String {
                 val p = getValue(key).jsonPrimitive
                 require(p.isString)
@@ -112,7 +113,10 @@ class ScriptPageView private constructor(
             }
             val nodes = root.getValue("nodes").jsonArray.map { it.jsonObject }
             nodes.forEach { visit(it, 0) }
-            return ScriptPageView(title, nodes, indexed)
+            val footer = root["footer"]?.jsonArray?.map { it.jsonObject }.orEmpty()
+            require(footer.size <= 6 && footer.all { it["kind"] == JsonPrimitive("button") })
+            footer.forEach { visit(it, 0) }
+            return ScriptPageView(title, nodes, footer, indexed)
         }
     }
 }

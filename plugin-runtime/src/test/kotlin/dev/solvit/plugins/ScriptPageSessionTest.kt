@@ -48,16 +48,18 @@ class ScriptPageSessionTest {
         val first = ScriptPageSession(pkg(source), "manage", "zh-CN", host) {}
         val second = ScriptPageSession(pkg(source), "manage", "en", host) {}
         try {
-            assertEquals("zh-CN:1", first.open().title)
+            val initial = first.open()
+            assertEquals("zh-CN:1", initial.title)
             assertEquals("en:1", second.open().title)
-            val updated = first.dispatch("save", fields = mapOf("body" to "新的记忆"))
+            val updated = first.dispatch(initial, "save", fields = mapOf("body" to "新的记忆"))
             assertEquals("zh-CN:2", updated.title)
             assertEquals(JsonPrimitive("新的记忆"), updated.nodes[0]["value"])
             assertEquals(JsonPrimitive("新的记忆"), fact)
-            assertFails { first.dispatch("missing", fields = mapOf("body" to "wrong")) }
+            assertFails { first.dispatch(updated, "missing", fields = mapOf("body" to "wrong")) }
+            assertFails { first.dispatch(initial, "save", fields = mapOf("body" to "stale edit")) }
             assertEquals(JsonPrimitive("新的记忆"), fact)
         } finally { first.close(); second.close() }
-        assertFails { first.dispatch("save") }
+        assertFails { first.open() }
     }
 
     @Test fun revocationPreventsNextCallbackAndStorageMutation() = runBlocking<Unit> {
@@ -66,8 +68,8 @@ class ScriptPageSessionTest {
         val host = ScriptHost { _, operation, _ -> if (operation == "storage.get") JsonPrimitive("fact") else { writes++; JsonNull } }
         val session = ScriptPageSession(pkg(source), "manage", "ja", host) { check(allowed) }
         try {
-            session.open(); allowed = false
-            assertFails { session.dispatch("save", fields = mapOf("body" to "forbidden")) }
+            val initial = session.open(); allowed = false
+            assertFails { session.dispatch(initial, "save", fields = mapOf("body" to "forbidden")) }
             assertEquals(0, writes)
         } finally { session.close() }
     }

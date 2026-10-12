@@ -36,8 +36,9 @@ class ScriptPageSession(
         }
     }
 
-    suspend fun dispatch(nodeId: String, value: String? = null, fields: Map<String, String> = emptyMap(), confirmed: Boolean = false): ScriptPageView = mutex.withLock {
+    suspend fun dispatch(expectedView: ScriptPageView, nodeId: String, value: String? = null, fields: Map<String, String> = emptyMap(), confirmed: Boolean = false): ScriptPageView = mutex.withLock {
         check(!closed && opened)
+        check(view === expectedView) { "Page has changed; use the current view" }
         val event = checkNotNull(view).event(nodeId, value, fields, confirmed)
         render(event)
     }

@@ -37,6 +37,7 @@ dependencies {
     implementation(project(":chat-runtime"))
     implementation(project(":release-updates"))
     implementation(project(":plugin-market"))
+    implementation(project(":plugin-runtime"))
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.compose.material3:material3")
     implementation("com.mikepenz:multiplatform-markdown-renderer-m3:0.30.0")

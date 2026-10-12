@@ -4334,5 +4334,29 @@
     "ko": "작업이 완료되지 않았습니다. 새로고침하여 확인하세요.",
     "es": "La operación no se completó. Actualiza para comprobar.",
     "fr": "Opération inachevée. Actualisez pour vérifier."
+  },
+  "确认操作": {
+    "zh": "确认操作",
+    "en": "Confirm action",
+    "ja": "操作を確認",
+    "ko": "작업 확인",
+    "es": "Confirmar acción",
+    "fr": "Confirmer"
+  },
+  "应用输入": {
+    "zh": "应用输入",
+    "en": "Apply input",
+    "ja": "入力を適用",
+    "ko": "입력 적용",
+    "es": "Aplicar entrada",
+    "fr": "Appliquer la saisie"
+  },
+  "关系图：拖动移动，双指缩放": {
+    "zh": "关系图：拖动移动，双指缩放",
+    "en": "Relations: drag to move, pinch to zoom",
+    "ja": "関係図：ドラッグで移動、ピンチで拡大縮小",
+    "ko": "관계도: 드래그로 이동, 두 손가락으로 확대/축소",
+    "es": "Relaciones: arrastra para mover, pellizca para ampliar",
+    "fr": "Relations : glissez pour déplacer, pincez pour zoomer"
   }
 }

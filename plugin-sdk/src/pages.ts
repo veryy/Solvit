@@ -7,7 +7,12 @@ export type PageNode =
   | { id: string; kind: 'choice'; label: string; value: string; action: string; options: { value: string; label: string }[] }
   | { id: string; kind: 'graph'; nodes: { id: string; label: string }[];
       edges: { from: string; to: string; label: string }[]; action?: string };
-export interface PluginPageView { title: string; nodes: PageNode[] }
+export interface PluginPageView {
+  title: string;
+  nodes: PageNode[];
+  /** Fixed below the scroll area, above the host's keyboard/navigation insets. */
+  footer?: Extract<PageNode, { kind: 'button' }>[];
+}
 /** Actions are resolved from the current displayed node by the host. */
 export interface PluginPageEvent {
   nodeId: string;

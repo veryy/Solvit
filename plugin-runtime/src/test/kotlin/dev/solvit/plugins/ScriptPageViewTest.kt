@@ -31,6 +31,13 @@ class ScriptPageViewTest {
         assertFails { view.event("delete") }
         assertEquals(JsonPrimitive("delete-memory"), view.event("delete", confirmed = true)["action"])
     }
+    @Test fun fixedFooterActionsAreValidatedWithTheSamePageIdentity() {
+        val view = ScriptPageView.parse("""{"title":"编辑","nodes":[{"id":"field","kind":"field","label":"内容","value":"x"}],
+            "footer":[{"id":"save","kind":"button","text":"保存","action":"save"}]}""")
+        assertEquals(1, view.footer.size)
+        assertEquals(JsonPrimitive("save"), view.event("save", fields = mapOf("field" to "new"))["action"])
+        assertFails { ScriptPageView.parse("""{"title":"编辑","nodes":[],"footer":[{"id":"field","kind":"field","label":"内容","value":"x"}]}""") }
+    }
     @Test fun rejectsExecutableFieldsAmbiguousIdsAndBrokenRelations() {
         assertFails { page("""{"id":"x","kind":"webview","html":"<script/>"}""") }
         assertFails { page("""{"id":"x","kind":"text","text":"x","onClick":"eval()"}""") }
