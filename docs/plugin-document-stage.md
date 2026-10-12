@@ -15,3 +15,5 @@ Android官方[Storage Access Framework](https://developer.android.com/training/d
 远程生成38313344225及正常一致性运行38313794010成功：实际79个SDK/2个市场测试全部通过，App内置和市场包与当前源码逐字节一致。Skills1.1.0包为255242字节，SHA-256 `585a182857fb58b2870f048cbdecef12d90b91859a09fe6870a3e0cbe359a3b2`。在线API11市场已原子切换并保留API10备份；公网API1到11的17个不同选中包逐一下载验证长度与哈希，API3到10仍返回Skills1.0.2、API11返回1.1.0。在线搜索仍为1.2.0，APK候选为1.2.1；此阶段没有更改搜索质量门禁。
 
 真实系统选择器运行38313346912已确认取消导入不写数据，随后DocumentsUI的Downloads行ACTION_CLICK返回false，未到文件导入。测试驱动改为点击实际观察到的可见控件坐标，仍使用系统窗口和真实触摸，未模拟选择结果；新运行38313891124待确认。完整Android运行38313790898仍待结果，不能称为新APK交付。
+
+系统选择器第三/第四次运行38314531603、38315085385的真实窗口证实文件可见而触摸未激活；没有发生数据导入。实际读取Android DocumentsUI `e033e3454cbfd7a57df6b4d7eb2ea769736b9302` 的`src/com/android/documentsui/dirlist/DirectoryFragment.java`，SelectionTracker显式仅接受FINGER/STYLUS。旧测试短MotionEvent.obtain创建UNKNOWN工具类型，被文件列表忽略，工具栏仍正常响应；修正为真实FINGER指针事件并等待系统窗口状态。原生/HTML失败现场仅使用生成的测试资料并作为诊断产物保留，未修改或模拟文件选择器结果。
