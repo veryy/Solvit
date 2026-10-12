@@ -109,7 +109,7 @@ then reread and merge on conflict. Do not repeat inference for storage conflicts
 Existing `storage.set` participates in the same host lock. Commit source deduplication
 and facts together, so an interrupted task can be retried without duplicate facts.
 
-## API 9：插件原生页面（0.20.0 候选）
+## API 9：插件原生页面（Solvit 0.20.0）
 
 清单用 `pages: [{id: 'main', title: '便签'}]` 注册页面；插件实现 `pages.main(input, ctx)`，返回 `title`、`nodes` 和可选固定 `footer`。节点与事件类型见 [pages.ts](src/pages.ts)，可安装示例源码见 [notes](../plugin-examples/notes)。页面是独立 QuickJS 实例，不运行 activate/deactivate，不共享聊天 Hook 的全局状态。宿主提供主题、语言、系统/键盘边距、原生表单和关系图，TS 定义业务、数据、文案和事件。
 

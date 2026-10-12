@@ -141,3 +141,5 @@ TS 插件接口按阶段增加提示段贡献、受限的 `afterTurn`、工具�
 0.19.0 自动记忆已正式发布；API 9 插件界面候选 `a59a4e4` 已通过236个单元、39个模拟器测试和Lint/APK，0.20.0正式标签门禁进行中。设置的记忆/任务入口已运行TS，不再沿用“当前管理页仅Kotlin”的旧状态；公开APK、市场与真实验收以阶段最新记录为准。下一机制阶段继续P3工作区执行→错误修复→实际验证→持久步骤记录，不跳过未完成的真实模型角色/流式/搜索与真机验收。
 
 为下一阶段再次读取DSH `workspace-changes/src/recorder.ts` 与 `tests/capture.spec.ts`：采用每轮快照、写前捕获、串行记录、超限/二进制明确分类与取消清理原则；失败快照不能伪装成“无变化”。读取DSH `agent-loop/src/agent.ts` 的持久 `step/start` 边界，Operit `StandardTerminalCommandExecutor.kt` 的会话查找、结束输出/退出码与取消结算。当前Solvit仍主要在轮次结算保存工具记录，尚未交付进程中断后的逐步事实恢复，也未实现该工作区完整验收；仅阅读源码不计作功能完成。
+
+0.20.0正式标签门禁现已全成功并发布：[Actions 38201381181](https://github.com/veryy/Solvit/actions/runs/38201381181)、[Release](https://github.com/veryy/Solvit/releases/tag/v0.20.0)。插件页面机制交付完成，继续以上P3顺序；真实模型/真机验收仍未完成。

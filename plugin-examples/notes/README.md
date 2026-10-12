@@ -1,8 +1,8 @@
 # 插件原生页面示例
 
-API 9 开发分支示例，公开的 Solvit 0.19.0 还不支持此接口；完整页面版本发布后使用。这里只用 TS 定义业务、文案、表单和事件，App 不需要新增便签专用页面。
+API 9 示例，需要 [Solvit 0.20.0+](https://github.com/veryy/Solvit/releases/tag/v0.20.0)。这里只用 TS 定义业务、文案、表单和事件，App 不需要新增便签专用页面。
 
-SDK 远程打包流程会生成 `example.notes.solvit.json` 市场包，不作为 App 内置插件预装。API 9 版本与市场正式发布后，可从插件市场安装；确认 storage 权限并启用后，在已安装插件详情打开“便签”。六种文案跟随宿主传入的 locale，保存/删除仅访问 `example.notes` 命名空间。当前候选尚未完成市场部署，公开 0.19.0 不会收到此包。
+SDK 远程打包流程会生成 `example.notes.solvit.json` 市场包，不作为 App 内置插件预装。市场包已上线，可在 App 插件市场找到“插件便签示例”并安装；确认 storage 权限并启用后，在已安装插件详情打开“便签”。六种文案跟随宿主传入的 locale，保存/删除仅访问 `example.notes` 命名空间。旧版 0.19.0 不会收到此包，仍选择 API 8 的兼容包。
 
 开发者也可以使用 SDK `build-plugin.mjs` 打包本目录的 `index.ts` 与 `manifest.json`；不依赖 Node/DOM 在手机执行，产物是清单和普通 JS。应用没有通用文件导入按钮，安装来源为市场或经审阅的工作区插件草稿，不把 SDK 的 `installLocal` 服务接口说成现成文件选择入口。
 

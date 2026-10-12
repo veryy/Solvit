@@ -108,3 +108,13 @@ TS `task-pages.ts` 提供六语言任务分页、来源消息 ID、状态/安全
 API 9 服务已部署到 `https://solvit.207.57.126.73.sslip.io`，运行服务健康；回滚副本 `/opt/solvit-market/.backup-api9-1791776503245`。实际服务器源码 SHA-256 `058fb52377a669c7aeb82d0e8a066bdf55f9eea6cf86d71581e2abdc43c6e724`。逐个请求 hostApi 1..9，旧版分别选择兼容记忆包（1..6→1.0.0、7→1.1.0、8→1.2.0）；9→1.3.0 且可见额外便签1.0.0。下载目录涉及的全部14个版本，实际字节、长度、SHA-256 均与仓库和目录元数据一致。公网页面仍显示已发布API8，待0.20正式APK发布后切换API9展示。
 
 主分支无强制覆盖地快进合并。`v0.20.0` 已推送并实际查询确认指向 `e37596b648ef91f03485b2a3c299bb811ab50884`，正式标签门禁与 Release 正在进行，尚未宣称公开APK可下载。
+
+## 0.20.0 正式发布结果
+
+[标签 Actions 38201381181](https://github.com/veryy/Solvit/actions/runs/38201381181) completed/success，build 114655332301、UI 114656259802、SDK/公网MCP与Skills 114655332493、联网搜索质量 114655332603 全成功。下载标签实际 XML：236个单元、39个模拟器（app30/web1/terminal8），均零失败/错误/跳过；实际SDK日志68个、市场2个测试无失败。固定签名与0.7.0覆盖升级/配置保留门禁通过。
+
+[Release v0.20.0](https://github.com/veryy/Solvit/releases/tag/v0.20.0) 实际ID410143953，非draft；公开APK资产632603120，22,966,183字节，SHA-256 `2897281e4fde5ccdae78a0f16a8311647b3c38d0a88b89687f33b2844c113ee8`。公开下载已完成并与GitHub资产长度/digest核对。标签源提交 `e37596b648ef91f03485b2a3c299bb811ab50884`。CI产物11725217371下载完成并实际解包，APK与公开Release下载逐字节一致；上述哈希/长度均匹配。
+
+公网页面已切换hostApi9并标注最低Solvit0.20.0，同时保留旧API最低版本。原HTML回滚副本 `/opt/solvit-market/public/index.html.backup-1791777744208`；公网HTTPS实际页面字节与仓库一致，SHA-256 `2bd4f3f39de2514ca8edec04c2835d68459b7b90c7d5a9c65aa7144a3a98c19a`。便签1.0.0可在新App市场安装并从已安装详情打开；未预装到APK。
+
+本阶段完成机制、界面及远程发布，不宣称真机、真实模型自动记忆质量或完整AndroidAgent任务通过；关系图仍是有界网格布局，画像/文档仍是预览。下一机制阶段为工作区实际执行、失败修复、验证证据及持久步骤日志。

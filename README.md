@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.19.0](https://github.com/veryy/Solvit/releases/tag/v0.19.0) 新增默认关闭的后台自动记忆、来源编辑与任务管理，保留上下文预算、持久摘要和已保存记忆检索。后台抽取需要明确开启及授权，会产生额外模型费用。验证范围见 [版本说明](docs/release-0.19.0.md)，未完成范围见 [完整产品进度](docs/product-roadmap.md)。
+[0.20.0](https://github.com/veryy/Solvit/releases/tag/v0.20.0) 新增 JS/TS 插件业务页面：记忆搜索/编辑/来源/关系图和后台任务管理由 TS 提供，便签示例可从插件市场安装。保留 0.19.0 默认关闭的自动记忆、上下文预算和持久摘要；后台抽取需要明确开启及授权，会产生额外模型费用。验证范围见 [版本说明](docs/release-0.20.0.md)，未完成范围见 [完整产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
