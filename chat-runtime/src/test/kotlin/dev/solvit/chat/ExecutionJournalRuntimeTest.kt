@@ -12,6 +12,7 @@ private class JournalStore : ChatStore {
     val events=mutableListOf<ExecutionEvent>()
     var reject: ExecutionKind?=null
     var throws=false
+    var afterAppend: suspend (List<ExecutionEvent>)->Unit = {}
     override val supportsExecutionJournal=true
     override fun sessions()=flowOf(listOf(ChatSession("session","test",0)))
     override fun messages(sessionId: String)=flowOf(saved.toList())
@@ -26,7 +27,7 @@ private class JournalStore : ChatStore {
         assertEquals(run!!.id,runId);assertEquals(this.events.size,expectedSequence)
         if(events.any { it.kind==reject }) { if(throws) error("private disk failure") else return false }
         val state=ExecutionJournalState();this.events.forEach(state::accept);events.forEach(state::accept)
-        this.events+=events;return true
+        this.events+=events;afterAppend(events);return true
     }
     override suspend fun finishExecutionRun(runId: String, status: ExecutionStatus, now: Long): Boolean {
         run=run!!.copy(status=status,updatedAt=now);return true
@@ -34,6 +35,28 @@ private class JournalStore : ChatStore {
 }
 
 class ExecutionJournalRuntimeTest {
+    @Test fun authorizationRevokedDuringDurableStartPreventsEffectsAndFurtherWorkspaceReads() = runTest {
+        val store=JournalStore();val ws=ObservedWorkspace();var effects=0
+        val policies=object : ToolPolicyService {
+            override val policies=MutableStateFlow<Map<String,ToolPolicy>>(emptyMap())
+            override suspend fun set(tool: ToolDescriptor,policy: ToolPolicy) { policies.value=mapOf(toolPolicyKey(tool) to policy) }
+        }
+        val registry=ToolRegistry(EventBus(),policies).apply { register(object : SolvitTool {
+            override val descriptor=ToolDescriptor("write","write","{}",pluginId="files",capabilities=setOf("workspace"))
+            override suspend fun execute(argumentsJson: String): String { effects++;return "must not execute" }
+        }) }
+        store.afterAppend={ batch ->
+            if(batch.any { it.kind==ExecutionKind.TOOL_STARTED }) policies.set(registry.descriptors().single(),ToolPolicy.DENY)
+        }
+        val agent=ToolAgentRuntime(provider { request ->
+            assertEquals(ToolStage.FAILED,request.messages.last { it.role==Role.TOOL }.toolStage)
+        },registry)
+        DefaultChatService(store,agent,EventBus(),workspaces=ws).send("session","run",ModelConfig(),allow).toList()
+        assertEquals(0,effects);assertEquals(1,ws.snapshots)
+        assertTrue(store.events.none { it.kind==ExecutionKind.WORKSPACE_OBSERVED })
+        assertEquals(ToolStage.FAILED,store.events.single { it.kind==ExecutionKind.TOOL_FINISHED }.stage)
+        assertEquals(ExecutionStatus.COMPLETE,store.run!!.status)
+    }
     @Test fun denialAfterDispatchSettlesWithoutPretendingTheToolNeverStarted() = runTest {
         val store=JournalStore();var effects=0
         val agent=ToolAgentRuntime(provider { request ->

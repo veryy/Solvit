@@ -134,3 +134,12 @@ Android完整任务候选进一步把实际任务持久记录接到ChatTimeline�
 0677c3e的[Android38209958118](https://github.com/veryy/Solvit/actions/runs/38209958118)已completed/success；模拟器114682776191成功。下载实际UI产物11729263182：41个测试、失败/错误/跳过均零，WorkspaceExecutionDeviceTest确实执行APK QuickJS→默认AndroidShell→真实退出码7→修复→0→SQLite关闭重开前后记录检查；ExecutionJournalUiTest确实执行中断事实、折叠文件预览及后续状态未知提示。此前268个单元、Lint/APK和签名门禁通过结论保留。
 
 当前追加e7f4a51的真实任务持久结果→同一聊天气泡审阅已随80f6778推送，[Android38210928823](https://github.com/veryy/Solvit/actions/runs/38210928823) build114684685066正在运行；不能沿用上一运行作为追加展示检查通过证据。尚未发布0.21.0或完成真机/真实模型决策验收。
+
+
+## 开始检查点后的拒绝结算回归
+
+复查执行边界发现授权可在持久开始检查点后撤销，或工具内部抛出ToolDeniedException；原Agent一律写DENIED，与日志只允许开始前拒绝的约束冲突。先提交内存ChatStore回归3834ae8，[Android38211815203](https://github.com/veryy/Solvit/actions/runs/38211815203)实际chat-runtime:test 47个中仅该回归失败：ExecutionJournalException，底层IllegalArgumentException。问题不依赖SQLite或模拟器；该回归证明状态映射冲突。
+
+修复以该调用是否已保存开始边界判断：开始前继续DENIED，开始后记录FAILED及固定AUTHORIZATION_REVOKED详情，不宣称已经或尚未产生副作用；拒绝/撤销后禁止工作区后续扫描。新增同一实际ToolRegistry的授权在开始检查点写入时撤销回归，核对零工具副作用、仅基线一次读取、无后续扫描及正确结算。保留日志规则而不是放宽它允许开始后假称未开始。待下一次远程验证，不将代码阅读当作修复已通过。
+
+此前80f6778的[Android38210928823](https://github.com/veryy/Solvit/actions/runs/38210928823)已全成功，模拟器114685864897及报告11728524645实际41个测试零失败/错误/跳过，真实Android任务关闭重开后在同一气泡查看修复文件断言确实执行。该绿灯不替代新增拒绝修复的验证。

@@ -101,6 +101,7 @@ class ToolAgentRuntime(
                     }
                 }
                 var authorizedDispatch=false
+                var authorizationDenied=false
                 val outcome = try {
                     val result = tools.executeCall(call, gate, request.agentRole, execution, request.conversation) {
                         request.executionJournal.beforeTool(step,advertised.first { it.name==call.name })
@@ -111,7 +112,9 @@ class ToolAgentRuntime(
                     if(result.toByteArray(Charsets.UTF_8).size > 256*1024) throw ToolExecutionException(ToolFailureCode.RESOURCE_LIMIT)
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {
-                    ToolStage.DENIED to "用户拒绝执行此工具。"
+                    authorizationDenied=true
+                    if(authorizedDispatch) ToolStage.FAILED to ToolFailureCode.AUTHORIZATION_REVOKED.userDetails()
+                    else ToolStage.DENIED to "用户拒绝执行此工具。"
                 } catch (e: CancellationException) { throw e }
                 catch (e: ExecutionJournalException) { throw e }
                 catch (e: Exception) {
@@ -126,7 +129,7 @@ class ToolAgentRuntime(
                 }
                 request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_FINISHED,
                     callId=call.id,stage=outcome.first,result=outcome.second)))
-                if(authorizedDispatch && outcome.first!=ToolStage.DENIED) request.executionJournal.afterTool(step,advertised.first { it.name==call.name })
+                if(authorizedDispatch && !authorizationDenied) request.executionJournal.afterTool(step,advertised.first { it.name==call.name })
                 emit(ModelChunk.ToolActivity(call, outcome.first, outcome.second))
                 val result = ModelMessage(Role.TOOL, outcome.second, toolCallId = call.id, toolStage = outcome.first)
                 messages += result
