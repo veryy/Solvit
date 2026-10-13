@@ -7,6 +7,28 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class ToolAgentRuntimeTest {
+    @Test fun toolDeadlineIsSettledAsFailedAndReturnedToTheNextModelStep() = runTest {
+        var round = 0
+        var cleaned = false
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                if (round++ == 0) return flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
+                val result = request.messages.last { it.role == Role.TOOL }
+                assertEquals(ToolStage.FAILED, result.toolStage)
+                assertEquals(call.id, result.toolCallId)
+                assertTrue(result.content.contains("TIMEOUT"))
+                return flowOf(ModelChunk.Text("The tool timed out; its effects require checking."), ModelChunk.Done)
+            }
+        }
+        val chunks = ToolAgentRuntime(provider, registry {
+            try { awaitCancellation() } finally { cleaned = true }
+        }).run(ModelRequest(ModelConfig(), listOf(ModelMessage(Role.USER, "use the tool")), authorization = allow)).toList()
+        assertEquals(2, round)
+        assertTrue(cleaned)
+        assertTrue(chunks.any { it is ModelChunk.ToolActivity && it.stage == ToolStage.FAILED })
+        assertTrue(chunks.last() is ModelChunk.Done)
+    }
     @Test fun everyStepRefreshesHookAfterToolsWithoutAccumulatingOldContext() = runTest {
         val hooks = ContextHookRegistry()
         var memory = "before"
