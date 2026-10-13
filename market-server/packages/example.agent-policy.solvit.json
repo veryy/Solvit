@@ -1,0 +1,25 @@
+{
+  "manifest": {
+    "id": "example.agent-policy",
+    "name": "工具参数审核 Agent",
+    "description": "读取本轮模型和工具结算；遇到被截断的工具参数即拒绝执行并将拒绝事实回传模型。",
+    "version": "1.0.0",
+    "apiVersion": 15,
+    "permissions": [
+      "agent",
+      "agent.read"
+    ],
+    "dependencies": [],
+    "tools": [],
+    "agentEnabledSetting": "selected",
+    "settings": [
+      {
+        "key": "selected",
+        "label": "接管所有会话的 Agent 步骤",
+        "kind": "boolean",
+        "defaultValue": "false"
+      }
+    ]
+  },
+  "source": "var __solvitBundle = (() => {\n  var __defProp = Object.defineProperty;\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // ../plugin-examples/agent-policy/index.ts\n  var index_exports = {};\n  __export(index_exports, {\n    default: () => index_default\n  });\n\n  // src/index.ts\n  function definePlugin(definition) {\n    return definition;\n  }\n\n  // ../plugin-examples/agent-policy/index.ts\n  var index_default = definePlugin({\n    tools: {},\n    async agent({ maxRounds }, context) {\n      if (!context.observe || !context.decline) throw new Error(\"Observation API unavailable\");\n      for (let round = 0; round < maxRounds; round++) {\n        const count = await context.model(round);\n        if (!count) {\n          await context.finish(round);\n          return;\n        }\n        const proposed = await context.observe();\n        for (let index = 0; index < count; index++) {\n          const call = proposed.tools.find((call2) => call2.index === index);\n          if (!call || call.arguments.truncated) await context.decline(index);\n          else await context.tool(index);\n          const observed = await context.observe();\n          if (!observed.tools.find((call2) => call2.index === index)?.stage) throw new Error(\"Tool outcome missing\");\n        }\n        await context.settle(round);\n      }\n    }\n  });\n  return __toCommonJS(index_exports);\n})();\nglobalThis.solvitPlugin = __solvitBundle.default;\n"
+}

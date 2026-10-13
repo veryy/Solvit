@@ -127,3 +127,10 @@ and facts together, so an interrupted task can be retried without duplicate fact
 当前驱动选择影响全部聊天，多个策略同时打开时会报错；无选中策略使用包内JS。停用、卸载、替换取消其正在运行的轮次并等待清理。第三方Agent实例限8MiB内存、256KiB栈与10分钟评估期限；不能直接访问API Key、网络、存储、模型消息或工具原始结果。尚未开放消息投影、模型流RPC或JS Provider/存储替换，不能把本接口当作完整DSH/Cordis内核。
 
 SDK构建任务同时生成 `market-server/packages/example.agent.solvit.json`，不预装到Android主APK。阶段证据见 [Agent插件阶段](../docs/agent-plugin-stage.md)。
+
+
+### API15 Agent 步骤观察（开发中）
+
+策略声明 `agent` 和 `agent.read`，经宿主授权后可调用 `ctx.observe()` 获取当前用户请求、角色名称、模型正文/思考、当前工具参数与结算事实；字段使用 `{text,truncated}`，工具最多16项，`toolsTruncated` 提示省略。没有模型连接配置、Provider原生签名或任意宿主对象。返回独立副本，修改它不会改写聊天协议或持久记录。
+
+`ctx.decline(index)` 按原顺序拒绝拟调用，不进行审批/执行；拒绝结果仍回传下一轮模型。每个调用仍须完整结算，不允许通过快照截断删除后续协议消息。API14或没有读取权限的包没有观察/拒绝桥。示例见 `plugin-examples/agent-policy`，它仅审核参数是否完整；不代表复杂任务策略或真实模型效果已经验证。当前详细验证状态见 [阶段记录](../docs/agent-observation-stage.md)。

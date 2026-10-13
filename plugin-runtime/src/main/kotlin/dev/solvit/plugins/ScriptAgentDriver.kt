@@ -16,7 +16,7 @@ class ScriptAgentDriver(private val source: String, private val timeoutMs: Long?
             js.memoryLimit = 8L * 1024 * 1024
             js.maxStackSize = 256L * 1024
             if (timeoutMs != null) js.evaluationTimeoutMillis = timeoutMs
-            // Trusted bundled source only. User stop interrupts the entire evaluation.
+            // Only bounded step bridges are exposed. User stop interrupts the entire evaluation.
             js.asyncFunction("__solvitAgentCommand") { args ->
                 require(args.size == 2)
                 val operation = args[0] as String
