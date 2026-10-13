@@ -6,6 +6,7 @@ import vm from 'node:vm';
 const endpoint = process.env.SOLVIT_MARKET_ENDPOINT ?? 'https://solvit.207.57.126.73.sslip.io';
 const path = process.env.SOLVIT_SKILLS_PACKAGE ?? fileURLToPath(new URL('../../market-server/packages/dev.solvit.skills.solvit.json', import.meta.url));
 const expected = await readFile(path);
+const expectedManifest = JSON.parse(expected.toString('utf8')).manifest;
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 async function catalog(api) {
   const response = await fetch(`${endpoint}/api/v1/plugins?hostApi=${api}`, { signal: AbortSignal.timeout(10_000) });
@@ -14,9 +15,20 @@ async function catalog(api) {
 }
 const old = await catalog(2);
 if (old.some(plugin => plugin.apiVersion > 2)) throw new Error('Legacy filtering failed');
-const latest = await catalog(3);
+// API3 hosts keep the historical package; current hosts must receive the current package.
+const legacyBytes = await readFile(new URL('../../market-server/packages/legacy/dev.solvit.skills-1.0.2.solvit.json', import.meta.url));
+const legacy = (await catalog(3)).find(plugin => plugin.id === 'dev.solvit.skills');
+if (!legacy || legacy.apiVersion !== 3 || legacy.version !== '1.0.2' || legacy.sha256 !== digest(legacyBytes)) {
+  throw new Error('Live legacy Skills compatibility failed');
+}
+const legacyResponse = await fetch(new URL(legacy.downloadPath, endpoint), { signal: AbortSignal.timeout(10_000) });
+if (!legacyResponse.ok || digest(Buffer.from(await legacyResponse.arrayBuffer())) !== digest(legacyBytes)) {
+  throw new Error('Live legacy Skills download integrity failed');
+}
+const latest = await catalog(expectedManifest.apiVersion);
 const entry = latest.find(plugin => plugin.id === 'dev.solvit.skills');
-if (!entry || entry.apiVersion !== 3 || entry.sha256 !== digest(expected)) throw new Error('Live Skills package differs from committed package');
+if (!entry || entry.apiVersion !== expectedManifest.apiVersion || entry.version !== expectedManifest.version ||
+    entry.sha256 !== digest(expected)) throw new Error('Live Skills package differs from committed package');
 const response = await fetch(new URL(entry.downloadPath, endpoint), { signal: AbortSignal.timeout(10_000) });
 if (!response.ok) throw new Error('Live Skills download failed');
 const bytes = Buffer.from(await response.arrayBuffer());
