@@ -32,6 +32,11 @@ fi
 for ((solvit_diagnostic_iteration=1; solvit_diagnostic_iteration<=solvit_diagnostic_iterations; solvit_diagnostic_iteration++)); do
   solvit_diagnostic_result="ui-screenshots/result-${solvit_diagnostic_iteration}.txt"
   timeout 180s adb shell am instrument -w -e class "$solvit_diagnostic_class" dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$solvit_diagnostic_result"
+  if ! grep -F "$solvit_diagnostic_expected" "$solvit_diagnostic_result" >/dev/null; then
+    # Preserve blocked ART threads before collecting logs; do not hide the failing result.
+    timeout 10s adb shell run-as dev.solvit.app sh -c 'kill -3 $(pidof dev.solvit.app)' || true
+    timeout 90s adb bugreport ui-screenshots/timeout-bugreport.zip || true
+  fi
   timeout 15s adb logcat -d > ui-screenshots/logcat.txt || true
   timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
   cp "$solvit_diagnostic_result" ui-screenshots/result.txt
