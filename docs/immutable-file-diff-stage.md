@@ -12,7 +12,7 @@ Solvit FileObservations只保留最多6KiB文字片段；WorkspaceSnapshots每�
 
 先用远程失败回归锁定超过片段上限后的变更、后续再次改写不影响历史、UTF-8与二进制/超限分类、不可变去重、会话隔离和回收。Android提供受限文件捕获与不可变内容读取服务；JS/TS插件承担差异组合和HTML展示，保留原生授权、路径边界、取消和明确预算。旧证据与SQLite数据兼容，缺失副本明确显示不可用。按已有阶段流程逐步提交、真实QuickJS→授权写入→SQLite重开→插件页面验收、正式APK；不在本地构建或运行Android/TS测试。
 
-当前只有源码研究和阶段设计，未实现或验证完整diff，未增加新版本号。
+此阶段不将存储能力当作完整diff/UI交付；接续JS/TS差异计算和插件HTML审阅。
 
 ## 原生缺口复现
 
@@ -21,3 +21,5 @@ Solvit FileObservations只保留最多6KiB文字片段；WorkspaceSnapshots每�
 原生补入全文后38425960838下载XML原生2项0失败，SQLite默认读取四项均失败，编译成功。4f5ba0d补入schema9：全文BLOB与复合事件引用分表、SHA去重/回收、分块读取及读锁内前后授权、256KiB单副本/32MiB单run/128MiB全局内容预算；预算不足保留观察元数据但不伪造全文引用。38427087997编译成功，SQLite新7项有6项通过，唯一失败在夹具text.take(40)切断emoji代理对损坏元数据JSON；全文读取断言先已通过，修正夹具按codepoint截取，原完整内容/隔离断言保持。补验运行时原有凭据过滤不能被新全文绕过，尚未将完整diff/UI称为交付。
 
 4338ae3的[契约38428189815](https://github.com/veryy/Solvit/actions/runs/38428189815)已走过原生与SQLite，失败仅在新运行时immutableFullCopiesCannotBypassJournalCredentialFiltering：既有preview过滤未覆盖新captureText。修正将敏感全文副本及引用一起省略，保留原观察hash/分类与已脱敏片段；普通正文及SHA保持，不把脱敏文本伪装成原文件。原assertNull/普通副本/源对象不变断言保留，继续远程复测。
+
+beb49dd的[契约38428975426](https://github.com/veryy/Solvit/actions/runs/38428975426)成功。下载artifact11829493645（ZIP67956bytes）并核对CRC及实际XML：285测试、0失败/错误/跳过，原生全文2、SQLite全文7、新凭据过滤回归均通过。准备0.25.1/build53存储阶段APK，完整HTML差异页继续实现；正式门禁结果以发布后的实际报告补录。
