@@ -159,6 +159,9 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                 "unbind" -> { service.unbind(chatId); nextBinding = null }
                 "createShell" -> service.createShell(workspace(), text("name"))
                 "write" -> service.writeForEdit(workspace(), text("path"), text("text"), args.getValue("expectedSha256").let { if (it == JsonNull) null else it.jsonPrimitive.content })
+                "makeDirectory" -> service.makeDirectory(workspace(),text("path"))
+                "moveEntry" -> service.moveEntry(workspace(),text("path"),text("destination"))
+                "deleteEntry" -> service.deleteEntry(workspace(),text("path"))
                 "writeDraft" -> {
                     val draft=checkNotNull(textDraft)
                     check(draft.id==text("draftId") && draft.path==text("path") && draft.sha256==text("sha256") &&

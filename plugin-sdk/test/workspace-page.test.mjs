@@ -11,6 +11,7 @@ function harness(bound=true){
  const snapshot={workspaceId:bound?'ws':null,workspaces:bound?[{id:'ws',name:'Project'}]:[],shells:bound?[{id:'s',name:'Shell 1'}]:[],draftInstallAllowed:false};
  const files=Array.from({length:45},(_,i)=>({name:`file-${i}.txt`,path:`file-${i}.txt`,directory:false,bytes:3}));
  const queries=[];
+ const entryActions=[];
  const ctx={workspacePage:{query:async(op,args={})=>{
   queries.push([op,clone(args)]);
   if(op==='snapshot')return clone(snapshot);
@@ -42,12 +43,13 @@ function harness(bound=true){
   if(approved.operation==='writeDraft'){
    assert.deepEqual(approved.arguments,{draftId:draft.id,path:draft.path,sha256:draft.sha256});writes++;document=draft.text;
   }
+  if(['makeDirectory','moveEntry','deleteEntry'].includes(approved.operation))entryActions.push(clone(approved));
   return clone(snapshot);
  }} };
  const nodes=()=>{const result=[];const visit=n=>{result.push(n);(n.children??[]).forEach(visit)};[...view.nodes,...view.footer??[]].forEach(visit);return result};
  const render=async(event=null)=>view=clone(await sandbox.solvitPlugin.pages.main({locale:'en',event},ctx));
  const event=async(id,fields={})=>{const node=nodes().find(n=>n.id===id);assert.ok(node,`missing ${id}`);assert.notEqual(node.enabled,false);approved=node.hostAction;return render({nodeId:id,action:node.action,fields:{...Object.fromEntries(nodes().filter(n=>n.kind==='field').map(n=>[n.id,n.value])),...fields}})};
- return {render,event,nodes,queries,snapshot,set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
+ return {render,event,nodes,queries,entryActions,snapshot,set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
 }
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
  assert.equal(pkg.manifest.apiVersion,18);assert.equal(pkg.manifest.version,'1.4.0');assert.ok(pkg.resources['ui/main.js']);
@@ -96,4 +98,16 @@ test('large Unicode preview and save cross only bounded events and cancel keeps 
  await h.event('finishUpload');assert.equal(h.document,original);await h.event('cancel');
  assert.equal(h.document,original);assert.equal(h.draft,null);assert.equal(h.writes,0);
  assert.ok(h.queries.filter(([op])=>op==='editAppend').every(([,args])=>args.text.length<=4096));
+});
+test('folder creation, rename and deletion consume only their displayed relative paths after confirmation',async()=>{
+ const h=harness();await h.render();await h.event('directory');await h.event('mkdir');
+ await h.event('prepareDirectory',{destination:'new-folder'});assert.equal(h.entryActions.length,0);
+ await h.event('cancel');assert.equal(h.entryActions.length,0);
+ await h.event('prepareDirectory',{destination:'new-folder'});await h.event('confirm');
+ assert.deepEqual(h.entryActions.at(-1),{kind:'workspace.perform',operation:'makeDirectory',arguments:{path:'new-folder'}});
+ await h.event('rename_0');await h.event('prepareMove',{destination:'renamed.txt'});assert.equal(h.entryActions.length,1);
+ await h.event('confirm');assert.deepEqual(h.entryActions.at(-1).arguments,{path:'file-0.txt',destination:'renamed.txt'});
+ await h.event('delete_0');assert.equal(h.entryActions.length,2);assert.ok(h.nodes().some(n=>n.id==='warning'));
+ await h.event('cancel');assert.equal(h.entryActions.length,2);
+ await h.event('delete_0');await h.event('confirm');assert.deepEqual(h.entryActions.at(-1),{kind:'workspace.perform',operation:'deleteEntry',arguments:{path:'file-0.txt'}});
 });

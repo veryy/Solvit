@@ -20,6 +20,8 @@ object ScriptPageHostAction {
         val keys = when (operation) {
             "create", "createShell" -> { text("name", 80); setOf("name") }
             "bind" -> { text("id", 128); setOf("id") }
+            "makeDirectory", "deleteEntry" -> { text("path",1024);setOf("path") }
+            "moveEntry" -> { text("path",1024);text("destination",1024);setOf("path","destination") }
             "unbind" -> emptySet()
             "write" -> {
                 text("path", 1024); text("text", 4096, true)

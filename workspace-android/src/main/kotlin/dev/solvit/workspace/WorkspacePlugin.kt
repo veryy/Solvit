@@ -148,7 +148,7 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     /** File management does not silently operate on a symlink's target. */
     private fun managedEntry(workspaceId:String,path:String):File {
         val target=file(workspaceId,path)
-        require(File(directory(workspaceId),path).absoluteFile.normalize()==target) { "符号链接请通过终端管理。" }
+        require(File(directory(workspaceId).canonicalFile,path).absoluteFile.normalize()==target) { "符号链接请通过终端管理。" }
         return target
     }
     override suspend fun makeDirectory(workspaceId:String,path:String)=withContext(Dispatchers.IO) { lock.withLock {

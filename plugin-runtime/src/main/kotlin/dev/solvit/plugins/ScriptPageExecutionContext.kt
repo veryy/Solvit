@@ -23,7 +23,7 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     suspend fun performWorkspace(apiVersion: Int): String {
         ensureAuthorized()
         val control = ScriptPageHostAction.workspace(checkNotNull(approvedAction))
-        check(control.operation != "writeDraft" || apiVersion >= 18) { "完整文本保存需要 API18" }
+        check(control.operation !in setOf("writeDraft","makeDirectory","moveEntry","deleteEntry") || apiVersion >= 18) { "文件管理需要 API18" }
         check(consumed.compareAndSet(false, true)) { "Native page control already consumed" }
         return checkNotNull(workspace) { "此页面没有聊天工作区授权" }.perform(control, ::ensureAuthorized)
             .also { ensureAuthorized() }
