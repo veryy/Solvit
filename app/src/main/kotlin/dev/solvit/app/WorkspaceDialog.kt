@@ -52,12 +52,11 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                     Column(Modifier.weight(1f).fillMaxWidth(),horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
                         UiText("此对话尚未绑定工作区")
                         TextButton(onClick = { creating = true }) { UiText("新建工作区") }
-                        TextButton(onClick = { chooser = true }) { UiText("绑定已有工作区") }
-                        error?.let { UiText(it,color=MaterialTheme.colorScheme.error) }
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    TextButton(onClick = { chooser = true }, enabled = !busy, modifier = Modifier.weight(1f)) {
+                        Text(state.workspaces.firstOrNull { it.id == id }?.name ?: uiString("打开工作区…"))
                     }
-                } else {
-                TextButton(onClick = { chooser = true }, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                    Text(state.workspaces.firstOrNull { it.id == id }?.name ?: uiString("打开工作区…"))
+                    if (tab == 0) TextButton(onClick = { interactive = !interactive }) { UiText(if (interactive) "普通命令" else "交互终端") }
                 }
                 TabRow(selectedTabIndex = tab) {
                     Tab(selected = tab == 0, onClick = { tab = 0 }, text = { UiText("Shell") })
@@ -66,10 +65,6 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
                 if (tab == 0) {
-                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = !interactive, onClick = { interactive = false }, label = { UiText("普通命令") })
-                        FilterChip(selected = interactive, onClick = { interactive = true }, label = { UiText("交互终端") })
-                    }
                     if (interactive) {
                         Box(Modifier.weight(1f).fillMaxWidth()) {
                             key(id, locale) { PluginPageScreen("交互终端", { vm.terminalPage(terminalManager, locale) }, embedded = true) {} }

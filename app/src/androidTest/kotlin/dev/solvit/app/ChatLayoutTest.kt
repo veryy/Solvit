@@ -933,13 +933,14 @@ class ChatLayoutTest {
             rule.onNodeWithTag("terminal_page_allow").performClick()
             command("stty -echo; printf '__MODEL_PAGE_%s__\\n' OK")
             rule.waitUntil(8000) { displayed("__MODEL_PAGE_OK__") }
-            screenshot("workspace-interactive-html-pty")
+            page.screenshot("workspace-interactive-html-pty")
             js("document.getElementById('close').click()")
             rule.waitUntil(8000) { js("document.getElementById('close').disabled") == "true" }
             assertTrue(app.terminals.sessions.value.any { it.id==model.id && !it.active })
         } catch (e: Throwable) {
-            screenshot("workspace-interactive-html-failure")
-            throw AssertionError("HTML PTY state=" + app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }, e)
+            val metrics=runCatching { js("JSON.stringify({viewport:[innerWidth,innerHeight],body:document.body.getBoundingClientRect().toJSON(),terminal:document.getElementById('terminals').getBoundingClientRect().toJSON(),rows:document.querySelector('.xterm-rows')?.textContent,status:document.getElementById('status').textContent})") }.getOrNull()
+            runCatching { page.screenshot("workspace-interactive-html-failure") }
+            throw AssertionError("HTML metrics="+metrics+"\nPTY state=" + app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }, e)
         }
     }
 
