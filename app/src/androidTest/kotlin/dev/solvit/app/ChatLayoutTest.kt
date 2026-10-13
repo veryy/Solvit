@@ -332,7 +332,8 @@ class ChatLayoutTest {
         val optionalHooks = ContextHookRegistry().apply {
             register("test.broken", ContextHook { error("PRIVATE_SECRET_SENTINEL") })
         }
-        val agent = ToolAgentRuntime(provider, ToolRegistry(EventBus()), hooks = optionalHooks, inspection = app.requestInspection)
+        val driver = dev.solvit.plugins.ScriptAgentDriver(app.assets.open("agent/chat-driver.js").bufferedReader().use { it.readText() })
+        val agent = ToolAgentRuntime(provider, ToolRegistry(EventBus()), hooks = optionalHooks, inspection = app.requestInspection, driver = driver)
         lateinit var vm: ChatViewModel
         lateinit var agents: AgentLibraryViewModel
         lateinit var workspaces: WorkspaceViewModel
