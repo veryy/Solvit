@@ -57,3 +57,6 @@ App通用插件页工厂接线：当前对话WorkspaceViewModel生成GitPageBrid
 
 
 Git HTML/TS页面候选：新增dev.solvit.git 1.0.0/API19，Changes分工作树/暂存区按钮、10项分页、完整差异分块、明确审阅后暂存/取消暂存、暂存区提交表单及原生确认、历史。差异完整读完才显示可用的暂存按钮；提交使用reviewCommit得到的宿主索引句柄。Files直接组合已发布workspacePage，并导入同一workspace/ui/main.mjs复用离线CodeMirror和文件树，包含原许可证；编辑/确认期间不提供跳回Git按钮，保留现有放弃未保存修改的操作。CSS与编辑器许可证复制自现有同仓资源，业务组件代码直接复用。工作区容器新增Git标签，BuiltinWorkspaceManager只接受固定API19包与宿主工作区/Git接口，人工页面不启用插件AI工具。TS/SDK新增实际打包完整差异（跨emoji分块）、分离工作树/暂存区、写前只审阅不写、原生句柄提交、同目录Files与编辑器资源测试。市场服务接受API19用于新增包，当前App市场请求仍API18，旧客户端不会收到Git；服务尚未部署。插件包须Actions生成后取回提交，当前尚无APK业务验收或Git AI工具，远程GitHub全范围继续保留。
+
+
+实际失败保留：d4f2ca6/38472698336的Android构建在GitPageBridgeTest initializationError失败（JUnit要求void方法，测试以runBlocking推断返回最后一次assertFailsWith的异常对象）。两项桥回归显式runBlocking<Unit>，断言保持。8f91406/38473462631实际TS2339在pages.ts待确认操作arguments读取，PageHostAction是包含document等多类型联合；将pending缩窄为Extract<PageHostAction,{kind:'git.perform'}>，保持Git操作与全部元数据验证，不能以跳过typecheck替代修复。重新远程构建和生成，失败前生成的包不作为交付证据。

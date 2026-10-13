@@ -34,7 +34,7 @@ class GitPageBridgeTest {
         override suspend fun close() { closed = true }
     }
 
-    @Test fun chunkedReviewRejectsForgedOrReplacedHandlesAndNeverSplitsEmoji() = runBlocking {
+    @Test fun chunkedReviewRejectsForgedOrReplacedHandlesAndNeverSplitsEmoji() = runBlocking<Unit> {
         val fixture = Fixture()
         var active = "chat"
         val page = GitPageBridge(fixture, "chat", { active })
@@ -60,7 +60,7 @@ class GitPageBridgeTest {
         assertFailsWith<IllegalStateException> { page.query("history", """{"limit":1}""") {} }
     }
 
-    @Test fun writesRequireHostAuthorizationAndCommitRetainsNativeIndexReview() = runBlocking {
+    @Test fun writesRequireHostAuthorizationAndCommitRetainsNativeIndexReview() = runBlocking<Unit> {
         val fixture = Fixture()
         val page = GitPageBridge(fixture, "chat", { "chat" })
         assertFailsWith<IllegalStateException> { page.query("initialize", "{}") {} }

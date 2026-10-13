@@ -16,7 +16,7 @@ const labels={
 };
 export function gitPage(){
  let mode='changes',offset=0,status:Status|null=null,message='',review:Review|null=null,chunk:Chunk|null=null;
- let commits:Commit[]=[],pending:PageHostAction|null=null,author='',email='',commitMessage='';
+ let commits:Commit[]=[],pending:Extract<PageHostAction,{kind:'git.perform'}>|null=null,author='',email='',commitMessage='';
  const files=workspacePage();
  return async(input:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
   const t=labels[input.locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en,api=ctx.gitPage!,event=input.event;
