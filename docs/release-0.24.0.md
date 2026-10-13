@@ -11,3 +11,5 @@ build50，保留固定签名与数据迁移。覆盖更新可保留配置，卸�
 正式发布需要测试、Lint、签名、覆盖升级、完整模拟器、插件源码/包一致性、公开搜索及线上MCP/Skills全部通过。候选及诊断证据见[阶段记录](https://github.com/veryy/Solvit/blob/main/docs/agent-observation-stage.md)。
 
 真实模型角色遵从、网关流式、最终搜索引用、完整工作区任务及真机验收仍未完成。终端控制区密度与记忆图谱标签继续改善，本版不宣称这些体验已解决。
+
+实际发布：[正式Actions](https://github.com/veryy/Solvit/actions/runs/38382321416)全部成功；下载的XML报告为340单元、48模拟器，0失败/错误/跳过，SDK86/市场2项均通过。Lint、固定签名、覆盖升级、公开搜索、线上MCP/Skills与插件包一致性均通过。公开APK已下载，并与[构建产物](https://github.com/veryy/Solvit/actions/runs/38382321416/artifacts/11804157399)逐字节一致：23,538,773 bytes；SHA-256 `eba4346fa51588f72dd29a0d8d4e1c19699935889791a4e7fe9cb00ac477058a`。

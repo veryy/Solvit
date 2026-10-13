@@ -1,7 +1,7 @@
 # Solvit 产品实现进度
 
 目标是以 JS/TS 插件为主要扩展方式的 Android Agent 产品。原生 UI 与系统能力由 Kotlin 宿主提供，插件通过稳定服务协议组合。以下是完整目标，不以当前已交付功能代替最终范围。
-当前（2026-10-13）[0.23.4 已正式发布](https://github.com/veryy/Solvit/releases/tag/v0.23.4)，[完整正式门禁](https://github.com/veryy/Solvit/actions/runs/38375255332)通过：实际335单元、48模拟器无失败/错误/跳过，85 SDK/2市场、Lint、固定签名、覆盖升级、公开搜索与线上MCP/Skills均成功，公开APK与构建产物逐字节一致。插件HTML/JS记忆图谱、后台任务、多MCP、Skills、工作目录、交互PTY与可安装Agent步骤策略已交付。当前独立开发API15观察/拒绝接口，证据见[观察阶段](agent-observation-stage.md)；终端控件密度、真实模型角色/流式/工具选择、完整任务和真机仍未完成，以下全路线保持。
+当前（2026-10-13）[0.24.0已正式发布](https://github.com/veryy/Solvit/releases/tag/v0.24.0)，[正式门禁38382321416](https://github.com/veryy/Solvit/actions/runs/38382321416)全成功：实际340单元、48模拟器无失败/错误/跳过，86 SDK/2市场、Lint、固定签名、覆盖升级、公开搜索、线上MCP/Skills及源码/包一致性均通过；公开APK与构建产物逐字节一致。插件HTML/JS记忆图谱、后台任务、多MCP、Skills、工作目录、交互PTY与可安装Agent步骤策略已交付，API15增加授权观察与拒绝，修复实时撤权访问，证据见[观察阶段](agent-observation-stage.md)。当前独立分支诊断图谱自动缩放与终端密度；真实模型角色/流式/工具选择、完整任务和真机仍未完成，以下全路线保持。
 
 
 0.22.6 增加实际 APK/角色设置/SQLite/QuickJS 的[真实模型验收入口](real-model-acceptance.md)与文本接收段数诊断。常规317单元/48模拟器、Lint、固定签名APK已通过并核对；新验收类已编译但缺少新的模型凭据，尚未运行。终端Ctrl+C用例按前台任务实际启动和提示符回归同步，原断言保留。不能把受控流式或角色机制回归视为真实模型答案验证。
