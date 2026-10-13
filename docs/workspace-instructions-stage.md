@@ -58,3 +58,7 @@ TS模块负责固定根/同目录local排序、去重、来源及12KiB UTF-8渲�
 [候选完整Android38409015788](https://github.com/veryy/Solvit/actions/runs/38409015788)构建、Lint与APK成功；下载XML实际358个单元测试0失败/错误/跳过。其模拟器在加入真实Android聊天验收后被同分支新运行取消，不记为完整成功。[契约38409125879](https://github.com/veryy/Solvit/actions/runs/38409125879)下载XML实际201项通过，其中原语6、真实Hook7和ScriptRuntime12。
 
 新增真实APK的四次请求场景：超过6KiB的中文/emoji规则、修改、删除、解绑，检查角色系统消息不被覆盖、没有工具调用和Hook问题、旧规则不留在请求或持久聊天。首次38410727758仅在新测试JUnit断言参数顺序处编译失败；2d87a42修正message/condition顺序，保留断言。完整Android38411978563与定向页面38412047429正在执行。这些场景使用捕获请求的受控Provider，不能证明真实模型遵守规则。
+
+[实际APK定向38412047429](https://github.com/veryy/Solvit/actions/runs/38412047429)成功；下载产物CRC通过，result-1实际OK (1 test)，四次模型请求全部通过。完整38411978563的358单元/Lint/签名/APK成功；UI首次未进入测试，Runner下载android-35系统镜像报Error on ZipFile unknown archive，按原条件仅重跑失败作业，未降低断言或将基础设施错误记为产品回归。
+
+API16线上部署已完成，备份`/opt/solvit-market/.backup-workspace-1.2.0-1791901699222`，含旧server和工作区包；脚本含哈希前置、原子写入、health和旧目录比较及失败回滚。正常验证公网HTTPS API1–15完整JSON与部署前一致，API16仅工作区版本更新；工作区1.0.0/1.1.0/1.2.0公开下载分别5508/27700/31604字节，与Git包逐字节一致。新包SHA545abc7b667f31468777e378d4c7620709f9e2e03fca6f4c1b490e24bd4b0bbe，health ok。仍须完整模拟器及正式标签门禁后才能称为新版本交付。
