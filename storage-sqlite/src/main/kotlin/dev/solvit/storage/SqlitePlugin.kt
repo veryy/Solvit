@@ -7,6 +7,7 @@ import android.database.sqlite.SQLiteOpenHelper
 import android.database.Cursor
 import dev.solvit.core.*
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -16,8 +17,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 
-class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
-    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 8) {
+class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = ExecutionFileCaptureDatabase.MAX_QUOTA_BYTES) : ChatStore, AutoCloseable {
+    init { require(captureQuotaBytes in 0..ExecutionFileCaptureDatabase.MAX_QUOTA_BYTES) }
+    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 9) {
         override fun onConfigure(db: SQLiteDatabase) { db.setForeignKeyConstraintsEnabled(true) }
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT NOT NULL, updated_at INTEGER NOT NULL, origin_session_id TEXT, origin_message_id TEXT)")
@@ -29,6 +31,7 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
             if (oldVersion < 8) ExecutionJournalDatabase.create(db)
+            if (oldVersion < 9) ExecutionFileCaptureDatabase.create(db)
             if (oldVersion < 7) createTurnTable(db)
             if (oldVersion < 6) createSummaryTable(db)
             if (oldVersion < 5) db.execSQL("ALTER TABLE messages ADD COLUMN provider_transcript TEXT")
@@ -49,13 +52,13 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
     private val lock = Mutex()
     private val revision = MutableStateFlow(0L)
     private val executionRevision = MutableStateFlow(0L)
-    private suspend fun <T> read(verify: suspend () -> Unit = {}, block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
+    private suspend fun <T> read(verify: suspend () -> Unit = {}, afterRead: suspend () -> Unit = {}, block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
         lock.withLock {
             verify()
             val db=helper.readableDatabase
             // A stable snapshot also covers additional chunks of a large message.
             db.beginTransactionNonExclusive()
-            try { block(db).also { db.setTransactionSuccessful() } } finally { db.endTransaction() }
+            try { block(db).also { afterRead(); db.setTransactionSuccessful() } } finally { db.endTransaction() }
         }
     }
     private suspend fun <T> write(verify: suspend () -> Unit = {}, notifyChats: Boolean = true, block: (SQLiteDatabase) -> T): T = withContext(Dispatchers.IO) {
@@ -80,9 +83,17 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
         read { ExecutionJournalDatabase.runs(it,sessionId) }
     }.distinctUntilChanged()
     override suspend fun executionEvents(sessionId: String, runId: String) = read { ExecutionJournalDatabase.events(it,sessionId,runId) }
+    override suspend fun executionFileContent(sessionId: String, runId: String, sequence: Int, path: String,
+        authorize: suspend () -> Unit): String? {
+        val callingContext = kotlinx.coroutines.currentCoroutineContext()
+        val verify: suspend () -> Unit = { callingContext.ensureActive(); authorize() }
+        return read(verify=verify,afterRead=verify) { db ->
+            ExecutionFileCaptureDatabase.read(db,sessionId,runId,sequence,path) { callingContext.ensureActive() }
+        }
+    }
     override suspend fun beginExecutionRun(run: ExecutionRun) = write(notifyChats=false) { ExecutionJournalDatabase.begin(it,run) }
     override suspend fun appendExecutionEvents(runId: String, expectedSequence: Int, events: List<ExecutionEvent>, now: Long) =
-        write(notifyChats=false) { ExecutionJournalDatabase.append(it,runId,expectedSequence,events,now) }
+        write(notifyChats=false) { ExecutionJournalDatabase.append(it,runId,expectedSequence,events,now,captureQuotaBytes) }
     override suspend fun finishExecutionRun(runId: String, status: ExecutionStatus, now: Long) = write(notifyChats=false) { ExecutionJournalDatabase.finish(it,runId,status,now) }
     override suspend fun recoverInterruptedExecutions(now: Long) = write(notifyChats=false) { ExecutionJournalDatabase.recover(it,now) }
     override suspend fun contextSummary(sessionId: String): ContextSummary? = read { loadSummary(it, sessionId) }
@@ -341,7 +352,9 @@ class SqliteChatStore(context: Context) : ChatStore, AutoCloseable {
             put("provider_transcript", message.providerTranscript?.let { encodeTranscript(it) })
         })
     }
-    override suspend fun deleteSession(sessionId: String) { write { it.delete("sessions", "id=?", arrayOf(sessionId)) } }
+    override suspend fun deleteSession(sessionId: String) { write {
+        it.delete("sessions", "id=?", arrayOf(sessionId)); ExecutionFileCaptureDatabase.collect(it)
+    } }
     private fun decodeCalls(value: String): List<ToolCall> {
         val array = JSONArray(value)
         return (0 until array.length()).map { index ->

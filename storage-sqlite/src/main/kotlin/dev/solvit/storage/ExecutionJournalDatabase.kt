@@ -13,6 +13,7 @@ internal object ExecutionJournalDatabase {
         db.execSQL("CREATE INDEX execution_runs_session ON execution_runs(session_id, started_at)")
         db.execSQL("CREATE UNIQUE INDEX execution_runs_active ON execution_runs(session_id) WHERE status='RUNNING'")
         db.execSQL("CREATE TABLE execution_events (run_id TEXT NOT NULL REFERENCES execution_runs(id) ON DELETE CASCADE, sequence INTEGER NOT NULL, recorded_at INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(run_id, sequence))")
+        ExecutionFileCaptureDatabase.create(db)
     }
     fun begin(db: SQLiteDatabase, run: ExecutionRun): Boolean {
         run.validate(); require(run.status == ExecutionStatus.RUNNING && run.eventCount == 0)
@@ -50,7 +51,7 @@ internal object ExecutionJournalDatabase {
             } }
         }
     }
-    fun append(db: SQLiteDatabase, runId: String, expectedSequence: Int, batch: List<ExecutionEvent>, now: Long): Boolean {
+    fun append(db: SQLiteDatabase, runId: String, expectedSequence: Int, batch: List<ExecutionEvent>, now: Long, captureQuotaBytes: Long): Boolean {
         require(batch.size in 1..64 && expectedSequence in 0..512 && now>=0)
         val run=run(db,runId) ?: return false
         if(run.status != ExecutionStatus.RUNNING || now<run.updatedAt) return false
@@ -58,10 +59,11 @@ internal object ExecutionJournalDatabase {
         val prior=events(db,run.sessionId,run.id)
         if(prior.size!=expectedSequence || prior.size+batch.size>512) return false
         val state=ExecutionJournalState();prior.forEach { state.accept(it.event) };batch.forEach(state::accept)
-        val payloads=batch.map { encode(it).toString().also { text -> require(text.toByteArray(Charsets.UTF_8).size<=MAX_PAYLOAD) } }
+        val persisted=ExecutionFileCaptureDatabase.prepare(db,runId,batch,captureQuotaBytes)
+        val payloads=persisted.map { encode(it).toString().also { text -> require(text.toByteArray(Charsets.UTF_8).size<=MAX_PAYLOAD) } }
         payloads.forEachIndexed { i,payload -> db.insertOrThrow("execution_events",null,ContentValues().apply {
             put("run_id",runId);put("sequence",expectedSequence+i);put("recorded_at",now);put("payload",payload)
-        }) }
+        }).also { ExecutionFileCaptureDatabase.reference(db,runId,expectedSequence+i,persisted[i]) } }
         db.execSQL("UPDATE execution_runs SET updated_at=? WHERE id=?",arrayOf<Any>(now,runId));return true
     }
     fun finish(db: SQLiteDatabase, runId: String, status: ExecutionStatus, now: Long): Boolean {
@@ -86,7 +88,8 @@ internal object ExecutionJournalDatabase {
             .put("complete",snapshot.complete).put("observedAt",snapshot.observedAt).put("files",JSONObject().apply {
                 snapshot.files.forEach { (path,value) -> put(path,JSONObject().put("kind",value.kind.name)
                     .put("bytes",value.bytes ?: JSONObject.NULL).put("sha256",value.sha256 ?: JSONObject.NULL)
-                    .put("excerpt",value.excerpt ?: JSONObject.NULL).put("truncated",value.excerptTruncated)) }
+                    .put("excerpt",value.excerpt ?: JSONObject.NULL).put("truncated",value.excerptTruncated)
+                    .put("captureSha256",value.captureSha256 ?: JSONObject.NULL)) }
             })) }
     }
     private fun decode(j: JSONObject)=ExecutionEvent(j.getInt("step"),ExecutionKind.valueOf(j.getString("kind")),
@@ -98,7 +101,8 @@ internal object ExecutionJournalDatabase {
             WorkspaceSnapshot(s.getString("id"),files.keys().asSequence().associateWith { path ->
                 val v=files.getJSONObject(path)
                 FileObservation(FileObservationKind.valueOf(v.getString("kind")),if(v.isNull("bytes")) null else v.getLong("bytes"),
-                    if(v.isNull("sha256")) null else v.getString("sha256"),if(v.isNull("excerpt")) null else v.getString("excerpt"),v.getBoolean("truncated"))
+                    if(v.isNull("sha256")) null else v.getString("sha256"),if(v.isNull("excerpt")) null else v.getString("excerpt"),v.getBoolean("truncated"),
+                    captureSha256=if(!v.has("captureSha256") || v.isNull("captureSha256")) null else v.getString("captureSha256"))
             },s.getBoolean("complete"),s.getLong("observedAt"))
         }).also(ExecutionEvent::validate)
     private const val MAX_PAYLOAD=512*1024

@@ -87,4 +87,52 @@ class WholeFileCaptureStoreTest {
             assertFailsWith<CancellationException> { withContext(parent) { store.executionFileContent(run.sessionId,run.id,2,"src/code.txt") } }
         }
     }
+    @Test fun captureBudgetOmitsOnlyFullCopiesAndNeverFabricatesReferences()=runBlocking<Unit> {
+        SqliteChatStore(context,captureQuotaBytes=8).use { store ->
+            val run=save(store,"small","body longer than quota")
+            val recorded=store.executionEvents(run.sessionId,run.id)[2].event.workspace!!.files.getValue("src/code.txt")
+            assertEquals(FileObservationKind.TEXT,recorded.kind);assertNotNull(recorded.sha256)
+            assertNull(recorded.captureSha256);assertNull(store.executionFileContent(run.sessionId,run.id,2,"src/code.txt"))
+            assertEquals(0,blobCount())
+        }
+    }
+    @Test fun eightLargeEscapedCopiesStayOutsideEventJsonAndExactByteBoundarySurvivesReopen()=runBlocking<Unit> {
+        val text="\\\"\t\n".repeat(MAX_FILE_CAPTURE_BYTES/4)
+        assertEquals(MAX_FILE_CAPTURE_BYTES,text.toByteArray().size)
+        lateinit var run:ExecutionRun
+        SqliteChatStore(context).use { store ->
+            run=save(store,"big",text)
+            assertEquals(text,store.executionFileContent(run.sessionId,run.id,2,"src/code.txt"))
+            val snapshot=WorkspaceSnapshot("workspace",(0..7).associate { "copy-$it.txt" to capture(text) },true,3)
+            assertTrue(store.appendExecutionEvents(run.id,3,listOf(
+                ExecutionEvent(1,ExecutionKind.TOOL_STARTED,callId="call"),
+                ExecutionEvent(1,ExecutionKind.TOOL_FINISHED,callId="call",stage=ToolStage.SUCCEEDED,result="done"),
+                ExecutionEvent(1,ExecutionKind.WORKSPACE_OBSERVED,workspace=snapshot)),3))
+            assertEquals(1,blobCount())
+        }
+        SqliteChatStore(context).use { store ->
+            assertEquals(text,store.executionFileContent(run.sessionId,run.id,5,"copy-7.txt"))
+            val snapshot=store.executionEvents(run.sessionId,run.id)[5].event.workspace!!
+            assertTrue(snapshot.files.values.all { it.captureText==null && it.captureSha256!=null })
+        }
+        SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path,null,SQLiteDatabase.OPEN_READONLY).use { db ->
+            db.rawQuery("SELECT MAX(length(CAST(payload AS BLOB))) FROM execution_events",null).use { c -> c.moveToFirst();assertTrue(c.getLong(0)<16*1024) }
+        }
+    }
+    @Test fun schemaEightMigrationKeepsOldJournalAndCannotInventMissingFullCopies()=runBlocking<Unit> {
+        lateinit var run:ExecutionRun
+        SqliteChatStore(context).use { store -> run=save(store,"legacy","older body") }
+        SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path,null,SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("DROP TABLE execution_file_refs");db.execSQL("DROP TABLE execution_file_captures")
+            db.execSQL("UPDATE execution_events SET payload=replace(payload,?,?)",arrayOf("\"captureSha256\":\"${capture("older body").sha256}\"","\"captureSha256\":null"))
+            db.version=8
+        }
+        SqliteChatStore(context).use { store ->
+            assertEquals("Edit a file",store.history(run.sessionId).single().content)
+            assertEquals(3,store.executionEvents(run.sessionId,run.id).size)
+            assertNull(store.executionFileContent(run.sessionId,run.id,2,"src/code.txt"))
+            assertEquals(0,blobCount())
+        }
+    }
+
 }
