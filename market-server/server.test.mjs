@@ -70,6 +70,15 @@ test('catalog downloads match their declared integrity and expose no write API',
     const fileReview = api17.plugins.find(plugin => plugin.id === 'dev.solvit.workspace');
     assert.equal(fileReview.version, '1.3.0'); assert.equal(fileReview.apiVersion, 17);
     assert.equal(fileReview.pages.find(page => page.id === 'changes').entry, 'review/index.html');
+    const originalReview=Buffer.from(await (await fetch(base+fileReview.downloadPath)).arrayBuffer());
+    assert.equal(createHash('sha256').update(originalReview).digest('hex'),'95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b');
+    const api18=await (await fetch(base+'/api/v1/plugins?hostApi=18')).json();
+    const editor=api18.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
+    assert.equal(editor.version,'1.4.0');assert.equal(editor.apiVersion,18);
+    assert.deepEqual(api18.plugins.filter(plugin=>plugin.id!=='dev.solvit.workspace'),api17.plugins.filter(plugin=>plugin.id!=='dev.solvit.workspace'));
+    const editorPackage=await (await fetch(base+editor.downloadPath)).json();
+    assert.ok(editorPackage.resources['ui/main.js'].includes('cm-editor'));
+    assert.ok(editorPackage.resources['ui/editor-NOTICE.txt'].includes('Permission is hereby granted'));
     const rulesPrevious = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.workspace/1.2.0')).arrayBuffer());
     assert.deepEqual(rulesPrevious, await readFile(new URL('./packages/legacy/dev.solvit.workspace-1.2.0.solvit.json', import.meta.url)));
     const workspacePrevious = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.workspace/1.1.0')).arrayBuffer());
