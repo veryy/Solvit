@@ -95,7 +95,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val agentSetting = m["agentEnabledSetting"]?.jsonPrimitive?.also { require(it.isString) }?.content
             if (agentSetting != null) {
                 require(apiVersion >= 14 && "agent" in permissions && settings.any {
-                    it.key == agentSetting && it.kind == "boolean" && it.defaultValue != "true"
+                    it.key == agentSetting && it.kind == "boolean" && !it.pageManaged && it.defaultValue != "true"
                 }) { "Agent 驱动需要 API14、agent 权限和默认关闭的配置开关" }
             } else require("agent" !in permissions) { "Agent 权限需要驱动配置声明" }
             val hooks = m["hooks"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty()

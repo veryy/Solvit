@@ -1,6 +1,6 @@
 # 可安装的 JS/TS Agent 驱动（0.23.1 候选）
 
-API14 新增 `agent` 权限、默认关闭的 `agentEnabledSetting` 声明，以及独立 `solvitPlugin.agent({maxRounds}, context)` 入口。普通插件包可提供步骤驱动，注册到 `agent.drivers` 服务；Android 的既有 Agent 使用该服务选择策略。安装/授权不自动接管聊天，需明确打开配置中的接管开关；当前是全会话策略，非按角色或会话选择。没有选中时使用既有包内JS，多个策略同时选中时明确报错，不按注册顺序悄悄覆盖。
+API14 新增 `agent` 权限、默认关闭的 `agentEnabledSetting` 声明，以及独立 `solvitPlugin.agent({maxRounds}, context)` 入口。普通插件包可提供步骤驱动，注册到 `agent.drivers` 服务；Android 的既有 Agent 使用该服务选择策略。安装/授权不自动接管聊天，需明确打开宿主配置中的接管开关，插件页面不能自行写入这个开关；当前是全会话策略，非按角色或会话选择。没有选中时使用既有包内JS，多个策略同时选中时明确报错，不按注册顺序悄悄覆盖。
 
 TS `AgentContext` 只提供单个 `model(round)`、`tool(index)`、`settle(round)`、`finish(round)` 命令。宿主仍核验顺序、工具权限、执行事实与预算；脚本不能更改协议转录或绕过工具确认。每轮独立实例，8 MiB 内存、256 KiB 栈，第三方脚本评估期限10分钟；正常工具实例的activate/deactivate与Agent实例不共享状态。Agent实例没有工具/网络/存储的通用桥接或API Key、提示词、工具原始结果；这些宿主能力尚未开放为JS消息投影/Provider/存储替换协议。
 

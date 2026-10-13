@@ -57,7 +57,7 @@ export async function buildPlugin(entry, manifestFile, output) {
   } else if (manifest.afterTurnEnabledSetting !== undefined || (manifest.permissions ?? []).includes('model')) throw new Error('Model permission requires afterTurn');
   if (manifest.agentEnabledSetting !== undefined) {
     const field = (manifest.settings ?? []).find(field => field.key === manifest.agentEnabledSetting);
-    if (manifest.apiVersion < 14 || !manifest.permissions?.includes('agent') || !field || field.kind !== 'boolean' ||
+    if (manifest.apiVersion < 14 || !manifest.permissions?.includes('agent') || !field || field.kind !== 'boolean' || field.pageManaged ||
         field.defaultValue !== undefined && field.defaultValue !== 'false') throw new Error('Agent requires API14, permission and a default-off setting');
   } else if (manifest.permissions?.includes('agent')) throw new Error('Agent permission requires strategy declaration');
   const result = await build({

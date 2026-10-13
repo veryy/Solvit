@@ -16,6 +16,11 @@ class ScriptAgentPluginTest {
         assertFailsWith<IllegalArgumentException> { pkg(api = 13) }
         assertFailsWith<IllegalArgumentException> { pkg(grant = false) }
         assertFailsWith<IllegalArgumentException> { pkg(default = "true") }
+        val managed = Json.parseToJsonElement(pkg().payload.toString(Charsets.UTF_8)).jsonObject
+        val manifest = managed.getValue("manifest").jsonObject
+        val field = manifest.getValue("settings").jsonArray.single().jsonObject
+        val invalid = JsonObject(managed + ("manifest" to JsonObject(manifest + ("settings" to JsonArray(listOf(JsonObject(field + ("pageManaged" to JsonPrimitive(true)))))))))
+        assertFailsWith<IllegalArgumentException> { ScriptPackage.parse(invalid.toString().toByteArray()) }
         assertEquals("selected", pkg().manifest.agentEnabledSetting)
     }
     @Test fun managedPluginRegistersAnIsolatedQuickJsStrategyAndUnloadsIt() = runBlocking {
@@ -46,7 +51,16 @@ class ScriptAgentPluginTest {
             selected = true
             drivers.run(8, host)
             assertEquals(listOf("model" to 0, "tool" to 0, "settle" to 0, "model" to 1, "finish" to 1), commands)
+            val entered = CompletableDeferred<Unit>()
+            val cleaned = CompletableDeferred<Unit>()
+            val turn = launch { drivers.run(8, AgentStepHost { _, _ ->
+                entered.complete(Unit)
+                try { awaitCancellation() } finally { cleaned.complete(Unit) }
+            }) }
+            withTimeout(10_000) { entered.await() }
             manager.disable("test.strategy")
+            assertTrue(turn.isCancelled)
+            assertTrue(cleaned.isCompleted)
             commands.clear(); drivers.run(8, host)
             assertTrue(commands.isEmpty())
             assertEquals(2, defaults.size)

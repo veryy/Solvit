@@ -30,7 +30,7 @@ test('Agent package declarations reject old APIs, missing grants and default-on 
     const base=JSON.parse(await readFile(resolve('../plugin-examples/agent/manifest.json'),'utf8'));
     const file=join(dir,'manifest.json');
     for(const manifest of [{...base,apiVersion:13},{...base,permissions:[]},
-      {...base,agentEnabledSetting:undefined},{...base,settings:[{...base.settings[0],defaultValue:'true'}]}]){
+      {...base,agentEnabledSetting:undefined},{...base,settings:[{...base.settings[0],pageManaged:true}]},{...base,settings:[{...base.settings[0],defaultValue:'true'}]}]){
       await writeFile(file,JSON.stringify(manifest));
       await assert.rejects(()=>buildPlugin(resolve('../plugin-examples/agent/index.ts'),file,join(dir,'output.json')));
     }

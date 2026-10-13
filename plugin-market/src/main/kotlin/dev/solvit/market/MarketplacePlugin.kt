@@ -287,6 +287,7 @@ class AndroidMarketplace(
             val expected = arguments.getValue("expected").let { if (it == JsonNull) null else it.jsonPrimitive.also { p -> require(p.isString) }.content }
             val value = arguments.getValue("value").jsonPrimitive.also { require(it.isString) }.content
             require(manifest.settings.any { it.key == key }) { "插件未声明此配置字段" }
+            require(key != manifest.agentEnabledSetting) { "Agent 接管开关必须由用户在宿主配置中修改" }
             return mutex.withLock {
                 page.ensureAuthorized()
                 if (configurationValues(manifest)[key] != expected) JsonPrimitive(false)

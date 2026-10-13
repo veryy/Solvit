@@ -1,0 +1,24 @@
+{
+  "manifest": {
+    "id": "example.agent",
+    "name": "JS Agent 步骤示例",
+    "description": "可安装的 TypeScript 聊天步骤驱动。需另外打开接管开关；同一时间只选择一个 Agent。",
+    "version": "1.0.0",
+    "apiVersion": 14,
+    "permissions": [
+      "agent"
+    ],
+    "dependencies": [],
+    "tools": [],
+    "agentEnabledSetting": "selected",
+    "settings": [
+      {
+        "key": "selected",
+        "label": "接管所有会话的 Agent 步骤",
+        "kind": "boolean",
+        "defaultValue": "false"
+      }
+    ]
+  },
+  "source": "var __solvitBundle = (() => {\n  var __defProp = Object.defineProperty;\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // ../plugin-examples/agent/index.ts\n  var index_exports = {};\n  __export(index_exports, {\n    default: () => index_default\n  });\n\n  // src/index.ts\n  function definePlugin(definition) {\n    return definition;\n  }\n\n  // ../plugin-examples/agent/index.ts\n  var index_default = definePlugin({\n    tools: {},\n    async agent({ maxRounds }, context) {\n      for (let round = 0; round < maxRounds; round++) {\n        const calls = await context.model(round);\n        if (calls === 0) {\n          await context.finish(round);\n          return;\n        }\n        for (let index = 0; index < calls; index++) await context.tool(index);\n        await context.settle(round);\n      }\n    }\n  });\n  return __toCommonJS(index_exports);\n})();\nglobalThis.solvitPlugin = __solvitBundle.default;\n"
+}
