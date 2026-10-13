@@ -77,3 +77,19 @@ failure diagnostics; no timeout or assertion was weakened. The HTML page retains
 an explicit output-gap notice after truncation instead of replacing it on the next
 status update. The actual HTML test also attaches and replays a truncated model
 terminal before checking the notice and subsequent interactive input.
+
+Further evidence: diagnostic `38336405367` showed a 412×500 CSS viewport and a
+16×48 terminal; visible output, environment reuse, raw xterm input, Ctrl-C and
+multiple Shells passed before the newly added large-output fixture timed out.
+Full `38336309890` still failed the Unicode fixture: offset 0, 514 retained chars,
+revision 1, command echo only. This does **not** establish batching as the cause
+or a fix for that timeout. The fixtures now prepare the same 68K UTF-16/136K UTF-8
+Unicode file through WorkspaceService and stream it with real Android `cat`,
+separating output/decoder verification from 34000 interactive shell evaluations.
+The original 8s deadline and all Unicode/offset/truncation assertions stay in place.
+
+The default PTY prompt is now `$ ` / `> ` rather than an empty environment value
+that Android's shell replaces with a very long directory prompt. The page shows a
+localized manual-terminal label. Original byte-identical terminal 1.0.0 packages
+upgrade to the HTML bundle while keeping activation and grants; modified packages
+and user-uninstalled seeds are preserved. Added restore/upgrade regressions.

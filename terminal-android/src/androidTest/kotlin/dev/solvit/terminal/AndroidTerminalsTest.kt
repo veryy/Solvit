@@ -140,9 +140,10 @@ class AndroidTerminalsTest {
     }
 
     @Test fun truncatedUnicodeOutputKeepsMonotonicPositionsAndWholeSurrogates() = runBlocking {
-        fixture { _, service, workspace, shell ->
+        fixture { ws, service, workspace, shell ->
             val session=service.open(workspace.id,shell.id)
-            service.input(workspace.id,session.id,"stty -echo; i=0; while [ \$i -lt 34000 ]; do printf '😀'; i=\$((i+1)); done; printf '__RING_%s__\\n' END\n")
+            ws.write(workspace.id,"pty-unicode.txt","😀".repeat(34000))
+            service.input(workspace.id,session.id,"stty -echo; cat pty-unicode.txt; printf '__RING_%s__\\n' END\n")
             val output=waitOutput(service,session.id,"__RING_END__")
             assertTrue(output.truncated);assertTrue(output.outputOffset>0);assertTrue(output.output.length<=65_536)
             assertFalse(output.output.first().isLowSurrogate())

@@ -115,7 +115,7 @@ Java_dev_solvit_terminal_NativePty_open(JNIEnv *env, jobject, jstring directory,
         if (strncmp(*entry, "TERM=", 5) && strncmp(*entry, "PS1=", 4) && strncmp(*entry, "PS2=", 4)) variables.emplace_back(*entry);
     }
     variables.emplace_back("TERM=xterm-256color");
-    variables.emplace_back("PS1="); variables.emplace_back("PS2=");
+    variables.emplace_back("PS1=$ "); variables.emplace_back("PS2=> ");
     std::vector<char *> environment;
     for (auto &variable : variables) environment.push_back(variable.data());
     environment.push_back(nullptr);

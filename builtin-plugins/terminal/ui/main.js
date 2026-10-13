@@ -2,7 +2,7 @@
 (() => {
   const $ = id => document.getElementById(id);
   let token = null, initialized = false, shells = [], selected = null, sequence = 0, closed = false, pendingCount = 0;
-  let theme = {}, labels = [], availableTerminals = [];
+  let theme = {}, labels = [], availableTerminals = [], manualLabel="Manual terminal";
   const sessions = new Map(), pending = new Map();
   const translations = {
     zh: ['交互终端','同一终端保留目录和环境。终端在本应用身份下运行。','打开终端','命令或交互输入','发送','关闭','Shell 名称','取消','创建','运行中','已关闭','部分旧输出已回收','输入过快，请稍后重试'],
@@ -70,7 +70,7 @@
     const previous=$('running').value;
     $('running').replaceChildren(...availableTerminals.map(session=>{
       const option=document.createElement('option');option.value=session.id;
-      option.textContent=`${shells.find(s=>s.id===session.shellId)?.name??'Shell'} · ${session.owner}${session.roleId?' · '+session.roleId:''}`;return option;
+      option.textContent=`${shells.find(s=>s.id===session.shellId)?.name??'Shell'} · ${session.human && session.owner==='builtin.terminal'?manualLabel:session.owner}`;return option;
     }));
     if(availableTerminals.some(s=>s.id===previous))$('running').value=previous;
     $('sessions').hidden=!availableTerminals.length;
@@ -121,6 +121,7 @@
   new ResizeObserver(()=>{const entry=sessions.get(selected);if(entry)fit(entry)}).observe($('terminals'));
   async function poll(){while(!closed){const entry=sessions.get(selected);if(entry?.active && pendingCount===0){try{update(entry,await rpc('status',{id:entry.id}))}catch(error){entry.active=false;entry.term.options.disableStdin=true;choose(selected);report(error)}}await new Promise(resolve=>setTimeout(resolve,200))}}
   window.solvitPageUpdate=state=>{
+    manualLabel=({zh:'手动终端',en:'Manual terminal',ja:'手動端末',ko:'수동 터미널',es:'Terminal manual',fr:'Terminal manuel'})[state.locale.split(/[-_]/)[0]]??'Manual terminal';
     token=state.token;theme=state.theme;labels=translations[state.locale.split(/[-_]/)[0]]??translations.en;
     for(const [key,value] of Object.entries(theme))document.documentElement.style.setProperty('--'+key,value);
     for(const [id,index] of [['title',0],['intro',1],['open',2],['send',4],['close',5],['name-label',6],['cancel',7],['create',8]])$(id).textContent=labels[index];

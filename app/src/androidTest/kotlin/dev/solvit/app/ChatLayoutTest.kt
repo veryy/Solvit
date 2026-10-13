@@ -927,7 +927,8 @@ class ChatLayoutTest {
                 }
             }
 
-            val large="stty -echo; i=0; while [ \$i -lt 34000 ]; do printf 'x '; i=\$((i+1)); done; printf '__LONG_%s__\\n' OK\n"
+            runBlocking { app.workspaces.write(human.workspaceId,"pty-large.txt","x ".repeat(34000)) }
+            val large="stty -echo; cat pty-large.txt; printf '__LONG_%s__\\n' OK\n"
             runBlocking {
                 withContext(ConversationContext(checkNotNull(human.chatId),human.workspaceId)+ToolInvocationContext(descriptor,
                     ToolCall("html-model-input","input",JSONObject().put("id",model.id).put("text",large).toString()))) {
