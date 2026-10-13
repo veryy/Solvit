@@ -3,6 +3,7 @@ type W={id:string;name:string};type Snapshot={workspaceId:string|null;workspaces
 type FileEntry={name:string;path:string;directory:boolean;bytes:number};
 type Draft={id:string;name:string;pluginId:string;version:string;sha256:string;permissions:string[]};
 type Button=Extract<PageNode,{kind:'button'}>;
+type TextChunk={text:string;offset:number;nextOffset:number;total:number;sha256:string};
 const labels={
  zh:['工作区','新建工作区','绑定已有工作区','名称','创建','绑定','解除绑定','目录','返回','刷新','新建文本','相对路径','文本内容（UTF-8，最多 4KB）','预览保存','确认操作','取消','上级目录','上一页','下一页','目录为空','此对话尚未绑定工作区','文件已保存','操作失败：','插件草稿','查看','安装并保持停用','安装会替换同 ID 插件并停用，启用时需另行授权。','所需权限','操作已完成','文件写入','Shell 名称','添加 Shell'],
  en:['Workspace','New workspace','Bind existing','Name','Create','Bind','Unbind','Directory','Back','Refresh','New text file','Relative path','UTF-8 text (maximum 4 KB)','Preview save','Confirm operation','Cancel','Parent','Previous','Next','Empty directory','This chat has no workspace','File saved','Operation failed: ','Plugin drafts','View','Install disabled','Installation replaces the same plugin id and leaves it disabled. Enable and authorize it separately.','Permissions','Operation completed','File write','Shell name','Add Shell'],
@@ -14,6 +15,7 @@ const labels={
 export function workspacePage(){
  let mode='home',directory='',offset=0,total=0,files:FileEntry[]=[],names:W[]=[],workspaceOffset=0,path='',textValue='',sha:string|null=null,originalPath='',message='';
  let pending:Extract<PageHostAction,{kind:'workspace.perform'}>|null=null,returnMode='home',drafts:Draft[]=[],selected:Draft|null=null,draftOffset=0,draftTotal=0,draftText='';
+ let editorId=0,chunk:TextChunk|null=null,phase='ready',uploadId='',uploadOffset=0;
  return async({locale,event}:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
   const t=labels[locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en;
   const api=ctx.workspacePage;if(!api)throw Error('Workspace page needs API12');
@@ -22,6 +24,12 @@ export function workspacePage(){
   const list=async()=>{const result=await api.query('list',{path:directory,offset}) as unknown as {files:FileEntry[];total:number};files=result.files;total=result.total};
   const loadDrafts=async()=>{drafts=await api.query('drafts') as unknown as Draft[]};
   const loadDraft=async()=>{if(!selected)return;const result=await api.query('draft',{id:selected.id,offset:draftOffset}) as unknown as {text:string;total:number;sha256:string};if(result.sha256!==selected.sha256)throw Error('Draft changed');draftText=result.text;draftTotal=result.total};
+  const readChunk=async(offset:number)=>{
+   const next=await api.query('readChunk',{path,offset,expectedSha256:sha}) as unknown as TextChunk;
+   if(next.offset!==offset || next.nextOffset<offset || next.nextOffset>next.total ||
+      next.text.length!==next.nextOffset-offset || sha!==null&&next.sha256!==sha)throw Error('File preview changed');
+   chunk=next;sha=next.sha256;phase=next.nextOffset===next.total?'ready':'reading';
+  };
   const prepare=(operation:Extract<PageHostAction,{kind:'workspace.perform'}>['operation'],args:JsonObject)=>{
    if(operation==='create'||operation==='createShell'){const name=String(args.name);if(!name.trim()||name.length>80||/[\u0000-\u001f\u007f]/.test(name))throw Error('Invalid name')}
    if(operation==='write'){
@@ -52,18 +60,38 @@ export function workspacePage(){
     else if(action==='file'){
      const file=files[Number(event.nodeId.slice(5))];if(!file)throw Error('Directory changed');
      if(file.directory){directory=file.path;offset=0;await list()}else{
-      const result=await api.query('read',{path:file.path}) as unknown as {text:string;sha256:string};
-      path=originalPath=file.path;textValue=result.text;sha=result.sha256;mode='editor';
+      path=originalPath=file.path;sha=null;editorId++;await readChunk(0);mode='editor';
      }
-    }else if(action==='new'){path=directory?directory+'/notes.txt':'notes.txt';originalPath=path;textValue='';sha=null;mode='editor'}
+    }else if(action==='new'){
+     path=directory?directory+'/notes.txt':'notes.txt';originalPath=path;textValue='';sha=null;editorId++;
+     chunk={text:'',offset:0,nextOffset:0,total:0,sha256:''};phase='ready';mode='editor';
+    }
+    else if(action==='readNext'&&mode==='editor'&&phase==='reading'&&chunk)await readChunk(chunk.nextOffset);
+    else if(action==='retryRead'&&mode==='editor'&&phase==='readFailed'&&chunk){phase='reading';await readChunk(chunk.nextOffset)}
     else if(action==='prepareSave'){
-     path=(event.fields.path??path).trim();textValue=event.fields.content??textValue;
-     prepare('write',{path,text:textValue,expectedSha256:path===originalPath?sha:null});
+     if(mode!=='editor'||phase!=='ready')throw Error('Wait for the complete file');
+     path=(event.fields.path??path).trim();
+     const length=Number(event.fields.uploadTotal);
+     if(!Number.isInteger(length)||length<0||length>262144)throw Error('Invalid document size');
+     const draft=await api.query('editBegin',{path,expectedSha256:path===originalPath?sha:null,total:length}) as unknown as {draftId:string};
+     uploadId=draft.draftId;uploadOffset=0;phase='uploading';
+    }else if(action==='uploadChunk'&&mode==='editor'&&phase==='uploading'){
+     const next=await api.query('editAppend',{draftId:uploadId,offset:Number(event.fields.uploadOffset),text:event.fields.content??''}) as unknown as {offset:number};
+     uploadOffset=next.offset;
+    }else if(action==='finishUpload'&&mode==='editor'&&phase==='uploading'){
+     const draft=await api.query('editFinish',{draftId:uploadId}) as unknown as {draftId:string;path:string;sha256:string};
+     prepare('writeDraft',{draftId:draft.draftId,path:draft.path,sha256:draft.sha256});phase='review';
     }else if(action==='confirm'&&mode==='preview'&&pending){
      snapshot=await api.perform() as unknown as Snapshot;const operation=pending.operation;pending=null;message=t[28];
-     mode=operation==='write'?'list':operation==='installDraft'?'drafts':'home';
+     mode=operation==='write'||operation==='writeDraft'?'list':operation==='installDraft'?'drafts':'home';
      if(mode==='list')await list();if(mode==='drafts')await loadDrafts();
-    }else if(action==='cancel'){mode=returnMode;pending=null}
+    }else if(action==='cancel'){
+     if(pending?.operation==='writeDraft'){await api.query('editDiscard',{draftId:uploadId});uploadId='';phase='ready'}
+     mode=returnMode;pending=null;
+    }
+    else if(action==='cancelUpload'&&mode==='editor'&&(phase==='uploading'||phase==='uploadFailed')){
+     await api.query('editDiscard',{draftId:uploadId});uploadId='';phase='ready';
+    }
     else if(action==='backToList'){mode='list';await list()}
     else if(action==='drafts'){mode='drafts';await loadDrafts()}
     else if(action==='draft'){selected=drafts[Number(event.nodeId.slice(6))];if(!selected)throw Error('Draft changed');draftOffset=0;await loadDraft();mode='draft'}
@@ -71,7 +99,11 @@ export function workspacePage(){
     else if(action==='draftNext'){draftOffset+=16000;await loadDraft()}
     else if(action==='prepareInstall'&&selected)prepare('installDraft',{id:selected.id,sha256:selected.sha256});
     await refresh();
-   }catch(error){message=t[22]+(error instanceof Error?error.message:String(error))}
+   }catch(error){
+    if(mode==='editor'&&phase==='reading')phase='readFailed';
+    else if(mode==='editor'&&phase==='uploading')phase='uploadFailed';
+    message=t[22]+(error instanceof Error?error.message:String(error));
+   }
   }
   const nodes:PageNode[]=[];const footer:Button[]=[];
   const text=(id:string,value:string,tone:'body'|'title'|'caption'='body'):PageNode=>({id,kind:'text',text:value,tone});
@@ -93,11 +125,23 @@ export function workspacePage(){
    files.forEach((f,i)=>nodes.push({id:`entry_${i}`,kind:'card',children:[text(`file_name_${i}`,(f.directory?'▸ ':'')+f.name),text(`file_size_${i}`,f.directory?t[7]:`${f.bytes} B`,'caption'),button(`file_${i}`,t[24],'file')]}));
    footer.push(button('home',t[8]),button('new',t[10]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
   }else if(mode==='editor'){
-   nodes.push({id:'path',kind:'field',label:t[11],value:path},{id:'content',kind:'field',label:t[12],value:textValue,multiline:true});
-   footer.push(button('backToList',t[8]),button('prepareSave',t[13]));
+   nodes.push(text('document_meta',JSON.stringify({editorId,path,phase,sha256:sha,offset:chunk?.offset??0,
+    nextOffset:chunk?.nextOffset??0,total:chunk?.total??0,draftId:uploadId,uploadOffset}),'caption'),
+    text('document_chunk',phase==='reading'||phase==='ready'?chunk?.text??'':''),
+    {id:'path',kind:'field',label:t[11],value:path},
+    {id:'content',kind:'field',label:'Document chunk',value:'',multiline:true},
+    {id:'uploadOffset',kind:'field',label:'Upload offset',value:String(uploadOffset)},
+    {id:'uploadTotal',kind:'field',label:'Document length',value:'0'},
+    {...button('readNext','Load','readNext'),enabled:phase==='reading'},
+    {...button('uploadChunk','Upload','uploadChunk'),enabled:phase==='uploading'},
+    {...button('finishUpload','Prepare save','finishUpload'),enabled:phase==='uploading'});
+   if(phase==='readFailed')nodes.push(button('retryRead',t[9]));
+   footer.push(button('backToList',t[8]),phase==='uploading'||phase==='uploadFailed'?button('cancelUpload',t[15]):
+    {...button('prepareSave',t[13]),enabled:phase==='ready'});
   }else if(mode==='preview'&&pending){
    nodes.push(text('preview',t[14],'title'));
    if(pending.operation==='write'){nodes.push(text('target',String(pending.arguments.path)),text('contents',String(pending.arguments.text)))}
+   else if(pending.operation==='writeDraft')nodes.push(text('target',String(pending.arguments.path)),text('save_sha',String(pending.arguments.sha256),'caption'));
    else nodes.push(text('operation',JSON.stringify(pending.arguments,null,2)));
    if(pending.operation==='installDraft')nodes.push(text('warning',t[26]));
    footer.push(button('cancel',t[15]),{...button('confirm',t[14]),hostAction:pending});
