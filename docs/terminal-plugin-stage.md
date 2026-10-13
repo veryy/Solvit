@@ -53,3 +53,11 @@ The interactive workspace tab now embeds the immutable APK HTML plugin even when
 AI plugin tools are disabled. Installed/downloaded plugin pages use the same generic
 container and scoped capability. Ordinary finite-command history remains native
 compatibility UI and is not claimed migrated.
+
+The immutable manual page also retains access to AI-created terminals in the
+**same chat**: it lists only scoped session metadata and requires a separate
+native confirmation before viewing output or sending input. Confirmed session IDs
+are carried in a native page authority and cannot authorize another chat, even
+when its workspace is shared. Downloaded pages can only attach their own plugin's
+sessions. Model tools never inherit these human grants. Added native and actual
+HTML/PTY regressions for this path instead of silently removing the old capability.

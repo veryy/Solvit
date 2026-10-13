@@ -142,12 +142,16 @@ fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
                                     suspend fun authorize() { check(live.get() && requestToken == latestToken && !latestBusy) }
                                     authorize()
                                     var confirmed = false
-                                    if (operation == "open" || operation == "createShell") {
+                                    if (operation == "open" || operation == "createShell" || operation == "attach") {
                                         val detail = if (operation == "open") {
                                             val names = Json.parseToJsonElement(access.request("snapshot", "{}", authorize = { authorize() })).jsonObject
                                             val name = names.getValue("shells").jsonArray.firstOrNull { it.jsonObject["id"] == args["shellId"] }
                                                 ?.jsonObject?.get("name")?.jsonPrimitive?.content ?: error("Shell does not exist")
                                             "允许此插件页面控制当前聊天的「$name」终端？页面可发送命令和交互输入；关闭页面后停止接受输入，Shell 会保留到明确关闭或应用退出。"
+                                        } else if (operation == "attach") {
+                                            val names=Json.parseToJsonElement(access.request("snapshot", "{}", authorize = { authorize() })).jsonObject
+                                            val candidate=names.getValue("terminals").jsonArray.single { it.jsonObject["id"]==args["id"] }.jsonObject
+                                            "允许此页面查看并控制当前聊天的 ${candidate.getValue("owner").jsonPrimitive.content} 终端？页面将能发送命令、交互输入及关闭会话。"
                                         } else "在当前工作区创建 Shell：${args["name"]?.jsonPrimitive?.content?.take(80).orEmpty()}"
                                         val answer = CompletableDeferred<Boolean>()
                                         val question = TerminalPageConfirmation("终端授权", detail, answer)

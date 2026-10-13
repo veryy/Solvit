@@ -2,7 +2,7 @@
 (() => {
   const $ = id => document.getElementById(id);
   let token = null, initialized = false, shells = [], selected = null, sequence = 0, closed = false, pendingCount = 0;
-  let theme = {}, labels = [];
+  let theme = {}, labels = [], availableTerminals = [];
   const sessions = new Map(), pending = new Map();
   const translations = {
     zh: ['交互终端','同一终端保留目录和环境。终端在本应用身份下运行。','打开终端','命令或交互输入','发送','关闭','Shell 名称','取消','创建','运行中','已关闭','部分旧输出已回收','输入过快，请稍后重试'],
@@ -19,7 +19,7 @@
     const id = `t${++sequence}`;
     return new Promise((resolve, reject) => {
       // Opening may wait for a human; don't expire an unanswered permission prompt.
-      const timer = setTimeout(() => { if (pending.delete(id)) { pendingCount--; reject(Error('Terminal request timed out')); } }, operation === 'open' || operation === 'createShell' ? 120000 : 15000);
+      const timer = setTimeout(() => { if (pending.delete(id)) { pendingCount--; reject(Error('Terminal request timed out')); } }, operation === 'open' || operation === 'createShell' || operation === 'attach' ? 120000 : 15000);
       pending.set(id, {resolve, reject, timer}); pendingCount++;
       try { window.solvitHost.postMessage(JSON.stringify({type:'terminal',token,id,operation,arguments:args})); }
       catch (error) { clearTimeout(timer);pending.delete(id);pendingCount--;reject(error); }
@@ -65,11 +65,22 @@
     $('command').disabled=!entry?.active;$('send').disabled=!entry?.active;$('close').disabled=!entry?.active;
     if (entry) { fit(entry);update(entry,{id:entry.id,outputOffset:entry.position,output:'',active:entry.active,exitCode:null}); }
   }
+  function terminalChoices(state) {
+    availableTerminals=state.terminals;
+    const previous=$('running').value;
+    $('running').replaceChildren(...availableTerminals.map(session=>{
+      const option=document.createElement('option');option.value=session.id;
+      option.textContent=`${shells.find(s=>s.id===session.shellId)?.name??'Shell'} · ${session.owner}${session.roleId?' · '+session.roleId:''}`;return option;
+    }));
+    if(availableTerminals.some(s=>s.id===previous))$('running').value=previous;
+    $('sessions').hidden=!availableTerminals.length;
+  }
   async function refreshShells() {
     const state=await rpc('snapshot');shells=state.shells;
     $('shells').replaceChildren(...shells.map(shell => {
       const button=document.createElement('button');button.textContent=shell.name;button.dataset.id=shell.id;button.onclick=()=>choose(shell.id);return button;
     }));
+    terminalChoices(state);
     choose(shells.some(s=>s.id===selected)?selected:shells[0]?.id ?? null);$('open').disabled=!selected;
   }
   async function open() {
@@ -77,6 +88,10 @@
     const shellId=selected;$('open').disabled=true;
     try {
       const result=await rpc('open',{shellId});
+      acceptSession(shellId,result);
+    } catch(error){report(error)} finally{$('open').disabled=!selected}
+  }
+  function acceptSession(shellId,result) {
       let entry=sessions.get(shellId);
       if (!entry || entry.id!==result.id) {
         if (entry) { entry.term.dispose();entry.container.remove(); }
@@ -87,9 +102,10 @@
         term.onData(text=>{ if(entry.active) rpc('input',{id:entry.id,text}).then(result=>update(entry,result)).catch(report); });
       }
       update(entry,result);choose(shellId);fit(entry);
-    } catch(error){report(error)} finally{$('open').disabled=!selected}
   }
   $('open').onclick=open;
+  $('refresh').onclick=()=>refreshShells().catch(report);
+  $('attach').onclick=async()=>{const candidate=availableTerminals.find(s=>s.id===$('running').value);if(!candidate)return;try{acceptSession(candidate.shellId,await rpc('attach',{id:candidate.id}))}catch(error){report(error)}};
   $('keys').addEventListener('click',event=>{
     const key=event.target.dataset.key,entry=sessions.get(selected);
     if(!key || !entry?.active)return;
@@ -108,6 +124,7 @@
     token=state.token;theme=state.theme;labels=translations[state.locale.split(/[-_]/)[0]]??translations.en;
     for(const [key,value] of Object.entries(theme))document.documentElement.style.setProperty('--'+key,value);
     for(const [id,index] of [['title',0],['intro',1],['open',2],['send',4],['close',5],['name-label',6],['cancel',7],['create',8]])$(id).textContent=labels[index];
+    $('attach').textContent=state.locale.startsWith('zh')?'连接已有终端':'Connect session';
     $('command').placeholder=labels[3];$('command').setAttribute('aria-label',labels[3]);
     for(const entry of sessions.values())entry.term.options.theme={background:theme.surface,foreground:theme.onSurface,cursor:theme.primary};
     if(!initialized){initialized=true;refreshShells().catch(report);poll()}

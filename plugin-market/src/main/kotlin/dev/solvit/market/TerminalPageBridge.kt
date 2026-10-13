@@ -9,7 +9,7 @@ import org.json.JSONObject
 
 /** Native identities come from the host, never from HTML request fields. */
 class TerminalPageBridge(private val workspace: WorkspaceService, private val terminals: TerminalService,
-    private val chatId: String, private val owner: String,
+    private val chatId: String, private val owner: String, private val allowModelSessions: Boolean = false,
     private val activeChat: () -> String?) : PageTerminalAccess {
     private val binding = checkNotNull(workspace.state.value.bindings[chatId]) { "当前聊天没有工作区" }
     private val mutex = Mutex()
@@ -26,7 +26,7 @@ class TerminalPageBridge(private val workspace: WorkspaceService, private val te
             "snapshot" -> emptySet(); "open" -> setOf("shellId")
             "createShell" -> setOf("name"); "input" -> setOf("id", "text")
             "resize" -> setOf("id", "rows", "columns")
-            "status", "interrupt", "close" -> setOf("id")
+            "status", "interrupt", "close", "attach" -> setOf("id")
             else -> error("Unknown terminal page operation")
         }
         require(args.keys().asSequence().toSet() == expected)
@@ -35,11 +35,15 @@ class TerminalPageBridge(private val workspace: WorkspaceService, private val te
         fun string(key: String, max: Int): String = (args.get(key) as? String ?: error("Invalid $key")).also {
             require(it.isNotEmpty() && it.length <= max && '\u0000' !in it)
         }
-        val context = TerminalPageAuthority(owner, chatId) { target -> check(target == binding); authority() }
+        val context = TerminalPageAuthority(owner, chatId, granted.toSet()) { target -> check(target == binding); authority() }
         val result = withContext(context) {
             when (operation) {
                 "snapshot" -> JSONObject().put("shells", JSONArray(workspace.state.value.shells.filter { it.workspaceId == binding }
-                    .map { JSONObject().put("id",it.id).put("name",it.name) })).toString()
+                    .map { JSONObject().put("id",it.id).put("name",it.name) }))
+                    .put("terminals", JSONArray(terminals.sessions.value.filter { session -> session.active && session.chatId == chatId &&
+                        session.workspaceId == binding && (allowModelSessions || session.owner == owner) }
+                        .map { JSONObject().put("id",it.id).put("shellId",it.shellId).put("owner",it.owner)
+                            .put("roleId",it.roleId ?: JSONObject.NULL).put("human",it.human) })).toString()
                 "createShell" -> {
                     check(confirmed) { "Shell creation requires native confirmation" }
                     val name = string("name",80)
@@ -47,6 +51,19 @@ class TerminalPageBridge(private val workspace: WorkspaceService, private val te
                         check((ws == null || ws == binding) && (chat == null || chat == chatId)); authority()
                     }) { workspace.createShell(binding,name) }
                     JSONObject().put("ok",true).toString()
+                }
+                "attach" -> {
+                    check(confirmed) { "Attaching a terminal requires native confirmation" }
+                    val id=string("id",128)
+                    val candidate=terminals.sessions.value.single { it.id==id }
+                    check(candidate.active && candidate.chatId==chatId && candidate.workspaceId==binding &&
+                        (allowModelSessions || candidate.owner==owner)) { "终端不属于当前聊天" }
+                    granted+=id
+                    try {
+                        withContext(TerminalPageAuthority(owner,chatId,granted.toSet()) { target -> check(target==binding);authority() }) {
+                            json(terminals.status(binding,id)).toString()
+                        }
+                    } catch (error:Throwable) { granted-=id;throw error }
                 }
                 "open" -> {
                     check(confirmed) { "Opening a terminal requires native confirmation" }

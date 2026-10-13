@@ -914,6 +914,25 @@ class ChatLayoutTest {
             rule.waitUntil(8000) { displayed("__SECOND_empty__") }
             js("document.getElementById('shells').children[0].click()")
             rule.waitUntil(8000) { displayed("ui-result:retained") }
+
+            // Preserve the existing ability to inspect AI-created sessions in this chat.
+            val human=app.terminals.sessions.value.first { it.owner==TERMINAL_OWNER && it.chatId!=null && it.active }
+            val modelOwner="test.html-terminal.model"
+            val descriptor=ToolDescriptor(name="test",description="test",inputSchema="{}",pluginId=modelOwner,
+                capabilities=setOf("workspace","shell"),executionMode=ExecutionMode.APP)
+            val model=runBlocking {
+                withContext(ConversationContext(checkNotNull(human.chatId),human.workspaceId)+ToolInvocationContext(descriptor,
+                    ToolCall("html-model-open","open",JSONObject().put("shellId",human.shellId).toString()))) {
+                    app.terminals.open(human.workspaceId,human.shellId)
+                }
+            }
+            js("document.getElementById('refresh').click()")
+            rule.waitUntil(8000) { js("Array.from(document.getElementById('running').children).some(e=>e.textContent.includes('test.html-terminal.model'))") == "true" }
+            js("document.getElementById('running').value=${kotlinx.serialization.json.JsonPrimitive(model.id)};document.getElementById('attach').click()")
+            rule.waitUntil(8000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("terminal_page_allow").performClick()
+            command("stty -echo; printf '__MODEL_PAGE_%s__\\n' OK")
+            rule.waitUntil(8000) { displayed("__MODEL_PAGE_OK__") }
             screenshot("workspace-interactive-html-pty")
             js("document.getElementById('close').click()")
             rule.waitUntil(8000) { js("document.getElementById('close').disabled") == "true" }

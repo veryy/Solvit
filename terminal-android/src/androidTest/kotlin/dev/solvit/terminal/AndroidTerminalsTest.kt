@@ -107,7 +107,7 @@ class AndroidTerminalsTest {
             val output = waitOutput(service, terminal.id, "__SIZE_OK__")
             assertTrue(output.output.contains("37 91"))
             assertEquals(37, output.rows); assertEquals(91, output.columns)
-            val other = TerminalPageAuthority(TERMINAL_OWNER, second) {}
+            val other = TerminalPageAuthority(TERMINAL_OWNER, second, setOf(terminal.id)) {}
             try { withContext(other) { service.input(workspace.id, terminal.id, "echo foreign\n") }; fail("Another chat must not write") }
             catch (_: IllegalStateException) {}
             val separate = withContext(other) { service.open(workspace.id, shell.id) }
@@ -119,6 +119,15 @@ class AndroidTerminalsTest {
                     ToolCall("call", "status", JSONObject().put("id",terminal.id).toString()))) { service.status(workspace.id,terminal.id) }
                 fail("Model tools must not reuse a human page grant")
             } catch (_: IllegalStateException) {}
+            val modelOwner="test.pty.model"
+            val modelDescriptor=descriptor.copy(pluginId=modelOwner)
+            val model=withContext(ConversationContext(first,workspace.id)+ToolInvocationContext(modelDescriptor,
+                ToolCall("model","open",JSONObject().put("shellId",shell.id).toString()))) { service.open(workspace.id,shell.id) }
+            try { withContext(authority) { service.status(workspace.id,model.id) };fail("Unconfirmed page must not control model session") }
+            catch (_: IllegalStateException) {}
+            val adopted=TerminalPageAuthority(TERMINAL_OWNER,first,setOf(model.id)) { check(allowed) }
+            withContext(adopted) { service.input(workspace.id,model.id,"printf '__ADOPT_%s__\\n' OK\n") }
+            assertTrue(waitOutput(service,model.id,"__ADOPT_OK__").active)
             allowed = false
             try { withContext(authority) { service.input(workspace.id,terminal.id,"echo revoked\n") }; fail("Revoked page must not write") }
             catch (_: IllegalStateException) {}

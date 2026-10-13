@@ -27,13 +27,13 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
     private fun update(entry: Entry, transform: (TerminalSession) -> TerminalSession) = synchronized(snapshots) {
         entry.state = transform(entry.state); publish()
     }
-    private data class Identity(val owner: String, val role: String?, val chat: String?, val human: Boolean)
+    private data class Identity(val owner: String, val role: String?, val chat: String?, val human: Boolean, val controlledIds: Set<String> = emptySet())
     private suspend fun verify(context: kotlin.coroutines.CoroutineContext, workspaceId: String,
         operation: String, id: String, text: String? = null, claim: Boolean = true): Identity {
         context[TerminalPageAuthority]?.let { page ->
             page.verify(workspaceId)
             check(workspace.state.value.bindings[page.chatId] == workspaceId) { "终端页面的工作区绑定已改变" }
-            return Identity(page.owner, null, page.chatId, true)
+            return Identity(page.owner, null, page.chatId, true, page.controlledIds)
         }
         val invocation = context[ToolInvocationContext] ?: return Identity(TERMINAL_OWNER, null, null, true)
         val conversation = context[ConversationContext] ?: error("终端调用缺少对话工作区")
@@ -134,8 +134,9 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
     private fun find(workspaceId: String, id: String, identity: Identity, nativeUser: Boolean): Entry = synchronized(snapshots) {
         val entry = entries[id] ?: error("终端不存在或历史已回收")
         check(entry.state.workspaceId == workspaceId)
-        check(nativeUser || entry.state.owner == identity.owner && entry.state.roleId == identity.role &&
-            entry.state.chatId == identity.chat && entry.state.human == identity.human) { "终端属于其他聊天、插件或角色" }
+        check(nativeUser || entry.state.chatId == identity.chat && (
+            entry.state.owner == identity.owner && entry.state.roleId == identity.role && entry.state.human == identity.human ||
+            identity.human && id in identity.controlledIds)) { "终端属于其他聊天、插件或角色" }
         entry
     }
     override suspend fun status(workspaceId: String, id: String): TerminalSession {

@@ -26,7 +26,7 @@ val TerminalServiceKey = ServiceKey("terminal.pty", TerminalService::class)
 
 /** Host-created human page authority. Scripts cannot supply or change conversation identity. */
 class TerminalPageAuthority(val owner: String, val chatId: String,
-    val verify: suspend (workspaceId: String) -> Unit) :
+    val controlledIds: Set<String> = emptySet(), val verify: suspend (workspaceId: String) -> Unit) :
     kotlin.coroutines.AbstractCoroutineContextElement(Key) {
     companion object Key : kotlin.coroutines.CoroutineContext.Key<TerminalPageAuthority>
 }
