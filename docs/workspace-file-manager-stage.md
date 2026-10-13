@@ -9,3 +9,7 @@
 38450315653/e8e59a7实际编译并运行workspace-android23项，新增3项均因未实现分段读取失败，其他20项通过。现在原生读取完整严格UTF-8并分割最多4096 UTF-16单元，内容SHA校验持续读取，任何分段起点不得是低代理位，前后复核会话/工作区权限和取消。增加读取中撤权必须在返回前拒绝的断言；旧4KB编辑接口暂保留，后续插件预览与编辑事务不能被本次原生阶段替代。
 
 原生分段读取38450717587/f88ac40成功；下载11841310113（71,541字节）并核对CRC/实际XML，新增3项WorkspacePreviewTest全部通过，完整契约范围无失败/错误/跳过，app编译通过。此证据只覆盖原生读取与原契约，不代表插件页面、编辑、新建目录/重命名/删除、Git或真实模型任务已实现。后续继续API桥、插件自绘文件树/代码预览及编辑事务，保留完整工作区范围。
+
+文件编辑组件继续核对Operit同版本workspace/editor/CodeEditor.kt（45–125）：其CodeEditor通过AndroidView加载NativeCodeEditor/CanvasCodeEditorView，并非JS网页编辑器。本项目按用户要求让插件自带HTML/JS工作台，计划采用CodeMirror的浏览器编辑组件，而不把Operit原生控件直接搬进插件。官方基本示例https://codemirror.net/examples/basic/与只读示例https://codemirror.net/examples/readonly/提供EditorView、行号、语法高亮、撤销/重做与只读模式；https://codemirror.net/声明MIT许可和移动端支持。正式接入还需锁定依赖、分发许可、远程打包与实际Android输入/选择/保存/关闭重开验收，未仅凭官方说明宣称已经适配完成。
+
+实现顺序：将原生分段读取接入受当前对话约束的页面桥；插件完整重建文件文本并以CodeMirror只读预览/可编辑模式呈现；保存使用分段暂存和一次带原始文件SHA的原子提交，不能逐段覆盖目标文件。新建目录/重命名/删除与文件树在同一插件工作台呈现，再接本地Git状态/暂存/提交和GitHub远程操作。当前原生读取仍未交付页面或编辑能力，全范围继续。
