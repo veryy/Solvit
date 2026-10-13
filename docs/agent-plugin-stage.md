@@ -18,4 +18,24 @@ TS `AgentContext` 只提供单个 `model(round)`、`tool(index)`、`settle(round
 
 ## 验证
 
-源码已新增注册选择/冲突、取消与逆序清理等待、旧注销句柄、清单门禁、真实QuickJS隔离实例、启用/停用和TS包构建回归。远程Android/TS验证与产物生成待实际报告；不运行本地构建或测试。
+源码已新增注册选择/冲突、取消与完整宿主清理等待、旧注销句柄、清单门禁、真实QuickJS隔离实例、启用/停用和TS包构建回归。远程335单元、Lint、固定签名及APK在38363432662通过，XML实际取回核对；模拟器47/48通过，原工作区终端用例在创建入口等不到表单，失败先于Shell执行。原辅助方法只等待文字存在即可点击，未等待按钮启用；已改为等待/选择启用入口，原创建/真实Shell/文件页断言保留，完整运行38365614238已成功，实际48模拟器均0失败/错误/跳过。原工作区终端用例9.934s通过，创建/真实Shell输出/文件页断言保留；已查看取回的真实Shell截图。此结果支持入口就绪竞争的修正，不证明排除其他全部UI时序风险。
+
+首轮38361720244新Robolectric市场测试缺少Android Keystore实现，按既有测试注入AES fixture修正；38362375620发现Robolectric Application访问方法无类型参数，已按实际API修正。中间推送导致旧构建取消，取消不算通过。没有本地构建或测试。
+
+
+## 市场部署
+
+远程TS任务 [38361158771](https://github.com/veryy/Solvit/actions/runs/38361158771) 成功：typecheck、84 SDK测试、2市场测试与所有生成包和源码一致性通过。生成任务38360885820取回示例包，2271 bytes，SHA-256 `8b90af409ab889496a3c568d29a6a29be56cb203733c5544ad2c534ae88c7925`；其他包逐个字节比较一致，未改旧版本。
+
+市场已部署新的API14过滤和示例包，回滚备份 `/opt/solvit-market/.backup-agent-api14-1791876340413`。实际公网HTTPS读取hostApi1..14：旧API1..13目录与部署前完全相同；仅14显示Agent示例，下载字节、长度和SHA-256与提交包一致。服务active及health通过。首次部署使用服务器不支持的curl重试参数，已按失败路径回滚；修正普通健康请求后部署成功，没有跳过健康或TLS校验。市场网页仍展示正式版支持的API，无改为候选下载诱导。
+
+
+## 最终候选验证
+
+功能与测试源码 [90ec20d](https://github.com/veryy/Solvit/commit/90ec20dba7fc8ec923554c22c7cb30f0c5ef097a)，0.23.1/build46/API14。[完整Android Actions](https://github.com/veryy/Solvit/actions/runs/38365614238)成功。实际XML335单元/48模拟器全部0失败/错误/跳过，Lint、固定签名APK、旧正式版覆盖升级配置/聊天保留通过；335中新增6个单元用例，现有HTTP工具回传改为注册插件提供Agent。
+
+[APK产物](https://github.com/veryy/Solvit/actions/runs/38365614238/artifacts/11796937877)需登录GitHub。23,522,373 bytes；SHA-256 `143fb7472787526d0d6f498c4fbb7e85ccc31beefa7dfc177e80b715a04efe7a`。下载分段一次提前断连，仅重取失败分段后ZIP/APK CRC通过；8个内置插件和包内Agent驱动与源码字节一致。固定证书 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。
+
+![修正入口等待后真实Shell命令输出与退出码](screenshots/0.23.1/workspace-shell-real-process.png)
+
+实际市场回归使用远程生成的TS包+真实QuickJS+加密fixture存储；HTTP模型服务仍受控，未进行真实模型或真机验证。GitHub Secrets元数据中仍缺SOLVIT_MODEL_API_KEY，既有真实模型入口尚不能运行。公网搜索质量发布门禁未通过，因此只交付候选，完整产品路线保持。

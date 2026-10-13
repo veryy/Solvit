@@ -116,3 +116,14 @@ and facts together, so an interrupted task can be retried without duplicate fact
 `input.locale` 有 zh/en/ja/ko/es/fr；`input.event` 包含当前节点派生的 action、输入值及校验过的表单字段。关闭、停用、卸载或更新会取消对应实例；事件有显示版本保护，数据写入锁内重新检查授权。页面不提供隐式 Shell、工作区或模型调用权限。下载页面须先启用并授予声明权限；停用时的内置记忆管理只运行 APK 固定代码。
 
 `ctx.jobs.list({cursor})` 仅在页面中提供本插件的任务元数据，最多 20 条；`available:false` 表示服务缺失。`ctx.jobs.perform()` 不接受目标参数，只执行当前按钮由宿主确认的 `hostAction`，每次事件只能消费一次。重试/删除/停止声明具体 jobId 和 attempt，删除还声明预期 status；完成清理使用 `postTurn.cleanup`。宿主始终展示自己的费用/删除/停止提示，插件的文案不能替换确认内容。任务列表、详情和导航仍由 TS 提供。实际实现见 [记忆任务页面](../builtin-plugins/memory/task-pages.ts)；重试不会启用插件、授予模型权限或直接等待推理结果。
+
+
+## API14：可安装 Agent 步骤策略
+
+最低宿主为0.23.1候选，示例见 [agent/index.ts](../plugin-examples/agent/index.ts) 和 [manifest](../plugin-examples/agent/manifest.json)。声明 `apiVersion:14`、`permissions:["agent"]`、`agentEnabledSetting:"selected"`；selected必须是默认关闭、非pageManaged的boolean配置字段。安装后先在宿主配置中打开接管，再授权启用；已有启用实例须先停用才能修改配置。插件页面不能自行写入这个开关。
+
+`definePlugin({tools:{},async agent({maxRounds},ctx){...}})` 的ctx是独立 `AgentContext`，不是工具的PluginContext。每轮全新实例，不共享activate/deactivate状态；只有model(round)、tool(index)、settle(round)、finish(round)四个异步操作。model返回本步骤的工具数量，逐个tool完成后必须settle；没有工具时finish。宿主限制步骤/调用数并继续执行权限确认、角色上下文、原生协议转录和持久结算。具体循环见示例；错误或跳步不能绕过宿主校验。
+
+当前驱动选择影响全部聊天，多个策略同时打开时会报错；无选中策略使用包内JS。停用、卸载、替换取消其正在运行的轮次并等待清理。第三方Agent实例限8MiB内存、256KiB栈与10分钟评估期限；不能直接访问API Key、网络、存储、模型消息或工具原始结果。尚未开放消息投影、模型流RPC或JS Provider/存储替换，不能把本接口当作完整DSH/Cordis内核。
+
+SDK构建任务同时生成 `market-server/packages/example.agent.solvit.json`，不预装到Android主APK。阶段证据见 [Agent插件阶段](../docs/agent-plugin-stage.md)。

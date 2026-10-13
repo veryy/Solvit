@@ -19,11 +19,11 @@
 
 [0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 仍是正式最新版，验证范围见 [版本说明](docs/release-0.21.3.md)。
 
-当前 [0.23.0 候选](docs/release-0.23.0.md)（build45/API13）让包内JS实际调度模型步骤、工具执行和结果结算，Android聊天必须使用这个驱动；角色上下文、Provider、存储、权限与资源校验仍由宿主服务承担。插件HTML/JS绘制记忆图谱、后台任务、多MCP、Skills、工作目录与xterm.js终端。
+当前 [0.23.1 候选](docs/release-0.23.1.md)（build46/API14）支持可安装JS/TS Agent步骤策略，明确授权并打开默认关闭配置才接管聊天；停用/卸载会取消并等待完整轮次清理。角色、Provider、存储、权限与资源核验仍由宿主服务承担。插件HTML/JS绘制记忆图谱、后台任务、多MCP、Skills、工作目录与xterm.js终端。
 
-[完整Android验证](https://github.com/veryy/Solvit/actions/runs/38357742717)成功，实际329单元、48模拟器测试，均0失败/错误/跳过，Lint和固定签名APK通过。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38357742717/artifacts/11794325405)需登录GitHub下载。
+[完整Android验证](https://github.com/veryy/Solvit/actions/runs/38365614238)成功，实际335单元、48模拟器测试，均0失败/错误/跳过，Lint和固定签名APK通过。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38365614238/artifacts/11796937877)需登录GitHub下载。市场“JS Agent 步骤示例”先安装、配置接管开关，再授权启用；同一时间只选择一个Agent，配置前须停用。开发接口见[SDK API14](plugin-sdk/README.md)。
 
-公开搜索发布门禁仍失败，未发布正式Release。真实模型角色/流式/工具选择、实际任务、真机、第三方Agent协议和完整JS内核仍待验收或实现，见[JS Agent阶段](docs/javascript-agent-stage.md)、[真实模型验收](docs/real-model-acceptance.md)与[完整产品进度](docs/product-roadmap.md)。
+公开搜索发布门禁仍失败，未发布正式Release。真实模型角色/流式/工具选择、实际任务、真机、按会话选择驱动、JS消息投影/Provider/存储替换和完整JS内核仍待验收或实现，见[Agent插件阶段](docs/agent-plugin-stage.md)、[真实模型验收](docs/real-model-acceptance.md)与[完整产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
@@ -69,7 +69,7 @@
 
 ## MCP 连接
 
-当前 0.23.0 候选内置 TS MCP 插件和插件自绘 HTML 管理页。支持最多 8 个具名 HTTPS 连接、独立会话与启停、标准 HTTP mcpServers 配置导入及加密凭据。进入“插件 → 已安装 → MCP 连接”管理；启用 network 后，聊天可按服务器名称发现及调用工具，仍经过工具授权。当前已发布 APK 仍是单连接版。
+当前 0.23.1 候选内置 TS MCP 插件和插件自绘 HTML 管理页。支持最多 8 个具名 HTTPS 连接、独立会话与启停、标准 HTTP mcpServers 配置导入及加密凭据。进入“插件 → 已安装 → MCP 连接”管理；启用 network 后，聊天可按服务器名称发现及调用工具，仍经过工具授权。当前已发布 APK 仍是单连接版。
 
 实际可测试的只读演示地址：`https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空，提供回显和服务器时间。协议支持与边界见 [MCP 插件说明](docs/mcp.md)。[0.5.1 APK 已发布](https://github.com/veryy/Solvit/releases/tag/v0.5.1)，[45 个 Android 测试、Lint、APK、TS、市场和实际 HTTPS MCP 验证通过](https://github.com/veryy/Solvit/actions/runs/38107628413)。角色绑定、OAuth、stdio 和完整服务接入继续实现。
 
