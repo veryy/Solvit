@@ -34,7 +34,10 @@ for ((solvit_diagnostic_iteration=1; solvit_diagnostic_iteration<=solvit_diagnos
   timeout 180s adb shell am instrument -w -e class "$solvit_diagnostic_class" dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$solvit_diagnostic_result"
   if ! grep -F "$solvit_diagnostic_expected" "$solvit_diagnostic_result" >/dev/null; then
     # Preserve blocked ART threads before collecting logs; do not hide the failing result.
-    timeout 10s adb shell run-as dev.solvit.app sh -c 'kill -3 $(pidof dev.solvit.app)' || true
+    solvit_diagnostic_pid=$(timeout 5s adb shell pidof dev.solvit.app | tr -d '\r')
+    if [[ "$solvit_diagnostic_pid" =~ ^[0-9]+$ ]]; then
+      timeout 10s adb shell run-as dev.solvit.app kill -3 "$solvit_diagnostic_pid" || true
+    fi
     timeout 90s adb bugreport ui-screenshots/timeout-bugreport.zip || true
   fi
   timeout 15s adb logcat -d > ui-screenshots/logcat.txt || true
