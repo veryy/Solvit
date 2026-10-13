@@ -1,4 +1,6 @@
-# Solvit 0.29.0：Git 工作区
+# Solvit 0.29.0：Git 工作区（正式门禁失败，未发布）
+
+正式标签运行38482438134在模拟器插件市场网络取消时崩溃，未生成公开Release。标签保持原源，修复版本为0.29.1/build59，见[HTTP取消阶段](http-response-cleanup-stage.md)。以下候选通过记录不能替代正式发布。
 
 工作区增加 Git 入口，业务页面由插件自带 HTML/JS 绘制。文件树、CodeMirror 预览与编辑、Shell 和 Git 操作使用当前对话绑定的同一个目录。
 
