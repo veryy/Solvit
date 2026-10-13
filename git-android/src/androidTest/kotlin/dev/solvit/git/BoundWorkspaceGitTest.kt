@@ -63,7 +63,8 @@ class BoundWorkspaceGitTest {
             Files.createSymbolicLink(link, external.toPath())
             rejected { bound.status() }; Files.delete(link)
             assertTrue(external.isDirectory)
-            val second = workspaces.createAndBind(chat, "second")
+            val second = workspaces.create("second")
+            workspaces.bind(chat, second.id)
             assertNotEquals(workspace.id, second.id)
             rejected { bound.status() }
             bound.close(); rejected { bound.status() }
