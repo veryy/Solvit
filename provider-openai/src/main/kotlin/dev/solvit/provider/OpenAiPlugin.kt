@@ -23,7 +23,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
         else -> selected
     }
 
-    override fun stream(request: ModelRequest): Flow<ModelChunk> = flow {
+    override fun stream(request: ModelRequest): Flow<ModelChunk> = channelFlow {
         validate(request.config)?.let { throw ModelException(it) }
         val payload = buildJsonObject {
             put("model", request.config.model)
@@ -83,17 +83,17 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                         val text = message["content"]?.jsonPrimitive?.contentOrNull
                         val reasoning = message["reasoning_content"]?.jsonPrimitive?.contentOrNull
                             ?: message["reasoning"]?.jsonPrimitive?.contentOrNull
-                        if (!reasoning.isNullOrEmpty()) emit(ModelChunk.Reasoning(reasoning))
-                        if (!text.isNullOrEmpty()) { hasText = true; emit(ModelChunk.Text(text)) }
+                        if (!reasoning.isNullOrEmpty()) send(ModelChunk.Reasoning(reasoning))
+                        if (!text.isNullOrEmpty()) { hasText = true; send(ModelChunk.Text(text)) }
                         val calls = message["tool_calls"]?.jsonArray?.map { element ->
                             val call = element.jsonObject
                             val function = call.getValue("function").jsonObject
                             ToolCall(call.getValue("id").jsonPrimitive.content, function.getValue("name").jsonPrimitive.content,
                                 function.getValue("arguments").jsonPrimitive.content)
                         }.orEmpty()
-                        finishCalls(calls, reason)?.let { emit(it) }
+                        finishCalls(calls, reason)?.let { send(it) }
                         if (!hasText && calls.isEmpty()) throw ModelException("模型返回空内容，请查看详细信息")
-                        emit(ModelChunk.Done)
+                        send(ModelChunk.Done)
                     } else {
                         val source = body.source()
                         val data = StringBuilder()
@@ -125,8 +125,8 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                             val content = delta?.get("content")?.jsonPrimitive?.contentOrNull
                             val reasoning = delta?.get("reasoning_content")?.jsonPrimitive?.contentOrNull
                                 ?: delta?.get("reasoning")?.jsonPrimitive?.contentOrNull
-                            if (!reasoning.isNullOrEmpty()) emit(ModelChunk.Reasoning(reasoning))
-                            if (!content.isNullOrEmpty()) { hasText = true; emit(ModelChunk.Text(content)) }
+                            if (!reasoning.isNullOrEmpty()) send(ModelChunk.Reasoning(reasoning))
+                            if (!content.isNullOrEmpty()) { hasText = true; send(ModelChunk.Text(content)) }
                             if (reason != null) { finished = true; finishReason = reason }
                         }
                         while (!done) {
@@ -140,9 +140,9 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                         }
                         dispatch()
                         if (!done && !finished) throw ModelException("连接提前中断，请重试")
-                        finishCalls(calls.values.map { it.complete() }, finishReason)?.let { emit(it) }
+                        finishCalls(calls.values.map { it.complete() }, finishReason)?.let { send(it) }
                         if (!hasText && calls.isEmpty()) throw ModelException("模型流没有返回文本或工具调用，请查看详细信息")
-                        emit(ModelChunk.Done)
+                        send(ModelChunk.Done)
                     }
                 }
             } catch (e: CancellationException) { throw e }
@@ -155,7 +155,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                 throw ModelException("模型响应格式异常，请查看详细信息", lastResponse ?: diagnostics.details())
             }
         }
-    }.flowOn(Dispatchers.IO)
+    }.buffer(0).flowOn(Dispatchers.IO)
 
     private fun callJson(call: ToolCall): JsonObject = buildJsonObject {
         put("id", call.id); put("type", "function")
