@@ -6,6 +6,8 @@
 
 设置 → 界面配置 → 聊天外观，支持12–24sp字体、气泡/紧凑/简洁样式及自动、自定义或即时显示。配置持久化并包含在加密配置备份中；显示速度独立于模型接收速度，不保证服务端逐字发送。默认工作区终端直接打开已有离线xterm.js与Android PTY，命令任务作为独立切换。
 
-build56，沿用固定APK签名。新交互验收使用真实Compose、原生角色/授权、SQLite及脚本Provider，不冒称真实模型已经遵循角色。正式发布以远程完整测试、Lint、模拟器、插件/搜索门禁、固定签名和覆盖升级通过为准，当前仍在验收。
+build56，沿用固定APK签名。新交互验收使用真实Compose、原生角色/授权、SQLite及脚本Provider，不冒称真实模型已经遵循角色。[正式Actions38454843988](https://github.com/veryy/Solvit/actions/runs/38454843988)全部成功：实际385单元/53模拟器无失败、错误或跳过，102 SDK/2市场、Lint、固定签名、覆盖升级、公开搜索与发布通过。
 
 本版不包含新的Git/GitHub插件和完整文件管理。真实模型角色/流式/工具选择、真机与完整工作区任务仍待验收；后续继续文件管理、预览编辑、Git Changes和执行验证闭环。
+
+公开APK已实际下载并与正式构建产物逐字节核对：23,637,361字节，SHA-256 `885cd7378780b53eb4e438468aaa52d2e7d241779f60b18989cf7c729bea2fbf`。[直接下载](https://github.com/veryy/Solvit/releases/download/v0.27.0/solvit-debug.apk)。源提交[b93b1ec](https://github.com/veryy/Solvit/commit/b93b1eca57c4c5c4370485e274e254e10f8a7cf3)，正式标签和APK保持不可变。

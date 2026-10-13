@@ -17,13 +17,13 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.26.0](https://github.com/veryy/Solvit/releases/tag/v0.26.0) 已正式发布：在同一条助手消息的执行记录中打开插件 HTML 文件差异页，查看历史副本的完整增删、行号和分页；后续改写文件不会改变旧差异。原版工作区插件升级保留设置，启动界面状态改为主线程发布。范围见[版本说明](docs/release-0.26.0.md)。
+[0.27.0](https://github.com/veryy/Solvit/releases/tag/v0.27.0) 已正式发布：所选角色作为新聊天默认并显示在聊天标题和输入区；工具授权放在对话内，回复期间可排队、编辑、移除或立即发送并打断。默认打开离线 xterm.js/Android PTY 终端；设置中的聊天外观支持字体大小、显示速度和气泡样式。范围及队列生命周期见[版本说明](docs/release-0.27.0.md)。
 
-当前 [0.26.0](docs/release-0.26.0.md)（build55/API17）支持可安装JS/TS Agent步骤策略，明确授权并打开默认关闭配置才接管聊天；可另行授权观察步骤事实并拒绝工具，实时撤销权限会阻断桥接；停用/卸载会取消并等待完整轮次清理。角色、Provider、存储、权限与资源核验仍由宿主服务承担。插件HTML/JS绘制记忆图谱、后台任务、多MCP、Skills、工作目录与xterm.js终端。
+当前 [0.27.0](docs/release-0.27.0.md)（build56/API17）保留可安装JS/TS Agent步骤策略和插件HTML/JS记忆图谱、后台任务、多MCP、Skills、工作目录与终端。角色、Provider、存储、权限与资源核验仍由宿主服务承担。新的文件工作台和Git/GitHub插件尚未交付。
 
-[完整Android验证](https://github.com/veryy/Solvit/actions/runs/38446908346)成功，实际377单元、51模拟器测试，均0失败/错误/跳过，Lint和固定签名APK通过。[APK构建产物](https://github.com/veryy/Solvit/actions/runs/38446908346/artifacts/11838333983)需登录GitHub下载。市场“JS Agent 步骤示例”先安装、配置接管开关，再授权启用；同一时间只选择一个Agent，配置前须停用。开发接口见[SDK API17](plugin-sdk/README.md)。
+[完整Android验证](https://github.com/veryy/Solvit/actions/runs/38454843988)成功，实际385单元、53模拟器测试，均0失败/错误/跳过，Lint、固定签名、覆盖升级、102 SDK/2市场、公开搜索与正式发布门禁通过。[APK构建产物](https://github.com/veryy/Solvit/actions/runs/38454843988/artifacts/11842225539)需登录GitHub下载，也可直接使用上方公开Release入口。
 
-公开搜索、插件、覆盖升级与正式发布门禁均通过，公开 APK 已实际下载并与构建产物逐字节核对（23,585,653 字节，SHA-256 `1771ea7b3ecdbfa742107fc50764be1861fe6d4703efbac640b906968e89d99e`）。角色自动化首次点击在键盘移动中错过按钮的时序已修正并通过正式回归，未据此宣称真实模型角色问题已经修复；额外重复序列暴露的启动线程问题已修正，本版采用主线程发布初始化结果，十轮×三项回归通过。真实模型角色/流式/工具选择、实际任务、真机、按会话选择驱动、JS消息投影/Provider/存储替换和完整JS内核仍待验收或实现，见[Agent插件阶段](docs/agent-plugin-stage.md)、[真实模型验收](docs/real-model-acceptance.md)与[完整产品进度](docs/product-roadmap.md)。
+公开 APK 已实际下载并与构建产物逐字节核对（23,637,361 字节，SHA-256 `885cd7378780b53eb4e438468aaa52d2e7d241779f60b18989cf7c729bea2fbf`）。真实模型角色/流式/工具选择、实际任务、真机、按会话选择驱动、JS消息投影/Provider/存储替换和完整JS内核仍待验收或实现，见[真实模型验收](docs/real-model-acceptance.md)与[完整产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
@@ -69,7 +69,7 @@
 
 ## MCP 连接
 
-当前 0.26.0 内置 TS MCP 插件和插件自绘 HTML 管理页。支持最多 8 个具名 HTTPS 连接、独立会话与启停、标准 HTTP mcpServers 配置导入及加密凭据。进入“插件 → 已安装 → MCP 连接”管理；启用 network 后，聊天可按服务器名称发现及调用工具，仍经过工具授权。管理界面由插件 HTML/JS 绘制。
+当前 0.27.0 内置 TS MCP 插件和插件自绘 HTML 管理页。支持最多 8 个具名 HTTPS 连接、独立会话与启停、标准 HTTP mcpServers 配置导入及加密凭据。进入“插件 → 已安装 → MCP 连接”管理；启用 network 后，聊天可按服务器名称发现及调用工具，仍经过工具授权。管理界面由插件 HTML/JS 绘制。
 
 实际可测试的只读演示地址：`https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空，提供回显和服务器时间。协议支持与边界见 [MCP 插件说明](docs/mcp.md)。[0.5.1 APK 已发布](https://github.com/veryy/Solvit/releases/tag/v0.5.1)，[45 个 Android 测试、Lint、APK、TS、市场和实际 HTTPS MCP 验证通过](https://github.com/veryy/Solvit/actions/runs/38107628413)。角色绑定、OAuth、stdio 和完整服务接入继续实现。
 
