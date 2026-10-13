@@ -24,6 +24,7 @@ import dev.solvit.core.*
 fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, createOnOpen: Boolean = false, onDismiss: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val directoryManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context) }
+    val gitManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context, "dev.solvit.git") }
     val terminalManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context, "dev.solvit.terminal") }
     val locale = LocalUiLanguage.current
     val executionModes by system.modes.collectAsStateWithLifecycle()
@@ -65,6 +66,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                 TabRow(selectedTabIndex = tab) {
                     Tab(selected = tab == 0, onClick = { tab = 0 }, text = { UiText("Shell") })
                     Tab(selected = tab == 1, onClick = { tab = 1 }, text = { UiText("工作目录") })
+                    Tab(selected = tab == 2, onClick = { tab = 2 }, modifier = Modifier.testTag("workspace_git_tab"), text = { Text("Git") })
                 }
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
@@ -107,6 +109,10 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                             command = ""
                         } }, enabled = !busy && activeShell != null && command.isNotBlank()) { UiText("运行") }
                     }
+                    }
+                } else if (tab == 2) {
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        key(id, locale) { PluginPageScreen("Git", { vm.gitPage(gitManager, locale) }, embedded = true) {} }
                     }
                 } else {
                     Box(Modifier.weight(1f).fillMaxWidth()) {

@@ -25,6 +25,8 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
         manager.openPage(locale, pageAccess(canInstallDrafts = true))
     fun pageAccess(canInstallDrafts: Boolean = false): PageWorkspaceAccess =
         dev.solvit.market.WorkspacePageBridge(service, plugins, checkNotNull(chatId), canInstallDrafts) { chatId }
+    fun gitPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
+        manager.openPage(locale, access = pageAccess(), git = gitPageAccess())
     fun gitPageAccess(): PageGitAccess =
         dev.solvit.market.GitPageBridge(checkNotNull(git), checkNotNull(chatId)) { chatId }
     fun terminalPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =

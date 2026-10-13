@@ -54,3 +54,6 @@ API19运行时/SDK候选：参考固定DSH client/ui-workspace/src/index.ts中�
 
 
 App通用插件页工厂接线：当前对话WorkspaceViewModel生成GitPageBridge，插件只有workspace/git双权限才能附加Git页面能力，ScriptPageSession还验证API19及workspace.git显式依赖。打开/附加失败在NonCancellable中关闭已获得的页面租约和工作区/Git接口，并保留原失败及清理失败；原生业务页未新增，Git界面仍由后续HTML/JS插件提供。远程打包与新页面协议回归尚待验证，未发布候选APK。
+
+
+Git HTML/TS页面候选：新增dev.solvit.git 1.0.0/API19，Changes分工作树/暂存区按钮、10项分页、完整差异分块、明确审阅后暂存/取消暂存、暂存区提交表单及原生确认、历史。差异完整读完才显示可用的暂存按钮；提交使用reviewCommit得到的宿主索引句柄。Files直接组合已发布workspacePage，并导入同一workspace/ui/main.mjs复用离线CodeMirror和文件树，包含原许可证；编辑/确认期间不提供跳回Git按钮，保留现有放弃未保存修改的操作。CSS与编辑器许可证复制自现有同仓资源，业务组件代码直接复用。工作区容器新增Git标签，BuiltinWorkspaceManager只接受固定API19包与宿主工作区/Git接口，人工页面不启用插件AI工具。TS/SDK新增实际打包完整差异（跨emoji分块）、分离工作树/暂存区、写前只审阅不写、原生句柄提交、同目录Files与编辑器资源测试。市场服务接受API19用于新增包，当前App市场请求仍API18，旧客户端不会收到Git；服务尚未部署。插件包须Actions生成后取回提交，当前尚无APK业务验收或Git AI工具，远程GitHub全范围继续保留。

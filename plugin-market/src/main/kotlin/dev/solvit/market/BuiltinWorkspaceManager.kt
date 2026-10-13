@@ -15,11 +15,12 @@ class BuiltinWorkspaceManager(context: Context, private val pluginId: String = "
     private val app = context.applicationContext
     private val pkg by lazy {
         ScriptPackage.parse(app.assets.open("builtin-plugins/$pluginId.solvit.json").use { it.readBytes() })
-            .also { check(it.manifest.id == pluginId && (pluginId == "dev.solvit.workspace" && it.manifest.apiVersion == 18 || pluginId == "dev.solvit.terminal" && it.manifest.apiVersion == 13)) }
+            .also { check(it.manifest.id == pluginId && (pluginId == "dev.solvit.workspace" && it.manifest.apiVersion == 18 || pluginId == "dev.solvit.terminal" && it.manifest.apiVersion == 13 || pluginId == "dev.solvit.git" && it.manifest.apiVersion == 19)) }
     }
-    fun openPage(locale: String, access: PageWorkspaceAccess? = null, terminal: PageTerminalAccess? = null, pageId: String = "main"): ExtensionPageSession {
+    fun openPage(locale: String, access: PageWorkspaceAccess? = null, terminal: PageTerminalAccess? = null, git: PageGitAccess? = null, pageId: String = "main"): ExtensionPageSession {
         require(locale.matches(Regex("[a-zA-Z0-9_-]{1,20}")))
         require(pageId == "main" || pageId == "changes" && pluginId == "dev.solvit.workspace" && access is ExecutionChangesPageBridge && terminal == null)
+        require(if (pluginId == "dev.solvit.git") git != null && access != null && terminal == null else git == null)
         val page = pkg.manifest.pages.single { it.id == pageId }
         require((page.context == "execution") == (access is ExecutionChangesPageBridge))
         return object : ExtensionPageSession {
@@ -33,7 +34,7 @@ class BuiltinWorkspaceManager(context: Context, private val pluginId: String = "
             }) {
                 check(!mutableClosed.value) { "Workspace page closed" }
                 if (access is ExecutionChangesPageBridge) access.ensureCurrent()
-            }.also { access?.let(it::attachWorkspace); terminal?.let(it::attachTerminal) }
+            }.also { access?.let(it::attachWorkspace); terminal?.let(it::attachTerminal); git?.let(it::attachGit) }
             private fun snapshot(next: ScriptPageView): ExtensionPageSnapshot {
                 check(!mutableClosed.value); view = next
                 return ExtensionPageSnapshot(++revision, next.toJson())
