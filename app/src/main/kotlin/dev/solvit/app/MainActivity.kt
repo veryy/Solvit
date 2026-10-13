@@ -253,7 +253,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                             Spacer(Modifier.width(8.dp))
                             FilledIconButton(
                                 onClick = { if (busy) vm.stop() else if (vm.send(input)) input = "" },
-                                enabled = busy || (ready && !branching && input.isNotBlank() && !missingRole && !agentBusy), modifier = Modifier.size(52.dp),
+                                enabled = busy || (ready && !branching && input.isNotBlank() && !missingRole && !agentBusy), modifier = Modifier.size(52.dp).testTag("chat_send"),
                             ) { Icon(if (busy) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send, if (busy) "停止生成" else "发送") }
                         }
                     }

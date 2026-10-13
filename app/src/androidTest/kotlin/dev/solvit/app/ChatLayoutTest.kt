@@ -505,7 +505,7 @@ class ChatLayoutTest {
         }
         var tapBounds = ""
         fun tapRoleSend() {
-            val button = rule.onNodeWithContentDescription("发送").assertIsEnabled()
+            val button = rule.onNodeWithTag("chat_send").assertIsEnabled()
             val before = button.fetchSemanticsNode().boundsInRoot
             button.performClick()
             tapBounds = "before=$before after=${button.fetchSemanticsNode().boundsInRoot}"
