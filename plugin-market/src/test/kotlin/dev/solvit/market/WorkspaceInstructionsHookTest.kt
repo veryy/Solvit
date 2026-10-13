@@ -18,23 +18,25 @@ import kotlin.test.*
 @Config(sdk = [28])
 class WorkspaceInstructionsHookTest {
     private val id = "test.project-rules"
-    private suspend fun fixture(block: suspend (AndroidMarketplace, AndroidWorkspaces, ContextHookRegistry, ToolRegistry) -> Unit) {
+    private suspend fun fixture(transform: (AndroidWorkspaces) -> WorkspaceService = { it },
+        block: suspend (AndroidMarketplace, AndroidWorkspaces, ContextHookRegistry, ToolRegistry) -> Unit) {
         val context = RuntimeEnvironment.getApplication()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val manager = PluginManager(scope = scope)
         val client = OkHttpClient()
         val workspaces = AndroidWorkspaces(context, scope)
+        val reader = transform(workspaces)
         try {
             manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin())
             manager.load(object : SolvitPlugin {
                 override val id = "host.workspace-fixture"
                 override val provides = setOf(WorkspaceServiceKey)
-                override suspend fun enable(context: PluginContext) { context.register(WorkspaceServiceKey, workspaces) }
+                override suspend fun enable(context: PluginContext) { context.register(WorkspaceServiceKey, reader) }
             })
             manager.enableAll()
             val config = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { 5 }, "AES") }
             val tools = manager.registry.require(Services.Tools)
-            val market = AndroidMarketplace(context, manager, client, tools, config, workspaces = workspaces)
+            val market = AndroidMarketplace(context, manager, client, tools, config, workspaces = reader)
             market.restore()
             block(market, workspaces, manager.registry.require(ContextHookServiceKey), tools)
         } finally {
@@ -55,6 +57,46 @@ class WorkspaceInstructionsHookTest {
         market.installLocal(buildJsonObject { put("manifest", Json.parseToJsonElement(manifest)); put("source", source) }.toString().toByteArray())
         market.enable(id, setOf("workspace"))
     }
+    @Test fun revocationAfterNativeReadPreventsReturningAnyPlaintextToJavaScript() = runBlocking<Unit> {
+        var nativeRead = false
+        fixture(transform = { actual -> object : WorkspaceService by actual {
+            override suspend fun instructionSources(workspaceId: String, authorize: suspend () -> Unit): List<WorkspaceInstructionSource> {
+                val sources = actual.instructionSources(workspaceId, authorize)
+                nativeRead = sources.any { it.text == "READ_THEN_REVOKED" }
+                check(RuntimeEnvironment.getApplication().getSharedPreferences("extension_permissions", 0).edit()
+                    .putStringSet("grants.$id", emptySet()).commit())
+                return sources
+            }
+        } }) { market, ws, hooks, _ ->
+            install(market)
+            val a = ws.forChat("revoke-after-read"); ws.write(a.id, "AGENTS.md", "READ_THEN_REVOKED")
+            val report = hooks.prepareReport(ContextInput(null, "rules", ConversationContext("revoke-after-read", a.id)))
+            assertTrue(nativeRead); assertTrue(report.context.isEmpty())
+            assertEquals(ContextHookFailure.FAILED, report.problems.single().failure)
+        }
+    }
+
+    @Test fun originalHtmlWorkspaceUpgradesAndModifiedOrUninstalledPackageIsPreserved() = runBlocking<Unit> {
+        fixture { market, _, _, _ ->
+            val original = javaClass.getResourceAsStream("/legacy/dev.solvit.workspace-1.1.0.solvit.json")!!.use { it.readBytes() }
+            val app = RuntimeEnvironment.getApplication()
+            val file = java.io.File(app.filesDir, "extensions/dev.solvit.workspace.solvit.json")
+            file.writeBytes(original)
+            val prefs = app.getSharedPreferences("extension_permissions", 0)
+            check(prefs.edit().putBoolean("seeded.dev.solvit.workspace.solvit.json", true)
+                .putBoolean("enabled.dev.solvit.workspace", true).putStringSet("grants.dev.solvit.workspace", setOf("workspace", "shell")).commit())
+            market.restore()
+            val upgraded = market.installed.value.single { it.id == "dev.solvit.workspace" }
+            assertEquals("1.2.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.dev.solvit.workspace", emptySet()))
+            market.disable(upgraded.id)
+            val modified = original + "\n".toByteArray()
+            file.writeBytes(modified); market.restore(); assertContentEquals(modified, file.readBytes())
+            market.uninstall(upgraded.id); market.restore()
+            assertFalse(file.exists()); assertFalse(market.installed.value.any { it.id == upgraded.id })
+        }
+    }
+
     @Test fun remotelyBuiltTsWorkspacePackageProjectsRulesAndHonorsItsSavedSwitch() = runBlocking<Unit> {
         fixture { market, ws, hooks, _ ->
             val plugin = "dev.solvit.workspace"
