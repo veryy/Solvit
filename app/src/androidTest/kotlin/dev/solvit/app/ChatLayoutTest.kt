@@ -240,7 +240,8 @@ class ChatLayoutTest {
                     override val id = "android-memory-fixture"
                     override fun stream(request: ModelRequest): Flow<ModelChunk> {
                         requests++
-                        assertTrue(request.messages.single { it.role == Role.SYSTEM }.content.contains("My preferred editor is Emacs"))
+                        assertFalse(request.messages.single { it.role == Role.SYSTEM }.content.contains("My preferred editor is Emacs"))
+                        assertTrue(request.messages.single { it.role == Role.USER }.content.contains("My preferred editor is Emacs"))
                         assertTrue(request.promptSources.any { it.source.contains("dev.solvit.memory") })
                         assertFalse(app.requestInspection.latest.value.toString().contains("Emacs"))
                         return kotlinx.coroutines.flow.flowOf(ModelChunk.Text("You prefer Emacs"), ModelChunk.Done)
