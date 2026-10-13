@@ -37,3 +37,8 @@ Android基础系统不保证git可执行文件存在；不能仅给Shell拼接gi
 
 
 共享服务阶段：进一步阅读固定DSH的packages/workspace/workspace/src/index.ts及tests/workspace.spec.ts的服务注入、对话工作区归属与生命周期组合，以及deliverables/workspace-changes服务的有界查询设计。core新增WorkspaceGitService/Session与类型键，不依赖JGit或Android；原生BoundWorkspaceGit实现该接口，原路径/审阅/授权检查保留。WorkspaceGitPlugin声明WorkspaceService依赖，注册服务并拥有所有绑定会话；主动关闭移除会话，停用使旧服务和旧会话失效，重新启用生成新服务并读取同一仓库。页面与AI适配器后续共用接口，必须在宿主持有review值，JS只拿句柄，不接受JS伪造patch/版本。新增实际Android注册、独立读写授权、提交、关闭、停用及重新启用的测试；Git兼容workflow同时监测core修改。当前源码尚未接入App/JS页面/AI工具，新增生命周期测试待远程构建，不声称Git已经可在APK中使用。
+
+
+初始化与首次提交55ad9ae/38469564012已完成：API26、35均成功，取回11851507167（18,089字节）和11850813090（20,676字节），CRC与真实JUnit XML核对每台5项，0失败/错误/跳过；其中BoundWorkspaceGitTest三项、引擎兼容两项。该源包含索引锁、分支/可执行位审阅及首次提交，但不包含后来9940b38服务生命周期，后者由38471186426继续验证。
+
+App候选改为0.29.0/code58以区别不可变公开0.28.0，加入git-android并在最终App启用JDK desugaring；注册WorkspaceGitPlugin，取类型化WorkspaceGitService供后续宿主页面/工具桥使用。尚未升级API18或发布市场包，公开0.28资产及旧市场目录保持原样；Git业务页面/AI工具未接通，候选APK不作为完整Git功能交付。实际App打包、完整旧功能回归和新增生命周期测试均使用远程构建，不在本地执行。
