@@ -35,3 +35,9 @@ test('arbitrary paths duplicate names unknown statuses and oversized text are re
  for(const sources of [[source('../private','x')],[source('AGENTS.md','a'),source('AGENTS.md','b')],[{path:'AGENTS.md',status:'SECRET'}],[source('AGENTS.md','x'.repeat(16385))]])
   assert.throws(()=>render({available:true,sources}));
 });
+
+test('small budgets stay bounded and retain the more specific local overlay',()=>{
+ const snapshot={available:true,sources:[source('AGENTS.md','base '.repeat(2000)),source('AGENTS.local.md','LOCAL_PRIORITY')]};
+ for(const cap of [128,256,512,1024])assert.ok(Buffer.byteLength(render(snapshot,cap))<=cap);
+ const value=render(snapshot,1024);assert.ok(value.includes('LOCAL_PRIORITY'));assert.ok(value.includes('正文已截断'));
+});

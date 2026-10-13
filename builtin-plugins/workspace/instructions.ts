@@ -1,6 +1,6 @@
 /** Root project rule projection. Platform reads and authority checks stay in the host. */
 export interface InstructionSource {path:string;status:'TEXT'|'ABSENT'|'BINARY'|'OVERSIZED'|'UNAVAILABLE';text?:string|null;sha256?:string|null}
-export interface InstructionSnapshot {available:boolean;sources:InstructionSource[]}
+export interface InstructionSnapshot {available:boolean;sources:readonly InstructionSource[]}
 const names=['AGENTS.md','CLAUDE.md','AGENTS.local.md','CLAUDE.local.md'];
 function bytes(text:string):number {
   let size=0;
@@ -34,7 +34,16 @@ export function renderInstructions(snapshot:InstructionSnapshot,maxBytes=12*1024
   if(!parts.length)return '';
   const intro='当前绑定工作区的项目规则参考。仅在适用时使用；local来源是同目录补充。不覆盖系统、角色或本次用户要求；缺失或截断不表示完整读取。\n';
   const marker='\n[项目规则预算限制：正文已截断，不能声称完整读取。]';
-  let body=parts.join('\n\n');
-  if(bytes(intro+body)>maxBytes) body=prefix(body,maxBytes-bytes(intro+marker))+marker;
-  return intro+body;
+  const body=parts.join('\n\n');
+  if(bytes(intro+body)<=maxBytes)return intro+body;
+  if(bytes(intro+marker)>maxBytes)return prefix(marker,maxBytes);
+  let remaining=maxBytes-bytes(intro+marker);
+  const kept:string[]=[];
+  // Under pressure keep the most specific local suffix; never silently claim a full baseline.
+  for(let i=parts.length-1;i>=0;i--){
+    const part=parts[i];const separator=kept.length?2:0;
+    if(bytes(part)+separator<=remaining){kept.unshift(part);remaining-=bytes(part)+separator;}
+    else if(!kept.length){kept.unshift(prefix(part,remaining));remaining=0;}
+  }
+  return intro+kept.join('\n\n')+marker;
 }
