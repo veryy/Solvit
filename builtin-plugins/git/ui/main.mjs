@@ -8,6 +8,7 @@ window.solvitPageUpdate=state=>{
   const tree=document.getElementById('file-tree');tree.hidden=true;tree.classList.remove('open');
  }
  const items=state.view.nodes,metaNode=items.find(n=>n.id==='git_diff_meta');
+ document.getElementById('content').classList.toggle('git-diff',!!metaNode);
  if(!metaNode){reviewId=null;nextOffset=0;patch=null;return}
  const meta=JSON.parse(metaNode.text),chunk=items.find(n=>n.id==='git_patch_chunk')?.text??'';
  if(reviewId!==meta.reviewId){reviewId=meta.reviewId;nextOffset=0;patch=document.createElement('pre');patch.id='git-patch'}

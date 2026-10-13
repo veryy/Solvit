@@ -96,3 +96,6 @@ API19市场已实际部署：服务器Node提供执行环境，首次用python3�
 
 
 确认修复fdc1766/38477455570专项成功，取回11855985770（585,461字节），ZIP CRC及实际instrument输出核对：GitHtmlPageTest两项，21.472秒，OK (2 tests)。完整保留初始化/暂存取消、真实暂存/索引提交、工作文件及未跟踪文件保留、物理打开树/文件预览、真实Shell同目录输出、旧树隐藏和AI查询授权拒绝检查。取回并实际查看两张截图：文件CodeMirror可见，但Git差异框仅一行多高；这说明DOM全文检查不能证明可读布局。新增真实WebView差异可见高度、内滚动到底和末尾截图断言，保留全部原始操作；先用未修布局的包验证该断言能检出问题，再调整布局。原确认故障的DEBUG阶段日志已清除；完整Android38477417899的build成功，UI仍进行中，未正式发布。
+
+
+布局候选再次阅读固定DSH packages/client/ui-primitives/src/DiffBlock.tsx、DiffBlock.module.css及tests/diff-block.client.spec.tsx：差异内容应有独立可读滚动区域，不能以DOM全文存在替代展示。Android插件保留安全TextNode/完整Git patch，不复制React组件或引入新运行时；Git diff单独标记为flex列，标题不收缩，patch占剩余高度且最小160px，切出diff时恢复原文件/Changes布局。新增高度和末尾滚动用例先在e767a62/38478914473未修布局源运行；候选Git包改为1.1.1，须远程重新生成后同步资产和市场，不能将1.1.0同版本静默改字节。修复源尚待同一专项与完整门禁。确认修复fdc1766完整build报告11857035872（319,825字节）已取回CRC/JUnit核对406项，0失败/错误/跳过；这不替代新布局源的完整门禁。

@@ -2,7 +2,7 @@
   "id": "dev.solvit.git",
   "name": "Git 工作区",
   "description": "当前对话工作目录的文件预览、编辑、Git Changes、暂存、提交和历史；远程 GitHub 操作仍在开发。",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "apiVersion": 19,
   "permissions": [
     "workspace",
