@@ -134,3 +134,9 @@ SDK构建任务同时生成 `market-server/packages/example.agent.solvit.json`�
 策略声明 `agent` 和 `agent.read`，经宿主授权后可调用 `ctx.observe()` 获取当前用户请求、角色名称、模型正文/思考、当前工具参数与结算事实；字段使用 `{text,truncated}`，工具最多16项，`toolsTruncated` 提示省略。没有模型连接配置、Provider原生签名或任意宿主对象。返回独立副本，修改它不会改写聊天协议或持久记录。
 
 `ctx.decline(index)` 按原顺序拒绝拟调用，不进行审批/执行；拒绝结果仍回传下一轮模型。每个调用仍须完整结算，不允许通过快照截断删除后续协议消息。API14或没有读取权限的包没有观察/拒绝桥。示例见 `plugin-examples/agent-policy`，它仅审核参数是否完整；不代表复杂任务策略或真实模型效果已经验证。当前详细验证状态见 [阶段记录](../docs/agent-observation-stage.md)。
+
+### API16 项目规则读取（候选0.25.0，未发布）
+
+beforeModel内可调用`ctx.workspace.instructions()`，需要apiVersion:16、workspace声明/授权和角色绑定。宿主捕获当前聊天，只返回绑定目录根AGENTS.md、CLAUDE.md、AGENTS.local.md、CLAUDE.local.md；接口无参数、禁止其他路径和工作区选择。未绑定时available=false。每源最多16KiB严格UTF-8，sources含状态、正文与SHA；不能从工具、页面或生命周期调用。
+
+内置workspace1.2.0由TS整理来源、去重、local优先及12KiB UTF-8预算；projectRules=false可关自动投影。更新和删除每步重读，资料不改变角色身份、系统规则或工具授权。宿主读前/读后核验授权和绑定，取消传播；旧API1–15目录继续使用原包。实际契约、请求回归和未完成范围见[阶段记录](../docs/workspace-instructions-stage.md)。
