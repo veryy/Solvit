@@ -90,7 +90,9 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.ok(api7.plugins.length >= api6.plugins.length);
     assert.equal(api7.plugins.find(plugin => plugin.id === 'dev.solvit.memory').version, '1.1.0');
     assert.equal(api6.plugins.find(plugin => plugin.id === 'dev.solvit.memory').version, '1.0.0');
-    assert.equal(api6.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.2.1');
+    assert.equal(api6.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.2.2');
+    const previousSearch121 = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.web-search/1.2.1')).arrayBuffer());
+    assert.deepEqual(previousSearch121, await readFile(new URL('./packages/legacy/dev.solvit.web-search-1.2.1.solvit.json', import.meta.url)));
     const previousSearch = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.web-search/1.2.0')).arrayBuffer());
     assert.deepEqual(previousSearch, await readFile(new URL('./packages/legacy/dev.solvit.web-search-1.2.0.solvit.json', import.meta.url)));
     assert.equal(api5.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.1.0');
