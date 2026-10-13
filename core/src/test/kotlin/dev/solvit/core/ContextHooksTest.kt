@@ -85,4 +85,13 @@ class ContextHooksTest {
         assertEquals(listOf(ContextHookProblem("test.failed", ContextHookFailure.FAILED)), report.problems)
         assertFalse(report.toString().contains("PRIVATE_SECRET_SENTINEL"))
     }
+    @Test fun hookCancellingOnlyItsOwnTaskDoesNotCancelChatPreparation() = runTest {
+        val hooks = ContextHookRegistry()
+        hooks.register("test.cancelled", ContextHook { currentCoroutineContext().cancel(); awaitCancellation() })
+        hooks.register("test.healthy", ContextHook { "healthy" })
+        val report = hooks.prepareReport(ContextInput(null, ""))
+        assertEquals(listOf("插件上下文（test.healthy）：\nhealthy"), report.context)
+        assertEquals(listOf(ContextHookProblem("test.cancelled", ContextHookFailure.FAILED)), report.problems)
+        currentCoroutineContext().ensureActive()
+    }
 }

@@ -63,9 +63,9 @@ class ContextHookRegistry {
         val snapshot = synchronized(this) { hooks.toList() }.filter { input.role?.allows(it.first) != false }
         val outputs = arrayOfNulls<ContextHookReport>(snapshot.size)
         val workers = Semaphore(4)
-        supervisorScope {
+        val batchTimedOut = supervisorScope {
             withTimeoutOrNull(10_000) {
-                snapshot.mapIndexed { index, (id, hook) -> async {
+                snapshot.mapIndexed { index, (id, hook) -> launch {
                     workers.withPermit {
                         if (!current(id, hook)) return@withPermit
                         val result = try {
@@ -86,8 +86,9 @@ class ContextHookRegistry {
                         }
                         if (current(id, hook)) outputs[index] = result
                     }
-                } }.awaitAll()
-            }
+                } }.joinAll()
+                true
+            } == null
         }
         currentCoroutineContext().ensureActive()
         val context = mutableListOf<String>()
@@ -95,7 +96,7 @@ class ContextHookRegistry {
         var bytes = 0
         snapshot.forEachIndexed { index, (id, hook) ->
             if (!current(id, hook)) return@forEachIndexed
-            val result = outputs[index] ?: problem(id, ContextHookFailure.TIMED_OUT)
+            val result = outputs[index] ?: problem(id, if (batchTimedOut) ContextHookFailure.TIMED_OUT else ContextHookFailure.FAILED)
             problems += result.problems
             for (value in result.context) {
                 val size = value.toByteArray(Charsets.UTF_8).size
