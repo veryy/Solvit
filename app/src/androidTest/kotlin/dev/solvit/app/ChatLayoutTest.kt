@@ -183,11 +183,11 @@ class ChatLayoutTest {
     }
     private fun openWorkspace() {
         rule.waitUntil(10_000) { rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty() ||
-            rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
-        if (rule.onAllNodes(hasText("工作区：",substring=true)).fetchSemanticsNodes().isNotEmpty()) {
-            rule.onNode(hasText("工作区：",substring=true)).performClick()
+            rule.onAllNodes(hasText("新建工作区") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
+        if (rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
+            rule.onNode(hasText("工作区：",substring=true) and isEnabled()).performClick()
         } else {
-            rule.onNodeWithText("新建工作区").performClick()
+            rule.onNode(hasText("新建工作区") and isEnabled()).performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("workspace_create_name").performTextInput("测试工作区")
             rule.onNodeWithText("创建并绑定").performClick()
