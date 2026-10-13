@@ -132,6 +132,10 @@ class PluginPageUiTest {
         try {
             rule.runOnUiThread { present() }
             waitDom("window.memoryPageReady===true && !!document.querySelector('[data-memory-id=$id]') && !!document.querySelector('[data-memory-id=$relatedId]') && document.getElementById('graph').getBoundingClientRect().height>innerHeight*.9")
+            val initialZoom = html.js("Number(document.getElementById('graph').dataset.zoom)").toDouble()
+            assertTrue("Fitting two memory nodes must not magnify labels above their readable base size; actual zoom=$initialZoom", initialZoom > 0 && initialZoom <= 1.01)
+            html.js("document.getElementById('fit').click()")
+            assertTrue("Fit action must also cap automatic magnification", html.js("Number(document.getElementById('graph').dataset.zoom)").toDouble() <= 1.01)
             val graphFrame = html.screenshot("memory-html-graph-home")
             // The previous artifact was white although DOM/interaction checks passed.
             // Check the displayed middle of this explicitly dark page, excluding native bars.
