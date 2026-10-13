@@ -23,3 +23,7 @@ Solvit FileObservations只保留最多6KiB文字片段；WorkspaceSnapshots每�
 4338ae3的[契约38428189815](https://github.com/veryy/Solvit/actions/runs/38428189815)已走过原生与SQLite，失败仅在新运行时immutableFullCopiesCannotBypassJournalCredentialFiltering：既有preview过滤未覆盖新captureText。修正将敏感全文副本及引用一起省略，保留原观察hash/分类与已脱敏片段；普通正文及SHA保持，不把脱敏文本伪装成原文件。原assertNull/普通副本/源对象不变断言保留，继续远程复测。
 
 beb49dd的[契约38428975426](https://github.com/veryy/Solvit/actions/runs/38428975426)成功。下载artifact11829493645（ZIP67956bytes）并核对CRC及实际XML：285测试、0失败/错误/跳过，原生全文2、SQLite全文7、新凭据过滤回归均通过。准备0.25.1/build53存储阶段APK，完整HTML差异页继续实现；正式门禁结果以发布后的实际报告补录。
+
+4d13c7f增加ChatService全文读取转发及ExecutionChangesPageBridge：宿主固定对话/执行，初次查询冻结所选baseline/observed，不接受脚本选择会话、执行或路径；只读4096 UTF-16单位分块，保证不切开代理对，逐次授权并复验SHA。五个桥接回归覆盖超片段正文、后来追加观察不改变旧页、创建/缺失区分、伪造参数、摘要不匹配、读后撤权/切换对话及取消。尚未接入聊天页面。
+
+依赖选择为官方kpdecker/jsdiff 9.0.0，BSD-3-Clause，许可完整保存plugin-sdk/licenses/diff.txt。核对官方npm元数据及tarball SHA512完整性，不执行本地npm安装或构建，手工加入准确package-lock条目（该包无运行依赖），远程npm ci核验。TS采用structuredPatch三行上下文、75ms预算；超时明确显示coarse整段删除/添加，长行按1024 UTF-16单位安全拆分，16段一页，不丢弃尾部或终止换行标记。独立回归覆盖2000行尾部编辑、创建/删除/CRLF、4000行明确降级、Unicode/HTML文字与128KiB页面预算；仍待远程验证及插件HTML接入。
