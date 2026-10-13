@@ -49,3 +49,9 @@ HTML接入阶段继续读取固定DSH packages/client/ui-primitives/src/DiffBloc
 Remote Android run 38440313853 reproduced a real upgrade gap: of 73 marketplace tests, only `originalApi16WorkspaceUpgradesWithoutLosingItsSavedRuleSwitchOrGrants` failed (line 119). The byte-identical 1.2.0 package was missing from the original-package SHA-256 allowlist. Added its verified hash `545abc7b667f31468777e378d4c7620709f9e2e03fca6f4c1b490e24bd4b0bbe`; modified packages remain outside the allowlist. The regression retains saved configuration, enabled state and grants, rejects opening execution pages without a run bridge, and checks modified/uninstalled packages are preserved. Remote green verification remains pending.
 
 Actual Android HTML diagnostic run 38439268360 passed `OK (2 tests)`; artifact 11834641603 (798123 bytes) was downloaded and ZIP CRC checked. Dark diff and light long-line-tail screenshots were captured. This is historical snapshot/HTML integration evidence, not a real-model task.
+
+升级修复后的契约[38441197089](https://github.com/veryy/Solvit/actions/runs/38441197089)源码fae6203成功。实际下载artifact11835721907（ZIP70504bytes）、CRC及XML核对294测试，0失败/错误/跳过；两项真实QuickJS/SQLite差异回归、API17页声明与原版API16升级/配置/授权/修改包/卸载边界通过。
+
+API17市场已同步服务器及1.3.0包，备份`/opt/solvit-market/.backup-workspace-1.3.0-1791913675286`。服务端逐份比较API1–16完整目录保持一致；公网核对API1–17选择正确，API16仍为1.2.0、API17为1.3.0，两个下载包与仓库原始字节一致（1.3.0：66826bytes，SHA256 95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b）。其余包没有替换。
+
+追加页面诊断38441201474第一次在准备NDK时因远程ZipFile unknown archive失败，尚未编译/执行页面测试；已重试该失败作业，不能算页面回归失败或通过。英文页面测试现同时设置真实LocalUiLanguage，额外检查副本详情为Saved copies，并滚动到长行尾部后截图；不是生产语言行为修复。0.26.0/build55候选ee713fa完整远程门禁待结果。
