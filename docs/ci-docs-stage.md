@@ -11,3 +11,5 @@
 角色诊断源码`f500b8e`的[独立重复38396604840](https://github.com/veryy/Solvit/actions/runs/38396604840)成功，下载的产物包含10个独立result-N.txt，每个实际OK (1 test)，没有FAILURES。随后[完整Android38396554194](https://github.com/veryy/Solvit/actions/runs/38396554194)构建、Lint、签名/APK及完整UI成功；此次非产品/标签变更，插件/搜索及release按既有条件跳过。尚未稳定复现原始角色超时，保留请求阶段诊断，不宣称根因已修复；这些请求用受控Provider，不等于真实模型角色回答验收。
 
 文档提交e47494a与7c0ad85实际没有生成Android运行，未取消7ef8b39门禁。正式标签规则依据官方文档，未为测试创建额外发布标签；已发布0.24.1的完整正式门禁保持全绿。
+
+[带前置场景诊断38399240801](https://github.com/veryy/Solvit/actions/runs/38399240801)下载ZIP核对10个独立result-N.txt均为OK (3 tests)：每轮包含持久PTY停用、大原生转录重开/分支及角色请求，总计30项通过。[同源码完整Android38399152538](https://github.com/veryy/Solvit/actions/runs/38399152538)也全成功；仍未复现原始超时，不宣称原因已找到或已修复。仅保留安全fixture状态诊断，不记录凭据或远程错误正文。
