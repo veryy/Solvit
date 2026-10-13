@@ -47,6 +47,36 @@ class ScriptRuntimeTest {
 
     private val deniedHost = ScriptHost { _, _, _ -> error("Host should not be called") }
 
+    @Test fun projectRulesRequireApiSixteenAndHookAndNeverExpandOrdinaryFilesystemAccess() = runBlocking<Unit> {
+        val source = """globalThis.solvitPlugin={tools:{echo:async()=>await __solvitHostCall('workspace.instructions','{}')},
+          beforeModel:async(input,ctx)=>{
+            if(input.userText==='read') return await ctx.workspace.call('read',{path:'AGENTS.md'});
+            if(input.userText==='arguments') return await __solvitHostCall('workspace.instructions','{"path":"private.txt"}');
+            return JSON.stringify(await ctx.workspace.instructions());
+          }};"""
+        for (api in listOf(15, 16)) {
+            var calls = 0
+            val executor = ScriptExecutor(pkg(source, listOf("workspace"), hook = true, apiVersion = api),
+                ScriptHost { _, operation, args ->
+                    calls++; assertEquals("workspace.instructions", operation); assertTrue(args.isEmpty())
+                    buildJsonObject { put("available", false); putJsonArray("sources") {} }
+                })
+            executor.start()
+            try {
+                assertFailsWith<IllegalStateException> { executor.execute("echo", "{}") }
+                assertFailsWith<IllegalStateException> { executor.beforeModel(ContextInput(null, "read")) }
+                assertFailsWith<IllegalStateException> { executor.beforeModel(ContextInput(null, "arguments")) }
+                assertEquals(0, calls)
+                if (api == 15) assertFailsWith<IllegalStateException> { executor.beforeModel(ContextInput(null, "rules")) }
+                else {
+                    val result = executor.beforeModel(ContextInput(null, "rules"))
+                    assertFalse(Json.parseToJsonElement(result).jsonObject.getValue("available").jsonPrimitive.boolean)
+                    assertEquals(1, calls)
+                }
+            } finally { executor.stop() }
+        }
+    }
+
     @Test fun hookReceivesOnlyDeclaredPublicSettingsAndCannotReadSecrets() = runBlocking<Unit> {
         val calls = mutableListOf<String>()
         val source = """globalThis.solvitPlugin={tools:{echo:args=>args},beforeModel:async(input,ctx)=>{
