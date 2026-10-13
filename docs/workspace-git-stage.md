@@ -34,3 +34,6 @@ Android基础系统不保证git可执行文件存在；不能仅给Shell拼接gi
 
 
 增加显式initialize：通过捕获对话的宿主WorkspaceService.location获取根目录、独立写授权、原生锁内再次确认.git不存在，只初始化main分支，已有元数据包括悬空链接不能覆盖；reads仍不自动建仓。新增真实新工作区未授权不建仓、已有文本保留、初始空提交拒绝、无HEAD新增文件diff/暂存/取消暂存、只提交选中文件且其余未跟踪文件保留回归。凭据/网络/JS页面未开放，全部新测试仍待远程结果；同分支旧矩阵由新源码替代，0.28正式发布作业保持不变。
+
+
+共享服务阶段：进一步阅读固定DSH的packages/workspace/workspace/src/index.ts及tests/workspace.spec.ts的服务注入、对话工作区归属与生命周期组合，以及deliverables/workspace-changes服务的有界查询设计。core新增WorkspaceGitService/Session与类型键，不依赖JGit或Android；原生BoundWorkspaceGit实现该接口，原路径/审阅/授权检查保留。WorkspaceGitPlugin声明WorkspaceService依赖，注册服务并拥有所有绑定会话；主动关闭移除会话，停用使旧服务和旧会话失效，重新启用生成新服务并读取同一仓库。页面与AI适配器后续共用接口，必须在宿主持有review值，JS只拿句柄，不接受JS伪造patch/版本。新增实际Android注册、独立读写授权、提交、关闭、停用及重新启用的测试；Git兼容workflow同时监测core修改。当前源码尚未接入App/JS页面/AI工具，新增生命周期测试待远程构建，不声称Git已经可在APK中使用。

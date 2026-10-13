@@ -2,6 +2,12 @@ package dev.solvit.git
 
 import dev.solvit.core.WorkspacePageAuthority
 import dev.solvit.core.WorkspaceService
+import dev.solvit.core.WorkspaceGitSession
+import dev.solvit.core.WorkspaceGitSession.Entry
+import dev.solvit.core.WorkspaceGitSession.Status
+import dev.solvit.core.WorkspaceGitSession.Revision
+import dev.solvit.core.WorkspaceGitSession.Diff
+import dev.solvit.core.WorkspaceGitSession.Commit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -39,18 +45,12 @@ class BoundWorkspaceGit(
     private val chatId: String,
     private val activeChat: () -> String?,
     private val authorizeWrite: suspend () -> Unit = { error("Git写入尚未授权") },
+    private val onClose: () -> Unit = {},
     private val authorize: suspend () -> Unit,
-) {
+) : WorkspaceGitSession {
     private val binding = checkNotNull(workspaces.state.value.bindings[chatId]) { "此对话尚未绑定工作区" }
     private val mutex = Mutex()
     private var closed = false
-    data class Entry(val path: String, val staged: String?, val working: String?, val conflict: Boolean)
-    data class Status(val branch: String?, val head: String?, val entries: List<Entry>, val total: Int)
-    data class Revision(val head: String?, val indexSha256: String?, val branch: String?)
-    data class Diff(val path: String, val staged: Boolean, val patch: String, val revision: Revision,
-        val workingSha256: String?, val workingExecutable: Boolean?)
-    data class Commit(val id: String, val message: String, val author: String, val timeSeconds: Int)
-
     private suspend fun verify() {
         currentCoroutineContext().ensureActive()
         check(!closed) { "Git页面已关闭" }
@@ -66,7 +66,7 @@ class BoundWorkspaceGit(
     }) { File(workspaces.location(binding)).canonicalFile }
 
     /** Explicit host-approved creation only. Reads never initialize a missing repository. */
-    suspend fun initialize(): Revision = withContext(Dispatchers.IO) {
+    override suspend fun initialize(): Revision = withContext(Dispatchers.IO) {
         mutex.withLock {
             verifyWrite()
             val root = resolveRoot()
@@ -130,7 +130,7 @@ class BoundWorkspaceGit(
             !config.getBoolean("core", null, "bare", false) &&
             !config.getBoolean("extensions", null, "worktreeConfig", false)) { "Git工作树配置不受支持" }
     }
-    suspend fun status(offset: Int = 0, limit: Int = 100): Status {
+    override suspend fun status(offset: Int, limit: Int): Status {
         require(offset in 0..100_000 && limit in 1..100)
         return access { git ->
             val status = git.status().call()
@@ -175,7 +175,7 @@ class BoundWorkspaceGit(
         digest(File(git.repository.directory, "index")), git.repository.fullBranch)
 
     /** Read a real HEAD/index or index/worktree patch without changing either tree. */
-    suspend fun diff(path: String, staged: Boolean): Diff = access { git ->
+    override suspend fun diff(path: String, staged: Boolean): Diff = access { git ->
         val file = checkedPath(git.repository.workTree.canonicalFile, path)
         val before = revision(git)
         val workingBefore = if (staged) null else digest(file)
@@ -213,7 +213,7 @@ class BoundWorkspaceGit(
         Diff(path, staged, patch, before, workingBefore, executableBefore)
     }
 
-    suspend fun history(limit: Int = 30): List<Commit> {
+    override suspend fun history(limit: Int): List<Commit> {
         require(limit in 1..100)
         return access { git ->
             if (git.repository.resolve(Constants.HEAD) == null) emptyList()
@@ -228,7 +228,7 @@ class BoundWorkspaceGit(
         verify()
     }
     /** Stage the exact reviewed file version; does not stage unrelated paths. */
-    suspend fun stage(review: Diff): Revision = access { git ->
+    override suspend fun stage(review: Diff): Revision = access { git ->
         require(!review.staged) { "请先审阅工作树差异" }
         val file = checkedPath(git.repository.workTree.canonicalFile, review.path)
         check(revision(git) == review.revision && digest(file) == review.workingSha256 &&
@@ -284,7 +284,7 @@ class BoundWorkspaceGit(
         revision(git)
     }
     /** Reset just the selected index entry to HEAD, preserving the current working file. */
-    suspend fun unstage(path: String, expected: Revision): Revision = access { git ->
+    override suspend fun unstage(path: String, expected: Revision): Revision = access { git ->
         checkedPath(git.repository.workTree.canonicalFile, path)
         check(revision(git) == expected) { "暂存区已变化，请重新审阅" }
         verifyWrite()
@@ -311,7 +311,7 @@ class BoundWorkspaceGit(
         revision(git)
     }
     /** Commit only the reviewed index; never implicitly stage or amend worktree files. */
-    suspend fun commit(expected: Revision, message: String, author: String, email: String): Commit = access { git ->
+    override suspend fun commit(expected: Revision, message: String, author: String, email: String): Commit = access { git ->
         require(message.isNotBlank() && message.length <= 4096 && '\u0000' !in message)
         require(author.isNotBlank() && author.length <= 80 && author.none(Char::isISOControl))
         require(email.length <= 254 && email.none(Char::isISOControl) && email.matches(Regex("[^\\s<>@]+@[^\\s<>@]+")))
@@ -351,5 +351,7 @@ class BoundWorkspaceGit(
             }
         } finally { cache.unlock() }
     }
-    suspend fun close() = mutex.withLock { closed = true }
+    override suspend fun close() = mutex.withLock {
+        if (!closed) { closed = true; onClose() }
+    }
 }
