@@ -56,3 +56,11 @@ Anthropic同样采用该发送方式，NativeBlocks的原生块解析不变。
 完整Android、Lint/APK与原模拟器结果仍待检查，未正式发布。
 
 真实模型自主任务、真机以及 GitHub 远程操作仍未完成，不以 HTTP 回归替代。
+
+## 完整修复候选
+
+源ffee1dd的[完整运行38487060647](https://github.com/veryy/Solvit/actions/runs/38487060647)
+build任务115603139758成功，实际报告产物11860153048已下载并检查CRC/XML：
+409单元、零失败/错误/跳过，Lint、APK与固定证书检查成功。
+证书SHA-256为f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3。
+完整模拟器任务115604554194尚在运行；原Git场景、覆盖安装与正式标签门禁待验收。
