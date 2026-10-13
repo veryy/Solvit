@@ -784,8 +784,8 @@ class ChatLayoutTest {
         screenshot("workspace-shell-real-process")
         rule.onNodeWithText("工作目录").performClick()
         val html = HtmlPageProbe(rule.activity)
-        rule.waitUntil(10_000) { runCatching { html.js("window.pluginPageReady===true && !!document.querySelector('[data-node=drafts]')") == "true" }.getOrDefault(false) }
-        html.js("document.querySelector('[data-node=directory]').click()")
+        rule.waitUntil(10_000) { runCatching { html.js("window.pluginPageReady===true && !!document.querySelector('[data-node=drafts]') && !!document.querySelector('[data-node=directory]') && !document.querySelector('[data-node=directory]').disabled") == "true" }.getOrDefault(false) }
+        html.tapElement("[data-node=directory]")
         rule.waitUntil(10_000) { runCatching { html.js("!!document.querySelector('[data-node=new]') && !document.querySelector('[data-node=new]').disabled") == "true" }.getOrDefault(false) }
         html.screenshot("workspace-directory")
     }
