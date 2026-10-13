@@ -25,6 +25,7 @@ import dev.solvit.core.PostTurnTaskControl
 import dev.solvit.core.PageDocumentControl
 import dev.solvit.core.ExtensionPageDocument
 import dev.solvit.core.ExtensionPageResource
+import dev.solvit.core.PageTerminalAccess
 import kotlinx.serialization.json.*
 
 /** Captures the displayed view so queued clicks cannot act on a newer page. */
@@ -39,7 +40,7 @@ private data class PageConfirmation(val view: ScriptPageView, val node: JsonObje
 @Composable
 fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = Modifier,
     document: ExtensionPageDocument? = null, resource: (suspend (String) -> ExtensionPageResource)? = null,
-    onEvent: (PluginPageInteraction) -> Unit) {
+    terminalAccess: PageTerminalAccess? = null, onEvent: (PluginPageInteraction) -> Unit) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val fields = remember(view) {
@@ -65,7 +66,7 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
     }
     val dispatch: (JsonObject, String?) -> Unit = { node, value -> deliver(view, node, value, fields.toMap()) }
     if (document != null) {
-        PluginWebPage(view, document, checkNotNull(resource), busy, modifier) { event ->
+        PluginWebPage(view, document, checkNotNull(resource), busy, modifier, terminalAccess) { event ->
             deliver(event.view, event.node, event.value, event.fields)
         }
     } else Column(modifier.fillMaxSize()) {

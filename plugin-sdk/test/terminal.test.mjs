@@ -3,9 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import vm from 'node:vm';
 
-test('terminal tools preserve exact approved input and require API 5', async () => {
+test('terminal tools preserve exact approved input and declare API13 offline UI', async () => {
   const pkg = JSON.parse(await readFile('../market-server/packages/dev.solvit.terminal.solvit.json', 'utf8'));
-  assert.equal(pkg.manifest.apiVersion, 5);
+  assert.equal(pkg.manifest.apiVersion, 13);
+  assert.deepEqual(pkg.manifest.nativeServices, ['terminal.pty']);
+  assert.equal(pkg.manifest.pages[0].entry, 'ui/index.html');
+  assert.ok(pkg.resources['ui/xterm.js']);
+  assert.ok(pkg.resources['ui/xterm-LICENSE.txt']);
   const sandbox = vm.createContext({}); vm.runInContext(pkg.source, sandbox);
   const calls = [];
   const ctx = { terminal: { call: async (operation, args) => { calls.push([operation, args]); return { id: 'pty-id' }; } } };

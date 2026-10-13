@@ -67,7 +67,7 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
   nativeServices?: ('terminal.pty'|'web.pages')[];
   pages?: { id: string; title: string; entry?: string }[];

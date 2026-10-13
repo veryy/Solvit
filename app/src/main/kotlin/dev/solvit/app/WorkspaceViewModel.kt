@@ -25,6 +25,10 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
         manager.openPage(locale, pageAccess(canInstallDrafts = true))
     fun pageAccess(canInstallDrafts: Boolean = false): PageWorkspaceAccess =
         dev.solvit.market.WorkspacePageBridge(service, plugins, checkNotNull(chatId), canInstallDrafts) { chatId }
+    fun terminalPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
+        manager.openPage(locale, terminal = terminalPageAccess(TERMINAL_OWNER))
+    fun terminalPageAccess(owner: String): PageTerminalAccess =
+        dev.solvit.market.TerminalPageBridge(service, terminals, checkNotNull(chatId), owner) { chatId }
     private var chatId: String? = null
     private var selection: Job? = null
     fun selectChat(id: String?) {

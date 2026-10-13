@@ -11,13 +11,13 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** Human management uses immutable APK page code; it never enables AI tools or downloaded code. */
-class BuiltinWorkspaceManager(context: Context) {
+class BuiltinWorkspaceManager(context: Context, private val pluginId: String = "dev.solvit.workspace") {
     private val app = context.applicationContext
     private val pkg by lazy {
-        ScriptPackage.parse(app.assets.open("builtin-plugins/dev.solvit.workspace.solvit.json").use { it.readBytes() })
-            .also { check(it.manifest.id == "dev.solvit.workspace" && it.manifest.apiVersion == 12) }
+        ScriptPackage.parse(app.assets.open("builtin-plugins/$pluginId.solvit.json").use { it.readBytes() })
+            .also { check(it.manifest.id == pluginId && (pluginId == "dev.solvit.workspace" && it.manifest.apiVersion == 12 || pluginId == "dev.solvit.terminal" && it.manifest.apiVersion == 13)) }
     }
-    fun openPage(locale: String, access: PageWorkspaceAccess): ExtensionPageSession {
+    fun openPage(locale: String, access: PageWorkspaceAccess? = null, terminal: PageTerminalAccess? = null): ExtensionPageSession {
         require(locale.matches(Regex("[a-zA-Z0-9_-]{1,20}")))
         return object : ExtensionPageSession {
             private val mutableClosed = MutableStateFlow(false)
@@ -27,7 +27,7 @@ class BuiltinWorkspaceManager(context: Context) {
             private var view: ScriptPageView? = null
             private val engine = ScriptPageSession(pkg, "main", locale, ScriptHost { _, _, _ ->
                 error("人工工作区页面未开放此能力")
-            }) { check(!mutableClosed.value) { "Workspace page closed" } }.also { it.attachWorkspace(access) }
+            }) { check(!mutableClosed.value) { "Workspace page closed" } }.also { access?.let(it::attachWorkspace); terminal?.let(it::attachTerminal) }
             private fun snapshot(next: ScriptPageView): ExtensionPageSnapshot {
                 check(!mutableClosed.value); view = next
                 return ExtensionPageSnapshot(++revision, next.toJson())
@@ -40,6 +40,7 @@ class BuiltinWorkspaceManager(context: Context) {
                 snapshot(engine.dispatch(checkNotNull(view), nodeId, value, fields, confirmed))
             }
             override suspend fun document() = engine.document()
+            override suspend fun terminalAccess() = engine.terminalAccess()
             override suspend fun resource(path: String) = engine.resource(path)
             override suspend fun close() { mutableClosed.value = true; withContext(NonCancellable) { engine.close() } }
         }

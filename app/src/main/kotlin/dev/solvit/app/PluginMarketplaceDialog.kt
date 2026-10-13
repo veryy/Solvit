@@ -28,7 +28,7 @@ import dev.solvit.core.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean) -> dev.solvit.core.PageWorkspaceAccess)? = null, onDismiss: () -> Unit) {
+fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean) -> dev.solvit.core.PageWorkspaceAccess)? = null, terminalAccess: ((String) -> PageTerminalAccess)? = null, onDismiss: () -> Unit) {
     val installed by vm.installed.collectAsStateWithLifecycle()
     val catalog by vm.catalog.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
@@ -175,6 +175,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                 val access = if ("workspace" in permissions) workspaceAccess?.invoke("plugins" in permissions) else null
                 vm.openPage(pluginId, page.id, locale).also { session ->
                     access?.let(session::attachWorkspace)
+                    if (permissions.containsAll(setOf("workspace", "shell"))) terminalAccess?.invoke(pluginId)?.let(session::attachTerminal)
                 }
             }) { openedPage = null }
         }

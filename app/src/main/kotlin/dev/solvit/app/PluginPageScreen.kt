@@ -21,6 +21,7 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, em
     var snapshot by remember { mutableStateOf<ExtensionPageSnapshot?>(null) }
     var view by remember { mutableStateOf<ScriptPageView?>(null) }
     var document by remember { mutableStateOf<ExtensionPageDocument?>(null) }
+    var terminal by remember { mutableStateOf<PageTerminalAccess?>(null) }
     var busy by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -33,9 +34,10 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, em
             current.attachDocuments(documents)
             val initial = current.open()
             document = current.document()
+            terminal = current.terminalAccess()
             snapshot = initial; view = ScriptPageView.parse(initial.json); busy = false
             current.closed.collect { closed -> if (closed) {
-                view = null; snapshot = null; busy = false; error = "插件页面已关闭，请检查启用状态和权限。"
+                view = null; snapshot = null; terminal = null; busy = false; error = "插件页面已关闭，请检查启用状态和权限。"
             } }
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { busy = false; error = "插件页面无法打开，请检查启用状态和权限。" }
@@ -47,7 +49,7 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, em
                 error?.let { UiText(it, Modifier.padding(12.dp).testTag("plugin_page_error"), color = MaterialTheme.colorScheme.error) }
                 view?.let { displayed ->
                     PluginPageContent(displayed, busy, Modifier.weight(1f), document,
-                        resource = { path -> checkNotNull(session).resource(path) }) { event ->
+                        resource = { path -> checkNotNull(session).resource(path) }, terminalAccess = terminal) { event ->
                         val current = session
                         val revision = snapshot?.revision
                         if (!busy && event.view === view && current != null && revision != null) {

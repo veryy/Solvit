@@ -867,35 +867,61 @@ class ChatLayoutTest {
         val app = rule.activity.application as SolvitApplication
         runBlocking { app.systemExecution.setMode(TERMINAL_OWNER,ExecutionMode.APP) }
         openWorkspace()
-        rule.onNodeWithText("交互终端").performClick()
-        rule.onNodeWithTag("shell_command").performTextInput("stty -echo; export UI_PTY_STATE=retained; printf '__UI_%s__\\n' READY")
-        rule.onNodeWithText("发送输入").assertIsEnabled().performClick()
-        try {
-            rule.waitUntil(8000) { rule.onAllNodes(hasText("__UI_READY__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
-        } catch(e: Exception) {
-            screenshot("workspace-interactive-initial-failure")
-            throw AssertionError("PTY initial state="+app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }+
-                "\n"+rule.onRoot().printToString(),e)
+        val page = HtmlPageProbe(rule.activity)
+        fun js(code: String) = page.js(code)
+        fun waitPage() {
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_web_page").fetchSemanticsNodes().isNotEmpty() }
+            rule.waitUntil(10_000) { js("document.getElementById('shells').children.length>0") == "true" }
         }
-        rule.onNodeWithTag("shell_command").performClick().performTextInput("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
-        rule.onNodeWithTag("shell_command").assert(hasText("UI_PTY_STATE", substring = true))
-        try {
-            rule.waitUntil(8000) { rule.onAllNodes(hasText("发送输入") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
-            rule.waitUntil(8000) { rule.onNodeWithText("发送输入").isDisplayed() }
-            rule.onNodeWithText("发送输入").assertIsDisplayed().performClick()
-            rule.waitUntil(8000) { rule.onAllNodes(hasText("ui-result:retained", substring=true)).fetchSemanticsNodes().isNotEmpty() }
-        } catch (e: Exception) {
-            screenshot("workspace-interactive-failure")
-            throw AssertionError("PTY UI state=" + app.terminals.sessions.value.filter { it.owner == TERMINAL_OWNER } +
-                "\n" + rule.onRoot().printToString(), e)
+        fun openTerminal() {
+            js("document.getElementById('open').click()")
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("terminal_page_allow").performClick()
+            rule.waitUntil(10_000) { js("document.querySelector('.terminal-container:not([hidden]) .xterm-helper-textarea')!==null") == "true" }
         }
-        rule.onNodeWithTag("terminal_keys").performScrollTo().performTextInput("printf '__RAW_%s__\\n' KEYS\n")
-        rule.waitUntil(8000) { rule.onAllNodes(hasText("__RAW_KEYS__", substring=true)).fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithTag("terminal_output").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithTag("terminal_transcript").performScrollToNode(hasText("Ctrl-C"))
-        rule.onNodeWithText("Ctrl-C").assertIsDisplayed()
-        screenshot("workspace-interactive-pty")
-        rule.onNodeWithText("关闭终端").performScrollTo().performClick()
-        rule.waitUntil(8000) { rule.onAllNodes(hasText("终端已关闭 ·", substring=true)).fetchSemanticsNodes().isNotEmpty() }
+        fun command(text: String) {
+            val value = kotlinx.serialization.json.JsonPrimitive(text).toString()
+            rule.waitUntil(8000) { js("!document.getElementById('send').disabled") == "true" }
+            js("document.getElementById('command').value=$value;document.getElementById('input-form').requestSubmit()")
+        }
+        fun displayed(marker: String) = js("Array.from(document.querySelectorAll('.terminal-container:not([hidden]) .xterm-rows')).some(e=>e.textContent.includes(${kotlinx.serialization.json.JsonPrimitive(marker)}))") == "true"
+        try {
+            rule.onNodeWithText("交互终端").performClick();waitPage()
+            val before = app.terminals.sessions.value.map { it.id }.toSet()
+            js("document.getElementById('open').click()")
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
+            assertEquals(before, app.terminals.sessions.value.map { it.id }.toSet())
+            rule.onNodeWithText("取消").performClick()
+            rule.waitUntil(8000) { js("!document.getElementById('open').disabled") == "true" }
+            openTerminal()
+            command("stty -echo; export UI_PTY_STATE=retained; printf '__UI_%s__\\n' READY")
+            rule.waitUntil(8000) { displayed("__UI_READY__") }
+            command("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
+            rule.waitUntil(8000) { displayed("ui-result:retained") }
+            // Real xterm DOM input -> onData -> page bridge -> real Android PTY.
+            val raw = kotlinx.serialization.json.JsonPrimitive("printf '__RAW_%s__\\n' KEYS\n").toString()
+            js("document.querySelector('.terminal-container:not([hidden]) .xterm-helper-textarea').dispatchEvent(new InputEvent('input',{data:$raw,inputType:'insertText',bubbles:true}))")
+            rule.waitUntil(8000) { displayed("__RAW_KEYS__") }
+            command("sleep 30")
+            js("document.querySelector('[data-key]').click()")
+            command("printf '__INTERRUPT_%s__\\n' OK")
+            rule.waitUntil(8000) { displayed("__INTERRUPT_OK__") }
+            js("document.getElementById('add').click();document.getElementById('shell-name').value='Second HTML Shell';document.getElementById('new-shell').close('create')")
+            rule.waitUntil(8000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("terminal_page_allow").performClick()
+            rule.waitUntil(8000) { js("Array.from(document.getElementById('shells').children).some(e=>e.textContent==='Second HTML Shell' && e.classList.contains('selected'))") == "true" }
+            openTerminal();command("stty -echo; printf '__SECOND_%s__\\n' \"\${UI_PTY_STATE:-empty}\"")
+            rule.waitUntil(8000) { displayed("__SECOND_empty__") }
+            js("document.getElementById('shells').children[0].click()")
+            rule.waitUntil(8000) { displayed("ui-result:retained") }
+            screenshot("workspace-interactive-html-pty")
+            js("document.getElementById('close').click()")
+            rule.waitUntil(8000) { js("document.getElementById('close').disabled") == "true" }
+            assertTrue(app.terminals.sessions.value.any { it.owner==TERMINAL_OWNER && it.chatId!=null && !it.active })
+        } catch (e: Throwable) {
+            screenshot("workspace-interactive-html-failure")
+            throw AssertionError("HTML PTY state=" + app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }, e)
+        }
     }
+
 }

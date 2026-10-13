@@ -339,7 +339,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace, app.toolApprovals) { permissionsOpen = false }
     if (modelsOpen) ModelProfilesScreen(app.modelProfiles, busy, onDismiss = { modelsOpen = false }, onFetchModels = vm::discoverModels, providers = app.modelProviders)
     if (backupOpen) ConfigurationBackupDialog(vm, app.roles, app.appearance, onDismiss = { backupOpen = false })
-    if (pluginsOpen) PluginMarketplaceDialog(marketplace, workspaceAccess = { install -> workspaces.pageAccess(install) }, onDismiss = { pluginsOpen = false })
+    if (pluginsOpen) PluginMarketplaceDialog(marketplace, workspaceAccess = { install -> workspaces.pageAccess(install) }, terminalAccess = { owner -> workspaces.terminalPageAccess(owner) }, onDismiss = { pluginsOpen = false })
     if (agentsOpen) AgentLibraryDialog(agents, onDismiss = { agentsOpen = false })
     deleteTarget?.let { session ->
         AlertDialog(onDismissRequest = { deleteTarget = null }, title = { UiText("删除对话？") },

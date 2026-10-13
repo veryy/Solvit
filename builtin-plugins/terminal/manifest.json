@@ -1,9 +1,9 @@
 {
   "id": "dev.solvit.terminal",
   "name": "交互式终端",
-  "description": "持久 Android PTY：保留目录和环境，支持输入、Ctrl-C、状态读取和关闭。普通应用身份；不包含 Root PTY、Linux 发行版或完整 VT 屏幕。",
-  "version": "1.0.0",
-  "apiVersion": 5,
+  "description": "离线 HTML/JS 交互终端，xterm.js 处理 ANSI、光标与键盘；Android PTY 保留工作目录和环境，支持多 Shell、尺寸调整和关闭。暂不支持 Root PTY 或 Linux 发行版。",
+  "version": "1.1.0",
+  "apiVersion": 13,
   "permissions": [
     "workspace",
     "shell"
@@ -93,6 +93,16 @@
         ],
         "additionalProperties": false
       }
+    }
+  ],
+  "nativeServices": [
+    "terminal.pty"
+  ],
+  "pages": [
+    {
+      "id": "main",
+      "title": "交互终端",
+      "entry": "ui/index.html"
     }
   ]
 }

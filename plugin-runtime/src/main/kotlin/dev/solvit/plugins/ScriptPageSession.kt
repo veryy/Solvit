@@ -8,6 +8,7 @@ import dev.solvit.core.ExtensionPageDocument
 import dev.solvit.core.ExtensionPageResource
 import dev.solvit.core.PageDocumentAccess
 import dev.solvit.core.PageWorkspaceAccess
+import dev.solvit.core.PageTerminalAccess
 
 /** One independent QuickJS instance per open page, owned and closed by the host UI. */
 class ScriptPageSession(
@@ -29,6 +30,26 @@ class ScriptPageSession(
     @Volatile private var opened = false
     private var documents: PageDocumentAccess? = null
     private var workspace: PageWorkspaceAccess? = null
+    private var terminal: PageTerminalAccess? = null
+    fun attachTerminal(access: PageTerminalAccess) {
+        check(!opened && !closed && terminal == null)
+        // Requires an explicit service declaration; legacy shell tools get no page grant.
+        if (pkg.manifest.apiVersion < 13 || "terminal.pty" !in pkg.manifest.nativeServices ||
+            !pkg.manifest.permissions.containsAll(setOf("workspace", "shell"))) return
+        terminal = access
+    }
+    suspend fun terminalAccess(): PageTerminalAccess? {
+        authorize(); check(opened)
+        val access = terminal ?: return null
+        return object : PageTerminalAccess {
+            override suspend fun request(operation: String, argumentsJson: String, confirmed: Boolean,
+                authorize: suspend () -> Unit): String {
+                return access.request(operation, argumentsJson, confirmed) {
+                    this@ScriptPageSession.authorize(); authorize()
+                }.also { this@ScriptPageSession.authorize(); authorize() }
+            }
+        }
+    }
     fun attachWorkspace(access: PageWorkspaceAccess) {
         check(!opened && !closed && workspace == null)
         workspace = access
@@ -94,7 +115,7 @@ class ScriptPageSession(
         // Interrupt work before waiting for the page mutex; repeat after a racing start.
         withContext(NonCancellable) {
             executor.stop()
-            mutex.withLock { executor.stop(); view = null; documents = null; workspace = null }
+            mutex.withLock { executor.stop(); view = null; documents = null; workspace = null; terminal = null }
         }
     }
 }

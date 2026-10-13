@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"><link rel="stylesheet" href="xterm.css"><link rel="stylesheet" href="style.css"></head><body>
+<header><nav id="shells" aria-label="Shell"></nav><button id="add" aria-label="添加 Shell">＋</button></header>
+<section id="welcome"><h2 id="title">交互终端</h2><p id="intro">同一终端保留目录和环境。终端在本应用身份下运行。</p><button id="open">打开终端</button></section>
+<div id="terminals"></div><div id="status" role="status"></div>
+<footer><div id="keys"><button data-key="\u0003">Ctrl-C</button><button data-key="\u0009">Tab</button><button data-key="\u001b">Esc</button><button data-key="\u001b[A">↑</button><button data-key="\u001b[B">↓</button><button data-key="\u001b[D">←</button><button data-key="\u001b[C">→</button><button id="close">关闭</button></div>
+<form id="input-form"><input id="command" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="命令或交互输入" placeholder="命令或交互输入"><button id="send" type="submit">发送</button></form></footer>
+<dialog id="new-shell"><form method="dialog"><label id="name-label" for="shell-name">Shell 名称</label><input id="shell-name" maxlength="80" required><div><button value="cancel" id="cancel">取消</button><button value="create" id="create">创建</button></div></form></dialog>
+<script src="xterm.js"></script><script src="addon-fit.js"></script><script src="main.js"></script></body></html>

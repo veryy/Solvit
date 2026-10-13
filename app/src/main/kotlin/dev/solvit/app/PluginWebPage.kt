@@ -14,6 +14,12 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import dev.solvit.core.ExtensionPageDocument
 import dev.solvit.core.ExtensionPageResource
+import dev.solvit.core.PageTerminalAccess
+import androidx.compose.material3.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import java.util.concurrent.atomic.AtomicInteger
 import dev.solvit.plugins.ScriptPageView
 import dev.solvit.plugins.ScriptWebPageEvent
 import java.io.ByteArrayInputStream
@@ -25,12 +31,15 @@ import kotlinx.serialization.json.*
 private const val PLUGIN_ORIGIN = "https://solvit-plugin.invalid"
 private const val PAGE_CSP = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
 
+private data class TerminalPageConfirmation(val title: String, val detail: String,
+    val answer: CompletableDeferred<Boolean>)
+
 /** Generic offline container. The plugin's bundled HTML/CSS/JS owns all business layout. */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
     resource: suspend (String) -> ExtensionPageResource, busy: Boolean, modifier: Modifier = Modifier,
-    onEvent: (ScriptWebPageEvent) -> Unit) {
+    terminalAccess: PageTerminalAccess? = null, onEvent: (ScriptWebPageEvent) -> Unit) {
     if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
         UiText("当前系统 WebView 不支持插件页面消息桥，请更新系统 WebView。", modifier)
         return
@@ -44,6 +53,11 @@ fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
     val latestBusy by rememberUpdatedState(busy)
     val latestResource by rememberUpdatedState(resource)
     val latestEvent by rememberUpdatedState(onEvent)
+    val latestTerminal by rememberUpdatedState(terminalAccess)
+    val scope = rememberCoroutineScope()
+    val terminalMutex = remember(document) { Mutex() }
+    val terminalPending = remember(document) { AtomicInteger(0) }
+    var terminalConfirmation by remember(document) { mutableStateOf<TerminalPageConfirmation?>(null) }
     var failed by remember(document) { mutableStateOf(false) }
     val live = remember(document) { AtomicBoolean(true) }
     fun release(browser: WebView) {
@@ -111,6 +125,49 @@ fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
                     val input = Json.parseToJsonElement(body).jsonObject
                     if (input == buildJsonObject { put("type", "ready") }) {
                         web.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($latestState)", null)
+                    } else if (input["type"] == JsonPrimitive("terminal")) {
+                        check(!latestBusy && input.keys == setOf("type","token","id","operation","arguments"))
+                        val requestToken = input.getValue("token").jsonPrimitive.content
+                        check(requestToken == latestToken)
+                        val requestId = input.getValue("id").jsonPrimitive.content.also { require(it.matches(Regex("[a-zA-Z0-9_-]{1,64}"))) }
+                        val operation = input.getValue("operation").jsonPrimitive.content
+                        val args = input.getValue("arguments").jsonObject
+                        val access = checkNotNull(latestTerminal) { "No terminal page capability" }
+                        if (terminalPending.incrementAndGet() > 64) {
+                            terminalPending.decrementAndGet(); error("Terminal page queue full")
+                        }
+                        scope.launch {
+                            try {
+                                val result = terminalMutex.withLock {
+                                    suspend fun authorize() { check(live.get() && requestToken == latestToken && !latestBusy) }
+                                    authorize()
+                                    var confirmed = false
+                                    if (operation == "open" || operation == "createShell") {
+                                        val detail = if (operation == "open") {
+                                            val names = Json.parseToJsonElement(access.request("snapshot", "{}", authorize = { authorize() })).jsonObject
+                                            val name = names.getValue("shells").jsonArray.firstOrNull { it.jsonObject["id"] == args["shellId"] }
+                                                ?.jsonObject?.get("name")?.jsonPrimitive?.content ?: error("Shell does not exist")
+                                            "允许此插件页面控制当前聊天的「$name」终端？页面可发送命令和交互输入；关闭页面后停止接受输入，Shell 会保留到明确关闭或应用退出。"
+                                        } else "在当前工作区创建 Shell：${args["name"]?.jsonPrimitive?.content?.take(80).orEmpty()}"
+                                        val answer = CompletableDeferred<Boolean>()
+                                        val question = TerminalPageConfirmation("终端授权", detail, answer)
+                                        terminalConfirmation = question
+                                        try { confirmed = answer.await() }
+                                        finally { if (terminalConfirmation === question) terminalConfirmation = null }
+                                        check(confirmed) { "Terminal authorization declined" }
+                                    }
+                                    access.request(operation, args.toString(), confirmed) { authorize() }
+                                }
+                                if (live.get()) reply.postMessage(buildJsonObject {
+                                    put("type","terminalReply"); put("id",requestId); put("result",Json.parseToJsonElement(result))
+                                }.toString())
+                            } catch (error: CancellationException) { throw error }
+                            catch (_: Exception) {
+                                if (live.get()) reply.postMessage(buildJsonObject {
+                                    put("type","terminalReply"); put("id",requestId); put("error","终端操作失败或授权已失效，请重新打开页面。")
+                                }.toString())
+                            } finally { terminalPending.decrementAndGet() }
+                        }
                     } else {
                         check(!latestBusy)
                         val event = ScriptWebPageEvent.parse(latestView, latestToken, body)
@@ -131,6 +188,12 @@ fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
         onDispose {
             release(browser)
         }
+    }
+    terminalConfirmation?.let { question ->
+        AlertDialog(onDismissRequest = { question.answer.complete(false) },
+            title = { UiText(question.title) }, text = { UiText(question.detail) },
+            confirmButton = { TextButton(onClick = { question.answer.complete(true) }, modifier = Modifier.testTag("terminal_page_allow")) { UiText("允许") } },
+            dismissButton = { TextButton(onClick = { question.answer.complete(false) }) { UiText("取消") } })
     }
     if (failed) UiText("插件页面加载失败，请关闭后重新打开。", modifier)
     else AndroidView(factory = { browser }, modifier = modifier.fillMaxSize().testTag("plugin_web_page"), update = {

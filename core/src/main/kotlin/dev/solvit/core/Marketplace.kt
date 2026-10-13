@@ -23,6 +23,8 @@ interface ExtensionPageSession {
     /** Attached by the page owner before open; never available to model tools or Hooks. */
     fun attachDocuments(access: PageDocumentAccess) { }
     fun attachWorkspace(access: PageWorkspaceAccess) { }
+    fun attachTerminal(access: PageTerminalAccess) { }
+    suspend fun terminalAccess(): PageTerminalAccess? = null
     suspend fun close()
 }
 

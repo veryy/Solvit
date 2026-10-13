@@ -24,6 +24,7 @@ import dev.solvit.core.*
 fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, createOnOpen: Boolean = false, onDismiss: () -> Unit) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val directoryManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context) }
+    val terminalManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context, "dev.solvit.terminal") }
     val locale = LocalUiLanguage.current
     val executionModes by system.modes.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
@@ -71,8 +72,15 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
                 if (tab == 0) {
-                    // Keep the composer reachable when the IME leaves only a short viewport.
-                    // All selectors and transcript controls scroll in the remaining space.
+                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = !interactive, onClick = { interactive = false }, label = { UiText("普通命令") })
+                        FilterChip(selected = interactive, onClick = { interactive = true }, label = { UiText("交互终端") })
+                    }
+                    if (interactive) {
+                        Box(Modifier.weight(1f).fillMaxWidth()) {
+                            key(id, locale) { PluginPageScreen("交互终端", { vm.terminalPage(terminalManager, locale) }, embedded = true) {} }
+                        }
+                    } else {
                     LazyColumn(Modifier.weight(1f).fillMaxWidth().testTag("terminal_transcript")) {
                     item { Column {
                     if (executionModes[TERMINAL_OWNER] == ExecutionMode.ROOT) UiText("手动终端：Root 模式", color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 12.dp))
@@ -81,35 +89,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                             onClick = { shellId = shell.id }, label = { Text(shell.name) }) }
                         item { TextButton(onClick = vm::createShell, enabled = !busy && id != null) { UiText("＋ Shell") } }
                     }
-                    Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FilterChip(selected = !interactive, onClick = { interactive = false }, label = { UiText("普通命令") })
-                        FilterChip(selected = interactive, onClick = { interactive = true }, label = { UiText("交互终端") })
-                    }
                     } }
-                    if (interactive) {
-                        item { LazyRow(contentPadding = PaddingValues(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            item { FilterChip(selected = activeTerminal == null, onClick = { selectedTerminal = null }, label = { UiText("手动 Shell") }) }
-                            items(shellTerminals, key = { it.id }) { session -> FilterChip(selected = activeTerminal?.id == session.id,
-                                onClick = { selectedTerminal = session.id }, label = { UiText((if (session.owner == TERMINAL_OWNER) uiString("手动") else session.owner) +
-                                    (session.roleId?.let { " · $it" } ?: "") + if (session.active) "" else uiString(" · 已关闭")) }) }
-                        }
-                        }
-                        item { Column(Modifier.padding(12.dp)) {
-                                UiText("同一终端保留目录和环境。输入会直接发送给 Shell；支持交互提示和 Ctrl-C。", style = MaterialTheme.typography.bodySmall)
-                                if (activeTerminal == null) UiText("输入命令后打开终端。", modifier = Modifier.padding(vertical = 16.dp))
-                                activeTerminal?.let { session ->
-                                    if (session.truncated) UiText("仅保留最近输出", style = MaterialTheme.typography.labelSmall)
-                                    TerminalScreen(session) { vm.sendKeys(session, it) }
-                                    session.failure?.let { UiText(it, color = MaterialTheme.colorScheme.error) }
-                                    if (!session.active) UiText("终端已关闭 · ${session.exitCode ?: "—"}")
-                                }
-                            }
-                        }
-                        item { activeTerminal?.takeIf { it.active }?.let { session -> Row(Modifier.padding(horizontal = 12.dp)) {
-                            TextButton(onClick = { vm.interrupt(session) }, enabled = !busy) { UiText("Ctrl-C") }
-                            TextButton(onClick = { vm.closeTerminal(session) }, enabled = !busy) { UiText("关闭终端") }
-                        } } }
-                    } else {
                         item { UiText("以本应用身份运行非交互式命令，可访问本应用的文件和网络。每条命令从工作区目录启动。", style = MaterialTheme.typography.bodySmall) }
                         items(jobs.filter { it.workspaceId == id && it.shellSessionId == activeShell }.reversed(), key = { it.id }) { job ->
                             Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(12.dp)) {
@@ -126,14 +106,14 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                             } }
                         }
                     }
-                    }
                     Row(Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(command, { command = it }, placeholder = { UiText(if (interactive) "命令或交互输入" else "输入命令") }, maxLines = 4, modifier = Modifier.weight(1f).testTag("shell_command"))
+                        OutlinedTextField(command, { command = it }, placeholder = { UiText("输入命令") }, maxLines = 4, modifier = Modifier.weight(1f).testTag("shell_command"))
                         Button(onClick = { activeShell?.let {
                             keyboard?.hide(); focus.clearFocus()
-                            if (interactive) vm.send(it, activeTerminal?.takeIf { session -> session.active }?.id, command) else vm.run(it, command)
+                            vm.run(it, command)
                             command = ""
-                        } }, enabled = !busy && activeShell != null && (command.isNotBlank() || interactive)) { UiText(if (interactive) "发送输入" else "运行") }
+                        } }, enabled = !busy && activeShell != null && command.isNotBlank()) { UiText("运行") }
+                    }
                     }
                 } else {
                     Box(Modifier.weight(1f).fillMaxWidth()) {
