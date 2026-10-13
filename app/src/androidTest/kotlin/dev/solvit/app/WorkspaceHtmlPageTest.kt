@@ -12,6 +12,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -83,7 +85,7 @@ class WorkspaceHtmlPageTest {
             assertEquals(initialText+marker, runBlocking { app.workspaces.read(workspace.id, "src/note.ts") })
             click("file_0"); waitDom("document.querySelector('[data-node=directory]')?.textContent==='src'")
             click("file_0");waitDom("!!window.workspaceEditor && !!document.querySelector('.cm-content[contenteditable=false]')")
-            assertEquals(JsonPrimitive(initialText+marker).toString(),html.js("window.workspaceEditor.state.doc.toString()"))
+            assertEquals(initialText+marker,Json.parseToJsonElement(html.js("window.workspaceEditor.state.doc.toString()")).jsonPrimitive.content)
             assertEquals("true",html.js("document.querySelectorAll('.cm-lineNumbers .cm-gutterElement').length>1"))
             html.screenshot("workspace-html-code-preview")
             html.js("document.getElementById('toggle-edit').click()")
