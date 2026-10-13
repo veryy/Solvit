@@ -1,6 +1,12 @@
 import { definePlugin } from '../../plugin-sdk/src/index';
 import {workspacePage} from './pages';
-export default definePlugin({ pages:{main:workspacePage()},tools: {
+import {renderInstructions} from './instructions';
+export default definePlugin({
+  async beforeModel(input,ctx){
+    if(input.settings?.projectRules==='false')return '';
+    return renderInstructions(await ctx.workspace!.instructions!());
+  },
+  pages:{main:workspacePage()},tools: {
   info: (args, ctx) => ctx.workspace!.call('info', args),
   read_file: (args, ctx) => ctx.workspace!.call('read', args),
   write_file: (args, ctx) => ctx.workspace!.call('write', args),

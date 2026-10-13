@@ -2,8 +2,8 @@
   "id": "dev.solvit.workspace",
   "name": "工作区与 Shell",
   "description": "当前对话的工作区文件和多个 Shell 命令会话；不包含交互式 PTY、Root 或 Linux 发行版。",
-  "version": "1.1.0",
-  "apiVersion": 12,
+  "version": "1.2.0",
+  "apiVersion": 16,
   "permissions": [
     "workspace",
     "shell"
@@ -138,6 +138,17 @@
       "id": "main",
       "title": "工作区",
       "entry": "ui/index.html"
+    }
+  ],
+  "hooks": [
+    "beforeModel"
+  ],
+  "settings": [
+    {
+      "key": "projectRules",
+      "label": "自动读取当前工作区项目规则",
+      "kind": "boolean",
+      "defaultValue": "true"
     }
   ]
 }
