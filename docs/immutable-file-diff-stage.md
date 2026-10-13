@@ -37,3 +37,5 @@ TS changesPage与diff模块已提交，但尚未在manifest注册或从聊天打
 追加序列诊断38432919598首轮3项1失败，失败是javascriptPluginUsesPersistentPtyAndDisableClosesItsProcess启动时LazyLayout的Choreographer要求Looper，堆栈直接来自SolvitApplication.kt:99在Default worker发布ready状态；其余两项（包括角色）通过，但不能记作十轮通过。独立分支调整初始化仍在后台、成功/失败的ready UI转换在Dispatchers.Main.immediate发布；保留全部三项原测试并重跑同序列。此修正不在不可变0.25.2标签内；不能冒称该版本额外十轮成功。
 
 0.25.2正式38432874699源码62870a5bfef29d8c8ae174b665dc7bc85489b0a9已发布，五作业全成功。实际下载报告368单元/49模拟器、均0失败/错误/跳过，固定签名和覆盖更新通过。APK artifact11831099268、ZIP20584024bytes，公开asset637670128，23,558,161bytes，SHA256 f198ceec6c284a1d749664871dc1cdc9fce2c72abc6e473b78b19c2598c920dc；公开8段下载与Actions逐字节相同。完整插件HTML差异及启动线程额外回归继续在feat/immutable-file-diff分支，不宣称存储阶段完成整项产品验收。
+
+269b068的[追加序列38434374173](https://github.com/veryy/Solvit/actions/runs/38434374173)成功。下载artifact11833565064（ZIP952205bytes）CRC通过，逐份核对result-1..10.txt均OK (3 tests)，实际10轮×3=30项全部成功，包含原PTY、大消息/分支和角色真实触摸/请求断言。支持ready主线程边界对该已复现序列的修正，但不代表真实模型角色或真机验收；该源码仍在后续分支，尚未加入已发布0.25.2。
