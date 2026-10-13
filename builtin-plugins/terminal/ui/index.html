@@ -4,9 +4,10 @@
 <div id="terminals"></div><div id="status" role="status"></div>
 <footer><div id="keys"><div class="key-row"><button data-key="\u0003">Ctrl-C</button><button data-key="\u0009">Tab</button><button id="toggle-keys" aria-expanded="false" aria-controls="extra-keys">更多按键</button></div>
 <div id="extra-keys" class="key-row" hidden><button data-key="\u001b">Esc</button><button data-key="\u001b[A">↑</button><button data-key="\u001b[B">↓</button><button data-key="\u001b[D">←</button><button data-key="\u001b[C">→</button></div></div>
-<form id="input-form"><input id="command" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="命令或交互输入" placeholder="命令或交互输入"><button id="send" type="submit">发送</button></form></footer>
+<form id="input-form"><input id="command" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="命令或交互输入" placeholder="命令或交互输入"><button id="compact-interrupt" type="button" data-key="\u0003">Ctrl-C</button><button id="send" type="submit">发送</button></form></footer>
 <dialog id="session-manager" aria-labelledby="manager-title"><h2 id="manager-title">终端管理</h2>
 <div id="sessions"><label id="running-label" for="running">当前聊天的终端</label><select id="running"></select><button id="attach">连接已有终端</button></div>
+<div id="manager-keys" class="key-row"><button data-key="\u0003">Ctrl-C</button><button data-key="\u0009">Tab</button><button data-key="\u001b">Esc</button><button data-key="\u001b[A">↑</button><button data-key="\u001b[B">↓</button><button data-key="\u001b[D">←</button><button data-key="\u001b[C">→</button></div>
 <div class="manager-actions"><button id="refresh">刷新终端</button><button id="close">关闭当前终端</button></div><button id="dismiss">返回终端</button></dialog>
 <dialog id="new-shell"><form method="dialog"><label id="name-label" for="shell-name">Shell 名称</label><input id="shell-name" maxlength="80" required><div><button value="cancel" id="cancel">取消</button><button value="create" id="create">创建</button></div></form></dialog>
 <script src="xterm.js"></script><script src="addon-fit.js"></script><script src="main.js"></script></body></html>

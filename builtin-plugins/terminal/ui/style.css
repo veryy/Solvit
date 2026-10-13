@@ -5,3 +5,10 @@
 body{position:fixed;inset:0;height:auto}*[hidden]{display:none!important}header,footer,#sessions,#status{flex-shrink:0}
 
 #session-manager{width:min(420px,calc(100% - 32px));max-height:80%;overflow:auto;padding:20px}#manager-title{font-size:18px;margin:0}#running-label{font-size:13px}.manager-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}#dismiss{width:100%;background:var(--primary);color:var(--onPrimary);border-color:transparent}
+
+#compact-interrupt{display:none}
+@media(max-height:320px){
+  footer #keys{display:none}
+  #compact-interrupt{display:inline-block;font-family:monospace;padding:6px 10px}
+  footer{padding:4px 8px}
+}

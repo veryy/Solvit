@@ -122,9 +122,10 @@
   };
   $('refresh').onclick=()=>refreshShells().catch(report);
   $('attach').onclick=async()=>{const candidate=availableTerminals.find(s=>s.id===$('running').value);if(!candidate)return;try{$('session-manager').close();acceptSession(candidate.shellId,await rpc('attach',{id:candidate.id}))}catch(error){report(error)}};
-  $('keys').addEventListener('click',event=>{
+  document.body.addEventListener('click',event=>{
     const key=event.target.dataset.key,entry=sessions.get(selected);
     if(!key || !entry?.active)return;
+    if($('session-manager').open)$('session-manager').close();
     const text=key.replace(/\\u([0-9a-f]{4})/gi,(_,hex)=>String.fromCharCode(parseInt(hex,16)));
     rpc(text==='\x03'?'interrupt':'input',text==='\x03'?{id:entry.id}:{id:entry.id,text}).then(result=>update(entry,result)).catch(report);
   });
