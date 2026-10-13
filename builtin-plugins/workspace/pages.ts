@@ -25,11 +25,14 @@ export function workspacePage(){
  let pending:Extract<PageHostAction,{kind:'workspace.perform'}>|null=null,returnMode='home',drafts:Draft[]=[],selected:Draft|null=null,draftOffset=0,draftTotal=0,draftText='';
  let editorId=0,chunk:TextChunk|null=null,phase='ready',uploadId='',uploadOffset=0;
  let managementPath='';
+ let treeWorkspace:string|null=null,treeResult:JsonObject|null=null,treeRevision=0;
+ const treeEntries=new Map<string,FileEntry>();
  return async({locale,event}:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
   const t=labels[locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en;
   const f=fileLabels[locale.split(/[-_]/)[0] as keyof typeof fileLabels]??fileLabels.en;
   const api=ctx.workspacePage;if(!api)throw Error('Workspace page needs API12');
   let snapshot=await api.query('snapshot') as unknown as Snapshot;
+  if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear()}
   const refresh=async()=>{snapshot=await api.query('snapshot') as unknown as Snapshot};
   const list=async()=>{const result=await api.query('list',{path:directory,offset}) as unknown as {files:FileEntry[];total:number};files=result.files;total=result.total};
   const loadDrafts=async()=>{drafts=await api.query('drafts') as unknown as Draft[]};
@@ -58,7 +61,20 @@ export function workspacePage(){
   if(event){
    message='';try{
     const action=event.action;
-    if(action==='home'){mode='home';pending=null}
+    if(action==='treeLoad'){
+     const target=event.fields.treePath??'',start=Number(event.fields.treeOffset??0);
+     if(!Number.isInteger(start)||start<0||start>1000)throw Error('Invalid directory offset');
+     const result=await api.query('list',{path:target,offset:start}) as unknown as {files:FileEntry[];total:number};
+     if(start>result.total)throw Error('Directory changed. Refresh it.');
+     const entries=result.files.slice(0,10);entries.forEach(entry=>treeEntries.set(entry.path,entry));
+     treeResult={path:target,offset:start,nextOffset:start+entries.length,total:result.total,entries:entries as unknown as JsonObject[]};
+    }
+    else if(action==='treeOpen'){
+     const entry=treeEntries.get(event.fields.treeTarget??'');if(!entry)throw Error('Refresh the file tree first');
+     if(entry.directory){directory=entry.path;offset=0;await list();mode='list'}
+     else{path=originalPath=entry.path;sha=null;editorId++;await readChunk(0);mode='editor'}
+    }
+    else if(action==='home'){mode='home';pending=null}
     else if(action==='create'){mode='create'}
     else if(action==='prepareCreate')prepare('create',{name:(event.fields.name??'').trim()});
     else if(action==='choose'){mode='choose';workspaceOffset=0}
@@ -69,7 +85,7 @@ export function workspacePage(){
     else if(action==='shell'){mode='shell'}
     else if(action==='prepareShell')prepare('createShell',{name:(event.fields.name??'').trim()});
     else if(action==='directory'){mode='list';directory='';offset=0;await list()}
-    else if(action==='refresh'){if(mode==='list')await list();else if(mode==='drafts')await loadDrafts()}
+    else if(action==='refresh'){if(mode==='list'){await list();treeRevision++;treeResult=null;treeEntries.clear()}else if(mode==='drafts')await loadDrafts()}
     else if(action==='parent'){directory=directory.includes('/')?directory.slice(0,directory.lastIndexOf('/')):'';offset=0;await list()}
     else if(action==='prev'){offset=Math.max(0,offset-40);await list()}
     else if(action==='next'){offset+=40;await list()}
@@ -107,6 +123,7 @@ export function workspacePage(){
      prepare('writeDraft',{draftId:draft.draftId,path:draft.path,sha256:draft.sha256});phase='review';
     }else if(action==='confirm'&&mode==='preview'&&pending){
      snapshot=await api.perform() as unknown as Snapshot;const operation=pending.operation;pending=null;message=t[28];
+     if(['write','writeDraft','makeDirectory','moveEntry','deleteEntry'].includes(operation)){treeRevision++;treeResult=null;treeEntries.clear()}
      mode=['write','writeDraft','makeDirectory','moveEntry','deleteEntry'].includes(operation)?'list':operation==='installDraft'?'drafts':'home';
      if(mode==='list')await list();if(mode==='drafts')await loadDrafts();
     }else if(action==='cancel'){
@@ -134,6 +151,11 @@ export function workspacePage(){
   const button=(id:string,label:string,action=id):Button=>({id,kind:'button',text:label,action});
   if(message)nodes.push(text('message',Array.from(message).slice(0,1000).join('')));
   const current=snapshot.workspaces.find(w=>w.id===snapshot.workspaceId);
+  nodes.push(text('tree_meta',JSON.stringify({workspaceId:snapshot.workspaceId,revision:treeRevision,result:treeResult}),'caption'),
+   {id:'treePath',kind:'field',label:'Directory',value:''},
+   {id:'treeOffset',kind:'field',label:'Offset',value:'0'},
+   {id:'treeTarget',kind:'field',label:'File',value:''},
+   button('tree_load','Load directory','treeLoad'),button('tree_open','Open file','treeOpen'));
   if(mode==='home'){
    nodes.push(text('name',current?.name??t[20],'title'));
    nodes.push(button('create',t[1]),button('choose',t[2]));

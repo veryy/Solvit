@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {createHash} from 'node:crypto';
 const pkg=JSON.parse(await readFile('../market-server/packages/dev.solvit.workspace.solvit.json','utf8'));
 const clone=value=>JSON.parse(JSON.stringify(value));
-function harness(bound=true){
+function harness(bound=true,directories=null){
  const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
  let view,approved,created=0,writes=0,draft=null,document='old';
  const snapshot={workspaceId:bound?'ws':null,workspaces:bound?[{id:'ws',name:'Project'}]:[],shells:bound?[{id:'s',name:'Shell 1'}]:[],draftInstallAllowed:false};
@@ -15,7 +15,7 @@ function harness(bound=true){
  const ctx={workspacePage:{query:async(op,args={})=>{
   queries.push([op,clone(args)]);
   if(op==='snapshot')return clone(snapshot);
-  if(op==='list')return {files:files.slice(args.offset,args.offset+40),total:files.length};
+  if(op==='list'){const entries=directories?.[args.path]??files;return {files:entries.slice(args.offset,args.offset+40),total:entries.length}}
   if(op==='read')return {text:'old',sha256:'a'.repeat(64)};
   if(op==='readChunk'){
    let end=Math.min(args.offset+4096,document.length);
@@ -110,4 +110,28 @@ test('folder creation, rename and deletion consume only their displayed relative
  await h.event('delete_0');assert.equal(h.entryActions.length,2);assert.ok(h.nodes().some(n=>n.id==='warning'));
  await h.event('cancel');assert.equal(h.entryActions.length,2);
  await h.event('delete_0');await h.event('confirm');assert.deepEqual(h.entryActions.at(-1),{kind:'workspace.perform',operation:'deleteEntry',arguments:{path:'file-0.txt'}});
+});
+test('lazy tree keeps the opened document while loading siblings and only opens discovered entries',async()=>{
+ const entry=(path,directory=false)=>({name:path.split('/').pop(),path,directory,bytes:directory?0:3});
+ const h=harness(true,{'':[entry('src',true),entry('docs',true)],src:[entry('src/code.ts')],docs:[entry('docs/readme.md')]});
+ const tree=()=>JSON.parse(h.nodes().find(n=>n.id==='tree_meta').text);
+ await h.render();await h.event('tree_load',{treePath:'',treeOffset:'0'});assert.equal(tree().result.entries.length,2);
+ await h.event('tree_load',{treePath:'src',treeOffset:'0'});await h.event('tree_open',{treeTarget:'src/code.ts'});
+ const opened=JSON.parse(h.nodes().find(n=>n.id==='document_meta').text);assert.equal(opened.path,'src/code.ts');
+ await h.event('tree_load',{treePath:'docs',treeOffset:'0'});
+ const same=JSON.parse(h.nodes().find(n=>n.id==='document_meta').text);assert.equal(same.editorId,opened.editorId);assert.equal(same.path,opened.path);
+ await h.event('tree_open',{treeTarget:'../outside.ts'});
+ assert.equal(JSON.parse(h.nodes().find(n=>n.id==='document_meta').text).path,opened.path);
+ assert.equal(h.writes,0);assert.equal(h.created,0);
+});
+test('tree pagination remains bounded and never creates an unbound workspace',async()=>{
+ const h=harness();await h.render();let paths=[];
+ for(let offset=0;offset<45;offset+=10){
+  await h.event('tree_load',{treePath:'',treeOffset:String(offset)});
+  const result=JSON.parse(h.nodes().find(n=>n.id==='tree_meta').text).result;
+  assert.ok(result.entries.length<=10);paths.push(...result.entries.map(entry=>entry.path));
+ }
+ assert.equal(paths.length,45);assert.equal(new Set(paths).size,45);
+ await h.event('directory');assert.ok(h.nodes().length<=256);
+ const empty=harness(false);await empty.render();assert.equal(JSON.parse(empty.nodes().find(n=>n.id==='tree_meta').text).workspaceId,null);assert.equal(empty.created,0);
 });

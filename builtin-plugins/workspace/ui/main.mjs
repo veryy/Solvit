@@ -13,6 +13,10 @@ mountPage(root,footer);
 const baseUpdate=window.solvitPageUpdate,baseMessage=solvitHost.onmessage;
 let state,meta,editor,key=null,source='',readOffset=0,pending=null,pendingBusy=false,editable=false,renderedToken=null;
 let upload='',dirty=false,leaveArmed=false;
+const tree=document.getElementById('file-tree'),folders=new Map(),expanded=new Set(['']);
+let treeWorkspace=null,treeRevision=null,treeRequest=null,openRequest=null,discardTarget=null,lastTreeResult=null;
+const treeText={zh:['文件','刷新','更多','再次点击目标将放弃修改'],en:['Files','Refresh','More','Click the target again to discard changes'],ja:['ファイル','更新','さらに表示','もう一度クリックすると変更を破棄します'],ko:['파일','새로 고침','더 보기','다시 누르면 변경 삭제'],es:['Archivos','Actualizar','Más','Pulsa de nuevo para descartar'],fr:['Fichiers','Actualiser','Plus','Cliquez à nouveau pour abandonner']};
+const treeLabels=()=>treeText[state?.locale?.split(/[-_]/)[0]]??treeText.en;
 const editMode=new Compartment(),holder=document.createElement('section');holder.id='code-editor';
 const strings={
  zh:['预览','编辑','未保存','正在读取','正在准备保存','再点返回将放弃修改','保存','文本超过256KiB','读取失败，请返回后重新打开'],
@@ -36,7 +40,7 @@ function send(id,fields={}) {
  const node=nodes().find(n=>n.id===id);if(!node||node.enabled===false)return;
  pending=state.token;pendingBusy=false;
  syncEditorMode();
- footer.querySelectorAll('button').forEach(b=>b.disabled=true);
+ for(const container of [root,footer])container.querySelectorAll('button,input,textarea,select').forEach(b=>b.disabled=true);
  solvitHost.postMessage(JSON.stringify({type:'event',token:state.token,nodeId:id,fields}));
 }
 function language(path) {
@@ -67,7 +71,10 @@ function status() {
   meta?.phase==='uploading'?`${t[4]} ${meta.uploadOffset}/${upload.length}`:dirty?t[2]:editable?t[1]:t[0];
 }
 function nextTransfer() {
- if(busy()||!meta)return;
+ if(busy())return;
+ if(openRequest!==null){const target=openRequest;openRequest=null;send('tree_open',{treeTarget:target});return}
+ if(treeRequest!==null){const request=treeRequest;treeRequest=null;send('tree_load',{treePath:request.path,treeOffset:String(request.offset)});return}
+ if(!meta)return;
  if(meta.phase==='reading')send('readNext');
  if(meta.phase==='uploading'){
   if(meta.uploadOffset===upload.length){send('finishUpload');return}
@@ -76,19 +83,72 @@ function nextTransfer() {
   send('uploadChunk',{uploadOffset:String(meta.uploadOffset),content:upload.slice(meta.uploadOffset,end)});
  }
 }
+function requestFolder(path,offset=0){treeRequest={path,offset};nextTransfer()}
+function openEntry(entry){
+ if(meta?.phase==='uploading'||meta?.phase==='uploadFailed')return;
+ if(dirty&&discardTarget!==entry.path){discardTarget=entry.path;const line=document.getElementById('editor-status');if(line)line.textContent=treeLabels()[3];return}
+ discardTarget=null;openRequest=entry.path;tree.classList.remove('open');nextTransfer();
+}
+function drawTree(){
+ const t=treeLabels();tree.replaceChildren();
+ const header=document.createElement('header');
+ const title=document.createElement('strong');title.textContent=t[0];header.append(title);
+ const refresh=document.createElement('button');refresh.textContent=t[1];refresh.id='tree-refresh';
+ refresh.onclick=()=>{folders.clear();expanded.clear();expanded.add('');requestFolder('')};header.append(refresh);tree.append(header);
+ const rows=document.createElement('div');rows.className='tree-rows';rows.setAttribute('role','tree');
+ const walk=(path,depth,ancestors=new Set())=>{
+  if(ancestors.has(path))return;
+  const nextAncestors=new Set(ancestors);nextAncestors.add(path);
+  const folder=folders.get(path);if(!folder)return;
+  for(const entry of folder.entries){
+   const row=document.createElement('div');row.className='file-tree-row';row.dataset.path=entry.path;
+   row.setAttribute('role','treeitem');row.style.paddingInlineStart=`${8+depth*14}px`;
+   if(entry.directory){
+    const arrow=document.createElement('button');arrow.className='tree-expand';arrow.dataset.expand=entry.path;
+    arrow.textContent=expanded.has(entry.path)?'▾':'▸';arrow.setAttribute('aria-expanded',String(expanded.has(entry.path)));
+    arrow.onclick=()=>{if(expanded.has(entry.path))expanded.delete(entry.path);else{expanded.add(entry.path);if(!folders.has(entry.path))requestFolder(entry.path)}drawTree()};row.append(arrow);
+   }else{const spacer=document.createElement('span');spacer.className='tree-spacer';spacer.textContent='·';row.append(spacer)}
+   const label=document.createElement('button');label.className='tree-entry';label.dataset.open=entry.path;
+   label.textContent=entry.name;label.title=entry.path;label.onclick=()=>openEntry(entry);row.append(label);
+   if(meta?.path===entry.path&&!entry.directory)row.classList.add('selected');rows.append(row);
+   if(entry.directory&&expanded.has(entry.path))walk(entry.path,depth+1,nextAncestors);
+  }
+  if(folder.nextOffset<folder.total){const more=document.createElement('button');more.className='tree-more';more.dataset.more=path;more.textContent=t[2];more.onclick=()=>requestFolder(path,folder.nextOffset);rows.append(more)}
+ };
+ walk('',0);tree.append(rows);
+}
+function updateTree(items){
+ const info=items.find(n=>n.id==='tree_meta');if(!info)return;
+ const data=JSON.parse(info.text);
+ if(treeWorkspace!==data.workspaceId||treeRevision!==data.revision){treeWorkspace=data.workspaceId;treeRevision=data.revision;folders.clear();expanded.clear();expanded.add('');lastTreeResult=null;treeRequest=null;openRequest=null}
+ tree.hidden=treeWorkspace===null;
+ if(data.result){
+  const identity=JSON.stringify(data.result);
+  if(identity!==lastTreeResult){
+   const result=data.result,previous=result.offset===0?[]:folders.get(result.path)?.entries??[];
+   const combined=new Map([...previous,...result.entries].map(entry=>[entry.path,entry]));
+   folders.set(result.path,{entries:[...combined.values()],nextOffset:result.nextOffset,total:result.total});lastTreeResult=identity;
+  }
+ }
+ for(const id of ['tree_meta','tree_load','tree_open'])root.querySelector(`[data-node="${id}"]`)?.remove();
+ for(const id of ['treePath','treeOffset','treeTarget'])document.getElementById(`field-${id}`)?.closest('label')?.remove();
+ const toggle=document.createElement('button');toggle.id='tree-toggle';toggle.textContent=treeLabels()[0];toggle.onclick=()=>tree.classList.toggle('open');
+ if(!tree.hidden){root.prepend(toggle);drawTree();if(!folders.has('')&&!treeRequest)treeRequest={path:'',offset:0}}
+}
 window.solvitPageUpdate=next=>{
  if(pending!==null){if(next.busy)pendingBusy=true;if(next.token!==pending||pendingBusy&&!next.busy)pending=null}
  state=next;baseUpdate(next);
  if(renderedToken===next.token){
-  footer.querySelectorAll('button').forEach(b=>b.disabled=busy()||nodes().find(n=>n.id===b.dataset.node)?.enabled===false);
+  for(const container of [root,footer])container.querySelectorAll('button,input,textarea,select').forEach(b=>b.disabled=busy()||nodes().find(n=>n.id===b.dataset.node)?.enabled===false);
   const toggle=document.getElementById('toggle-edit');if(toggle)toggle.disabled=busy();
   syncEditorMode();status();if(!next.busy&&pending===null)queueMicrotask(nextTransfer);return;
  }
  renderedToken=next.token;
  const items=nodes(),info=items.find(n=>n.id==='document_meta');
+ updateTree(items);
  if(!info){
   if(!items.some(n=>n.id==='save_sha')){editor?.destroy();editor=null;key=null;window.workspaceEditor=null;dirty=false}
-  root.classList.remove('editing');return;
+  meta=null;root.classList.remove('editing');if(!next.busy&&pending===null)queueMicrotask(nextTransfer);return;
  }
  meta=JSON.parse(info.text);
  if(key!==meta.editorId){key=meta.editorId;source='';readOffset=0;dirty=false;leaveArmed=false;editor?.destroy();editor=null}
@@ -111,6 +171,7 @@ window.solvitPageUpdate=next=>{
   };toolbar.append(toggle);
  }
  root.append(toolbar);if(editor)root.append(holder);syncEditorMode();status();
+ drawTree();
  const save=footer.querySelector('[data-node="prepareSave"]');
  if(save){save.textContent=labels()[6];save.disabled=busy()||meta.phase!=='ready';save.onclick=()=>{
   if(!editor||busy())return;
