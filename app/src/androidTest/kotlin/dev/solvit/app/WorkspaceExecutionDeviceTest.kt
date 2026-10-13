@@ -161,6 +161,8 @@ class WorkspaceExecutionDeviceTest {
                 val baseline=records.single { it.event.kind==ExecutionKind.WORKSPACE_BASELINE }.event.workspace!!
                 val observed=records.filter { it.event.kind==ExecutionKind.WORKSPACE_OBSERVED }
                 assertEquals(7,observed.size)
+                assertEquals("printf 'broken\\n'\nexit 7\n",reopened.executionFileContent(run.sessionId,run.id,observed.first().sequence,"main.sh"))
+                assertEquals("printf 'verified\\n'\nexit 0\n",reopened.executionFileContent(run.sessionId,run.id,observed.last().sequence,"main.sh"))
                 val comparison=compareWorkspaceSnapshots(baseline,observed.last().event.workspace!!)
                 assertTrue(comparison.complete)
                 assertEquals(WorkspaceChangeKind.CREATED,comparison.changes.single { it.path=="main.sh" }.kind)
