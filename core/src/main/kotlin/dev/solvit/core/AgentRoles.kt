@@ -38,7 +38,8 @@ interface RoleService {
 
 val RoleServiceKey = ServiceKey("agent.roles", RoleService::class)
 
-data class ContextInput(val role: AgentRole?, val userText: String)
+/** Native conversation identity is never serialized into the JavaScript Hook input. */
+data class ContextInput(val role: AgentRole?, val userText: String, val conversation: ConversationContext? = null)
 fun interface ContextHook { suspend fun beforeModel(input: ContextInput): String }
 
 enum class ContextHookFailure { FAILED, TIMED_OUT, RESOURCE_LIMIT }
