@@ -1,7 +1,7 @@
 # Solvit 产品实现进度
 
 目标是以 JS/TS 插件为主要扩展方式的 Android Agent 产品。原生 UI 与系统能力由 Kotlin 宿主提供，插件通过稳定服务协议组合。以下是完整目标，不以当前已交付功能代替最终范围。
-当前（2026-10-13）API12候选0.22.2/build38由插件HTML/JS绘制记忆、任务、多MCP、Skills和工作目录页面；302单元/46模拟器/Lint/固定签名APK及覆盖升级通过[完整运行](https://github.com/veryy/Solvit/actions/runs/38329902814)，工作区范围见[工作区页面阶段](plugin-workspace-stage.md)，生成中富文本与实际高度跟随修复见[流式阶段](chat-rich-stream-stage.md)。Shell/PTY及未绑定工作区兼容入口仍是原生，完整PTY插件界面尚未交付；正式Release仍受公网搜索门禁阻挡。真实模型角色、可见流式、工具选择及实际任务完成、真机验收没有被这轮UI测试替代，以下完整路线保留。
+当前（2026-10-13）API13候选0.22.3/build39由插件HTML/JS绘制记忆、任务、多MCP、Skills、工作目录与交互PTY；306单元/48模拟器/Lint/固定签名APK通过[完整运行](https://github.com/veryy/Solvit/actions/runs/38337675616)。终端采用离线xterm.js，验证真实输入、Ctrl-C、多Shell、同对话AI终端授权与截断输出；见[终端阶段](terminal-plugin-stage.md)。普通有限命令与未绑定工作区入口保留原生兼容。正式Release仍受公网搜索发布门禁阻挡。真实模型角色、可见流式、工具选择、实际任务完成和真机验收未被这轮UI测试替代，以下完整路线保留。
 
 
 ## 当前优先方向（2026-10-12）

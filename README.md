@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。0.22.2 候选（build38/API12）使用插件自带的离线 HTML/JS 记忆图谱、任务、多 MCP、Skills 和工作目录页面。[Android 验证](https://github.com/veryy/Solvit/actions/runs/38329902814)通过302个单元、46个模拟器测试和Lint/固定签名APK，包括流式期间富文本显示、长回复跟随、旧问题分支、真实终端、文件保存确认及覆盖升级后配置/聊天保留。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38329902814/artifacts/11781624309)需要登录GitHub下载；公开搜索门禁尚未通过，未发布正式Release，顶部最新下载仍为0.21.3。交互PTY界面仍是原生；真实模型角色回答、流式/工具选择及完整未完成范围见[产品进度](docs/product-roadmap.md)和[流式修复证据](docs/chat-rich-stream-stage.md)。
+[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。0.22.3 候选（build39/API13）由插件离线 HTML/JS 绘制记忆图谱、任务、多 MCP、Skills、工作目录和交互终端；终端使用 xterm.js 与真实 Android PTY。[Android 验证](https://github.com/veryy/Solvit/actions/runs/38337675616)通过306个单元、48个模拟器测试及Lint/固定签名APK，包括真实输入、Ctrl-C、多Shell、同对话AI终端人工授权和截断回放。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38337675616/artifacts/11785434578)需要登录GitHub下载。公开搜索发布门禁尚未通过，未发布正式Release，顶部最新下载仍为0.21.3。普通命令历史和无工作区入口保留原生兼容；真实模型角色、流式/工具选择、任务完成和真机验收仍待验证，见[候选说明](docs/release-0.22.3.md)和[完整产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
@@ -51,7 +51,7 @@
 
 ## 工作区、Shell 与 AI 插件开发
 
-当前源码已接入每个对话一个工作区、多 Shell 命令会话、工作区文本文件编辑，以及独立的 JS/TS 工作区与插件草稿工具。API12工作目录管理由插件HTML/JS绘制，PTY终端界面仍保留原生实现。使用方式见 [工作区与 Shell](docs/workspaces.md)。
+当前源码已接入每个对话一个工作区、多 Shell 命令会话、工作区文本文件编辑，以及独立的 JS/TS 工作区与插件草稿工具。API13工作目录与交互PTY由插件HTML/JS绘制，普通有限命令历史保留原生兼容。使用方式见 [工作区与 Shell](docs/workspaces.md)。
 
 启用“插件开发”后，AI 可生成普通 JS 插件草稿，做清单及启动校验。你在“工作区 → 工作目录 → 插件草稿”查看代码和权限后安装，安装后保持停用，需单独启用。应用内尚无 TS 编译器，完整流程与边界见 [AI 插件开发](docs/plugin-authoring.md)。
 
@@ -63,7 +63,7 @@
 
 ## MCP 连接
 
-当前 0.22.2 候选内置 TS MCP 插件和插件自绘 HTML 管理页。支持最多 8 个具名 HTTPS 连接、独立会话与启停、标准 HTTP mcpServers 配置导入及加密凭据。进入“插件 → 已安装 → MCP 连接”管理；启用 network 后，聊天可按服务器名称发现及调用工具，仍经过工具授权。当前已发布 APK 仍是单连接版。
+当前 0.22.3 候选内置 TS MCP 插件和插件自绘 HTML 管理页。支持最多 8 个具名 HTTPS 连接、独立会话与启停、标准 HTTP mcpServers 配置导入及加密凭据。进入“插件 → 已安装 → MCP 连接”管理；启用 network 后，聊天可按服务器名称发现及调用工具，仍经过工具授权。当前已发布 APK 仍是单连接版。
 
 实际可测试的只读演示地址：`https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空，提供回显和服务器时间。协议支持与边界见 [MCP 插件说明](docs/mcp.md)。[0.5.1 APK 已发布](https://github.com/veryy/Solvit/releases/tag/v0.5.1)，[45 个 Android 测试、Lint、APK、TS、市场和实际 HTTPS MCP 验证通过](https://github.com/veryy/Solvit/actions/runs/38107628413)。角色绑定、OAuth、stdio 和完整服务接入继续实现。
 

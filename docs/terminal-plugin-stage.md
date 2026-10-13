@@ -93,3 +93,9 @@ that Android's shell replaces with a very long directory prompt. The page shows 
 localized manual-terminal label. Original byte-identical terminal 1.0.0 packages
 upgrade to the HTML bundle while keeping activation and grants; modified packages
 and user-uninstalled seeds are preserved. Added restore/upgrade regressions.
+
+Final source `0498389` passes [full Android gate](https://github.com/veryy/Solvit/actions/runs/38337675616): parsed XML 306 unit + 48 emulator, zero failures/errors/skips, Lint/APK/stable certificate. [Focused real HTML case](https://github.com/veryy/Solvit/actions/runs/38337818231) passes in 18.947s. Actual APK and final screenshot are linked in [candidate evidence](release-0.22.3.md). No local build/test was run. The screenshot still shows long Android mksh prompts despite setting PS1 and dense controls; do not claim those visual issues solved.
+
+Production market was backed up at `/opt/solvit-market-backup-api12-before-terminal13`, updated only server/terminal/legacy terminal, and checked through verified public HTTPS: all API1–13 catalogs and 19 selected package versions match their advertised lengths/hashes. API13 new terminal hash is `e05c420559d3f6a14924fbc455cefe71f510844c3f0802a457ff754c3fd2f4d8`, also exactly matches APK asset; API5–12 original terminal remains `d124c4f16262d0d559eb0b45c21c790e79f8ee1aaacfc9b1464397a1520682a3`. First post-deploy curl health command used unsupported retry option; corrected plain curl verified active service and health, then public byte checks passed. Existing other package versions preserved.
+
+Remaining: actual model/phone task acceptance, full DSH-style kernel lifecycle, search publication gate, full-screen TUI/mobile keyboard, terminal polish and native ordinary-command compatibility migration. This is a verified candidate stage, not whole-project completion or formal release.
