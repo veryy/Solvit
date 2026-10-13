@@ -66,9 +66,10 @@ class ScriptAgentIntegrationTest {
     @Test fun modelFunctionCallExecutesInstalledJavaScriptAndReturnsItsResult() = runBlocking<Unit> {
         val pkg = ScriptPackage.parse("""{
           "manifest":{"id":"test.clock","name":"Clock","description":"Integration","version":"1.0.0",
-          "apiVersion":1,"permissions":[],"dependencies":[],"tools":[{"name":"echo","description":"Echo",
+          "apiVersion":14,"permissions":["agent"],"dependencies":[],"agentEnabledSetting":"selected",
+          "settings":[{"key":"selected","label":"Select","kind":"boolean","defaultValue":"false"}],"tools":[{"name":"echo","description":"Echo",
           "inputSchema":{"type":"object","properties":{"text":{"type":"string"}}}}]},
-          "source":"globalThis.solvitPlugin={tools:{echo:async args=>({echo:args.text})}};"
+          "source":"globalThis.solvitPlugin={tools:{echo:async args=>({echo:args.text})},agent:async({maxRounds},ctx)=>{for(let r=0;r<maxRounds;r++){const n=await ctx.model(r);if(!n){await ctx.finish(r);return;}for(let i=0;i<n;i++)await ctx.tool(i);await ctx.settle(r);}}};"
         }""".toByteArray())
         val server = MockWebServer()
         val client = OkHttpClient()
@@ -84,7 +85,11 @@ class ScriptAgentIntegrationTest {
         ))
         try {
             manager.load(ToolsPlugin())
-            manager.load(ScriptToolPlugin(pkg, ScriptHost { _, _, _ -> fail("No host permissions") }))
+            manager.load(ScriptAgentDriverPlugin(checkNotNull(javaClass.classLoader!!.getResourceAsStream("agent/chat-driver.js")).bufferedReader().use { it.readText() }))
+            manager.load(ScriptToolPlugin(pkg, ScriptHost { _, op, args ->
+                assertEquals("settings.get", op); assertEquals("selected", args.getValue("key").jsonPrimitive.content)
+                JsonPrimitive("true")
+            }))
             manager.enableAll()
             var approvals = 0
             val gate = object : ToolAuthorization {
@@ -96,7 +101,7 @@ class ScriptAgentIntegrationTest {
                     return true
                 }
             }
-            val agent = ToolAgentRuntime(OpenAiProvider(client), manager.registry.require(Services.Tools), driver = jsDriver())
+            val agent = ToolAgentRuntime(OpenAiProvider(client), manager.registry.require(Services.Tools), driver = manager.registry.require(AgentDriverServiceKey))
             val result = withTimeout(10_000) { agent.run(ModelRequest(
                 ModelConfig(server.url("/v1").toString(), "test"), listOf(ModelMessage(Role.USER, "echo 你好")), authorization = gate,
             )).toList() }

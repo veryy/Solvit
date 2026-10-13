@@ -66,6 +66,13 @@ test('catalog downloads match their declared integrity and expose no write API',
     const htmlTerminal = api13.plugins.find(plugin => plugin.id === 'dev.solvit.terminal');
     assert.equal(htmlTerminal.version, '1.1.0'); assert.equal(htmlTerminal.apiVersion, 13);
     assert.equal(htmlTerminal.pages[0].entry, 'ui/index.html');
+    const api14 = await (await fetch(base + '/api/v1/plugins?hostApi=14')).json();
+    const agent = api14.plugins.find(plugin => plugin.id === 'example.agent');
+    assert.equal(agent.apiVersion, 14);
+    assert.ok(!api13.plugins.some(plugin => plugin.id === 'example.agent'));
+    const agentPackage = await (await fetch(base + agent.downloadPath)).json();
+    assert.equal(agentPackage.manifest.agentEnabledSetting, 'selected');
+    assert.deepEqual(agentPackage.manifest.permissions, ['agent']);
     assert.equal(api12.plugins.find(plugin => plugin.id === 'dev.solvit.terminal').version, '1.0.0');
     const originalTerminalBytes = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.terminal/1.0.0')).arrayBuffer());
     assert.deepEqual(originalTerminalBytes, await readFile(new URL('./packages/legacy/dev.solvit.terminal-1.0.0.solvit.json', import.meta.url)));
