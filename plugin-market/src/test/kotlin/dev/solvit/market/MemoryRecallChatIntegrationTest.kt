@@ -77,12 +77,14 @@ class MemoryRecallChatIntegrationTest {
                 override val id = "fixture"
                 override fun stream(request: ModelRequest): Flow<ModelChunk> {
                     val system = request.messages.single { it.role == Role.SYSTEM }.content
+                    assertFalse(system.contains("dev.solvit.memory/memory:"))
+                    val reference = request.messages.single { it.role == Role.USER }.content
                     if (round++ == 0) {
-                        assertFalse(system.contains("dev.solvit.memory/memory:"))
+                        assertFalse(reference.contains("dev.solvit.memory/memory:"))
                         return flowOf(ModelChunk.ToolCalls(listOf(ToolCall("save", "dev_solvit_memory_memory_put",
                             """{"text":"Preferred programming language is Kotlin","category":"preference"}"""))), ModelChunk.Done)
                     }
-                    assertTrue(system.contains("Kotlin")); assertTrue(system.contains("dev.solvit.memory/memory:m1"))
+                    assertTrue(reference.contains("Kotlin")); assertTrue(reference.contains("dev.solvit.memory/memory:m1"))
                     return flowOf(ModelChunk.Text("Saved your Kotlin preference"), ModelChunk.Done)
                 }
             }
@@ -90,6 +92,7 @@ class MemoryRecallChatIntegrationTest {
                 .send(first.id, "Remember my preferred programming language is Kotlin", ModelConfig(), allow).toList()
             assertEquals(2, round)
             assertEquals(MessageStatus.COMPLETE, store.history(first.id).last().status)
+            assertEquals("Remember my preferred programming language is Kotlin", store.history(first.id).single { it.role == Role.USER }.content)
             manager.shutdown(); store.close()
             manager = PluginManager(scope = scope); store = SqliteChatStore(context); market = setup()
             assertTrue(market.installed.value.single { it.id == "dev.solvit.memory" }.enabled)
@@ -106,7 +109,8 @@ class MemoryRecallChatIntegrationTest {
                         requests++
                         assertEquals(1, request.messages.count { it.role == Role.USER })
                         val system = request.messages.single { it.role == Role.SYSTEM }.content
-                        assertEquals(expected, system.contains("Preferred programming language is Kotlin"))
+                        assertFalse(system.contains("Preferred programming language is Kotlin"))
+                        assertEquals(expected, request.messages.single { it.role == Role.USER }.content.contains("Preferred programming language is Kotlin"))
                         if (selected.pluginIds.isEmpty()) assertTrue(request.tools.isEmpty())
                         return flowOf(ModelChunk.Text(if (expected) "You prefer Kotlin" else "No recalled preference"), ModelChunk.Done)
                     }
