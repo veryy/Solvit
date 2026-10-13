@@ -7,6 +7,32 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class ToolAgentRuntimeTest {
+    @Test fun userStopDuringToolRemainsCancellationWithoutModelFollowUp() = runTest {
+        val started = CompletableDeferred<Unit>()
+        var round = 0
+        var cleaned = false
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                round++
+                return flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
+            }
+        }
+        val chunks = mutableListOf<ModelChunk>()
+        val task = launch {
+            ToolAgentRuntime(provider, registry {
+                started.complete(Unit)
+                try { awaitCancellation() } finally { cleaned = true }
+            }).run(ModelRequest(ModelConfig(), listOf(ModelMessage(Role.USER, "use the tool")), authorization = allow))
+                .collect { chunks += it }
+        }
+        started.await()
+        task.cancelAndJoin()
+        assertTrue(task.isCancelled)
+        assertTrue(cleaned)
+        assertEquals(1, round)
+        assertFalse(chunks.any { it is ModelChunk.ToolActivity && it.stage == ToolStage.FAILED })
+    }
     @Test fun toolDeadlineIsSettledAsFailedAndReturnedToTheNextModelStep() = runTest {
         var round = 0
         var cleaned = false

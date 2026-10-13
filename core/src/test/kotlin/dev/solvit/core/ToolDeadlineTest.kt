@@ -14,11 +14,16 @@ class ToolDeadlineTest {
     }
     @Test fun ownDeadlineReturnsSafeFailureAndLeavesCallerUsable() = runTest {
         var cleaned = false
-        val tools = registry { try { awaitCancellation() } finally { cleaned = true } }
+        var resourceCancelled = false
+        val tools = registry {
+            currentCoroutineContext()[ToolInvocationContext]!!.own("owned-task") { resourceCancelled = true }
+            try { awaitCancellation() } finally { cleaned = true }
+        }
         val failure = assertFailsWith<ToolExecutionException> { tools.execute("slow", "{}", allow) }
         // Assert the public error contract without depending on a new enum in the red commit.
         assertEquals("TIMEOUT", failure.code.name)
         assertTrue(cleaned)
+        assertTrue(resourceCancelled)
         currentCoroutineContext().ensureActive()
         tools.register(object : SolvitTool {
             override val descriptor = ToolDescriptor("fast", "Fast", "{}")

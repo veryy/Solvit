@@ -11,6 +11,7 @@ enum class ToolFailureCode(val summary: String, val nextAction: String) {
     WRITE_OUTCOME_UNKNOWN("写入后无法确认文件内容", "先读取实际文件并核对，不要自动重复写入。"),
     IO_ERROR("文件或网络读写失败", "检查实际文件或服务状态；操作可能已产生影响，重试前先核对。"),
     RESOURCE_LIMIT("工具结果超过限制", "缩小查询范围或请求分页；不要重复执行可能有副作用的操作。"),
+    TIMEOUT("工具执行超过时间限制", "操作可能已产生影响；先核对文件、任务或服务的实际状态，不要自动重复执行。"),
     UNKNOWN("工具执行失败", "检查插件状态、权限和参数；已开始的操作结果可能未知，先核对实际状态。"),
 }
 class ToolExecutionException(val code: ToolFailureCode) : IllegalArgumentException(code.summary)

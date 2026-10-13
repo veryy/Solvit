@@ -2,7 +2,7 @@ package dev.solvit.core
 
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.withContext
 
 data class ToolDescriptor(
@@ -77,7 +77,11 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         val invocation = ToolInvocationContext(descriptor, call)
         val context = AgentRoleContext(role) + invocation + (conversation ?: kotlin.coroutines.EmptyCoroutineContext)
         try {
-            return withTimeout(60_000) { withContext(if (execution == null) context else context + execution) { tool.execute(argumentsJson) } }
+            // Only this tool's deadline becomes a tool failure. Parent cancellation
+            // (including an enclosing deadline) must continue to stop the turn.
+            return withTimeoutOrNull(60_000) {
+                withContext(if (execution == null) context else context + execution) { tool.execute(argumentsJson) }
+            } ?: throw ToolExecutionException(ToolFailureCode.TIMEOUT)
         } catch (e: Throwable) { invocation.cancelResources(); throw e }
         finally { invocation.releaseResources() }
     }
