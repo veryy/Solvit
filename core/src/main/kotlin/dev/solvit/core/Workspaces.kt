@@ -6,6 +6,9 @@ import kotlin.coroutines.CoroutineContext
 
 data class Workspace(val id: String, val name: String)
 data class WorkspaceFile(val name: String, val path: String, val directory: Boolean, val bytes: Long)
+/** A bounded UTF-16 slice of a strictly decoded UTF-8 file, tied to its content digest. */
+data class WorkspaceTextChunk(val text: String, val offset: Int, val nextOffset: Int,
+    val total: Int, val sha256: String)
 enum class FileObservationKind { ABSENT, TEXT, BINARY, OVERSIZED, UNAVAILABLE }
 data class FileObservation(val kind: FileObservationKind, val bytes: Long? = null,
     val sha256: String? = null, val excerpt: String? = null, val excerptTruncated: Boolean = false,
@@ -54,6 +57,8 @@ interface WorkspaceService {
     suspend fun snapshot(workspaceId: String): WorkspaceSnapshot = WorkspaceSnapshot(workspaceId,emptyMap(),false,System.currentTimeMillis())
     suspend fun list(workspaceId: String, path: String = ""): List<WorkspaceFile> { error("工作区目录服务不可用") }
     suspend fun read(workspaceId: String, path: String): String
+    suspend fun readTextChunk(workspaceId: String, path: String, offset: Int = 0,
+        expectedSha256: String? = null): WorkspaceTextChunk { error("工作区文本分段读取服务不可用") }
     suspend fun readForEdit(workspaceId: String, path: String): WorkspaceTextFile { error("安全文本编辑服务不可用") }
     suspend fun writeForEdit(workspaceId: String, path: String, text: String, expectedSha256: String?): WorkspaceWriteEvidence {
         error("安全文本编辑服务不可用")
