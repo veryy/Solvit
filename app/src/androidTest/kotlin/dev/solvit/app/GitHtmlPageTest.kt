@@ -84,7 +84,8 @@ class GitHtmlPageTest {
             runBlocking { withTimeout(15_000) {
                 val job = app.workspaces.run(workspace.id, shell.id, "cat a.txt")
                 val done = app.workspaces.jobs.first { jobs -> jobs.any { it.id == job.id && it.stage in setOf(ShellStage.COMPLETED, ShellStage.FAILED) } }.first { it.id == job.id }
-                assertEquals(ShellStage.COMPLETED, done.stage); assertEquals(working, done.output)
+                assertEquals(ShellStage.COMPLETED, done.stage); assertEquals(0, done.exitCode)
+                assertEquals(working, done.output.joinToString("") { it.text })
             } }
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.git" }.enabled)
         } finally {
