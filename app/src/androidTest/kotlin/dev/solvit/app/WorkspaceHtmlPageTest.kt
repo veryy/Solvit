@@ -7,6 +7,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import dev.solvit.market.BuiltinWorkspaceManager
 import dev.solvit.market.WorkspacePageBridge
+import dev.solvit.core.ShellStage
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -105,6 +106,29 @@ class WorkspaceHtmlPageTest {
             click("directory"); click("file_0"); click("file_0")
             waitDom("window.workspaceEditor?.state.doc.toString()==='外部修改'")
             html.screenshot("workspace-html-editor")
+            click("backToList");click("rename_0")
+            waitDom("!!document.getElementById('field-destination')")
+            field("destination","src/renamed.ts");click("prepareMove");click("confirm");native(true)
+            waitDom("document.querySelector('[data-node=file_name_0]')?.textContent==='renamed.ts'")
+            assertEquals("外部修改",runBlocking { app.workspaces.read(workspace.id,"src/renamed.ts") })
+            assertFalse(runBlocking { app.workspaces.list(workspace.id,"src") }.any { it.name=="note.ts" })
+            click("delete_0");click("confirm");native(false)
+            assertEquals("外部修改",runBlocking { app.workspaces.read(workspace.id,"src/renamed.ts") })
+            click("confirm");native(true)
+            waitDom("!!document.querySelector('[data-node=empty]')")
+            click("mkdir");waitDom("!!document.getElementById('field-destination')")
+            field("destination","src/child");click("prepareDirectory");click("confirm");native(true)
+            waitDom("document.querySelector('[data-node=file_name_0]')?.textContent.includes('child')===true")
+            runBlocking {
+                val shell=app.workspaces.state.value.shells.single { it.workspaceId==workspace.id }
+                val job=app.workspaces.run(workspace.id,shell.id,"printf shell-content > src/child/from-shell.txt")
+                val completed=withTimeout(10_000) { app.workspaces.jobs.first { list->list.any { it.id==job.id && it.stage in setOf(ShellStage.COMPLETED,ShellStage.FAILED) } } }.single { it.id==job.id }
+                assertEquals(ShellStage.COMPLETED,completed.stage)
+                assertEquals("shell-content",app.workspaces.read(workspace.id,"src/child/from-shell.txt"))
+            }
+            click("file_0");waitDom("document.querySelector('[data-node=directory]')?.textContent==='src/child'")
+            click("file_0");waitDom("window.workspaceEditor?.state.doc.toString()==='shell-content'")
+            html.screenshot("workspace-html-shell-file-preview")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.workspace" }.enabled)
         } catch(error:Throwable) {
             runCatching {
