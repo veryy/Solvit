@@ -13,6 +13,8 @@ import kotlin.test.*
 
 /** Actual HTTP provider -> authorization -> native QuickJS -> HTTP tool result. */
 class ScriptAgentIntegrationTest {
+    private fun jsDriver() = ScriptAgentDriver(checkNotNull(javaClass.classLoader!!.getResourceAsStream("agent/chat-driver.js"))
+        .bufferedReader().use { it.readText() })
     @Test fun brokenJavaScriptHookStillAllowsChatAndReportsOnlySafeMetadata() = runBlocking<Unit> {
         val pkg = ScriptPackage.parse("""{
           "manifest":{"id":"test.broken","name":"Broken Hook","description":"Integration","version":"1.0.0",
@@ -35,7 +37,7 @@ class ScriptAgentIntegrationTest {
             val unregister = hooks.register("test.healthy", ContextHook { "healthy reference" })
             try {
                 val inspection = RequestInspectionService()
-                val chunks = ToolAgentRuntime(OpenAiProvider(client), manager.registry.require(Services.Tools),
+                val chunks = ToolAgentRuntime(OpenAiProvider(client), manager.registry.require(Services.Tools), driver = jsDriver(),
                     hooks = hooks, inspection = inspection).run(ModelRequest(
                     ModelConfig(server.url("/v1").toString(), "fixture"),
                     listOf(ModelMessage(Role.SYSTEM, "trusted role"), ModelMessage(Role.USER, "hello")),
@@ -94,7 +96,7 @@ class ScriptAgentIntegrationTest {
                     return true
                 }
             }
-            val agent = ToolAgentRuntime(OpenAiProvider(client), manager.registry.require(Services.Tools))
+            val agent = ToolAgentRuntime(OpenAiProvider(client), manager.registry.require(Services.Tools), driver = jsDriver())
             val result = withTimeout(10_000) { agent.run(ModelRequest(
                 ModelConfig(server.url("/v1").toString(), "test"), listOf(ModelMessage(Role.USER, "echo 你好")), authorization = gate,
             )).toList() }

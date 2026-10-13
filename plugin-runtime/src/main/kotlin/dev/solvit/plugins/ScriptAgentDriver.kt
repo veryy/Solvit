@@ -18,7 +18,9 @@ class ScriptAgentDriver(private val source: String) : AgentDriver {
             js.asyncFunction("__solvitAgentCommand") { args ->
                 require(args.size == 2)
                 val operation = args[0] as String
-                val index = (args[1] as Number).toInt()
+                val number = args[1] as Number
+                val index = number.toInt()
+                require(number.toDouble() == index.toDouble() && index >= 0)
                 withContext(parent) {
                     try { host.command(operation, index) }
                     catch (failure: Throwable) { hostFailure = failure; throw failure }

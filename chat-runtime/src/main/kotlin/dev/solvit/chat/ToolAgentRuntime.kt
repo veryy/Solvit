@@ -4,6 +4,8 @@ import dev.solvit.core.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /** Bounded orchestration; native and JS tools share the same authorization gate. */
 class ToolAgentRuntime(
@@ -35,7 +37,9 @@ class ToolAgentRuntime(
         var pendingNative: ProviderTranscript? = null
         var modelCompleted = false
         var finished = false
+        val commands = Mutex()
         driver.run(maxRounds, AgentStepHost { operation, index ->
+            commands.withLock {
             check(!finished) { "Agent command after completion" }
             when (operation) {
             "model" -> {
@@ -106,7 +110,7 @@ class ToolAgentRuntime(
             check(completed) { "模型响应提前结束" }
             modelCompleted = true
             pendingNative = native
-            if (calls.isEmpty()) return@AgentStepHost 0
+            if (calls.isEmpty()) return@withLock 0
             if (round == maxRounds - 1 || executions + calls.size > maxCalls) throw ModelException("已达到工具执行上限，请继续对话")
             if (calls.any { it.name !in allowed || !seen.add(it.id) }) throw ModelException("模型调用了未提供或重复的工具")
             request.executionJournal.append(calls.map { call -> ExecutionEvent(step,ExecutionKind.TOOL_PROPOSED,
@@ -182,6 +186,7 @@ class ToolAgentRuntime(
                 0
             }
             else -> error("Unknown Agent command")
+            }
             }
         })
         check(finished) { "Agent returned before completion" }
