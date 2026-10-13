@@ -6,6 +6,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: git-engine-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   git-storage:
     runs-on: ubuntu-latest
