@@ -4,6 +4,7 @@ import dev.solvit.core.*
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import okhttp3.OkHttpClient
+import javax.crypto.spec.SecretKeySpec
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -27,7 +28,9 @@ class AgentMarketplaceTest {
         })
         try {
             manager.enableAll()
-            val market = AndroidMarketplace(RuntimeEnvironment.getApplication(), manager, client, manager.registry.require(Services.Tools))
+            val context = RuntimeEnvironment.getApplication<android.app.Application>()
+            val config = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { 4 }, "AES") }
+            val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools), config)
             market.restore()
             val payload = checkNotNull(javaClass.classLoader!!.getResourceAsStream("example.agent.solvit.json")).use { it.readBytes() }
             market.installLocal(payload)
