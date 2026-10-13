@@ -93,6 +93,7 @@ data class ModelRequest(
     /** Dynamic plugin data, projected by adapters independently of immutable system rules. */
     val runtimeContext: List<String> = emptyList(),
     val executionJournal: ExecutionJournal = NoExecutionJournal,
+    val contextProblems: List<ContextHookProblem> = emptyList(),
 )
 sealed interface ModelChunk {
     data class Text(val value: String) : ModelChunk

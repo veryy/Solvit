@@ -48,7 +48,7 @@ class ContextHooksTest {
         assertTrue(hooks.prepare(ContextInput(role, "Kotlin")).isEmpty())
         assertEquals(1, hooks.prepare(ContextInput(null, "Kotlin")).size)
     }
-    @Test fun cancellationPropagatesAndOversizedContextFails() = runTest {
+    @Test fun cancellationPropagatesAndOversizedContextIsReportedWithoutData() = runTest {
         val hooks = ContextHookRegistry()
         val started = CompletableDeferred<Unit>()
         val cancelled = CompletableDeferred<Unit>()
@@ -61,6 +61,28 @@ class ContextHooksTest {
         assertTrue(cancelled.isCompleted)
         unregister()
         hooks.register("test.large", ContextHook { "中".repeat(12_000) })
-        assertFailsWith<IllegalStateException> { hooks.prepare(ContextInput(null, "")) }
+        val report = hooks.prepareReport(ContextInput(null, ""))
+        assertTrue(report.context.isEmpty())
+        assertEquals(listOf(ContextHookProblem("test.large", ContextHookFailure.RESOURCE_LIMIT)), report.problems)
+    }
+    @Test fun aggregateLimitKeepsWholeContributionsAndReportsOmittedPlugin() = runTest {
+        val hooks = ContextHookRegistry()
+        hooks.register("test.first", ContextHook { "a".repeat(32 * 1024) })
+        hooks.register("test.second", ContextHook { "b".repeat(32 * 1024) })
+        val report = hooks.prepareReport(ContextInput(null, ""))
+        assertEquals(1, report.context.size)
+        assertTrue(report.context.single().endsWith("a".repeat(32 * 1024)))
+        assertEquals(listOf(ContextHookProblem("test.second", ContextHookFailure.RESOURCE_LIMIT)), report.problems)
+    }
+
+    @Test fun problemReportsDoNotExposeExceptionMessagesAndRoleFilteringStillApplies() = runTest {
+        val hooks = ContextHookRegistry()
+        hooks.register("test.failed", ContextHook { error("PRIVATE_SECRET_SENTINEL") })
+        hooks.register("test.unbound", ContextHook { fail("Unbound plugin executed") })
+        val role = AgentRole("review", "Reviewer", pluginIds = setOf("test.failed"))
+        val report = hooks.prepareReport(ContextInput(role, ""))
+        assertTrue(report.context.isEmpty())
+        assertEquals(listOf(ContextHookProblem("test.failed", ContextHookFailure.FAILED)), report.problems)
+        assertFalse(report.toString().contains("PRIVATE_SECRET_SENTINEL"))
     }
 }

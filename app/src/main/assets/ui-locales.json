@@ -4686,5 +4686,37 @@
     "ko": "플러그인 페이지를 불러오지 못했습니다. 닫고 다시 여세요.",
     "es": "No se pudo cargar la página del plugin. Ciérrala y vuelve a abrirla.",
     "fr": "La page du plugin ne s’est pas chargée. Fermez-la puis rouvrez-la."
+  },
+  "插件资料未获得：{0}": {
+    "en": "Plugin data unavailable: {0}",
+    "ja": "プラグイン資料を取得できません：{0}",
+    "ko": "플러그인 자료를 가져오지 못했습니다: {0}",
+    "es": "Datos del complemento no disponibles: {0}",
+    "fr": "Données du plugin indisponibles : {0}",
+    "zh": "插件资料未获得：{0}"
+  },
+  "读取失败": {
+    "en": "Read failed",
+    "ja": "読み取り失敗",
+    "ko": "읽기 실패",
+    "es": "Error de lectura",
+    "fr": "Échec de lecture",
+    "zh": "读取失败"
+  },
+  "读取超时": {
+    "en": "Read timed out",
+    "ja": "読み取りタイムアウト",
+    "ko": "읽기 시간 초과",
+    "es": "Tiempo de lectura agotado",
+    "fr": "Délai de lecture dépassé",
+    "zh": "读取超时"
+  },
+  "超过资料大小限制": {
+    "en": "Data size limit exceeded",
+    "ja": "資料サイズの上限を超えています",
+    "ko": "자료 크기 제한 초과",
+    "es": "Se superó el límite de datos",
+    "fr": "Limite de taille des données dépassée",
+    "zh": "超过资料大小限制"
   }
 }

@@ -6,12 +6,14 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.solvit.core.RequestInspectionService
 import dev.solvit.core.ContextSummary
+import dev.solvit.core.ContextHookFailure
 import dev.solvit.chat.ContextPreparationService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
@@ -36,6 +38,15 @@ fun RequestDiagnosticsDialog(inspection: RequestInspectionService, vm: ChatViewM
                 item { UiText("模型：${request.model}") }
                 item { UiText("消息数：${request.messageCount}") }
                 item { UiText("系统上下文字符数：${request.systemCharacters}") }
+                request.contextProblems.forEach { problem -> item {
+                    val reason = when (problem.failure) {
+                        ContextHookFailure.FAILED -> "读取失败"
+                        ContextHookFailure.TIMED_OUT -> "读取超时"
+                        ContextHookFailure.RESOURCE_LIMIT -> "超过资料大小限制"
+                    }
+                    UiText("插件资料未获得：${problem.pluginId}", color = MaterialTheme.colorScheme.error)
+                    UiText(reason)
+                } }
                 request.sources.forEach { source -> item {
                     UiText("来源：${source.name} · ${source.source} · ${source.characters}")
                 } }
