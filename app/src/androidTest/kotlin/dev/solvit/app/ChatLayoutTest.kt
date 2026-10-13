@@ -450,6 +450,8 @@ class ChatLayoutTest {
                 // [DEBUG-role-send] Safe fixture state; never dump model credentials or remote errors.
                 val state = "[DEBUG-role-send] expected=$expected actual=${requests.size} ready=${vm.ready.value} " +
                     "busy=${vm.busy.value} hasError=${vm.error.value != null} " +
+                    "agentBusy=${agents.busy.value} missingRole=${agents.missingRole.value} " +
+                    "branching=${vm.branching.value} invalidConfig=${vm.config.value.validate() != null} " +
                     "outcome=${vm.replyTiming.value?.outcome} saved=${saved.value.size}"
                 screenshot("role-settings-to-provider-failure")
                 throw AssertionError(state + "\n" + rule.onRoot().printToString(), failure)
