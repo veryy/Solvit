@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.database.DatabaseErrorHandler
 import android.database.sqlite.SQLiteDatabase
-import android.graphics.Bitmap
+import android.os.ParcelFileDescriptor
 import android.view.WindowInsets
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
@@ -56,11 +56,12 @@ class ChatInteractionDeviceTest {
         directory.deleteRecursively()
     }
     private fun screenshot(name:String) {
-        val target=File(InstrumentationRegistry.getInstrumentation().targetContext.getExternalFilesDir(null),"ui-screenshots/$name.png")
-        target.parentFile!!.mkdirs()
-        val bitmap=InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
-        target.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
+        require(name.matches(Regex("[A-Za-z-]+")))
+        val automation=InstrumentationRegistry.getInstrumentation().uiAutomation
+        ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
+        ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
+
     @Test fun inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole() {
         val app=rule.activity.application as SolvitApplication
         val roles=AndroidRoleService(context)

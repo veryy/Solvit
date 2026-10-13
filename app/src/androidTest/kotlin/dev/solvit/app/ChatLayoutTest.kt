@@ -192,6 +192,10 @@ class ChatLayoutTest {
             rule.onNodeWithTag("workspace_create_name").performTextInput("测试工作区")
             rule.onNodeWithText("创建并绑定").performClick()
         }
+        // These callers test command jobs, so explicitly select that retained mode.
+        // The separate real-PTY test verifies the default remains interactive.
+        rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_terminal_mode").fetchSemanticsNodes().isNotEmpty() }
+        if(rule.onAllNodesWithText("命令任务").fetchSemanticsNodes().isNotEmpty())rule.onNodeWithTag("workspace_terminal_mode").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("shell_command").fetchSemanticsNodes().isNotEmpty() }
     }
     private fun seedBranchConversation(app: SolvitApplication): ChatSession = runBlocking {
