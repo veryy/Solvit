@@ -116,7 +116,9 @@ class HistoricalDiffHtmlTest {
         var visible by mutableStateOf(true)
         SqliteChatStore(context).use { reopened ->
             rule.runOnUiThread { rule.activity.setContent { MaterialTheme(colorScheme=lightColorScheme()) {
-                if(visible)PluginPageScreen("文件变更", { manager.openPage("en",ExecutionChangesPageBridge(service(reopened),source),pageId="changes") }) { visible=false }
+                CompositionLocalProvider(LocalUiLanguage provides "en") {
+                    if(visible)PluginPageScreen("File changes", { manager.openPage("en",ExecutionChangesPageBridge(service(reopened),source),pageId="changes") }) { visible=false }
+                }
             } } }
             waitDom(html,"!!document.querySelector('[data-node=change_0]')");tap(html,"change_0")
             waitDom(html,"!!document.querySelector('.added code')")
@@ -128,7 +130,11 @@ class HistoricalDiffHtmlTest {
                 val previous=html.js("document.querySelector('[data-node=pageNumber]').textContent")
                 tap(html,"next");waitDom(html,"document.querySelector('[data-node=pageNumber]').textContent!==$previous")
             }
-            assertTrue(pages>1);assertEquals(after,all.toString());html.screenshot("historical-file-diff-light-tail")
+            assertTrue(pages>1);assertEquals(after,all.toString())
+            assertEquals("\"Saved copies\"",html.js("document.querySelector('[data-node=fileIdentity] summary').textContent"))
+            html.js("document.getElementById('content').scrollTop=document.getElementById('content').scrollHeight")
+            waitDom(html,"document.getElementById('content').scrollTop+document.getElementById('content').clientHeight>=document.getElementById('content').scrollHeight-2")
+            html.screenshot("historical-file-diff-light-tail")
             rule.onNodeWithTag("plugin_page_close").performClick();rule.onNodeWithTag("plugin_web_page").assertDoesNotExist()
             rule.runOnUiThread { visible=true }
             waitDom(html,"!!document.querySelector('[data-node=change_0]')");tap(html,"change_0")
