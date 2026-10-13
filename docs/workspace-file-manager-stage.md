@@ -45,3 +45,6 @@ CodeMirror依赖从npm官方registry核对版本和MIT许可，锁定codemirror6
 
 
 75e9c93正常插件38462415538和手动正常38462414426均成功，源码/提交包一致性已通过。文件树成功模拟器产物11845782966（935,986字节）取回CRC正确，已查看expanded-file-tree与tree-selected-document截图，真实目录展开/文件选择/预览可见。API18市场已部署server SHA db6b2665699bac0a1bbc281d027ae8b0049b418e09f6f2ff448b1d1586b9d6d9，备份/opt/solvit-market/.backup-workspace-1.4.0-1791923097760；部署检查逐个比较API1–17完整目录保持不变，API18除workspace外与17相同，新包下载摘要相符。使用系统curl正常TLS从公网下载API16/17/18工作区1.2/1.3/1.4包，与仓库对应文件逐字节一致；本机Python默认CA未配置失败，未通过关闭TLS验证规避。确认公网兼容后客户端请求升到hostApi=18。完整Android门禁和0.28正式APK仍待完成，公开最新保持0.27。
+
+
+完整Android38462759221/391908c失败在BuiltinMemoryTest的旧目录请求断言，79项plugin-market仅该1项失败：生产请求已升级hostApi=18，测试仍期待17。更新实际MockWebServer收到的请求断言为18，保留离线HTML下载、摘要、安装后默认停用及未授予权限检查；没有更改生产行为或删除断言。此运行尚未执行Lint/APK和完整模拟器阶段，下一提交重新跑完整门禁。
