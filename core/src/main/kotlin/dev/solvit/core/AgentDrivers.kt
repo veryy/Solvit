@@ -36,13 +36,18 @@ class AgentDriverRegistry(private val default: AgentDriver) : AgentDriver {
         if (entry == null) {
             default.run(maxRounds, host)
         } else {
-            val turn = currentCoroutineContext().job
+            val turn = host.ownerJob ?: currentCoroutineContext().job
             synchronized(lock) {
                 if (entries[entry.id] !== entry) throw ModelException("Agent 插件已停用，请重新发送")
                 entry.turns += turn
             }
+            val completion = if (host.ownerJob != null) turn.invokeOnCompletion {
+                synchronized(lock) { entry.turns -= turn }
+            } else null
             try { entry.driver.run(maxRounds, host) }
-            finally { synchronized(lock) { entry.turns -= turn } }
+            finally {
+                if (completion == null) synchronized(lock) { entry.turns -= turn }
+            }
         }
     }
 }

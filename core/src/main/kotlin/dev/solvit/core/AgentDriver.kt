@@ -1,8 +1,15 @@
 package dev.solvit.core
 
+import kotlinx.coroutines.Job
+
 /** Per-turn orchestration. Requests, credentials and native transcripts remain host-owned. */
 fun interface AgentStepHost {
+    val ownerJob: Job? get() = null
     suspend fun command(operation: String, index: Int): Int
+}
+/** Runtime supplies the entire producer job, including its native cleanup after driver.run. */
+class OwnedAgentStepHost(override val ownerJob: Job, private val delegate: AgentStepHost) : AgentStepHost {
+    override suspend fun command(operation: String, index: Int) = delegate.command(operation, index)
 }
 fun interface AgentDriver {
     suspend fun run(maxRounds: Int, host: AgentStepHost)

@@ -21,6 +21,30 @@ class AgentDriversTest {
         assertEquals("first", ran.last())
     }
 
+    @Test fun revocationWaitsForHostCleanupOutsideDriverReturn() = runBlocking {
+        val entered = CompletableDeferred<Unit>()
+        val cleanupEntered = CompletableDeferred<Unit>()
+        val allowCleanup = CompletableDeferred<Unit>()
+        var cleaned = false
+        val registry = AgentDriverRegistry(AgentDriver { _, _ -> })
+        val unregister = registry.register("owned", AgentDriver { _, _ -> entered.complete(Unit); awaitCancellation() }) { true }
+        val turn = launch {
+            try { registry.run(8, OwnedAgentStepHost(coroutineContext.job, AgentStepHost { _, _ -> 0 })) }
+            finally { withContext(NonCancellable) {
+                cleanupEntered.complete(Unit); allowCleanup.await(); cleaned = true
+            } }
+        }
+        withTimeout(5_000) { entered.await() }
+        val disposal = launch { unregister() }
+        try {
+            withTimeout(5_000) { cleanupEntered.await() }
+            assertFalse(disposal.isCompleted)
+            allowCleanup.complete(Unit)
+            withTimeout(5_000) { disposal.join(); turn.join() }
+            assertTrue(cleaned)
+        } finally { allowCleanup.complete(Unit); turn.cancelAndJoin(); disposal.cancelAndJoin() }
+    }
+
     @Test fun revocationCancelsAndJoinsOnlyOwnedTurnsBeforeReplacement() = runBlocking {
         val entered = CompletableDeferred<Unit>()
         val cleaned = CompletableDeferred<Unit>()

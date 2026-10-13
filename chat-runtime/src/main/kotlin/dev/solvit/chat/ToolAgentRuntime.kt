@@ -2,6 +2,7 @@ package dev.solvit.chat
 
 import dev.solvit.core.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.sync.Mutex
@@ -38,7 +39,7 @@ class ToolAgentRuntime(
         var modelCompleted = false
         var finished = false
         val commands = Mutex()
-        driver.run(maxRounds, AgentStepHost { operation, index ->
+        driver.run(maxRounds, OwnedAgentStepHost(coroutineContext.job, AgentStepHost { operation, index ->
             commands.withLock {
             check(!finished) { "Agent command after completion" }
             when (operation) {
@@ -188,7 +189,7 @@ class ToolAgentRuntime(
             else -> error("Unknown Agent command")
             }
             }
-        })
+        }))
         check(finished) { "Agent returned before completion" }
         } catch (e: Throwable) { execution.cancel(); throw e }
         finally { execution.release() }
