@@ -329,7 +329,10 @@ class ChatLayoutTest {
                 emit(ModelChunk.Done)
             }
         }
-        val agent = ToolAgentRuntime(provider, ToolRegistry(EventBus()), inspection = app.requestInspection)
+        val optionalHooks = ContextHookRegistry().apply {
+            register("test.broken", ContextHook { error("PRIVATE_SECRET_SENTINEL") })
+        }
+        val agent = ToolAgentRuntime(provider, ToolRegistry(EventBus()), hooks = optionalHooks, inspection = app.requestInspection)
         lateinit var vm: ChatViewModel
         lateinit var agents: AgentLibraryViewModel
         lateinit var workspaces: WorkspaceViewModel
@@ -372,9 +375,13 @@ class ChatLayoutTest {
             rule.onNodeWithTag("settings_list").performScrollToIndex(6)
             rule.onNodeWithText("最近请求诊断").performClick()
             rule.onNodeWithText("实际角色：Solvit").assertIsDisplayed()
-            rule.onNodeWithTag("request_diagnostics").performScrollToIndex(9)
+            rule.onNodeWithTag("request_diagnostics").performScrollToNode(hasText("插件资料未获得：test.broken"))
+            rule.onNodeWithText("插件资料未获得：test.broken").assertIsDisplayed()
+            rule.onNodeWithText("读取失败").assertIsDisplayed()
+            rule.onNodeWithText("PRIVATE_SECRET_SENTINEL").assertDoesNotExist()
+            rule.onNodeWithTag("request_diagnostics").performScrollToNode(hasText("提供的工具数：0"))
             rule.onNodeWithText("提供的工具数：0").assertExists()
-            rule.onNodeWithTag("request_diagnostics").performScrollToIndex(12)
+            rule.onNodeWithTag("request_diagnostics").performScrollToNode(hasText("首段文字显示：", substring = true))
             rule.onNode(hasText("首段文字显示：", substring = true)).assertExists()
             screenshot("request-diagnostics")
         } catch (e: Throwable) {
