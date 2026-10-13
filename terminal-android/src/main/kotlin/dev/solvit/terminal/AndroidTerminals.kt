@@ -13,7 +13,7 @@ import java.io.InputStreamReader
 import java.nio.charset.CodingErrorAction
 import java.util.UUID
 
-/** Original PTY backend. It exposes bounded transcripts, not a full VT screen emulator. */
+/** Native PTY primitive; terminal rendering belongs to the offline HTML plugin. */
 class AndroidTerminals(private val scope: CoroutineScope, private val workspace: WorkspaceService,
     private val execution: AndroidExecution) : TerminalService {
     private class Entry(val pty: PtyConnection, @Volatile var state: TerminalSession) { @Volatile var reader: Job? = null }
@@ -27,20 +27,27 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
     private fun update(entry: Entry, transform: (TerminalSession) -> TerminalSession) = synchronized(snapshots) {
         entry.state = transform(entry.state); publish()
     }
-    private fun verify(context: kotlin.coroutines.CoroutineContext, workspaceId: String,
-        operation: String, id: String, text: String? = null): Pair<String, String?> {
-        val invocation = context[ToolInvocationContext] ?: return TERMINAL_OWNER to null
+    private data class Identity(val owner: String, val role: String?, val chat: String?, val human: Boolean)
+    private suspend fun verify(context: kotlin.coroutines.CoroutineContext, workspaceId: String,
+        operation: String, id: String, text: String? = null, claim: Boolean = true): Identity {
+        context[TerminalPageAuthority]?.let { page ->
+            page.verify(workspaceId)
+            check(workspace.state.value.bindings[page.chatId] == workspaceId) { "终端页面的工作区绑定已改变" }
+            return Identity(page.owner, null, page.chatId, true)
+        }
+        val invocation = context[ToolInvocationContext] ?: return Identity(TERMINAL_OWNER, null, null, true)
         val conversation = context[ConversationContext] ?: error("终端调用缺少对话工作区")
         check(conversation.workspaceId == workspaceId && workspace.state.value.bindings[conversation.sessionId] == workspaceId)
         val args = JSONObject(invocation.call.argumentsJson)
         check(args.opt(if (operation == "open") "shellId" else "id") == id &&
             (text == null || args.opt("text") == text)) { "终端参数与确认内容不一致" }
-        if (operation != "status") invocation.claim("native.terminal.$operation")
-        return invocation.descriptor.pluginId to context[AgentRoleContext]?.role?.id
+        if (claim && operation != "status") invocation.claim("native.terminal.$operation")
+        return Identity(invocation.descriptor.pluginId, context[AgentRoleContext]?.role?.id, conversation.sessionId, false)
     }
     override suspend fun open(workspaceId: String, shellId: String): TerminalSession {
         val context = currentCoroutineContext()
-        val (owner, role) = verify(context, workspaceId, "open", shellId)
+        val identity = verify(context, workspaceId, "open", shellId)
+        val owner = identity.owner; val role = identity.role
         var acquired: Entry? = null
         try {
         val result = execution.authorized(owner) { mode ->
@@ -48,9 +55,11 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
             check(workspace.state.value.shells.any { it.id == shellId && it.workspaceId == workspaceId }) { "Shell 不属于此工作区" }
             val directory = File(workspace.location(workspaceId))
             withContext(Dispatchers.IO) { lock.withLock {
+                verify(context, workspaceId, "open", shellId, claim = false)
                 check(!stopped)
                 val existing = synchronized(snapshots) { entries.values.firstOrNull {
                     it.state.active && it.state.owner == owner && it.state.roleId == role &&
+                        it.state.chatId == identity.chat && it.state.human == identity.human &&
                         it.state.workspaceId == workspaceId && it.state.shellId == shellId && it.state.mode == mode
                 } }
                 if (existing != null) { acquired = existing; return@withLock existing.state }
@@ -59,7 +68,7 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
                     while (entries.size >= 16) entries.entries.firstOrNull { !it.value.state.active }?.let { entries.remove(it.key) } ?: error("终端历史已满")
                 }
                 val pty = PtyConnection.open(directory)
-                val entry = Entry(pty, TerminalSession(UUID.randomUUID().toString(), owner, role, workspaceId, shellId, mode))
+                val entry = Entry(pty, TerminalSession(UUID.randomUUID().toString(), owner, role, workspaceId, shellId, mode, chatId = identity.chat, human = identity.human))
                 acquired = entry
                 synchronized(snapshots) { entries[entry.state.id] = entry; publish() }
                 entry.reader = scope.launch(Dispatchers.IO) { collect(entry) }
@@ -102,7 +111,10 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
                 val count = reader.read(buffer); if (count < 0) break
                 val text = String(buffer, 0, count)
                 update(entry) { old -> val output = old.output + text
-                    old.copy(output = output.takeLast(65_536), revision = old.revision + 1, truncated = old.truncated || output.length > 65_536)
+                    var drop = (output.length - 65_536).coerceAtLeast(0)
+                    if (drop > 0 && drop < output.length && output[drop].isLowSurrogate() && output[drop - 1].isHighSurrogate()) drop++
+                    old.copy(output = output.substring(drop), outputOffset = old.outputOffset + drop,
+                        revision = old.revision + 1, truncated = old.truncated || drop > 0)
                 }
                 yield()
             }
@@ -112,23 +124,27 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
             if (entry.state.active) update(entry) { it.copy(active = false, failure = e.message ?: "终端读取失败", revision = it.revision + 1) }
         } finally { entry.pty.close() }
     }
-    private fun find(workspaceId: String, id: String, owner: String, role: String?, nativeUser: Boolean): Entry = synchronized(snapshots) {
+    private fun find(workspaceId: String, id: String, identity: Identity, nativeUser: Boolean): Entry = synchronized(snapshots) {
         val entry = entries[id] ?: error("终端不存在或历史已回收")
         check(entry.state.workspaceId == workspaceId)
-        check(nativeUser || entry.state.owner == owner && entry.state.roleId == role) { "终端属于其他插件或角色" }
+        check(nativeUser || entry.state.owner == identity.owner && entry.state.roleId == identity.role &&
+            entry.state.chatId == identity.chat && entry.state.human == identity.human) { "终端属于其他聊天、插件或角色" }
         entry
     }
     override suspend fun status(workspaceId: String, id: String): TerminalSession {
-        val context = currentCoroutineContext(); val (owner, role) = verify(context, workspaceId, "status", id)
-        return find(workspaceId, id, owner, role, context[ToolInvocationContext] == null).state
+        val context = currentCoroutineContext(); val identity = verify(context, workspaceId, "status", id)
+        return find(workspaceId, id, identity, context[ToolInvocationContext] == null && context[TerminalPageAuthority] == null).state
     }
     private suspend fun act(workspaceId: String, id: String, operation: String, text: String? = null,
-        block: (PtyConnection) -> Unit): TerminalSession {
-        val context = currentCoroutineContext(); val (owner, role) = verify(context, workspaceId, operation, id, text)
-        return execution.authorized(owner) { mode -> withContext(Dispatchers.IO) { lock.withLock {
-            val entry = find(workspaceId, id, owner, role, context[ToolInvocationContext] == null)
+        dimensions: Pair<Int, Int>? = null, block: (PtyConnection) -> Unit): TerminalSession {
+        val context = currentCoroutineContext(); val identity = verify(context, workspaceId, operation, id, text)
+        return execution.authorized(identity.owner) { mode -> withContext(Dispatchers.IO) { lock.withLock {
+            verify(context, workspaceId, operation, id, text, claim = false)
+            val entry = find(workspaceId, id, identity, context[ToolInvocationContext] == null && context[TerminalPageAuthority] == null)
             check(entry.state.active && entry.state.mode == mode) { "终端已关闭或执行身份已变化" }
-            block(entry.pty); own(context, id); entry.state
+            block(entry.pty)
+            dimensions?.let { (rows, columns) -> update(entry) { it.copy(rows = rows, columns = columns, revision = it.revision + 1) } }
+            own(context, id); entry.state
         } } }
     }
     override suspend fun input(workspaceId: String, id: String, text: String): TerminalSession {
@@ -136,14 +152,19 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
         require(bytes.size in 1..32_768 && '\u0000' !in text) { "终端输入需为 1–32768 字节" }
         return act(workspaceId, id, "input", text) { it.write(bytes) }
     }
+    override suspend fun resize(workspaceId: String, id: String, rows: Int, columns: Int): TerminalSession {
+        require(rows in 2..300 && columns in 2..500)
+        check(currentCoroutineContext()[ToolInvocationContext] == null) { "模型工具尚未开放终端尺寸调整" }
+        return act(workspaceId, id, "resize", dimensions = rows to columns) { it.resize(rows, columns) }
+    }
     override suspend fun interrupt(workspaceId: String, id: String) = act(workspaceId, id, "interrupt") { it.interrupt() }
     private suspend fun stop(entry: Entry) = withContext(Dispatchers.IO + NonCancellable) {
         update(entry) { it.copy(active = false, revision = it.revision + 1) }
         entry.pty.close(); entry.reader?.cancelAndJoin()
     }
     override suspend fun close(workspaceId: String, id: String) {
-        val context = currentCoroutineContext(); val (owner, role) = verify(context, workspaceId, "close", id)
-        lock.withLock { stop(find(workspaceId, id, owner, role, context[ToolInvocationContext] == null)) }
+        val context = currentCoroutineContext(); val identity = verify(context, workspaceId, "close", id)
+        lock.withLock { verify(context, workspaceId, "close", id, claim = false); stop(find(workspaceId, id, identity, context[ToolInvocationContext] == null && context[TerminalPageAuthority] == null)) }
     }
     override suspend fun cancelOwner(owner: String) = lock.withLock {
         synchronized(snapshots) { entries.values.filter { it.state.owner == owner && it.state.active } }.forEach { stop(it) }

@@ -89,4 +89,41 @@ class AndroidTerminalsTest {
             assertFalse(service.status(workspace.id, session.id).active)
         }
     }
+    @Test fun sharedWorkspaceStillFencesTerminalToChatAndHumanAuthority() = runBlocking {
+        fixture { ws, service, workspace, shell ->
+            val first = ws.state.value.bindings.entries.single { it.value == workspace.id }.key
+            val second = "pty-other-${java.util.UUID.randomUUID()}"
+            ws.bind(second, workspace.id)
+            var allowed = true
+            val authority = TerminalPageAuthority(TERMINAL_OWNER, first) { check(allowed) }
+            val terminal = withContext(authority) { service.open(workspace.id, shell.id) }
+            assertEquals(first, terminal.chatId)
+            assertTrue(terminal.human)
+            assertEquals(terminal.id, withContext(authority) { service.open(workspace.id, shell.id) }.id)
+            withContext(authority) {
+                service.resize(workspace.id, terminal.id, 37, 91)
+                service.input(workspace.id, terminal.id, "stty -echo; stty size; printf '__SIZE_%s__\\n' OK\n")
+            }
+            val output = waitOutput(service, terminal.id, "__SIZE_OK__")
+            assertTrue(output.output.contains("37 91"))
+            assertEquals(37, output.rows); assertEquals(91, output.columns)
+            val other = TerminalPageAuthority(TERMINAL_OWNER, second) {}
+            try { withContext(other) { service.input(workspace.id, terminal.id, "echo foreign\n") }; fail("Another chat must not write") }
+            catch (_: IllegalStateException) {}
+            val separate = withContext(other) { service.open(workspace.id, shell.id) }
+            assertNotEquals(terminal.id, separate.id)
+            val descriptor = ToolDescriptor(name="test", description="test", inputSchema="{}", pluginId=TERMINAL_OWNER,
+                capabilities=setOf("workspace","shell"), executionMode=ExecutionMode.APP)
+            try {
+                withContext(ConversationContext(first, workspace.id) + ToolInvocationContext(descriptor,
+                    ToolCall("call", "status", JSONObject().put("id",terminal.id).toString()))) { service.status(workspace.id,terminal.id) }
+                fail("Model tools must not reuse a human page grant")
+            } catch (_: IllegalStateException) {}
+            allowed = false
+            try { withContext(authority) { service.input(workspace.id,terminal.id,"echo revoked\n") }; fail("Revoked page must not write") }
+            catch (_: IllegalStateException) {}
+            assertTrue(service.sessions.value.single { it.id == terminal.id }.active)
+        }
+    }
+
 }
