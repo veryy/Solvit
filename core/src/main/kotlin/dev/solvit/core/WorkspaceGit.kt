@@ -29,6 +29,8 @@ interface WorkspaceGitSession {
     suspend fun status(offset: Int = 0, limit: Int = 100): Status
     suspend fun diff(path: String, staged: Boolean): Diff
     suspend fun history(limit: Int = 30): List<Commit>
+    /** Capture the exact staged tree version before showing a commit confirmation. */
+    suspend fun reviewIndex(): Revision
     suspend fun stage(review: Diff): Revision
     suspend fun unstage(path: String, expected: Revision): Revision
     suspend fun commit(expected: Revision, message: String, author: String, email: String): Commit
@@ -36,3 +38,6 @@ interface WorkspaceGitSession {
 }
 
 val WorkspaceGitServiceKey = ServiceKey("workspace.git", WorkspaceGitService::class)
+
+/** Attached only to a host-owned page; perform is called after native confirmation. */
+interface PageGitAccess : PageWorkspaceAccess

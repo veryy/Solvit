@@ -42,3 +42,6 @@ Android基础系统不保证git可执行文件存在；不能仅给Shell拼接gi
 初始化与首次提交55ad9ae/38469564012已完成：API26、35均成功，取回11851507167（18,089字节）和11850813090（20,676字节），CRC与真实JUnit XML核对每台5项，0失败/错误/跳过；其中BoundWorkspaceGitTest三项、引擎兼容两项。该源包含索引锁、分支/可执行位审阅及首次提交，但不包含后来9940b38服务生命周期，后者由38471186426继续验证。
 
 App候选改为0.29.0/code58以区别不可变公开0.28.0，加入git-android并在最终App启用JDK desugaring；注册WorkspaceGitPlugin，取类型化WorkspaceGitService供后续宿主页面/工具桥使用。尚未升级API18或发布市场包，公开0.28资产及旧市场目录保持原样；Git业务页面/AI工具未接通，候选APK不作为完整Git功能交付。实际App打包、完整旧功能回归和新增生命周期测试均使用远程构建，不在本地执行。
+
+
+页面桥候选新增GitPageBridge：独立PageGitAccess，服务绑定由宿主传入当前对话；只读status/diff/history/索引审阅和确认后的initialize/stage/unstage/commit分别进入不同的协程授权上下文。页面不传根目录、Git命令、patch、HEAD或index SHA；差异及提交版本只保留在宿主，随机句柄匹配，新的审阅替换旧句柄，写入后消耗句柄。差异按4096字符完整分块且不切开emoji，cached chunk也重新检查原生绑定；单页最多一个256KiB差异，关闭清理并关闭原生会话。16KiB查询响应上限显式报错，要求减少分页，不悄悄截断。新增桥层伪造/失效句柄、切换对话、emoji边界、只读不能写、撤销授权及提交使用原生版本对象回归；它们验证宿主协议，真实Git文件效果仍由原生Android用例验证。SDK/API19、插件HTML/JS页面和AI路由尚未接入，因此桥实现不等于用户可操作Git页面。

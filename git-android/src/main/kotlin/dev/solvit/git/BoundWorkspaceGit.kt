@@ -222,6 +222,8 @@ class BoundWorkspaceGit(
             }
         }
     }
+    override suspend fun reviewIndex(): Revision = access { git -> revision(git) }
+
     private suspend fun verifyWrite() {
         verify()
         authorizeWrite()
