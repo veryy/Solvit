@@ -936,7 +936,7 @@ class ChatLayoutTest {
             screenshot("workspace-interactive-html-pty")
             js("document.getElementById('close').click()")
             rule.waitUntil(8000) { js("document.getElementById('close').disabled") == "true" }
-            assertTrue(app.terminals.sessions.value.any { it.owner==TERMINAL_OWNER && it.chatId!=null && !it.active })
+            assertTrue(app.terminals.sessions.value.any { it.id==model.id && !it.active })
         } catch (e: Throwable) {
             screenshot("workspace-interactive-html-failure")
             throw AssertionError("HTML PTY state=" + app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }, e)
