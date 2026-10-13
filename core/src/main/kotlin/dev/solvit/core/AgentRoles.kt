@@ -38,6 +38,10 @@ interface RoleService {
     suspend fun selectForNewChats(sessionId: String, roleId: String?) = select(sessionId, roleId)
     /** Legacy services inherit the source chat; native persistence can remember an explicit default. */
     suspend fun forNewChat(sourceSessionId: String?): AgentRole? = sourceSessionId?.let { selected(it) }
+    /** Bind before showing the new chat. Native services preserve a deleted identity as blocked. */
+    suspend fun bindNewChat(sessionId: String, sourceSessionId: String?) {
+        forNewChat(sourceSessionId)?.let { select(sessionId, it.id) }
+    }
 }
 
 val RoleServiceKey = ServiceKey("agent.roles", RoleService::class)

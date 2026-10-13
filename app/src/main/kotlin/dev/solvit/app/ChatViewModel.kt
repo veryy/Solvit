@@ -75,9 +75,8 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     val switching = MutableStateFlow(false)
     private var generation: Job? = null
     private suspend fun createRoleSession(source: String?): ChatSession {
-        val role = roles?.forNewChat(source)
         val session = chat.createSession()
-        try { if (role != null) roles?.select(session.id, role.id) }
+        try { roles?.bindNewChat(session.id, source) }
         catch (e: Exception) { withContext(NonCancellable) { runCatching { chat.deleteSession(session.id) } }; throw e }
         return session
     }

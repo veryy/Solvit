@@ -55,6 +55,9 @@ class RoleServiceTest {
         assertEquals(role,roles.forNewChat("legacy"))
         roles.selectForNewChats("current",role.id);roles.delete(role.id)
         assertFailsWith<IllegalStateException> { roles.forNewChat(null) }
+        roles.bindNewChat("recoverable",null)
+        assertFailsWith<IllegalStateException> { roles.selected("recoverable") }
+        roles.selectForNewChats("recoverable",null);assertNull(roles.selected("recoverable"))
         roles.selectForNewChats("current",null);assertNull(roles.forNewChat(null))
     }
 

@@ -55,6 +55,20 @@ class AndroidRoleService(context: Context) : RoleService {
                 else sourceSessionId?.let { prefs.getString("session.$it", null) })
         }
     }
+    override suspend fun bindNewChat(sessionId: String, sourceSessionId: String?): Unit = withContext(Dispatchers.IO) {
+        require(sessionId.isNotBlank() && sessionId.length <= 128)
+        mutex.withLock {
+            val roleId=if(prefs.getBoolean("new_chat_default_set",false))prefs.getString("new_chat_default",null)
+                else sourceSessionId?.let { prefs.getString("session.$it",null) }
+            // Preserve stale identities so the chat can open for explicit reselection,
+            // while selected() continues to reject it before any model/tool request.
+            check(prefs.edit().apply {
+                if(roleId==null)remove("session.$sessionId") else putString("session.$sessionId",roleId)
+            }.commit()) { "角色选择保存失败" }
+            revision.value++
+            Unit
+        }
+    }
     override suspend fun select(sessionId: String, roleId: String?) = choose(sessionId, roleId, false)
     override suspend fun selectForNewChats(sessionId: String, roleId: String?) = choose(sessionId, roleId, true)
     private suspend fun choose(sessionId: String, roleId: String?, saveDefault: Boolean): Unit = withContext(Dispatchers.IO) {
