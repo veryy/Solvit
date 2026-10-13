@@ -43,6 +43,9 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(!background || operation in setOf("storage.get", "storage.set", "storage.compareAndSet", "clock.now", "model.complete")) { "后台 Hook 不允许此操作" }
                     check(!readOnlyHost || operation in setOf("storage.get", "clock.now", "workspace.instructions")) { "上下文 Hook 不允许此操作" }
                     val arguments = Json.parseToJsonElement(args[1] as String).jsonObject
+                    if (operation == "workspacePage.query" && arguments["operation"]?.jsonPrimitive?.content in
+                        setOf("readChunk","editBegin","editAppend","editFinish","editDiscard"))
+                        check(pkg.manifest.apiVersion >= 18) { "完整工作区文本预览和编辑需要 API18" }
                     if (operation == "workspacePage.query" && arguments["operation"]?.jsonPrimitive?.content in setOf("changes", "changeContent"))
                         check(pkg.manifest.apiVersion >= 17) { "历史文件差异读取需要 API17" }
                     val permission = when (operation) {
@@ -102,7 +105,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             check(page.pluginId == pkg.manifest.id)
                             if (operation == "workspacePage.perform") {
                                 require(arguments.isEmpty()) { "原生操作只能来自已确认的页面控件" }
-                                page.performWorkspace()
+                                page.performWorkspace(pkg.manifest.apiVersion)
                             } else {
                                 require(arguments.keys == setOf("operation", "arguments"))
                                 val query = arguments.getValue("operation").jsonPrimitive.also { require(it.isString) }.content

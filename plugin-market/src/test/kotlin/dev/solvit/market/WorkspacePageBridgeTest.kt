@@ -78,4 +78,101 @@ class WorkspacePageBridgeTest {
             assertEquals(1, service.state.value.shells.count { it.workspaceId == workspace.id })
         } finally { service.close(); scope.cancel() }
     }
+    @Test fun wholePreviewChunksRemainVersionedAndBoundToTheCapturedConversation()=runBlocking<Unit> {
+        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
+        val service=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope)
+        try {
+            val workspace=service.forChat("preview-a");val other=service.forChat("preview-b")
+            val content="a".repeat(4095)+"🙂"+"完整代码\n".repeat(4000)
+            service.write(workspace.id,"code.kt",content);service.write(other.id,"private.txt","private")
+            var active="preview-a"
+            val bridge=WorkspacePageBridge(service,null,active,activeChat={active})
+            fun args(offset:Int=0,hash:String?=null)=buildJsonObject {
+                put("path","code.kt");put("offset",offset);put("expectedSha256",hash?.let(::JsonPrimitive)?:JsonNull)
+            }.toString()
+            val first=Json.parseToJsonElement(bridge.query("readChunk",args()) {}).jsonObject
+            assertEquals(content.length,first["total"]!!.jsonPrimitive.int)
+            assertEquals(4095,first["nextOffset"]!!.jsonPrimitive.int)
+            val sha=first["sha256"]!!.jsonPrimitive.content
+            val next=Json.parseToJsonElement(bridge.query("readChunk",args(4095,sha)) {}).jsonObject
+            assertTrue(next["text"]!!.jsonPrimitive.content.startsWith("🙂"))
+            assertFails { bridge.query("readChunk",args(4095)) {} }
+            assertFails { bridge.query("readChunk","""{"path":"../${other.id}/private.txt","offset":0,"expectedSha256":null}""") {} }
+            assertFails { bridge.query("readChunk","""{"path":"code.kt","offset":0,"expectedSha256":null,"workspaceId":"${other.id}"}""") {} }
+            service.write(workspace.id,"code.kt","changed")
+            assertFails { bridge.query("readChunk",args(4095,sha)) {} }
+            active="preview-b";assertFails { bridge.query("readChunk",args()) {} }
+            active="preview-a";service.bind(active,other.id);assertFails { bridge.query("readChunk",args()) {} }
+        }finally { service.close();scope.cancel() }
+    }
+
+    @Test fun stagedWholeDocumentNeverWritesUntilReviewedCommitAndRejectsExternalChanges()=runBlocking<Unit> {
+        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
+        val service=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope)
+        try {
+            val workspace=service.forChat("document");service.write(workspace.id,"code.kt","original")
+            val bridge=WorkspacePageBridge(service,null,"document")
+            suspend fun query(op:String,args:JsonObject)=Json.parseToJsonElement(bridge.query(op,args.toString()) {}).jsonObject
+            suspend fun prepare(text:String,version:String):JsonObject {
+                val begin=query("editBegin",buildJsonObject { put("path","code.kt");put("expectedSha256",version);put("total",text.length) })
+                val id=begin.getValue("draftId").jsonPrimitive.content
+                var offset=0
+                while(offset<text.length) {
+                    var end=minOf(offset+4096,text.length)
+                    if(end<text.length && text[end-1].isHighSurrogate())end--
+                    query("editAppend",buildJsonObject { put("draftId",id);put("offset",offset);put("text",text.substring(offset,end)) })
+                    offset=end
+                }
+                return query("editFinish",buildJsonObject { put("draftId",id) })
+            }
+            fun control(draft:JsonObject)=PageWorkspaceControl("writeDraft",buildJsonObject {
+                put("draftId",draft.getValue("draftId"));put("path",draft.getValue("path"));put("sha256",draft.getValue("sha256"))
+            }.toString())
+            val content="x".repeat(4095)+"🙂"+"完整代码\n".repeat(8000)
+            val version=service.readTextChunk(workspace.id,"code.kt").sha256
+            val first=prepare(content,version)
+            assertEquals("original",service.read(workspace.id,"code.kt"))
+            val tampered=Json.parseToJsonElement(control(first).argumentsJson).jsonObject.toMutableMap()
+            tampered["sha256"]=JsonPrimitive("0".repeat(64))
+            assertFails { bridge.perform(PageWorkspaceControl("writeDraft",JsonObject(tampered).toString())) {} }
+            service.write(workspace.id,"code.kt","external")
+            assertFails { bridge.perform(control(first)) {} }
+            assertEquals("external",service.read(workspace.id,"code.kt"))
+            val refreshed=service.readTextChunk(workspace.id,"code.kt").sha256
+            val next=prepare(content,refreshed)
+            assertFails { bridge.perform(control(first)) {} }
+            bridge.perform(control(next)) {}
+            assertEquals(content,service.read(workspace.id,"code.kt"))
+            assertFails { bridge.perform(control(next)) {} }
+            bridge.close()
+        }finally { service.close();scope.cancel() }
+    }
+    @Test fun unfinishedMisorderedAndClosedDraftsCannotChangeFiles()=runBlocking<Unit> {
+        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
+        val service=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope)
+        try {
+            val workspace=service.forChat("draft");val bridge=WorkspacePageBridge(service,null,"draft")
+            val begin=Json.parseToJsonElement(bridge.query("editBegin","""{"path":"new.txt","expectedSha256":null,"total":4}""") {}).jsonObject
+            val id=begin.getValue("draftId").jsonPrimitive.content
+            fun append(offset:Int,text:String)=buildJsonObject { put("draftId",id);put("offset",offset);put("text",text) }.toString()
+            fun finish()=buildJsonObject { put("draftId",id) }.toString()
+            assertFails { bridge.query("editFinish",finish()) {} }
+            assertFails { bridge.query("editAppend",append(1,"a")) {} }
+            assertFails { bridge.query("editAppend",append(0,"\uD800")) {} }
+            assertFails { bridge.query("editAppend",append(0,"too long")) {} }
+            bridge.query("editAppend",append(0,"text")) {}
+            val ready=Json.parseToJsonElement(bridge.query("editFinish",finish()) {}).jsonObject
+            assertFails { bridge.query("editAppend",append(4,"a")) {} }
+            assertTrue(service.list(workspace.id).isEmpty())
+            val control=PageWorkspaceControl("writeDraft",buildJsonObject {
+                put("draftId",id);put("path","new.txt");put("sha256",ready.getValue("sha256"))
+            }.toString())
+            bridge.query("editDiscard",finish()) {}
+            assertFails { bridge.perform(control) {} }
+            bridge.close();bridge.close()
+            assertFails { bridge.query("snapshot","{}") {} }
+            assertFails { bridge.perform(control) {} }
+            assertTrue(service.list(workspace.id).isEmpty())
+        }finally { service.close();scope.cancel() }
+    }
 }

@@ -20,6 +20,8 @@ object ScriptPageHostAction {
         val keys = when (operation) {
             "create", "createShell" -> { text("name", 80); setOf("name") }
             "bind" -> { text("id", 128); setOf("id") }
+            "makeDirectory", "deleteEntry" -> { text("path",1024);setOf("path") }
+            "moveEntry" -> { text("path",1024);text("destination",1024);setOf("path","destination") }
             "unbind" -> emptySet()
             "write" -> {
                 text("path", 1024); text("text", 4096, true)
@@ -28,6 +30,11 @@ object ScriptPageHostAction {
                 setOf("path", "text", "expectedSha256")
             }
             "installDraft" -> { text("id", 128); require(text("sha256", 64).matches(Regex("[a-f0-9]{64}"))); setOf("id", "sha256") }
+            "writeDraft" -> {
+                text("draftId",128);text("path",1024)
+                require(text("sha256",64).matches(Regex("[a-f0-9]{64}")))
+                setOf("draftId","path","sha256")
+            }
             else -> error("Unsupported workspace page control")
         }
         require(args.keys == keys)

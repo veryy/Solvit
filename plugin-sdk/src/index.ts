@@ -19,7 +19,7 @@ export interface WorkspaceInstructionSource {
 export interface WorkspaceInstructions {readonly available:boolean;readonly sources:readonly WorkspaceInstructionSource[]}
 export interface PluginContext {
   /** API12, human page only. The host captures the chat; scripts cannot supply a chat/workspace id to file queries. */
-  readonly workspacePage?: {query(operation:'snapshot'|'list'|'read'|'drafts'|'draft'|'changes'|'changeContent',args?:JsonObject):Promise<JsonValue>;
+  readonly workspacePage?: {query(operation:'snapshot'|'list'|'read'|'readChunk'|'editBegin'|'editAppend'|'editFinish'|'editDiscard'|'drafts'|'draft'|'changes'|'changeContent',args?:JsonObject):Promise<JsonValue>;
     perform():Promise<JsonValue>};
   /** API11, page-only. One confirmed displayed control; system picker owns URI access. */
   readonly documents?: {
@@ -100,7 +100,7 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
   nativeServices?: ('terminal.pty'|'web.pages')[];
   pages?: { id: string; title: string; entry?: string; context?: 'management'|'execution' }[];

@@ -2,8 +2,8 @@
   "id": "dev.solvit.workspace",
   "name": "工作区与 Shell",
   "description": "当前对话的工作区文件和多个 Shell 命令会话；不包含交互式 PTY、Root 或 Linux 发行版。",
-  "version": "1.3.0",
-  "apiVersion": 17,
+  "version": "1.4.0",
+  "apiVersion": 18,
   "permissions": [
     "workspace",
     "shell"

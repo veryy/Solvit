@@ -145,6 +145,67 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             }
         }
     }
+    /** File management does not silently operate on a symlink's target. */
+    private fun managedEntry(workspaceId:String,path:String):File {
+        val target=file(workspaceId,path)
+        require(File(directory(workspaceId).canonicalFile,path).absoluteFile.normalize()==target) { "符号链接请通过终端管理。" }
+        return target
+    }
+    override suspend fun makeDirectory(workspaceId:String,path:String)=withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val target=managedEntry(workspaceId,path)
+        check(!target.exists()) { "目标已存在。" }
+        verifyPage(workspaceId)
+        check(managedEntry(workspaceId,path)==target)
+        java.nio.file.Files.createDirectories(target.toPath())
+        Unit
+    } }
+    override suspend fun moveEntry(workspaceId:String,path:String,destination:String)=withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val source=managedEntry(workspaceId,path);val target=managedEntry(workspaceId,destination)
+        check(source.exists()) { "文件或目录不存在。" }
+        check(!target.exists()) { "目标已存在。" }
+        require(!target.path.startsWith(source.path+File.separator)) { "不能移动到自身子目录。" }
+        check(target.parentFile?.isDirectory==true) { "目标父目录不存在。" }
+        verifyPage(workspaceId)
+        check(managedEntry(workspaceId,path)==source && managedEntry(workspaceId,destination)==target)
+        java.nio.file.Files.move(source.toPath(),target.toPath())
+        Unit
+    } }
+    override suspend fun deleteEntry(workspaceId:String,path:String)=withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val target=managedEntry(workspaceId,path)
+        check(target.exists()) { "文件或目录不存在。" }
+        verifyPage(workspaceId)
+        check(managedEntry(workspaceId,path)==target)
+        // walkFileTree without FOLLOW_LINKS removes nested links themselves, never their targets.
+        java.nio.file.Files.walkFileTree(target.toPath(),object:java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
+            override fun visitFile(path:java.nio.file.Path,attrs:java.nio.file.attribute.BasicFileAttributes):java.nio.file.FileVisitResult {
+                java.nio.file.Files.delete(path);return java.nio.file.FileVisitResult.CONTINUE
+            }
+            override fun postVisitDirectory(path:java.nio.file.Path,error:java.io.IOException?):java.nio.file.FileVisitResult {
+                if(error!=null)throw error
+                java.nio.file.Files.delete(path);return java.nio.file.FileVisitResult.CONTINUE
+            }
+        })
+        Unit
+    } }
+    override suspend fun readTextChunk(workspaceId: String, path: String, offset: Int,
+        expectedSha256: String?): WorkspaceTextChunk = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        require(offset >= 0 && (offset == 0 || expectedSha256 != null)) { "后续片段需提供首次读取的文件版本。" }
+        require(expectedSha256 == null || expectedSha256.matches(Regex("[a-f0-9]{64}")))
+        val observed=FileObservations.capture(file(workspaceId,path))
+        require(observed.kind==FileObservationKind.TEXT) { "预览只支持不超过256KiB的UTF-8文本。" }
+        val content=checkNotNull(observed.captureText)
+        val digest=checkNotNull(observed.sha256)
+        check(expectedSha256==null || expectedSha256==digest) { "文件已变化，请重新打开预览。" }
+        require(offset<=content.length && (offset==content.length || !content[offset].isLowSurrogate())) { "无效的文本分页位置。" }
+        var end=minOf(offset.toLong()+4096,content.length.toLong()).toInt()
+        if(end<content.length && end>offset && content[end-1].isHighSurrogate())end--
+        verifyPage(workspaceId)
+        WorkspaceTextChunk(content.substring(offset,end),offset,end,content.length,digest)
+    } }
     override suspend fun readForEdit(workspaceId: String, path: String): WorkspaceTextFile = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         val observed = FileObservations.capture(file(workspaceId, path), 4096, 4096)
@@ -160,16 +221,37 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         }
         writeLocked(workspaceId, path, text)
     } }
+    override suspend fun writeTextForEdit(workspaceId: String, path: String, text: String,
+        expectedSha256: String?): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        require(expectedSha256 == null || expectedSha256.matches(Regex("[a-f0-9]{64}")))
+        require(text.length <= MAX_FILE_CAPTURE_BYTES && '\u0000' !in text) { "只支持不超过256KiB的UTF-8文本。" }
+        // String.toByteArray replaces unpaired surrogates; editing must reject them instead.
+        val encoded=Charsets.UTF_8.newEncoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+            .encode(java.nio.CharBuffer.wrap(text))
+        require(encoded.remaining() <= MAX_FILE_CAPTURE_BYTES) { "文本超过256KiB。" }
+        file(workspaceId,path)
+        // Authorization can suspend or revoke the binding. Recheck before any filesystem mutation.
+        verifyPage(workspaceId)
+        writeLocked(workspaceId,path,text,requireVersion=true,expectedSha256=expectedSha256)
+    } }
     override suspend fun write(workspaceId: String, path: String, text: String) { writeObserved(workspaceId,path,text) }
     override suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         writeLocked(workspaceId, path, text)
     } }
-    private fun writeLocked(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence {
+    private fun writeLocked(workspaceId: String, path: String, text: String,
+        requireVersion: Boolean = false, expectedSha256: String? = null): WorkspaceWriteEvidence {
         val bytes = text.toByteArray(Charsets.UTF_8)
         if(bytes.size>MAX_TEXT) throw ToolExecutionException(ToolFailureCode.FILE_TOO_LARGE)
         val target = file(workspaceId, path)
         val before=FileObservations.capture(target)
+        if(requireVersion) check(if(expectedSha256==null) before.kind==FileObservationKind.ABSENT
+            else before.kind==FileObservationKind.TEXT && before.sha256==expectedSha256) {
+            "文件已变化，请重新读取后保存。"
+        }
         check(target.parentFile!!.mkdirs() || target.parentFile!!.isDirectory)
         // Recheck after creating parents, before opening the atomic file.
         check(file(workspaceId, path) == target)
