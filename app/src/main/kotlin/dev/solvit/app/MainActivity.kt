@@ -123,6 +123,9 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val downloadState by updates.downloadState.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
     val selected by vm.sessionId.collectAsStateWithLifecycle()
+    var fileChangesRun by remember(selected) { mutableStateOf<ExecutionRun?>(null) }
+    val fileChangesManager = remember(app) { dev.solvit.market.BuiltinWorkspaceManager(app) }
+    val pageLocale = LocalUiLanguage.current
     val storedMessages by vm.messages.collectAsStateWithLifecycle()
     val messages = storedMessages.filter { it.sessionId == selected }
     val config by vm.config.collectAsStateWithLifecycle()
@@ -171,7 +174,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val focus = LocalFocusManager.current
     fun hideInput() { keyboard?.hide(); focus.clearFocus() }
     LaunchedEffect(ready, inputPlaced) {
-        if (ready && inputPlaced && !settingsOpen && !modelsOpen && !pluginsOpen && !agentsOpen && !workspaceOpen) {
+        if (ready && inputPlaced && !settingsOpen && !modelsOpen && !pluginsOpen && !agentsOpen && !workspaceOpen && fileChangesRun == null) {
             inputFocus.requestFocus()
             keyboard?.show()
         }
@@ -293,7 +296,8 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                         hideInput(); vm.branchError.value = null; branchTarget = message to mode
                     }, footer = if (workspaceId == null && !busy) ({
                         TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { UiText("新建工作区") }
-                    }) else null, loadExecutionEvents=vm::executionEvents)
+                    }) else null, loadExecutionEvents=vm::executionEvents,
+                    onOpenFileChanges={ run -> hideInput(); fileChangesRun=run })
 
             }
             }
@@ -325,6 +329,11 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
             dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { UiText("拒绝") } })
     }
     if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution, createOnOpen=workspaceCreateRequested) { workspaceOpen = false }
+    fileChangesRun?.let { run -> key(run.id) {
+        PluginPageScreen(uiString("文件变更"), {
+            fileChangesManager.openPage(pageLocale, vm.executionReviewAccess(run), pageId="changes")
+        }) { fileChangesRun = null }
+    } }
     if (settingsOpen) SettingsScreen(updates, { settingsOpen = false }, { modelsOpen = true },
         { agentsOpen = true }, { pluginsOpen = true }, { backupOpen = true }, app.appearance, { permissionsOpen = true }, { diagnosticsOpen = true }, { memoryTasksOpen = true }, { memoryOpen = true })
     if (memoryOpen) {

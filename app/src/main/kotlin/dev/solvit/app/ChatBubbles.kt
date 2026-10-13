@@ -24,7 +24,8 @@ import kotlinx.coroutines.flow.conflate
 
 @Composable
 fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = null,
-    loadExecutionEvents: (suspend (ExecutionRun) -> List<RecordedExecutionEvent>)? = null) {
+    loadExecutionEvents: (suspend (ExecutionRun) -> List<RecordedExecutionEvent>)? = null,
+    onOpenFileChanges: ((ExecutionRun) -> Unit)? = null) {
     val user = row.user
     val width = LocalConfiguration.current.screenWidthDp.dp * .88f
     Column(Modifier.fillMaxWidth().testTag(if (user != null) "user_message" else "assistant_message"),
@@ -55,7 +56,7 @@ fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = nu
                 if (user != null) SelectionContainer { Text(user.content, style=MaterialTheme.typography.bodyLarge) }
                 else {
                     AssistantContents(row)
-                    row.execution?.let { ExecutionDetails(it,loadExecutionEvents) }
+                    row.execution?.let { ExecutionDetails(it,loadExecutionEvents,onOpenFileChanges) }
                 }
             }
         }

@@ -32,6 +32,10 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         check(selected.value==run.sessionId)
         return events
     }
+    fun executionReviewAccess(run: ExecutionRun): PageWorkspaceAccess {
+        check(selected.value == run.sessionId)
+        return dev.solvit.market.ExecutionChangesPageBridge(chat, run) { selected.value }
+    }
     val config = MutableStateFlow(ModelConfig())
     val ready = MutableStateFlow(false)
     val modelConfigured = MutableStateFlow(false)

@@ -15,17 +15,18 @@ class BuiltinWorkspaceManager(context: Context, private val pluginId: String = "
     private val app = context.applicationContext
     private val pkg by lazy {
         ScriptPackage.parse(app.assets.open("builtin-plugins/$pluginId.solvit.json").use { it.readBytes() })
-            .also { check(it.manifest.id == pluginId && (pluginId == "dev.solvit.workspace" && it.manifest.apiVersion == 16 || pluginId == "dev.solvit.terminal" && it.manifest.apiVersion == 13)) }
+            .also { check(it.manifest.id == pluginId && (pluginId == "dev.solvit.workspace" && it.manifest.apiVersion == 17 || pluginId == "dev.solvit.terminal" && it.manifest.apiVersion == 13)) }
     }
-    fun openPage(locale: String, access: PageWorkspaceAccess? = null, terminal: PageTerminalAccess? = null): ExtensionPageSession {
+    fun openPage(locale: String, access: PageWorkspaceAccess? = null, terminal: PageTerminalAccess? = null, pageId: String = "main"): ExtensionPageSession {
         require(locale.matches(Regex("[a-zA-Z0-9_-]{1,20}")))
+        require(pageId == "main" || pageId == "changes" && pluginId == "dev.solvit.workspace" && access is ExecutionChangesPageBridge && terminal == null)
         return object : ExtensionPageSession {
             private val mutableClosed = MutableStateFlow(false)
             override val closed = mutableClosed.asStateFlow()
             private val mutex = Mutex()
             private var revision = 0L
             private var view: ScriptPageView? = null
-            private val engine = ScriptPageSession(pkg, "main", locale, ScriptHost { _, _, _ ->
+            private val engine = ScriptPageSession(pkg, pageId, locale, ScriptHost { _, _, _ ->
                 error("人工工作区页面未开放此能力")
             }) { check(!mutableClosed.value) { "Workspace page closed" } }.also { access?.let(it::attachWorkspace); terminal?.let(it::attachTerminal) }
             private fun snapshot(next: ScriptPageView): ExtensionPageSnapshot {

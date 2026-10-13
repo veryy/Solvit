@@ -43,6 +43,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(!background || operation in setOf("storage.get", "storage.set", "storage.compareAndSet", "clock.now", "model.complete")) { "后台 Hook 不允许此操作" }
                     check(!readOnlyHost || operation in setOf("storage.get", "clock.now", "workspace.instructions")) { "上下文 Hook 不允许此操作" }
                     val arguments = Json.parseToJsonElement(args[1] as String).jsonObject
+                    if (operation == "workspacePage.query" && arguments["operation"]?.jsonPrimitive?.content in setOf("changes", "changeContent"))
+                        check(pkg.manifest.apiVersion >= 17) { "历史文件差异读取需要 API17" }
                     val permission = when (operation) {
                         "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
                         "model.complete" -> "model"

@@ -15,7 +15,7 @@ import dev.solvit.core.*
 
 /** Stored observations only. Opening this view never reads or executes the current workspace. */
 @Composable
-internal fun WorkspaceChangesReview(events: List<RecordedExecutionEvent>) {
+internal fun WorkspaceChangesReview(events: List<RecordedExecutionEvent>, onOpen: (() -> Unit)? = null) {
     val baseline=events.firstOrNull { it.event.kind==ExecutionKind.WORKSPACE_BASELINE } ?: return
     val latest=events.lastOrNull { it.event.kind==ExecutionKind.WORKSPACE_OBSERVED }
     var expanded by rememberSaveable(baseline.recordedAt,baseline.sequence) { mutableStateOf(false) }
@@ -23,7 +23,7 @@ internal fun WorkspaceChangesReview(events: List<RecordedExecutionEvent>) {
         latest?.let { compareWorkspaceSnapshots(requireNotNull(baseline.event.workspace),requireNotNull(it.event.workspace)) }
     }
     Column(Modifier.fillMaxWidth().testTag("workspace_changes"),verticalArrangement=Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth().clickable { expanded=!expanded }.padding(vertical=6.dp).testTag("workspace_changes_toggle")) {
+        Row(Modifier.fillMaxWidth().clickable { if(onOpen != null) onOpen() else expanded=!expanded }.padding(vertical=6.dp).testTag("workspace_changes_toggle")) {
             UiText("文件变更",style=MaterialTheme.typography.labelMedium,modifier=Modifier.weight(1f))
             Text("${comparison?.changes?.size ?: "?"} ${if(expanded) "▾" else "▸"}",style=MaterialTheme.typography.labelMedium)
         }

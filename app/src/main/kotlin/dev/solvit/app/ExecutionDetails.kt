@@ -20,7 +20,8 @@ import dev.solvit.core.*
 import kotlinx.coroutines.CancellationException
 
 @Composable
-fun ExecutionDetails(run: ExecutionRun, load: (suspend (ExecutionRun)->List<RecordedExecutionEvent>)?) {
+fun ExecutionDetails(run: ExecutionRun, load: (suspend (ExecutionRun)->List<RecordedExecutionEvent>)?,
+    onOpenFileChanges: ((ExecutionRun) -> Unit)? = null) {
     var expanded by rememberSaveable(run.id) { mutableStateOf(false) }
     var events by remember(run.id) { mutableStateOf<List<RecordedExecutionEvent>>(emptyList()) }
     var loading by remember(run.id) { mutableStateOf(false) }
@@ -49,7 +50,7 @@ fun ExecutionDetails(run: ExecutionRun, load: (suspend (ExecutionRun)->List<Reco
                 loading->UiText("正在读取执行记录…")
                 failed->UiText("读取执行记录失败")
                 else-> {
-                    WorkspaceChangesReview(events)
+                    WorkspaceChangesReview(events, onOpenFileChanges?.let { open -> { open(run) } })
                     events.filter { it.event.kind==ExecutionKind.STEP_STARTED }.forEach { started ->
                         val step=started.event.step
                         Row { UiText("模型步骤",style=MaterialTheme.typography.labelSmall);Text(" $step",style=MaterialTheme.typography.labelSmall) }

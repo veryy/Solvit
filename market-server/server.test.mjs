@@ -66,6 +66,12 @@ test('catalog downloads match their declared integrity and expose no write API',
     const projectRules = api16.plugins.find(plugin => plugin.id === 'dev.solvit.workspace');
     assert.equal(projectRules.version, '1.2.0'); assert.equal(projectRules.apiVersion, 16);
     assert.deepEqual(projectRules.hooks, ['beforeModel']);
+    const api17 = await (await fetch(base + '/api/v1/plugins?hostApi=17')).json();
+    const fileReview = api17.plugins.find(plugin => plugin.id === 'dev.solvit.workspace');
+    assert.equal(fileReview.version, '1.3.0'); assert.equal(fileReview.apiVersion, 17);
+    assert.equal(fileReview.pages.find(page => page.id === 'changes').entry, 'review/index.html');
+    const rulesPrevious = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.workspace/1.2.0')).arrayBuffer());
+    assert.deepEqual(rulesPrevious, await readFile(new URL('./packages/legacy/dev.solvit.workspace-1.2.0.solvit.json', import.meta.url)));
     const workspacePrevious = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.workspace/1.1.0')).arrayBuffer());
     assert.deepEqual(workspacePrevious, await readFile(new URL('./packages/legacy/dev.solvit.workspace-1.1.0.solvit.json', import.meta.url)));
     const api13 = await (await fetch(base + '/api/v1/plugins?hostApi=13')).json();
