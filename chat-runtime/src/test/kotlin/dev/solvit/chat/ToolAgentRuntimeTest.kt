@@ -17,11 +17,13 @@ class ToolAgentRuntimeTest {
             override fun stream(request: ModelRequest): Flow<ModelChunk> {
                 val system = request.messages.single { it.role == Role.SYSTEM }.content
                 assertEquals(1, Regex("base identity").findAll(system).count())
+                assertFalse(system.contains("memory="))
+                val reference = request.messages.single { it.role == Role.USER }.content
                 if (round++ == 0) {
-                    assertTrue(system.contains("memory=before"))
+                    assertTrue(reference.contains("memory=before"))
                     return flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
                 }
-                assertTrue(system.contains("memory=after")); assertFalse(system.contains("memory=before"))
+                assertTrue(reference.contains("memory=after")); assertFalse(reference.contains("memory=before"))
                 return flowOf(ModelChunk.Text("updated"), ModelChunk.Done)
             }
         }
