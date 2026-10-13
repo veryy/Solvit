@@ -443,6 +443,18 @@ class ChatLayoutTest {
             market = MarketplaceViewModel(app.marketplace)
             rule.activity.setContent { MaterialTheme { ChatScreen(vm, updates, market, agents, workspaces) } }
         }
+        fun awaitRoleRequest(expected: Int) {
+            try {
+                rule.waitUntil(8000) { requests.size == expected && !vm.busy.value }
+            } catch (failure: Throwable) {
+                // [DEBUG-role-send] Safe fixture state; never dump model credentials or remote errors.
+                val state = "[DEBUG-role-send] expected=$expected actual=${requests.size} ready=${vm.ready.value} " +
+                    "busy=${vm.busy.value} hasError=${vm.error.value != null} " +
+                    "outcome=${vm.replyTiming.value?.outcome} saved=${saved.value.size}"
+                screenshot("role-settings-to-provider-failure")
+                throw AssertionError(state + "\n" + rule.onRoot().printToString(), failure)
+            }
+        }
         try {
             ready()
             rule.waitUntil(8000) { vm.ready.value && agents.activeRole.value == null }
@@ -456,13 +468,13 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("返回聊天").performClick()
             rule.onNode(hasSetTextAction()).performTextInput("你是什么角色？")
             rule.onNodeWithContentDescription("发送").performClick()
-            rule.waitUntil(8000) { requests.size == 1 && !vm.busy.value }
+            awaitRoleRequest(1)
             rule.onNodeWithContentDescription("对话历史").performClick()
             rule.onNodeWithTag("new_chat").performClick()
             rule.waitUntil(8000) { vm.sessionId.value != originalSession && agents.activeRole.value?.id == role.id }
             rule.onNode(hasSetTextAction()).performTextInput("新对话中你是谁？")
             rule.onNodeWithContentDescription("发送").performClick()
-            rule.waitUntil(8000) { requests.size == 2 && !vm.busy.value }
+            awaitRoleRequest(2)
             val sent = requests.toList()
             assertNotEquals(sent[0].sessionId, sent[1].sessionId)
             sent.forEach { request ->

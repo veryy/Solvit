@@ -9,13 +9,20 @@ case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   model-settings) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations' ;;
   model-task) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#modelProfilesUiSavesAndAssignsASeparateToolModel' ;;
   skills-documents) solvit_diagnostic_class='dev.solvit.app.SkillsHtmlPageTest' ;;
+  chat-role) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#roleAppliedThroughSettingsReachesProviderAndNewChatRequest' ;;
   chat-branch) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending' ;;
   terminal-ui) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput' ;;
   chat-stream) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard' ;;
   workspace-files) solvit_diagnostic_class='dev.solvit.app.WorkspaceHtmlPageTest' ;;
   *) exit 2 ;;
 esac
-timeout 180s adb shell am instrument -w -e class "$solvit_diagnostic_class" dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner | tee ui-screenshots/result.txt
-timeout 15s adb logcat -d > ui-screenshots/logcat.txt || true
-timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
-grep -F 'OK (1 test)' ui-screenshots/result.txt
+solvit_diagnostic_iterations=1
+if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role ]; then solvit_diagnostic_iterations=10; fi
+for ((solvit_diagnostic_iteration=1; solvit_diagnostic_iteration<=solvit_diagnostic_iterations; solvit_diagnostic_iteration++)); do
+  solvit_diagnostic_result="ui-screenshots/result-${solvit_diagnostic_iteration}.txt"
+  timeout 180s adb shell am instrument -w -e class "$solvit_diagnostic_class" dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$solvit_diagnostic_result"
+  timeout 15s adb logcat -d > ui-screenshots/logcat.txt || true
+  timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
+  cp "$solvit_diagnostic_result" ui-screenshots/result.txt
+  grep -F 'OK (1 test)' "$solvit_diagnostic_result" || exit 1
+done
