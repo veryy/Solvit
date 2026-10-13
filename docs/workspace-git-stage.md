@@ -60,3 +60,8 @@ Git HTML/TS页面候选：新增dev.solvit.git 1.0.0/API19，Changes分工作树
 
 
 实际失败保留：d4f2ca6/38472698336的Android构建在GitPageBridgeTest initializationError失败（JUnit要求void方法，测试以runBlocking推断返回最后一次assertFailsWith的异常对象）。两项桥回归显式runBlocking<Unit>，断言保持。8f91406/38473462631实际TS2339在pages.ts待确认操作arguments读取，PageHostAction是包含document等多类型联合；将pending缩窄为Extract<PageHostAction,{kind:'git.perform'}>，保持Git操作与全部元数据验证，不能以跳过typecheck替代修复。重新远程构建和生成，失败前生成的包不作为交付证据。
+
+
+远程生成738e5ac/38473695207已成功，实际日志包含typecheck、109 SDK及2市场测试成功（推送38473669654只因未提交新包的一致性门禁失败）。取回11853386299（ZIP820,252字节）CRC核对；14个生成包逐个检查，所有已存在包字节完全不变，只新增Git包713,413字节，SHA256 72ba8181becb82bebe1120c1f20a6d1e968de304df910bcd97c9ebcf4d677ea2，原字节分别提交市场包与APK资产。App市场请求升级hostApi19，种子测试明确增加第9个Git插件并保留全部默认停用/零授权检查；公共服务尚未部署，新APK未发布。
+
+新增真实Android GitHtmlPageTest与git-workbench诊断入口：固定APK中的HTML/JS、原生确认、取消初始化不建仓、完整多块Unicode差异、取消暂存不写索引、真实暂存、工作文件后改但提交只采用索引、其他未跟踪文件保留、Files实际CodeMirror预览当前文件、同目录真实Shell cat输出一致以及Git插件默认停用。新增用例尚待远程执行，不能用SDK沙箱或原生引擎结果替代UI证据。此前d4f2ca6失败报告中GitPageSessionTest实际三项0失败/错误/跳过已核对；整次Android因桥测试JUnit返回类型失败，仍保留失败结论。

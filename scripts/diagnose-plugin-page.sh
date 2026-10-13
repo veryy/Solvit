@@ -15,6 +15,7 @@ case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   chat-branch) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending' ;;
   terminal-ui) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput' ;;
   chat-stream) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard' ;;
+  git-workbench) solvit_diagnostic_class='dev.solvit.app.GitHtmlPageTest' ;;
   workspace-files) solvit_diagnostic_class='dev.solvit.app.WorkspaceHtmlPageTest,dev.solvit.app.ChatLayoutTest#workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace' ;;
   file-diff) solvit_diagnostic_class='dev.solvit.app.HistoricalDiffHtmlTest' ;;
   chat-interaction) solvit_diagnostic_class='dev.solvit.app.ChatInteractionDeviceTest' ;;
