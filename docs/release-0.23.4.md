@@ -13,3 +13,10 @@ build49，保留固定签名与数据迁移。覆盖安装保留配置；卸载�
 修正发布前 Skills 校验的 API3 固定假设，分别检查历史 API3 包与当前 API11 包的精确版本、下载完整性和按需加载行为。0.23.2 标签因该校验失败未发布，保留失败记录，不覆盖标签历史。
 
 联网搜索插件 1.2.2 增加有限的区域国际搜索备用入口，保留原查询，拒绝空首页和页脚链接，旧版 1.2.1 下载包仍保留。0.23.3 未发布，普通搜索通过但区域故障回退两次失败，保留原标签与证据。
+
+
+实际验收：源码 [559fef2](https://github.com/veryy/Solvit/commit/559fef2d143ddaef03fe22f1c4781d98c12eb657)，[正式 Actions](https://github.com/veryy/Solvit/actions/runs/38375255332) 全部成功。下载的 XML 报告为335单元、48模拟器，失败/错误/跳过均0；Lint、固定签名、覆盖升级、插件包一致性、线上MCP/Skills和公开搜索均通过。正式搜索的三个问题返回官方来源并读取正文；最新版本独立核对为 Kotlin 2.4.21。此前失败的区域搜索尝试保留，没有替换问题或接受首页链接。
+
+公开 Release APK 已实际下载，与 [solvit-debug-apk 构建产物](https://github.com/veryy/Solvit/actions/runs/38375255332/artifacts/11800732945) 逐字节一致：23,522,393 bytes；SHA-256 `01ae37f93b7588a409fab73d6a26d4edf6b377d2cb60d58fe961236ed20686d2`。8个内置插件和JS Agent驱动均与提交源码一致。签名证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。
+
+线上搜索目录与1.2.0/1.2.1/1.2.2下载字节已核对，API1–5目录与其他插件保持正确。备份 `/opt/solvit-market/.backup-search-1.2.2-1791883246320`。实际模拟器截图见 [记忆关系图](screenshots/0.23.4/memory-html-graph-home.png) 与 [交互终端](screenshots/0.23.4/workspace-interactive-html-pty.png)；这是受控测试资料，不能当作真实模型或真机任务验收。终端控制区仍偏拥挤，后续继续精简。
