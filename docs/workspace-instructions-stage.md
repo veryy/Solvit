@@ -62,3 +62,5 @@ TS模块负责固定根/同目录local排序、去重、来源及12KiB UTF-8渲�
 [实际APK定向38412047429](https://github.com/veryy/Solvit/actions/runs/38412047429)成功；下载产物CRC通过，result-1实际OK (1 test)，四次模型请求全部通过。完整38411978563的358单元/Lint/签名/APK成功；UI首次未进入测试，Runner下载android-35系统镜像报Error on ZipFile unknown archive，按原条件仅重跑失败作业，未降低断言或将基础设施错误记为产品回归。
 
 API16线上部署已完成，备份`/opt/solvit-market/.backup-workspace-1.2.0-1791901699222`，含旧server和工作区包；脚本含哈希前置、原子写入、health和旧目录比较及失败回滚。正常验证公网HTTPS API1–15完整JSON与部署前一致，API16仅工作区版本更新；工作区1.0.0/1.1.0/1.2.0公开下载分别5508/27700/31604字节，与Git包逐字节一致。新包SHA545abc7b667f31468777e378d4c7620709f9e2e03fca6f4c1b490e24bd4b0bbe，health ok。仍须完整模拟器及正式标签门禁后才能称为新版本交付。
+
+完整UI重跑已进入测试，49项中工作区页面两个原用例失败：Shell回工作目录在ChatLayoutTest:755等待HTML就绪、WorkspaceHtmlPageTest:47首次打开等待就绪超时。源码确认BuiltinWorkspaceManager仍锁定工作区API12，新APK不可变资源已API16，因此页面构造拒绝；修正仅锁定当前工作区API16，终端API13保持，保留实际页面/原生确认/保存/过时文件及Shell断言。不是用延长超时或跳过页面来绕过。
