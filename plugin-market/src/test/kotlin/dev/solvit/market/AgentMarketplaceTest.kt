@@ -28,7 +28,7 @@ class AgentMarketplaceTest {
         })
         try {
             manager.enableAll()
-            val context = RuntimeEnvironment.getApplication<android.app.Application>()
+            val context = RuntimeEnvironment.getApplication()
             val config = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { 4 }, "AES") }
             val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools), config)
             market.restore()
