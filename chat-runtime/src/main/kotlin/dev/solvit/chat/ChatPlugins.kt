@@ -31,6 +31,8 @@ class DefaultChatService(
     override fun messages(sessionId: String) = store.messages(sessionId)
     override fun executionRuns(sessionId: String) = store.executionRuns(sessionId)
     override suspend fun executionEvents(sessionId: String, runId: String) = store.executionEvents(sessionId,runId)
+    override suspend fun executionFileContent(sessionId: String, runId: String, sequence: Int, path: String,
+        authorize: suspend () -> Unit) = store.executionFileContent(sessionId,runId,sequence,path,authorize)
     override suspend fun createSession() = store.createSession()
     override suspend fun deleteSession(sessionId: String) {
         check(turn.tryLock()) { "请先停止生成" }

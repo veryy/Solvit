@@ -186,6 +186,8 @@ interface AgentRuntime {
 interface ChatService {
     fun executionRuns(sessionId: String): Flow<List<ExecutionRun>> = kotlinx.coroutines.flow.flowOf(emptyList())
     suspend fun executionEvents(sessionId: String, runId: String): List<RecordedExecutionEvent> = emptyList()
+    suspend fun executionFileContent(sessionId: String, runId: String, sequence: Int, path: String,
+        authorize: suspend () -> Unit = {}): String? = null
     fun sessions(): Flow<List<ChatSession>>
     fun messages(sessionId: String): Flow<List<ChatMessage>>
     suspend fun createSession(): ChatSession
