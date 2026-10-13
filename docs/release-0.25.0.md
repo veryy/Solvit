@@ -7,3 +7,5 @@ API16、工作区插件1.2.0、build52。专用只读Hook不接受路径或其�
 候选358个单元、49个模拟器测试、Lint、固定签名和覆盖升级已通过，API16线上插件包已验证，旧API1–15目录保持一致。正式门禁和APK请查看本发布页的构建链接及附件，具体证据见[阶段记录](https://github.com/veryy/Solvit/blob/main/docs/workspace-instructions-stage.md)。根目录规则不是完整嵌套作用域、文件diff或Agent任务验收；真实模型遵守规则、角色/流式/工具选择、真机及完整JS内核仍未验收。
 
 既有角色首次发送的偶发自动化超时仍在追踪；安全fixture探针保留，未把十轮通过或本次完整候选成功当作根因修复。
+
+[正式门禁](https://github.com/veryy/Solvit/actions/runs/38421356779)五项作业全成功，实际报告358单元、49模拟器，0失败/错误/跳过；94 SDK、2市场及公网验证通过。公开APK与Actions产物逐字节一致，23,558,161字节，SHA-256 `84fda526e2c919a566e882f4a4ed79691d93d5582cfe5cf635837f51aae3c675`。

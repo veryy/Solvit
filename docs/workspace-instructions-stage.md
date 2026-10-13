@@ -70,3 +70,7 @@ API16线上部署已完成，备份`/opt/solvit-market/.backup-workspace-1.2.0-1
 新增临时[DEBUG-role-send]回调次数及触摸前后bounds探针，不记录文本/凭据，并给发送/停止同一按钮稳定testTag。原8秒与角色、请求、入库条件保留。56883ff的[同前置顺序十轮38418610354](https://github.com/veryy/Solvit/actions/runs/38418610354)成功，下载ZIP实际10个独立result-N均OK (3 tests)，总30项。原始失败仍未稳定复现；保留失败记录，不声称已修复角色症状。完整38418609997待验收。
 
 [干净代码候选38418609997](https://github.com/veryy/Solvit/actions/runs/38418609997)全成功。下载产物CRC及实际XML核对358单元、49模拟器，0失败/错误/跳过；包括实际APK TS规则、两个工作区页面原回归、角色应用两请求、签名和覆盖升级。临时计数探针保留以捕获仍未定位的角色自动化偶发丢失，未宣称此问题修复或真实模型/真机通过。准备合入main并执行正式0.25.0标签全部门禁。
+
+## 0.25.0正式交付
+
+源提交`30b4b7779a854f23bbd1ba5ddb980fa69be03d14`，[Release](https://github.com/veryy/Solvit/releases/tag/v0.25.0)由[正式门禁38421356779](https://github.com/veryy/Solvit/actions/runs/38421356779)自动发布，五项作业全成功。下载实际XML核对358单元、49模拟器0失败/错误/跳过；94 SDK、2市场、源码/包一致性、公网搜索及MCP/Skills、Lint、固定签名和覆盖升级均通过。相同源码的main自动运行取消以避免重复，与正式标签成功结果分开。公开APK八段实际下载拼接，与正式APK artifact11826254147逐字节一致：23,558,161 bytes，SHA256 `84fda526e2c919a566e882f4a4ed79691d93d5582cfe5cf635837f51aae3c675`。UI报告artifact11827037468，unit11825814513。角色fixture偶发发送仍未定位，真实模型、真机、完整diff/嵌套规则/任务/JS内核继续保留，不缩减全路线。
