@@ -15,14 +15,14 @@ case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   chat-branch) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending' ;;
   terminal-ui) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput' ;;
   chat-stream) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard' ;;
-  workspace-files) solvit_diagnostic_class='dev.solvit.app.WorkspaceHtmlPageTest' ;;
+  workspace-files) solvit_diagnostic_class='dev.solvit.app.WorkspaceHtmlPageTest,dev.solvit.app.ChatLayoutTest#workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace' ;;
   file-diff) solvit_diagnostic_class='dev.solvit.app.HistoricalDiffHtmlTest' ;;
   chat-interaction) solvit_diagnostic_class='dev.solvit.app.ChatInteractionDeviceTest' ;;
   *) exit 2 ;;
 esac
 solvit_diagnostic_iterations=1
 solvit_diagnostic_expected='OK (1 test)'
-if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = file-diff ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-interaction ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
+if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = file-diff ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-interaction ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = workspace-files ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role ]; then solvit_diagnostic_iterations=10; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role-sequence ]; then
   solvit_diagnostic_iterations=10

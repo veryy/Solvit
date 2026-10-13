@@ -48,3 +48,6 @@ CodeMirror依赖从npm官方registry核对版本和MIT许可，锁定codemirror6
 
 
 完整Android38462759221/391908c失败在BuiltinMemoryTest的旧目录请求断言，79项plugin-market仅该1项失败：生产请求已升级hostApi=18，测试仍期待17。更新实际MockWebServer收到的请求断言为18，保留离线HTML下载、摘要、安装后默认停用及未授予权限检查；没有更改生产行为或删除断言。此运行尚未执行Lint/APK和完整模拟器阶段，下一提交重新跑完整门禁。
+
+
+完整38463464480/d928ce3 build成功，下载11848760499（313,354字节）实际399单元无失败/错误/跳过，Lint通过，固定签名f076…一致；候选APK取回11847970831（ZIP20,935,169字节）CRC正确，APK23,911,485字节、SHA f289c13808521d271b8345a13e2f6681fdd311429e652846bbf665fe2220fae3，尚非公开正式发布包。完整UI失败在ChatLayoutTest.workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace第789行：实际hello-solvit与第二Shell检查已通过，等待目录页面新建按钮超时。取回11848761783（3,919,631字节）CRC/XML实际53项中仅该项失败。旧等待只检查drafts节点存在，随后JS.click目录按钮；新文件树首次自动加载会暂时禁用页面控件，不能把节点存在当成可以点击。现在保留原节点检查并等待目录按钮启用，改为真实触摸；新建按钮与Shell原断言不删。workspace-files诊断扩为完整编辑/文件树+实际Shell页面两项，需要明确OK (2 tests)，完整发布门禁仍全部保留。根因假设待该真实运行确认，不将测试同步改动冒称生产Shell故障已修复。
