@@ -47,7 +47,9 @@ class AndroidMarketplace(
     }, ScriptHost { manifest, operation, arguments -> hostCall(manifest, operation, arguments) })
 
     override suspend fun openPage(pluginId: String, pageId: String, locale: String): ExtensionPageSession = mutex.withLock {
-        pages.open(packages[pluginId] ?: error("插件未安装"), pageId, locale)
+        val pkg = packages[pluginId] ?: error("插件未安装")
+        check(pkg.manifest.pages.single { it.id == pageId }.context == "management") { "此页面须从对话执行记录打开" }
+        pages.open(pkg, pageId, locale)
     }
 
     suspend fun restore() = mutex.withLock {
@@ -273,7 +275,7 @@ class AndroidMarketplace(
             val names = pkg.manifest.tools.map { prefix + it.name }.toSet()
             InstalledExtension(pkg.manifest.id, pkg.manifest.name, pkg.manifest.version, pkg.manifest.permissions,
                 enabled, if (enabled) tools.descriptors().filter { it.name in names } else emptyList(), failures[pkg.manifest.id], pkg.manifest.settings, pkg.manifest.hooks,
-                pkg.manifest.pages.map { ExtensionPage(it.id, it.title) })
+                pkg.manifest.pages.filter { it.context == "management" }.map { ExtensionPage(it.id, it.title) })
         }
     }
 

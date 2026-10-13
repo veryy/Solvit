@@ -31,6 +31,10 @@ function harness(bound=true){
 }
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
  assert.equal(pkg.manifest.apiVersion,17);assert.equal(pkg.manifest.version,'1.3.0');assert.ok(pkg.resources['ui/main.js']);
+ assert.equal(pkg.manifest.pages.find(page=>page.id==='changes').context,'execution');
+ assert.ok(pkg.resources['review/main.js']);assert.ok(pkg.resources['review/jsdiff-LICENSE.txt'].includes('BSD 3-Clause License'));
+ const api16=JSON.parse(await readFile('../market-server/packages/legacy/dev.solvit.workspace-1.2.0.solvit.json','utf8'));
+ assert.equal(api16.manifest.apiVersion,16);assert.equal(api16.manifest.version,'1.2.0');assert.equal(api16.manifest.pages.length,1);
  const old=JSON.parse(await readFile('../market-server/packages/legacy/dev.solvit.workspace-1.0.0.solvit.json','utf8'));assert.equal(old.manifest.apiVersion,4);
  const h=harness(false);await h.render();assert.equal(h.created,0);await h.event('create');await h.event('prepareCreate',{name:'New Project'});
  assert.equal(h.created,0);await h.event('cancel');assert.equal(h.created,0);

@@ -45,7 +45,8 @@ export async function buildPlugin(entry, manifestFile, output) {
     throw new Error('Agent observation requires API15 and agent permission');
   const pages = manifest.pages ?? [];
   if (!Array.isArray(pages) || pages.length > 8 || pages.length && manifest.apiVersion < 9 ||
-      pages.some(page => !page || !['id,title', ...(manifest.apiVersion>=10?['entry,id,title']:[])].includes(Object.keys(page).sort().join(',')) ||
+      pages.some(page => !page || !['id,title', ...(manifest.apiVersion>=10?['entry,id,title']:[]), ...(manifest.apiVersion>=17?['context,entry,id,title']:[])].includes(Object.keys(page).sort().join(',')) ||
+        page.context !== undefined && (!['management','execution'].includes(page.context) || page.context==='execution'&&!manifest.permissions?.includes('workspace')) ||
         page.entry !== undefined && (!resourcePath(page.entry) || !page.entry.endsWith('.html') || !page.entry.includes('/')) ||
         typeof page.id !== 'string' || !/^[a-z][a-zA-Z0-9_-]{0,39}$/.test(page.id) ||
         typeof page.title !== 'string' || !page.title.trim() || page.title.length > 128) ||

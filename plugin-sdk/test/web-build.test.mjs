@@ -18,6 +18,13 @@ test('API10 bundles browser dependencies offline and refuses invalid or linked e
     const pkg=JSON.parse(await readFile(output,'utf8'));
     assert.equal(pkg.resources['ui/index.html'],'<script src="main.js"></script>');
     assert.ok(pkg.resources['ui/main.js'].length>100_000);assert.equal(pkg.resources['ui/main.ts'],undefined);
+    const execution={...manifest,apiVersion:17,permissions:['workspace'],pages:[{...manifest.pages[0],context:'execution'}]};
+    await writeFile(manifestFile,JSON.stringify(execution));await buildPlugin(entry,manifestFile,output);
+    assert.equal(JSON.parse(await readFile(output,'utf8')).manifest.pages[0].context,'execution');
+    for(const invalid of [{...execution,apiVersion:16},{...execution,permissions:[]},
+      {...execution,pages:[{...execution.pages[0],context:'foreign'}]}]){
+      await writeFile(manifestFile,JSON.stringify(invalid));await assert.rejects(()=>buildPlugin(entry,manifestFile,output));
+    }
     for(const value of ['../index.html','/ui/index.html','https://example.com/index.html','ui/%2e/index.html','ui/missing.html']){
       await writeFile(manifestFile,JSON.stringify({...manifest,pages:[{...manifest.pages[0],entry:value}]}));
       await assert.rejects(()=>buildPlugin(entry,manifestFile,output));

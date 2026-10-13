@@ -103,7 +103,7 @@ export interface PluginManifest {
   apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
   nativeServices?: ('terminal.pty'|'web.pages')[];
-  pages?: { id: string; title: string; entry?: string }[];
+  pages?: { id: string; title: string; entry?: string; context?: 'management'|'execution' }[];
   hooks?: ('beforeModel' | 'afterTurn')[];
   afterTurnEnabledSetting?: string;
   /** API14 + agent permission: a declared boolean setting, default false, globally selects this strategy. */

@@ -41,3 +41,5 @@ TS changesPage与diff模块已提交，但尚未在manifest注册或从聊天打
 269b068的[追加序列38434374173](https://github.com/veryy/Solvit/actions/runs/38434374173)成功。下载artifact11833565064（ZIP952205bytes）CRC通过，逐份核对result-1..10.txt均OK (3 tests)，实际10轮×3=30项全部成功，包含原PTY、大消息/分支和角色真实触摸/请求断言。支持ready主线程边界对该已复现序列的修正，但不代表真实模型角色或真机验收；该源码仍在后续分支，尚未加入已发布0.25.2。
 
 HTML接入阶段继续读取固定DSH packages/client/ui-primitives/src/DiffBlock.tsx及tests/diff-block.client.spec.tsx、ui-tool/tests/diff-card.client.spec.tsx：插件拥有本地化、路径标题、增删配色、空行/终止换行和完整展开行为。采用其任务语义，不复制React/Cordis实现；Solvit原有页桥提供验证后的TS状态与主题/生命周期，插件review/main.mjs使用textContent绘制行号和字面正文、摘要信息默认折叠，不执行文件里的HTML。API17/工作区1.3.0注册changes页面，聊天同一消息内的默认折叠执行记录打开宿主固定run桥接。保留原1.2.0/API16原始包以保证旧目录；未在本地构建，后续须远程生成包、核对提交产物、真正QuickJS/SQLite重开及Android HTML回归，再发布APK。
+
+执行页声明context:execution（API17且workspace权限），普通插件详情仅列出management页，并拒绝泛化openPage调用execution页，避免没有选定执行时展示无效入口或脚本自选run。BuiltinWorkspaceManager只接受宿主固定桥接，而且在缓存页回调、正文/资源返回前后核验当前对话；不因TS已缓存全文就跳过所属对话检查。新增双方清单校验及API16旧包不变检查。

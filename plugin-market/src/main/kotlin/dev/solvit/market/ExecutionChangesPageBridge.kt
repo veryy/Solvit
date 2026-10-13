@@ -21,6 +21,8 @@ class ExecutionChangesPageBridge(private val chat: ChatService, private val run:
         authorize()
         check(activeChat() == run.sessionId) { "对话已变化，请重新打开文件变更。" }
     }
+    /** Also guards cached page renders/resources which do not issue a fresh storage query. */
+    suspend fun ensureCurrent() = verify {}
     private suspend fun load(authorize: suspend () -> Unit): Review {
         review?.let { return it }
         val events = chat.executionEvents(run.sessionId, run.id)

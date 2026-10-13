@@ -5,7 +5,7 @@ import java.security.MessageDigest
 import dev.solvit.core.ExtensionSetting
 
 data class ScriptTool(val name: String, val description: String, val inputSchema: JsonObject, val chatVisible: Boolean = true)
-data class ScriptPage(val id: String, val title: String, val entry: String? = null)
+data class ScriptPage(val id: String, val title: String, val entry: String? = null, val context: String = "management")
 data class ScriptManifest(
     val id: String,
     val name: String,
@@ -108,7 +108,8 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val pages = m["pages"]?.jsonArray?.map { element ->
                 val page = element.jsonObject
                 require(page.keys == setOf("id", "title") ||
-                    apiVersion >= 10 && page.keys == setOf("id", "title", "entry")) { "插件页面声明无效" }
+                    apiVersion >= 10 && page.keys == setOf("id", "title", "entry") ||
+                    apiVersion >= 17 && page.keys == setOf("id", "title", "entry", "context")) { "插件页面声明无效" }
                 val pageId = page.getValue("id").jsonPrimitive.also { require(it.isString) }.content
                 val title = page.getValue("title").jsonPrimitive.also { require(it.isString) }.content
                 require(pageId.matches(Regex("[a-z][a-zA-Z0-9_-]{0,39}")) && title.isNotBlank() && title.length <= 128)
@@ -116,7 +117,9 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
                 if (entry != null) {
                     require(ScriptWebResources.mimeType(entry) == "text/html") { "HTML 页面入口缺失或无效" }
                 }
-                ScriptPage(pageId, title, entry)
+                val context = page["context"]?.jsonPrimitive?.also { require(it.isString) }?.content ?: "management"
+                require(context in setOf("management", "execution") && (context != "execution" || "workspace" in permissions))
+                ScriptPage(pageId, title, entry, context)
             }.orEmpty()
             require(pages.size <= 8 && pages.map { it.id }.distinct().size == pages.size && (pages.isEmpty() || apiVersion >= 9)) { "插件页面需要 API 9 且 ID 不得重复" }
             return ScriptManifest(id, string("name"), string("description"), version,

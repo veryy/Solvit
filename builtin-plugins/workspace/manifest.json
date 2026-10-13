@@ -142,7 +142,8 @@
     {
       "id": "changes",
       "title": "文件变更",
-      "entry": "review/index.html"
+      "entry": "review/index.html",
+      "context": "execution"
     }
   ],
   "hooks": [

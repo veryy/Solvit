@@ -20,6 +20,8 @@ class BuiltinWorkspaceManager(context: Context, private val pluginId: String = "
     fun openPage(locale: String, access: PageWorkspaceAccess? = null, terminal: PageTerminalAccess? = null, pageId: String = "main"): ExtensionPageSession {
         require(locale.matches(Regex("[a-zA-Z0-9_-]{1,20}")))
         require(pageId == "main" || pageId == "changes" && pluginId == "dev.solvit.workspace" && access is ExecutionChangesPageBridge && terminal == null)
+        val page = pkg.manifest.pages.single { it.id == pageId }
+        require((page.context == "execution") == (access is ExecutionChangesPageBridge))
         return object : ExtensionPageSession {
             private val mutableClosed = MutableStateFlow(false)
             override val closed = mutableClosed.asStateFlow()
@@ -28,7 +30,10 @@ class BuiltinWorkspaceManager(context: Context, private val pluginId: String = "
             private var view: ScriptPageView? = null
             private val engine = ScriptPageSession(pkg, pageId, locale, ScriptHost { _, _, _ ->
                 error("人工工作区页面未开放此能力")
-            }) { check(!mutableClosed.value) { "Workspace page closed" } }.also { access?.let(it::attachWorkspace); terminal?.let(it::attachTerminal) }
+            }) {
+                check(!mutableClosed.value) { "Workspace page closed" }
+                if (access is ExecutionChangesPageBridge) access.ensureCurrent()
+            }.also { access?.let(it::attachWorkspace); terminal?.let(it::attachTerminal) }
             private fun snapshot(next: ScriptPageView): ExtensionPageSnapshot {
                 check(!mutableClosed.value); view = next
                 return ExtensionPageSnapshot(++revision, next.toJson())
