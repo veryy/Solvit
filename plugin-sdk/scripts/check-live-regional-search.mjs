@@ -23,6 +23,9 @@ const ctx={settings:{get:async()=>null},http:{request:async()=>{throw new Error(
     observations.push({requested:url,final:snapshot.url,title:snapshot.title,searchResults:snapshot.searchResults,links:snapshot.links.length,characters:snapshot.text.length,
       dom:await page.evaluate(()=>({readyState:document.readyState,bodyText:document.body.innerText.slice(0,2000),bodyResults:document.querySelectorAll('li.b_algo h2 a[href],a.result__a[href]').length,main:document.querySelector('main,article,[role="main"]')?.outerHTML.slice(0,2000)}))});
     return snapshot;
+  }catch(error){
+    observations.push({requested:url,final:page.url(),observationFailed:true,failureType:error?.name??'Error'});
+    throw error;
   }finally{await page.close()}
 }}};
 try{
