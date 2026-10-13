@@ -309,7 +309,7 @@ class AndroidMarketplace(
             "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
             "model.complete" -> "model"
             "http.request", "web.visit" -> "network"
-            "workspace.info", "workspace.read", "workspace.write", "workspace.createShell" -> "workspace"
+            "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions" -> "workspace"
             "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
             "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
             "plugins.draft" -> "plugins"
@@ -327,6 +327,35 @@ class AndroidMarketplace(
             check(allowed) { "插件权限未授予" }
         }
         verifyGrants()
+        if (operation == "workspace.instructions") {
+            check(manifest.apiVersion >= 16 && page == null && background == null)
+            require(arguments.isEmpty()) { "项目规则不接受参数" }
+            val hook = currentCoroutineContext()[ScriptHookInvocation] ?: error("项目规则需要当前上下文 Hook")
+            val service = workspaces ?: error("工作区服务不可用")
+            suspend fun authorize() {
+                currentCoroutineContext().ensureActive()
+                verifyGrants()
+                check(packages[manifest.id]?.manifest == manifest && manager.states.value[manifest.id] == PluginState.ENABLED &&
+                    prefs.getBoolean("enabled.${manifest.id}", false)) { "插件已停用或被替换" }
+                check(hook.input.role?.allows(manifest.id) != false) { "角色未绑定此插件" }
+                hook.input.conversation?.let { conversation ->
+                    check(service.state.value.bindings[conversation.sessionId] == conversation.workspaceId) { "对话工作区已变化" }
+                }
+            }
+            authorize()
+            val conversation = hook.input.conversation
+            val sources = if (conversation == null) emptyList() else service.instructionSources(conversation.workspaceId) { authorize() }
+            authorize()
+            require(sources.size <= 4 && sources.map { it.path }.distinct().size == sources.size)
+            sources.forEach(WorkspaceInstructionSource::validate)
+            return buildJsonObject {
+                put("available", conversation != null)
+                putJsonArray("sources") { sources.forEach { source -> add(buildJsonObject {
+                    put("path", source.path); put("status", source.status.name)
+                    source.text?.let { put("text", it) }; source.sha256?.let { put("sha256", it) }
+                }) } }
+            }
+        }
         if (operation.startsWith("jobs.")) {
             check(manifest.apiVersion >= 9 && page != null && background == null) { "任务管理仅供插件页面使用" }
             val tasks = if (manager.registry.contains(PostTurnTaskServiceKey)) manager.registry.require(PostTurnTaskServiceKey) else null

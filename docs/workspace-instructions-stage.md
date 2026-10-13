@@ -40,3 +40,11 @@ DSH为MIT，当前仅阅读，没有复制实现。Operit锁定版本终端的�
 [只读原语复测38400821619](https://github.com/veryy/Solvit/actions/runs/38400821619)成功，下载/CRC核对实际XML：新WorkspaceInstructionsTest六项0失败/错误/跳过，整个契约报告193项0失败/错误/跳过。源码`6a8b888`的[完整Android38400749477](https://github.com/veryy/Solvit/actions/runs/38400749477)构建/单元/Lint/签名/APK成功，完整模拟器仍在运行。工作尚未合入main或发布新APK，普通Chat Hook仍不能使用此接口。
 
 下一必需落点为API16专用workspace.instructions：仅beforeModel，只接受空参数；通过原生捕获的ContextInput/当前会话绑定读取，不允许脚本选择工作区或路径；实时验证声明、启用状态、workspace授权、角色允许和绑定，读前/读后均验证。只读Hook不因此开放一般workspace.read/write/shell。接实际TS规则renderer和模型请求验证后再做候选完整门禁、包一致性、市场保留旧版本以及新APK；根规则原语不能替代嵌套触达、完整diff、完整任务和真实模型验收。
+
+## API16实际Hook→Agent请求
+
+只读原语候选完整Android38400749477已经全部成功。新增4项实际QuickJS/Marketplace/AndroidWorkspaces/ToolAgentRuntime回归。首轮38403026471四项在夹具服务缺失处失败（Missing or cyclic dependencies），不能当作缺失投影的有效复现；注册真实WorkspaceService后，38404345659成功走到实际Hook，三项读取/请求/撤权前置失败，越权参数和普通workspace.read拒绝用例通过。原断言与Hook预算保留。
+
+实现专用workspace.instructions，API16和beforeModel限定、空参数、workspace声明及实时grant、包/启用状态、角色快照允许与当前绑定双重核验；原生ScriptHookInvocation捕获ContextInput，JS输入不含会话/工作区ID。读取前后与返回前验证，未绑定普通聊天返回available=false且不创建目录。一般文件/Shell桥仍要求原有工具确认。
+
+TS模块负责固定根/同目录local排序、去重、来源及12KiB UTF-8渲染预算、失败/截断标记。其6项测试与SDK契约在38404477632、市场38404477572远程通过。尚未改内置工作区包或线上服务器，不能声称已发布规则功能；下一步同组native复测及实际TS包→Android→请求与原生协议组合。

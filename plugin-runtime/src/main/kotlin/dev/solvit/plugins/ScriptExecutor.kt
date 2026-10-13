@@ -41,13 +41,13 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                 js.asyncFunction("__solvitHostCall") { args ->
                     val operation = args[0] as String
                     check(!background || operation in setOf("storage.get", "storage.set", "storage.compareAndSet", "clock.now", "model.complete")) { "后台 Hook 不允许此操作" }
-                    check(!readOnlyHost || operation in setOf("storage.get", "clock.now")) { "上下文 Hook 只允许读取插件存储和当前时间" }
+                    check(!readOnlyHost || operation in setOf("storage.get", "clock.now", "workspace.instructions")) { "上下文 Hook 不允许此操作" }
                     val arguments = Json.parseToJsonElement(args[1] as String).jsonObject
                     val permission = when (operation) {
                         "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
                         "model.complete" -> "model"
                         "http.request", "web.visit" -> "network"
-                        "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspacePage.query", "workspacePage.perform" -> "workspace"
+                        "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions", "workspacePage.query", "workspacePage.perform" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
                         "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
                         "plugins.draft" -> "plugins"
@@ -55,6 +55,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         else -> error("宿主未开放此操作")
                     }
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
+                    check(operation != "workspace.instructions" || pkg.manifest.apiVersion >= 16 && readOnlyHost) { "项目规则读取仅供 API16 上下文 Hook 使用" }
+                    if (operation == "workspace.instructions") require(arguments.isEmpty()) { "项目规则不接受路径或工作区参数" }
                     check(operation != "clock.now" || pkg.manifest.apiVersion >= 3) { "当前时间服务需要 API 3" }
                     check(!operation.startsWith("workspace.") && !operation.startsWith("plugins.") || pkg.manifest.apiVersion >= 4) { "工作区与插件开发需要 API 4" }
                     check(!operation.startsWith("terminal.") || pkg.manifest.apiVersion >= 5) { "交互终端需要 API 5" }
@@ -128,7 +130,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             query: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspacePage.query', JSON.stringify({operation,arguments:args}))),
                             perform: async () => JSON.parse(await __solvitHostCall('workspacePage.perform', '{}'))
                           }),
-                          workspace: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspace.' + operation, JSON.stringify(args))) }),
+                          workspace: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspace.' + operation, JSON.stringify(args))),
+                            instructions: async () => JSON.parse(await __solvitHostCall('workspace.instructions', '{}')) }),
                           terminal: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('terminal.' + operation, JSON.stringify(args))) }),
                           plugins: Object.freeze({ draft: async args => JSON.parse(await __solvitHostCall('plugins.draft', JSON.stringify(args))) }),
                           clock: Object.freeze({ now: async () => JSON.parse(await __solvitHostCall('clock.now', '{}')) }),
@@ -196,7 +199,9 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
             put("userText", input.userText)
             put("role", roleJson(input.role))
         }
-        val result = invoke("solvitPlugin.beforeModel(JSON.parse(${JsonPrimitive(payload.toString())}), ${contextExpression(input.role)})", true)
+        val result = withContext(ScriptHookInvocation(input)) {
+            invoke("solvitPlugin.beforeModel(JSON.parse(${JsonPrimitive(payload.toString())}), ${contextExpression(input.role)})", true)
+        }
         val value = Json.parseToJsonElement(result)
         require(value is JsonPrimitive && value.isString) { "上下文 Hook 必须返回文本" }
         return value.content
