@@ -181,7 +181,7 @@ class ChatLayoutTest {
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
-    private fun openWorkspace() {
+    private fun openWorkspace(commandJobs: Boolean = true) {
         rule.waitUntil(10_000) { rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty() ||
             rule.onAllNodes(hasText("新建工作区") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
         if (rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
@@ -195,8 +195,10 @@ class ChatLayoutTest {
         // These callers test command jobs, so explicitly select that retained mode.
         // The separate real-PTY test verifies the default remains interactive.
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_terminal_mode").fetchSemanticsNodes().isNotEmpty() }
-        if(rule.onAllNodesWithText("命令任务").fetchSemanticsNodes().isNotEmpty())rule.onNodeWithTag("workspace_terminal_mode").performClick()
-        rule.waitUntil(10_000) { rule.onAllNodesWithTag("shell_command").fetchSemanticsNodes().isNotEmpty() }
+        if(commandJobs) {
+            if(rule.onAllNodesWithText("命令任务").fetchSemanticsNodes().isNotEmpty())rule.onNodeWithTag("workspace_terminal_mode").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("shell_command").fetchSemanticsNodes().isNotEmpty() }
+        }
     }
     private fun seedBranchConversation(app: SolvitApplication): ChatSession = runBlocking {
         val session = SqliteChatStore(app).use { store ->
@@ -979,7 +981,7 @@ class ChatLayoutTest {
         ready()
         val app = rule.activity.application as SolvitApplication
         runBlocking { app.systemExecution.setMode(TERMINAL_OWNER,ExecutionMode.APP) }
-        openWorkspace()
+        openWorkspace(commandJobs=false)
         val page = HtmlPageProbe(rule.activity)
         fun js(code: String) = page.js(code)
         fun waitPage() {
@@ -1000,9 +1002,12 @@ class ChatLayoutTest {
         fun displayed(marker: String) = js("Array.from(document.querySelectorAll('.terminal-container:not([hidden]) .xterm-rows')).some(e=>e.textContent.includes(${kotlinx.serialization.json.JsonPrimitive(marker)}))") == "true"
         try {
             rule.onNodeWithTag("workspace_terminal_mode").assertTextEquals("命令任务");waitPage()
+            val dialogCount = rule.onAllNodes(isDialog()).fetchSemanticsNodes().size
             val before = app.terminals.sessions.value.map { it.id }.toSet()
             js("document.getElementById('open').click()")
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("terminal_page_approval").assertIsDisplayed()
+            assertEquals(dialogCount,rule.onAllNodes(isDialog()).fetchSemanticsNodes().size)
             assertEquals(before, app.terminals.sessions.value.map { it.id }.toSet())
             rule.onNodeWithText("取消").performClick()
             rule.waitUntil(8000) { js("!document.getElementById('open').disabled") == "true" }

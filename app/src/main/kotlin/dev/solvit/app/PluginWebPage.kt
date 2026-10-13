@@ -2,7 +2,10 @@ package dev.solvit.app
 
 import android.annotation.SuppressLint
 import android.webkit.*
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -193,15 +196,25 @@ fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
             release(browser)
         }
     }
-    terminalConfirmation?.let { question ->
-        AlertDialog(onDismissRequest = { question.answer.complete(false) },
-            title = { UiText(question.title) }, text = { UiText(question.detail) },
-            confirmButton = { TextButton(onClick = { question.answer.complete(true) }, modifier = Modifier.testTag("terminal_page_allow")) { UiText("允许") } },
-            dismissButton = { TextButton(onClick = { question.answer.complete(false) }) { UiText("取消") } })
+    Column(modifier.fillMaxSize()) {
+        if (failed) UiText("插件页面加载失败，请关闭后重新打开。", Modifier.weight(1f))
+        else AndroidView(factory = { browser }, modifier = Modifier.fillMaxWidth().weight(1f).testTag("plugin_web_page"), update = {
+            it.setBackgroundColor(colors.surface.toArgb())
+            it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+        })
+        terminalConfirmation?.let { question ->
+            Surface(Modifier.fillMaxWidth().testTag("terminal_page_approval"),
+                color=colors.surfaceContainerHigh,shape=MaterialTheme.shapes.medium) {
+                Column(Modifier.padding(12.dp)) {
+                    UiText(question.title,style=MaterialTheme.typography.titleSmall)
+                    UiText(question.detail,Modifier.heightIn(max=140.dp).verticalScroll(rememberScrollState()),
+                        style=MaterialTheme.typography.bodySmall)
+                    Row {
+                        TextButton(onClick={question.answer.complete(false)},modifier=Modifier.testTag("terminal_page_reject")) { UiText("取消") }
+                        TextButton(onClick={question.answer.complete(true)},modifier=Modifier.testTag("terminal_page_allow")) { UiText("允许") }
+                    }
+                }
+            }
+        }
     }
-    if (failed) UiText("插件页面加载失败，请关闭后重新打开。", modifier)
-    else AndroidView(factory = { browser }, modifier = modifier.fillMaxSize().testTag("plugin_web_page"), update = {
-        it.setBackgroundColor(colors.surface.toArgb())
-        it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
-    })
 }
