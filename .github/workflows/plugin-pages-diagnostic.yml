@@ -6,7 +6,7 @@ on:
         description: Actual page scenario to reproduce
         type: choice
         default: memory-click
-        options: [memory-click, model-settings, model-task, skills-documents, workspace-files, chat-stream]
+        options: [memory-click, model-settings, model-task, skills-documents, workspace-files, chat-stream, chat-branch, terminal-ui]
 permissions:
   contents: read
 jobs:

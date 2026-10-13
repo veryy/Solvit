@@ -29,16 +29,20 @@ fun ChatTimeline(rows: List<ChatRow>, sessionId: String?, modifier: Modifier = M
     LaunchedEffect(rows, sessionId, follow, tail) {
         if (follow && rows.isNotEmpty()) { withFrameNanos { }; list.scrollToItem(tail) }
     }
-    LaunchedEffect(sessionId, follow, tail) {
+    val replyId = rows.lastOrNull { it.user == null }?.id
+    LaunchedEffect(sessionId, follow, tail, replyId) {
+        var previousViewport: Int? = null
+        var previousHeight: Int? = null
         if (follow) snapshotFlow {
             val layout = list.layoutInfo
-            // Rich text can grow after its input row was already observed. Follow
-            // measured content changes as well as viewport/keyboard changes.
-            layout.viewportEndOffset to layout.visibleItemsInfo.lastOrNull()?.let {
-                Triple(it.index, it.offset, it.size)
-            }
-        }.distinctUntilChanged().collect {
-            if (rows.isNotEmpty()) { withFrameNanos { }; list.scrollToItem(tail) }
+            layout.viewportEndOffset to layout.visibleItemsInfo.firstOrNull { it.key == replyId }?.size
+        }.distinctUntilChanged().collect { (viewport, height) ->
+            // Scrolling changes offsets/visible indexes, not reply height. Do not
+            // fight a user's scroll or an accessibility scroll-to-message action.
+            val changed = previousViewport != viewport || (height != null && previousHeight != height)
+            previousViewport = viewport
+            if (height != null) previousHeight = height
+            if (changed && rows.isNotEmpty()) { withFrameNanos { }; list.scrollToItem(tail) }
         }
     }
     LazyColumn(state = list, modifier = modifier.fillMaxWidth().testTag("chat_messages"),
