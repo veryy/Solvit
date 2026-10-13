@@ -963,6 +963,7 @@ class ChatLayoutTest {
             js("document.getElementById('manage').click()")
             assertEquals("true", js("document.getElementById('session-manager').open"))
             rule.waitUntil(8000) { js("Array.from(document.getElementById('running').children).some(e=>e.textContent.includes('test.html-terminal.model'))") == "true" }
+            assertEquals("true", js("(()=>{const bounds=document.getElementById('session-manager').getBoundingClientRect();return Array.from(document.querySelectorAll('#manager-keys button')).every(button=>{const r=button.getBoundingClientRect();return r.width>0 && r.left>=bounds.left && r.right<=bounds.right})})()"))
             page.screenshot("workspace-terminal-session-manager")
             js("document.getElementById('running').value=${kotlinx.serialization.json.JsonPrimitive(model.id)};document.getElementById('attach').click()")
             rule.waitUntil(8000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }

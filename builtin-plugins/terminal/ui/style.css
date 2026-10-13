@@ -12,3 +12,5 @@ body{position:fixed;inset:0;height:auto}*[hidden]{display:none!important}header,
   #compact-interrupt{display:inline-block;font-family:monospace;padding:6px 10px}
   footer{padding:4px 8px}
 }
+
+#manager-keys{flex-wrap:wrap;overflow:visible}
