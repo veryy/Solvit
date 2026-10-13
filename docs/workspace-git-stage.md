@@ -71,3 +71,6 @@ Git HTML/TS页面候选：新增dev.solvit.git 1.0.0/API19，Changes分工作树
 
 
 AI只读Git工具接线候选：继续对照固定DSH deliverables/workspace-changes/tests/git.spec.ts的配置隔离/失败报告、git.ts真实查询，及Operit examples/github/src/local/terminal.ts原生工具边界。新增ctx.git.call(status/diff/history)，Git插件1.1声明三个聊天工具，页面仍使用同一个WorkspaceGitService。宿主校验API19/显式服务/workspace与git双授权、启用且同清单、当前角色允许、ToolInvocationContext与准确批准参数JSON、ConversationContext绑定；禁止页面/Hook/后台借用工具入口。每次调用创建并最终NonCancellable关闭绑定会话，不保留工具会话或向JS传根目录。差异4096字符分块含patchSha256，后续块必须给相同摘要，变化明确拒绝，emoji边界完整；结果16KiB上限明确报错而不截断。此阶段只读，不把页面已支持的暂存/提交误称为AI已支持；后续AI写入仍需原生审阅句柄/独立授权和生命周期设计。新增桥层撤权、隐藏root、未知写操作、变化摘要、完整Unicode分块及关闭回归，SDK准确参数转交，实际AndroidQuickJS工具→权限→真实仓库状态/差异/历史/拒绝/重绑定回归。新的Git包须继续Actions生成后取回；页面23da77e诊断38474471661仍在运行，不以新工具代码取消该UI证据。完整Android候选由最新功能提交替代旧源，正式0.28公开资产保持原样。真实模型工具选择/回答尚未验收，不能把工具链路回归视为模型质量通过。
+
+
+代码审阅补充：复用文件树模块在无tree_meta的页面默认保留旧树；Git浏览器包装明确在Changes/历史/确认视图隐藏并关闭旧文件树，防止宽屏残留过期文件操作入口。新增实际UI从Files返回Changes断言文件树隐藏，并使用移动端物理打开文件树和物理点击选中文件来验证预览，而不只对隐藏DOM程序点击。该行为尚待新源模拟器结果，不能声称旧候选已覆盖切换场景；需远程再生成变化Git包，其他插件仍保持原字节。

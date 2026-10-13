@@ -4,6 +4,9 @@ const update=window.solvitPageUpdate;
 let reviewId=null,nextOffset=0,patch=null;
 window.solvitPageUpdate=state=>{
  update(state);
+ if(!state.view.nodes.some(n=>n.id==='tree_meta')){
+  const tree=document.getElementById('file-tree');tree.hidden=true;tree.classList.remove('open');
+ }
  const items=state.view.nodes,metaNode=items.find(n=>n.id==='git_diff_meta');
  if(!metaNode){reviewId=null;nextOffset=0;patch=null;return}
  const meta=JSON.parse(metaNode.text),chunk=items.find(n=>n.id==='git_patch_chunk')?.text??'';

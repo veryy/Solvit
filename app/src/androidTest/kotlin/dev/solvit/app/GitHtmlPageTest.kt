@@ -124,8 +124,11 @@ class GitHtmlPageTest {
             assertEquals(working, File(root, "a.txt").readText())
             assertEquals("keep local\n", File(root, "z.txt").readText())
             click("git_files"); click("directory")
+            waitDom("!!document.getElementById('tree-toggle') && !document.getElementById('tree-toggle').disabled")
+            html.tapElement("#tree-toggle")
+            waitDom("document.getElementById('file-tree').classList.contains('open')")
             waitDom("!!document.querySelector('[data-open=\"a.txt\"]')")
-            html.js("document.querySelector('[data-open=\"a.txt\"]').click()")
+            html.tapElement("[data-open=\"a.txt\"]")
             waitDom("window.workspaceEditor?.state.doc.toString()==='working after staging 😀\\n'")
             html.screenshot("git-workbench-shared-file-preview")
             val shell = app.workspaces.state.value.shells.first { it.workspaceId == workspace.id }
@@ -135,6 +138,8 @@ class GitHtmlPageTest {
                 assertEquals(ShellStage.COMPLETED, done.stage); assertEquals(0, done.exitCode)
                 assertEquals(working, done.output.joinToString("") { it.text })
             } }
+            click("backToList"); click("git_changes")
+            waitDom("document.getElementById('file-tree').hidden && !!document.querySelector('[data-node=git_files]')")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.git" }.enabled)
         } finally {
             rule.runOnUiThread { visible = false }; rule.waitForIdle()
