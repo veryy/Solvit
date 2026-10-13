@@ -458,6 +458,7 @@ class ChatLayoutTest {
     @Test fun roleAppliedThroughSettingsReachesProviderAndNewChatRequest() {
         ready()
         val app = rule.activity.application as SolvitApplication
+        val previousDefault = runBlocking { app.roles.forNewChat(null) }
         val role = AgentRole("ui-request-" + java.util.UUID.randomUUID(), "星辰请求验证", "专门检查 Kotlin 代码，先说明检查依据。")
         runBlocking { app.roles.save(role) }
         val sessions = MutableStateFlow(listOf(ChatSession("role-chat-" + java.util.UUID.randomUUID(), "Role fixture", 0)))
@@ -571,6 +572,9 @@ class ChatLayoutTest {
             rule.runOnUiThread { vm.stop(); listOf(vm, agents, workspaces, updates, market).forEach { it.viewModelScope.cancel() } }
             runBlocking {
                 sessions.value.forEach { app.roles.select(it.id, null) }
+                val restoreId="restore-default-"+java.util.UUID.randomUUID()
+                app.roles.selectForNewChats(restoreId, previousDefault?.id)
+                app.roles.select(restoreId, null)
                 app.roles.delete(role.id)
             }
         }
@@ -579,6 +583,7 @@ class ChatLayoutTest {
     @Test fun applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist() {
         ready()
         val app = rule.activity.application as SolvitApplication
+        val previousDefault = runBlocking { app.roles.forNewChat(null) }
         val role = AgentRole("ui-role-switch", "UI role switch", "Answer as a Kotlin developer",pluginIds=setOf("dev.solvit.web-search"))
         runBlocking { app.roles.save(role) }
         try {
@@ -603,6 +608,9 @@ class ChatLayoutTest {
                 val store = SqliteChatStore(app)
                 try { store.sessions().first().forEach { if (runCatching { app.roles.selected(it.id)?.id }.getOrNull() == role.id) app.roles.select(it.id,null) } }
                 finally { store.close() }
+                val restoreId="restore-default-"+java.util.UUID.randomUUID()
+                app.roles.selectForNewChats(restoreId, previousDefault?.id)
+                app.roles.select(restoreId, null)
                 app.roles.delete(role.id)
             }
         }
