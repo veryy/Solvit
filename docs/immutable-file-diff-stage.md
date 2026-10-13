@@ -29,3 +29,7 @@ beb49dd的[契约38428975426](https://github.com/veryy/Solvit/actions/runs/38428
 依赖选择为官方kpdecker/jsdiff 9.0.0，BSD-3-Clause，许可完整保存plugin-sdk/licenses/diff.txt。核对官方npm元数据及tarball SHA512完整性，不执行本地npm安装或构建，手工加入准确package-lock条目（该包无运行依赖），远程npm ci核验。TS采用structuredPatch三行上下文、75ms预算；超时明确显示coarse整段删除/添加，长行按1024 UTF-16单位安全拆分，16段一页，不丢弃尾部或终止换行标记。独立回归覆盖2000行尾部编辑、创建/删除/CRLF、4000行明确降级、Unicode/HTML文字与128KiB页面预算；仍待远程验证及插件HTML接入。
 
 0.25.1正式38430642922的build实际368单元0失败/错误/跳过，插件、搜索成功；模拟器门禁失败，release被跳过，未发布。安全探针捕获首次角色发送attempts=0、请求=0，chat_send点击前bounds y1615..1752，点击后y840..977，键盘展开使按钮上移775px；没有执行到发送或Provider。修正测试先等真实IME可见且chat_composer.bottom <= decor.height - IME.bottom，再保持真实物理点击和原8秒回复/角色/新会话断言；不改生产角色请求、不换成语义触发、不增加回复等待来掩盖失败。保留探针，0.25.2独立标签验证修正，不覆盖失败标签。
+
+只读桥接[38431058558](https://github.com/veryy/Solvit/actions/runs/38431058558)报告artifact11830946755、ZIP68876bytes已核对CRC/XML：290测试0失败/错误/跳过，ExecutionChangesPageBridgeTest五项均通过。独立diff计算[38431700792](https://github.com/veryy/Solvit/actions/runs/38431700792)远程98 SDK、2市场通过。TS页141a4e2在38432405884先复现两个类型错误：SDK query联合类型未声明changes/changeContent；5ee97fb补入声明，不以as any绕过。其[38432771825](https://github.com/veryy/Solvit/actions/runs/38432771825)实际日志102 SDK、2市场0失败/跳过，npm ci/typecheck/包一致性/公开搜索检查通过。页面测试包含分块全文尾部编辑、缺失和可重试错误、创建与HTML字面量、256KiB转义长行跨所有分页且每个视图不超过原生128KiB/文本16384单位边界。
+
+TS changesPage与diff模块已提交，但尚未在manifest注册或从聊天打开。下一步新增插件HTML入口与自绘增删行/行号，把jsdiff完整许可纳入插件资源，宿主只打开固定run只读桥接；补真实QuickJS/SQLite重开和模拟器HTML任务证据，再发布完整差异页APK。当前0.25.2的发布范围只有捕获/持久化和角色自动化点击时序修正，不能把纯TS测试称作实际页面或真实Agent验证。
