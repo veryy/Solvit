@@ -11,3 +11,9 @@
 build55，沿用固定APK签名。远程测试、Lint、签名、覆盖安装与APK门禁完成后发布，不替换旧版本附件。页面回归使用真实 Android 文件捕获、SQLite重开、QuickJS和WebView，仍不等同于真实模型任务。
 
 真机、真实模型的角色遵循、流式时延、工具选择及完整工作区任务仍待验收。
+
+## 正式发布证据
+
+[正式标签38446908346](https://github.com/veryy/Solvit/actions/runs/38446908346)五项作业成功；实际XML377单元/51模拟器无失败、错误或跳过，102 SDK/2市场、公开搜索、Lint、固定签名和旧包覆盖升级通过。正式源c94d485；gradlew可执行权限保留。公开APK已实际下载，与Actions11838333983内APK逐字节一致：23,585,653字节，SHA-256 `1771ea7b3ecdbfa742107fc50764be1861fe6d4703efbac640b906968e89d99e`。
+
+[直接下载](https://github.com/veryy/Solvit/releases/download/v0.26.0/solvit-debug.apk) · [构建产物](https://github.com/veryy/Solvit/actions/runs/38446908346/artifacts/11838333983)（需登录GitHub）
