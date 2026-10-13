@@ -8,7 +8,9 @@ data class Workspace(val id: String, val name: String)
 data class WorkspaceFile(val name: String, val path: String, val directory: Boolean, val bytes: Long)
 enum class FileObservationKind { ABSENT, TEXT, BINARY, OVERSIZED, UNAVAILABLE }
 data class FileObservation(val kind: FileObservationKind, val bytes: Long? = null,
-    val sha256: String? = null, val excerpt: String? = null, val excerptTruncated: Boolean = false)
+    val sha256: String? = null, val excerpt: String? = null, val excerptTruncated: Boolean = false,
+    /** Only present on fresh captures; durable journals store it separately from the event payload. */
+    val captureText: String? = null, val captureSha256: String? = null)
 /** Per-write observations, not a whole-project diff or a promise that Shell did not change other files. */
 data class WorkspaceWriteEvidence(val workspaceId: String, val path: String,
     val before: FileObservation, val after: FileObservation, val changed: Boolean?, val verified: Boolean)

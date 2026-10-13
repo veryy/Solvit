@@ -129,6 +129,9 @@ interface ChatStore {
     val supportsExecutionJournal: Boolean get() = false
     fun executionRuns(sessionId: String): Flow<List<ExecutionRun>> = kotlinx.coroutines.flow.flowOf(emptyList())
     suspend fun executionEvents(sessionId: String, runId: String): List<RecordedExecutionEvent> = emptyList()
+    /** Full immutable UTF-8 copy referenced by this exact chat/run/event/path; never a live-file read. */
+    suspend fun executionFileContent(sessionId: String, runId: String, sequence: Int, path: String,
+        authorize: suspend () -> Unit = {}): String? = null
     suspend fun beginExecutionRun(run: ExecutionRun): Boolean = false
     suspend fun appendExecutionEvents(runId: String, expectedSequence: Int, events: List<ExecutionEvent>, now: Long): Boolean = false
     suspend fun finishExecutionRun(runId: String, status: ExecutionStatus, now: Long): Boolean = false
