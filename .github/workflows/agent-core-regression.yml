@@ -1,10 +1,16 @@
 name: Agent core regression
 on:
   workflow_dispatch:
+    inputs:
+      observations:
+        description: Verify installed Agent observation permission boundaries
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
   tool-results:
+    if: inputs.observations != true
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -25,3 +31,28 @@ jobs:
             chat-runtime/build/test-results/test/
             core/build/reports/tests/
             chat-runtime/build/reports/tests/
+  observations:
+    if: inputs.observations == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - uses: gradle/actions/setup-gradle@v4
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
+      - name: Verify actual marketplace enable and live permission revocation
+        run: ./gradlew :plugin-market:testDebugUnitTest --tests dev.solvit.market.AgentMarketplaceTest --stacktrace
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: agent-observation-permission-reports
+          path: |
+            plugin-market/build/test-results/testDebugUnitTest/
+            plugin-market/build/reports/tests/

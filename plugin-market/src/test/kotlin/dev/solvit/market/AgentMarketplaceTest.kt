@@ -14,6 +14,60 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class AgentMarketplaceTest {
+    @Test fun installedObservationStrategyStopsReadingWhenItsGrantIsRevokedDuringModelStep() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val manager = PluginManager(scope = scope)
+        val client = OkHttpClient()
+        val drivers = AgentDriverRegistry(AgentDriver { _, _ -> error("Selected strategy missing") })
+        manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin())
+        manager.load(object : SolvitPlugin {
+            override val id = "host.agent"
+            override val provides = setOf(AgentDriversServiceKey)
+            override suspend fun enable(context: PluginContext) { context.register(AgentDriversServiceKey, drivers) }
+        })
+        try {
+            manager.enableAll()
+            val context = RuntimeEnvironment.getApplication()
+            val config = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { 4 }, "AES") }
+            val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools), config)
+            market.restore()
+            val manifest = """{"id":"test.observer-market","name":"Observer","description":"Test","version":"1.0.0",
+              "apiVersion":15,"permissions":["agent","agent.read"],"dependencies":[],"tools":[],
+              "agentEnabledSetting":"selected","settings":[{"key":"selected","kind":"boolean","label":"Select","defaultValue":"false"}]}"""
+            val source = """globalThis.solvitPlugin={tools:{},agent:async(input,ctx)=>{
+              await ctx.model(0);await ctx.observe();await ctx.finish(0);
+            }};"""
+            val payload = buildJsonObject { put("manifest", Json.parseToJsonElement(manifest)); put("source", source) }.toString().toByteArray()
+            market.installLocal(payload)
+            assertFailsWith<IllegalStateException> { market.enable("test.observer-market", setOf("agent")) }
+            market.configure("test.observer-market", mapOf("selected" to "true"))
+            market.enable("test.observer-market", setOf("agent", "agent.read"))
+            var reads = 0
+            var revokeOnModel = false
+            val host = object : AgentStepHost {
+                override suspend fun command(operation: String, index: Int): Int {
+                    if (operation == "model" && revokeOnModel) {
+                        check(context.getSharedPreferences("extension_permissions", 0).edit()
+                            .putStringSet("grants.test.observer-market", setOf("agent")).commit())
+                    }
+                    return 0
+                }
+                override suspend fun observe(): AgentObservation {
+                    reads++
+                    return AgentObservation(1, 0, "MODEL_READY", AgentText.of("private request", 100), null,
+                        AgentText.of("reply", 100), AgentText.of("", 1), emptyList())
+                }
+            }
+            drivers.run(8, host)
+            assertEquals(1, reads)
+            reads = 0; revokeOnModel = true
+            assertFailsWith<Exception> { drivers.run(8, host) }
+            assertEquals(0, reads, "Revoked strategy must not read native chat facts")
+        } finally {
+            manager.shutdown(); scope.cancel()
+            client.connectionPool.evictAll(); client.dispatcher.executorService.shutdown()
+        }
+    }
     @Test fun remoteBuiltTsPackageRequiresGrantsAndHumanConfigurationAndCannotSelectItselfFromPage() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val manager = PluginManager(scope = scope)
