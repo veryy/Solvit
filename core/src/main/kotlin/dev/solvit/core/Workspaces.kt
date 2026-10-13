@@ -63,6 +63,9 @@ interface WorkspaceService {
     suspend fun writeForEdit(workspaceId: String, path: String, text: String, expectedSha256: String?): WorkspaceWriteEvidence {
         error("安全文本编辑服务不可用")
     }
+    /** Commit one complete UTF-8 document, up to the preview limit, against its opened version. */
+    suspend fun writeTextForEdit(workspaceId: String, path: String, text: String,
+        expectedSha256: String?): WorkspaceWriteEvidence { error("完整文本编辑服务不可用") }
     suspend fun write(workspaceId: String, path: String, text: String)
     suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence {
         write(workspaceId,path,text)
