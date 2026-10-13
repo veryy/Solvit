@@ -11,3 +11,7 @@
 两个原生默认角色回归已在38442536815及38442609560复现失败（RoleServiceTest line38/51；75项中2失败），与既有每会话角色继承回归不是同一问题。原子持久默认选择已加入，旧安装无默认时继承源会话，删除默认继续阻断。FIFO测试在这些执行中尚未运行，不能声称已复现所有队列断言。VM队列原型新增唯一ID/会话归属、编辑删除、正常完成后FIFO、Stop保留并暂停、cancelAndJoin后优先发送；当前队列在VM生命周期内，进程死亡后的持久恢复仍须补齐/明确，不能称DSH完整durable Inbox。追加中断非取消清理等待及重复文本/跨会话回归。
 
 进一步读取Operit services/core/ChatHistoryDelegate.kt createNewChat（775起）：取全局ActivePrompt角色并在创建时绑定名称，采用其明确默认与会话绑定一致的语义；DSH ui-approval/ApprovalPanel.tsx及tests/ui-approval.client.spec.tsx采用输入区内联等待卡、详细参数及一次性应答/失败可重试，不复制原生React实现。
+
+终端用户报告进一步定位：WorkspaceDialog.interactive默认false，首屏显示LazyColumn命令任务+TextField，并非真正终端；现默认true进入已有插件xterm.js+addon-fit+Android PTY。保留明确“命令任务”切换，已有真实Android页面回归改为直接验证默认终端入口，其DOM input→xterm.onData→PTY、环境持久、输出、Ctrl-C等原断言不删。官方https://github.com/xtermjs/xterm.js/blob/master/README.md说明其输入输出需接真实PTY；https://github.com/termux/termux-app/blob/master/terminal-view/src/main/java/com/termux/view/TerminalView.java提供原生备选。本次不再引入第二套同用途组件，仍须实际远程默认入口验证。
+
+追加用户要求：设置加入“聊天外观”界面配置，持久字体大小、回复显示速度与聊天样式，参考Operit设置组件。显示速度只调呈现队列，接收/解析继续独立；保留停止及生成期间继续输入。尚未实现与发布，不以默认角色/队列的修改代替此要求。

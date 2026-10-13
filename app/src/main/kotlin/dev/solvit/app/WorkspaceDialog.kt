@@ -38,7 +38,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     var name by remember { mutableStateOf("") }
     var shellId by rememberSaveable(id) { mutableStateOf<String?>(null) }
     var command by rememberSaveable(id, shellId) { mutableStateOf("") }
-    var interactive by rememberSaveable(id) { mutableStateOf(false) }
+    var interactive by rememberSaveable(id) { mutableStateOf(true) }
     val shells = state.shells.filter { it.workspaceId == id }
     val activeShell = shellId ?: shells.firstOrNull()?.id
     FullScreenPage(onDismissRequest = onDismiss) {
@@ -60,7 +60,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                     TextButton(onClick = { chooser = true }, enabled = !busy, modifier = Modifier.weight(1f)) {
                         Text(state.workspaces.firstOrNull { it.id == id }?.name ?: uiString("打开工作区…"))
                     }
-                    if (tab == 0) TextButton(onClick = { interactive = !interactive }) { UiText(if (interactive) "普通命令" else "交互终端") }
+                    if (tab == 0) TextButton(onClick = { interactive = !interactive }, modifier=Modifier.testTag("workspace_terminal_mode")) { UiText(if (interactive) "命令任务" else "交互终端") }
                 }
                 TabRow(selectedTabIndex = tab) {
                     Tab(selected = tab == 0, onClick = { tab = 0 }, text = { UiText("Shell") })

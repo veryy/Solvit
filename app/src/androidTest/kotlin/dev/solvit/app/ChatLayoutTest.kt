@@ -987,7 +987,7 @@ class ChatLayoutTest {
         }
         fun displayed(marker: String) = js("Array.from(document.querySelectorAll('.terminal-container:not([hidden]) .xterm-rows')).some(e=>e.textContent.includes(${kotlinx.serialization.json.JsonPrimitive(marker)}))") == "true"
         try {
-            rule.onNodeWithText("交互终端").performClick();waitPage()
+            rule.onNodeWithTag("workspace_terminal_mode").assertTextEquals("命令任务");waitPage()
             val before = app.terminals.sessions.value.map { it.id }.toSet()
             js("document.getElementById('open').click()")
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
