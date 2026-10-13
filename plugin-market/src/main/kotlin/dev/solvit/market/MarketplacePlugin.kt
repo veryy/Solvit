@@ -525,7 +525,7 @@ class AndroidMarketplace(
                     val cancellationRequest = outgoing.newBuilder().post(body.toRequestBody("application/json; charset=utf-8".toMediaType())).build()
                     suspend {
                         if ("network" in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty())
-                            client.newCall(cancellationRequest).await().use { }
+                            client.newCall(cancellationRequest).readResponse { }
                     }
                 }
                 val timeout = arguments["timeoutMs"]?.jsonPrimitive?.long
