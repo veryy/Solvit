@@ -25,10 +25,17 @@ const strings={
 const labels=()=>strings[state?.locale?.split(/[-_]/)[0]]??strings.en;
 const nodes=()=>{const result=[];const walk=n=>{result.push(n);(n.children??[]).forEach(walk)};[...state.view.nodes,...state.view.footer??[]].forEach(walk);return result};
 const busy=()=>!!state?.busy||pending!==null;
+function syncEditorMode() {
+ if(!editor)return;
+ const allowed=editable&&meta?.phase==='ready'&&!busy();
+ if(editor.state.facet(EditorState.readOnly)===allowed)
+  editor.dispatch({effects:editMode.reconfigure([EditorState.readOnly.of(!allowed),EditorView.editable.of(allowed)])});
+}
 function send(id,fields={}) {
  if(busy())return;
  const node=nodes().find(n=>n.id===id);if(!node||node.enabled===false)return;
  pending=state.token;pendingBusy=false;
+ syncEditorMode();
  footer.querySelectorAll('button').forEach(b=>b.disabled=true);
  solvitHost.postMessage(JSON.stringify({type:'event',token:state.token,nodeId:id,fields}));
 }
@@ -75,7 +82,7 @@ window.solvitPageUpdate=next=>{
  if(renderedToken===next.token){
   footer.querySelectorAll('button').forEach(b=>b.disabled=busy()||nodes().find(n=>n.id===b.dataset.node)?.enabled===false);
   const toggle=document.getElementById('toggle-edit');if(toggle)toggle.disabled=busy();
-  status();if(!next.busy&&pending===null)queueMicrotask(nextTransfer);return;
+  syncEditorMode();status();if(!next.busy&&pending===null)queueMicrotask(nextTransfer);return;
  }
  renderedToken=next.token;
  const items=nodes(),info=items.find(n=>n.id==='document_meta');
@@ -103,7 +110,7 @@ window.solvitPageUpdate=next=>{
    toggle.textContent=editable?labels()[0]:labels()[1];status();if(editable)editor.focus();
   };toolbar.append(toggle);
  }
- root.append(toolbar);if(editor)root.append(holder);status();
+ root.append(toolbar);if(editor)root.append(holder);syncEditorMode();status();
  const save=footer.querySelector('[data-node="prepareSave"]');
  if(save){save.textContent=labels()[6];save.disabled=busy()||meta.phase!=='ready';save.onclick=()=>{
   if(!editor||busy())return;
