@@ -910,8 +910,17 @@ class ChatLayoutTest {
             val raw = kotlinx.serialization.json.JsonPrimitive("printf '__RAW_%s__\\n' KEYS\n").toString()
             js("document.querySelector('.terminal-container:not([hidden]) .xterm-helper-textarea').dispatchEvent(new InputEvent('input',{data:$raw,inputType:'insertText',bubbles:true}))")
             rule.waitUntil(8000) { displayed("__RAW_KEYS__") }
-            command("sleep 30")
+            // Wait for the foreground child itself, not just a queued PTY write.
+            // An early Ctrl-C can interrupt the previous prompt before sleep starts.
+            command("sh -c 'printf \"__SLEEP_%s__\\n\" STARTED; exec sleep 30'")
+            rule.waitUntil(8000) { displayed("__SLEEP_STARTED__") }
             js("document.querySelector('[data-key]').click()")
+            // Ctrl-C flushes pending terminal input: don't enqueue the next line
+            // until the shell has returned from the foreground job.
+            rule.waitUntil(8000) {
+                app.terminals.sessions.value.any { it.active &&
+                    it.output.substringAfterLast("__SLEEP_STARTED__", "").contains("\$ ") }
+            }
             command("printf '__INTERRUPT_%s__\\n' OK")
             rule.waitUntil(8000) { displayed("__INTERRUPT_OK__") }
             js("document.getElementById('add').click();document.getElementById('shell-name').value='Second HTML Shell';document.getElementById('new-shell').close('create')")
