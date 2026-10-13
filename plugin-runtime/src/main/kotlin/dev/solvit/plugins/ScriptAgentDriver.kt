@@ -7,7 +7,7 @@ import kotlinx.coroutines.*
 
 /** Dedicated engine per turn; async host work is explicitly parented to that turn. */
 class ScriptAgentDriver(private val source: String) : AgentDriver {
-    override suspend fun run(maxRounds: Int, host: AgentStepHost) = coroutineScope {
+    override suspend fun run(maxRounds: Int, host: AgentStepHost): Unit = coroutineScope {
         val parent = currentCoroutineContext()
         val js = QuickJs.create(Dispatchers.IO)
         var hostFailure: Throwable? = null
@@ -29,6 +29,7 @@ class ScriptAgentDriver(private val source: String) : AgentDriver {
             js.evaluate<Any?>(source)
             js.evaluate<Any?>("await solvitAgent.run($maxRounds)")
             hostFailure?.let { throw it }
+            Unit
         } catch (failure: Throwable) {
             currentCoroutineContext().ensureActive()
             throw hostFailure ?: ModelException("JS Agent 执行失败")
