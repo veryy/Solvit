@@ -68,7 +68,7 @@ class ScriptPageSession(
             render(null)
         } catch (e: Throwable) {
             closed = true
-            withContext(NonCancellable) { executor.stop() }
+            withContext(NonCancellable) { try { executor.stop() } finally { workspace?.close(); workspace=null } }
             throw e
         }
     }
@@ -115,7 +115,11 @@ class ScriptPageSession(
         // Interrupt work before waiting for the page mutex; repeat after a racing start.
         withContext(NonCancellable) {
             executor.stop()
-            mutex.withLock { executor.stop(); view = null; documents = null; workspace = null; terminal = null }
+            mutex.withLock {
+                try { executor.stop() } finally {
+                    try { workspace?.close() } finally { view = null; documents = null; workspace = null; terminal = null }
+                }
+            }
         }
     }
 }

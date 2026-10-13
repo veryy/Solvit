@@ -14,7 +14,12 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     init { require(chatId.isNotBlank() && chatId.length <= 128) }
     private val mutex = Mutex()
     private var binding = service.state.value.bindings[chatId]
+    private var closed = false
+    private data class TextDraft(val id:String,val path:String,val expectedSha256:String?,val total:Int,
+        val text:StringBuilder=StringBuilder(),var bytes:Int=0,var sha256:String?=null)
+    private var textDraft:TextDraft?=null
     private suspend fun verify(authorize: suspend () -> Unit) {
+        check(!closed) { "工作区页面已关闭。" }
         authorize()
         check(activeChat() == chatId && service.state.value.bindings[chatId] == binding) { "对话或工作区已变化，请重新打开页面。" }
     }
@@ -67,6 +72,53 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                         put("total",chunk.total);put("sha256",chunk.sha256)
                     } }
                 }
+                "editBegin" -> {
+                    require(args.keys==setOf("path","expectedSha256","total"))
+                    val path=text("path")
+                    require(path.isNotBlank() && '\\' !in path && '\u0000' !in path &&
+                        path.split('/').none { it.isEmpty() || it=="." || it==".." })
+                    val total=args.getValue("total").jsonPrimitive.also { require(!it.isString) }.int
+                    require(total in 0..MAX_FILE_CAPTURE_BYTES)
+                    val expected=args.getValue("expectedSha256").let { value ->
+                        if(value==JsonNull)null else value.jsonPrimitive.also {
+                            require(it.isString && it.content.matches(Regex("[a-f0-9]{64}")))
+                        }.content
+                    }
+                    workspace()
+                    if(expected!=null)service.readTextChunk(workspace(),path,0,expected)
+                    TextDraft(java.util.UUID.randomUUID().toString(),path,expected,total).also { textDraft=it }
+                        .let { buildJsonObject { put("draftId",it.id);put("offset",0) } }
+                }
+                "editAppend" -> {
+                    require(args.keys==setOf("draftId","offset","text"))
+                    val draft=checkNotNull(textDraft).also { check(it.id==text("draftId") && it.sha256==null) }
+                    val offset=args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int
+                    val chunk=args.getValue("text").jsonPrimitive.also { require(it.isString) }.content
+                    require(offset==draft.text.length && chunk.isNotEmpty() && chunk.length<=4096 &&
+                        draft.text.length+chunk.length<=draft.total && '\u0000' !in chunk)
+                    val encoded=Charsets.UTF_8.newEncoder()
+                        .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                        .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+                        .encode(java.nio.CharBuffer.wrap(chunk))
+                    require(draft.bytes+encoded.remaining()<=MAX_FILE_CAPTURE_BYTES)
+                    draft.bytes+=encoded.remaining();draft.text.append(chunk)
+                    buildJsonObject { put("draftId",draft.id);put("offset",draft.text.length) }
+                }
+                "editFinish" -> {
+                    require(args.keys==setOf("draftId"))
+                    val draft=checkNotNull(textDraft).also { check(it.id==text("draftId") && it.text.length==it.total) }
+                    if(draft.sha256==null)draft.sha256=java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(draft.text.toString().toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
+                    buildJsonObject {
+                        put("draftId",draft.id);put("path",draft.path);put("sha256",checkNotNull(draft.sha256))
+                        put("expectedSha256",draft.expectedSha256?.let(::JsonPrimitive)?:JsonNull)
+                        put("bytes",draft.bytes)
+                    }
+                }
+                "editDiscard" -> {
+                    require(args.keys==setOf("draftId"));check(textDraft?.id==text("draftId"))
+                    textDraft=null;buildJsonObject { put("discarded",true) }
+                }
                 "drafts" -> {
                     require(args.isEmpty())
                     buildJsonArray { drafts?.drafts?.value.orEmpty().filter { it.workspaceId == workspace() }.takeLast(40).reversed().forEach { d -> add(buildJsonObject {
@@ -107,6 +159,13 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                 "unbind" -> { service.unbind(chatId); nextBinding = null }
                 "createShell" -> service.createShell(workspace(), text("name"))
                 "write" -> service.writeForEdit(workspace(), text("path"), text("text"), args.getValue("expectedSha256").let { if (it == JsonNull) null else it.jsonPrimitive.content })
+                "writeDraft" -> {
+                    val draft=checkNotNull(textDraft)
+                    check(draft.id==text("draftId") && draft.path==text("path") && draft.sha256==text("sha256") &&
+                        draft.sha256!=null && draft.text.length==draft.total) { "保存草稿已变化，请重新准备保存。" }
+                    service.writeTextForEdit(workspace(),draft.path,draft.text.toString(),draft.expectedSha256)
+                    textDraft=null
+                }
                 "installDraft" -> {
                     check(canInstallDrafts) { "此页面未获插件草稿安装授权" }
                     val d = checkNotNull(drafts).drafts.value.first { it.id == text("id") && it.workspaceId == workspace() && it.sha256 == text("sha256") }
@@ -119,4 +178,5 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         verify(authorize)
         snapshot().toString()
     }
+    override suspend fun close() = mutex.withLock { closed=true;textDraft=null }
 }

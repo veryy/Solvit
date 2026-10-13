@@ -7,6 +7,8 @@ import kotlin.coroutines.CoroutineContext
 interface PageWorkspaceAccess {
     suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit): String
     suspend fun perform(control: PageWorkspaceControl, authorize: suspend () -> Unit): String
+    /** Drop page-owned staging when the page closes; it must not outlive its capability. */
+    suspend fun close() { }
 }
 
 data class PageWorkspaceControl(val operation: String, val argumentsJson: String)

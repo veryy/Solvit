@@ -28,6 +28,11 @@ object ScriptPageHostAction {
                 setOf("path", "text", "expectedSha256")
             }
             "installDraft" -> { text("id", 128); require(text("sha256", 64).matches(Regex("[a-f0-9]{64}"))); setOf("id", "sha256") }
+            "writeDraft" -> {
+                text("draftId",128);text("path",1024)
+                require(text("sha256",64).matches(Regex("[a-f0-9]{64}")))
+                setOf("draftId","path","sha256")
+            }
             else -> error("Unsupported workspace page control")
         }
         require(args.keys == keys)

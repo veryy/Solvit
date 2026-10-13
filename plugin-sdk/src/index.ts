@@ -19,7 +19,7 @@ export interface WorkspaceInstructionSource {
 export interface WorkspaceInstructions {readonly available:boolean;readonly sources:readonly WorkspaceInstructionSource[]}
 export interface PluginContext {
   /** API12, human page only. The host captures the chat; scripts cannot supply a chat/workspace id to file queries. */
-  readonly workspacePage?: {query(operation:'snapshot'|'list'|'read'|'readChunk'|'drafts'|'draft'|'changes'|'changeContent',args?:JsonObject):Promise<JsonValue>;
+  readonly workspacePage?: {query(operation:'snapshot'|'list'|'read'|'readChunk'|'editBegin'|'editAppend'|'editFinish'|'editDiscard'|'drafts'|'draft'|'changes'|'changeContent',args?:JsonObject):Promise<JsonValue>;
     perform():Promise<JsonValue>};
   /** API11, page-only. One confirmed displayed control; system picker owns URI access. */
   readonly documents?: {
