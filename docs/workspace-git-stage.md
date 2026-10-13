@@ -19,3 +19,6 @@ Android基础系统不保证git可执行文件存在；不能仅给Shell拼接gi
 
 
 读取JGit同一固定版本DiffCommand.java与DiffCommandTest.java的HEAD/DirCacheIterator/FileTreeIterator及过滤语义后，增加原生diff(path,staged)：真实HEAD→index或index→worktree，字面文件名过滤、首次提交无HEAD采用空树、二进制阈值256KiB、输出超限明确失败。返回HEAD与索引SHA及未暂存文件SHA，读取前后版本变化拒绝返回混合差异；禁止.git路径、跨目录、目录及符号链接读取。版本摘要最多8MiB，超限明确失败。实际Android用例增加暂存/未暂存内容严格不同、读取不改索引或工作文件、外部路径/元数据/链接拒绝。当前原生服务仍未接插件UI/AI，远程结果待确认；暂存/提交与远程GitHub范围保持。
+
+
+继续读取同版本AddCommand.java/Test、ResetCommand.java/Test及CommitCommand.java/Test：字面单路径暂存，reset -- path只恢复索引不改工作文件，commit默认只提交索引；setNoVerify只绕过pre-commit/commit-msg，post-commit仍调用，因此宿主FS明确返回hook不存在并拒绝runInShell，不能仅靠noVerify声称不执行hooks。新增stage/unstage/commit：独立写授权默认拒绝、审阅的HEAD/index/工作文件摘要在授权前后复核、取消暂存不改工作文件、提交不隐式暂存/不amend/不签名/不允许空提交，未完成合并状态拒绝。拒绝自动过滤器配置；该阶段不支持LFS过滤器。实际Android新增未授权不改索引、外部变更拒绝、只暂存单文件、取消暂存保留文件、旧审阅拒绝、提交仅索引且保留其他未暂存内容、三种恶意hooks不执行、删除暂存/取消暂存回归。源码及时提交，远程验证待结果；页面/AI路由与远程GitHub仍待接入。

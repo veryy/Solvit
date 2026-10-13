@@ -30,6 +30,7 @@ class BoundWorkspaceGit(
     private val workspaces: WorkspaceService,
     private val chatId: String,
     private val activeChat: () -> String?,
+    private val authorizeWrite: suspend () -> Unit = { error("Git写入尚未授权") },
     private val authorize: suspend () -> Unit,
 ) {
     private val binding = checkNotNull(workspaces.state.value.bindings[chatId]) { "此对话尚未绑定工作区" }
@@ -50,7 +51,7 @@ class BoundWorkspaceGit(
             "对话或工作区已变化，请重新打开Git页面"
         }
     }
-    private suspend fun <T> read(block: (Git) -> T): T = withContext(Dispatchers.IO) {
+    private suspend fun <T> access(block: suspend (Git) -> T): T = withContext(Dispatchers.IO) {
         mutex.withLock {
             verify()
             val root = withContext(WorkspacePageAuthority { target, session ->
@@ -61,9 +62,9 @@ class BoundWorkspaceGit(
             validateRepository(root)
             verify()
             val result = FileRepositoryBuilder().setWorkTree(root).setGitDir(File(root, ".git"))
-                .setMustExist(true).build().use { repository ->
+                .setFS(WorkspaceGitFileSystem()).setMustExist(true).build().use { repository ->
                     check(repository.workTree.canonicalFile == root && !repository.isBare)
-                    Git(repository).use(block)
+                    Git(repository).use { git -> block(git) }
                 }
             verify() // Permission revocation or rebinding must also prevent returning already-read data.
             result
@@ -89,8 +90,8 @@ class BoundWorkspaceGit(
         val file = File(metadata, "config")
         check(file.length() <= 64 * 1024) { "Git配置过大" }
         val config = Config().apply { fromText(file.readText(Charsets.UTF_8)) }
-        check(config.sections.none { it.equals("include", true) || it.equals("includeIf", true) }) {
-            "Git配置不能读取外部配置文件"
+        check(config.sections.none { it.equals("include", true) || it.equals("includeIf", true) || it.equals("filter", true) }) {
+            "Git配置不能读取外部配置或自动执行过滤器"
         }
         check(config.getString("core", null, "worktree") == null &&
             !config.getBoolean("core", null, "bare", false) &&
@@ -98,7 +99,7 @@ class BoundWorkspaceGit(
     }
     suspend fun status(offset: Int = 0, limit: Int = 100): Status {
         require(offset in 0..100_000 && limit in 1..100)
-        return read { git ->
+        return access { git ->
             val status = git.status().call()
             val paths = (status.added + status.changed + status.removed + status.modified +
                 status.missing + status.untracked + status.conflicting).sorted()
@@ -141,7 +142,7 @@ class BoundWorkspaceGit(
         digest(File(git.repository.directory, "index")))
 
     /** Read a real HEAD/index or index/worktree patch without changing either tree. */
-    suspend fun diff(path: String, staged: Boolean): Diff = read { git ->
+    suspend fun diff(path: String, staged: Boolean): Diff = access { git ->
         val file = checkedPath(git.repository.workTree.canonicalFile, path)
         val before = revision(git)
         val workingBefore = if (staged) null else digest(file)
@@ -180,12 +181,55 @@ class BoundWorkspaceGit(
 
     suspend fun history(limit: Int = 30): List<Commit> {
         require(limit in 1..100)
-        return read { git ->
+        return access { git ->
             if (git.repository.resolve(Constants.HEAD) == null) emptyList()
             else git.log().setMaxCount(limit).call().map { commit ->
                 Commit(commit.name, commit.fullMessage.take(16_384), commit.authorIdent.name.take(256), commit.commitTime)
             }
         }
+    }
+    private suspend fun verifyWrite() {
+        verify()
+        authorizeWrite()
+        verify()
+    }
+    /** Stage the exact reviewed file version; does not stage unrelated paths. */
+    suspend fun stage(review: Diff): Revision = access { git ->
+        require(!review.staged) { "请先审阅工作树差异" }
+        val file = checkedPath(git.repository.workTree.canonicalFile, review.path)
+        check(revision(git) == review.revision && digest(file) == review.workingSha256) {
+            "文件或暂存区已变化，请重新审阅后暂存"
+        }
+        verifyWrite()
+        check(revision(git) == review.revision && digest(file) == review.workingSha256) {
+            "文件或暂存区在授权期间变化，请刷新"
+        }
+        git.add().addFilepattern(review.path).call()
+        revision(git)
+    }
+    /** Reset just the selected index entry to HEAD, preserving the current working file. */
+    suspend fun unstage(path: String, expected: Revision): Revision = access { git ->
+        checkedPath(git.repository.workTree.canonicalFile, path)
+        check(revision(git) == expected) { "暂存区已变化，请重新审阅" }
+        verifyWrite()
+        check(revision(git) == expected) { "暂存区在授权期间变化，请刷新" }
+        git.reset().addPath(path).call()
+        revision(git)
+    }
+    /** Commit only the reviewed index; never implicitly stage or amend worktree files. */
+    suspend fun commit(expected: Revision, message: String, author: String, email: String): Commit = access { git ->
+        require(message.isNotBlank() && message.length <= 4096 && '\u0000' !in message)
+        require(author.isNotBlank() && author.length <= 80 && author.none(Char::isISOControl))
+        require(email.length <= 254 && email.matches(Regex("[^\\s<>@]+@[^\\s<>@]+")))
+        check(git.repository.repositoryState == org.eclipse.jgit.lib.RepositoryState.SAFE) {
+            "仓库存在未完成的合并或其他操作，请先处理"
+        }
+        check(revision(git) == expected) { "HEAD或暂存区已变化，请重新审阅" }
+        verifyWrite()
+        check(revision(git) == expected) { "HEAD或暂存区在授权期间变化，请刷新" }
+        val result = git.commit().setMessage(message).setAuthor(author, email).setCommitter(author, email)
+            .setSign(false).setNoVerify(true).setAllowEmpty(false).call()
+        Commit(result.name, result.fullMessage, result.authorIdent.name, result.commitTime)
     }
     suspend fun close() = mutex.withLock { closed = true }
 }
