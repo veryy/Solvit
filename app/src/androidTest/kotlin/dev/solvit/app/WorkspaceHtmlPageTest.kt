@@ -146,12 +146,6 @@ class WorkspaceHtmlPageTest {
             waitDom("!document.getElementById('file-tree').classList.contains('open')")
             html.screenshot("workspace-html-tree-selected-document")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.workspace" }.enabled)
-        } catch(error:Throwable) {
-            runCatching {
-                println("WORKSPACE_EDITOR_STATE="+html.js("JSON.stringify({editor:!!window.workspaceEditor,tail:window.workspaceEditor?.state.doc.toString().slice(-30),status:document.getElementById('editor-status')?.textContent,contentEditable:document.querySelector('.cm-content')?.contentEditable,active:document.activeElement?.className,height:innerHeight})"))
-                html.screenshot("workspace-html-editor-failure")
-            }
-            throw error
         } finally {
             rule.runOnUiThread { visible = false }
             runBlocking { app.workspaces.unbind(chat) }
