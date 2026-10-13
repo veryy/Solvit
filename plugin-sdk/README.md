@@ -140,3 +140,8 @@ SDK构建任务同时生成 `market-server/packages/example.agent.solvit.json`�
 beforeModel内可调用`ctx.workspace.instructions()`，需要apiVersion:16、workspace声明/授权和角色绑定。宿主捕获当前聊天，只返回绑定目录根AGENTS.md、CLAUDE.md、AGENTS.local.md、CLAUDE.local.md；接口无参数、禁止其他路径和工作区选择。未绑定时available=false。每源最多16KiB严格UTF-8，sources含状态、正文与SHA；不能从工具、页面或生命周期调用。
 
 内置workspace1.2.0由TS整理来源、去重、local优先及12KiB UTF-8预算；projectRules=false可关自动投影。更新和删除每步重读，资料不改变角色身份、系统规则或工具授权。宿主读前/读后核验授权和绑定，取消传播；旧API1–15目录继续使用原包。实际契约、请求回归和未完成范围见[阶段记录](../docs/workspace-instructions-stage.md)。
+
+
+### API19 Git 页面（开发候选）
+
+清单声明 `permissions: ["workspace", "git"]` 和 `nativeServices: ["workspace.git"]`。页面可调用 `ctx.gitPage.query("status", {offset: 0, limit: 10})`、`diff`、`diffChunk`、`history` 和 `reviewCommit`。差异/暂存区审阅返回宿主句柄，JS不传根目录、patch或Git版本对象。`ctx.gitPage.perform()` 无参数，仅消费当前用户确认的 `git.perform` 按钮；支持 initialize、stage/unstage 的 reviewId 和 commit 的 revisionId/message/author/email。关闭页面收回句柄及绑定接口，旧宿主拒绝API19。此协议尚未在公开0.28 APK中提供，Git页面及工具接线仍在开发。

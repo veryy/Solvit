@@ -9,12 +9,24 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Carries live page authority all the way to the actual native storage write lock. */
 class ScriptPageExecutionContext(val pluginId: String, private val verify: suspend () -> Unit,
     private val approvedAction: JsonObject? = null, private val documents: PageDocumentAccess? = null,
-    private val workspace: PageWorkspaceAccess? = null) :
+    private val workspace: PageWorkspaceAccess? = null, private val git: PageGitAccess? = null) :
     AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<ScriptPageExecutionContext>
     private val consumed = AtomicBoolean(false)
     val documentInvocation: Boolean get() = approvedAction?.get("kind")?.toString()?.trim('"')?.startsWith("document.") == true
     suspend fun ensureAuthorized() = verify()
+    suspend fun queryGit(operation: String, args: JsonObject): String {
+        ensureAuthorized()
+        return checkNotNull(git) { "此页面没有Git授权" }.query(operation, args.toString(), ::ensureAuthorized)
+            .also { ensureAuthorized() }
+    }
+    suspend fun performGit(): String {
+        ensureAuthorized()
+        val control = ScriptPageHostAction.git(checkNotNull(approvedAction))
+        check(consumed.compareAndSet(false, true)) { "Native page control already consumed" }
+        return checkNotNull(git) { "此页面没有Git授权" }.perform(control, ::ensureAuthorized)
+            .also { ensureAuthorized() }
+    }
     suspend fun queryWorkspace(operation: String, args: JsonObject): String {
         ensureAuthorized()
         return checkNotNull(workspace) { "此页面没有聊天工作区授权" }.query(operation, args.toString(), ::ensureAuthorized)

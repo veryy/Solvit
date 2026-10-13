@@ -48,3 +48,6 @@ App候选改为0.29.0/code58以区别不可变公开0.28.0，加入git-android�
 
 
 共享服务生命周期9940b38/38471186426两台Android模拟器均成功。取回API26 11852100940（20,121字节）与API35 11852076005（20,144字节），CRC及实际JUnit XML每台6项，0失败/错误/跳过；新增WorkspaceGitPluginTest确实执行，覆盖依赖注册、未授权初始化不建仓、读授权撤回、真实选中文件提交、旧会话关闭、停用后旧服务/会话失效、重新启用保留相同文件和历史、shutdown回收。该结果不包含7fef272页面桥或最终App接线；最新原生38471812126与Android38471812458仍进行中，不能把旧服务结果替代新候选门禁。
+
+
+API19运行时/SDK候选：参考固定DSH client/ui-workspace/src/index.ts中业务页属于独立UI插件，以及workspace-browser.client.spec.tsx新增祖先/子目录保留会话的场景；Android沿用宿主捕获对话/目录，Git服务与JS页独立注册。清单解析与TS构建器接受API19，新增git权限及workspace.git服务（还须workspace权限），ScriptToolPlugin明确注入类型服务而非Shell依赖。ctx.gitPage提供只读query和无参数perform，后者只消费当前已显示且确认的git.perform控件；参数不接受JS隐藏命令，生命周期/Hook/后台不能调用。宿主页面会话拥有PageGitAccess，失败打开/关闭收回接口；通用Marketplace页面转交接口。新增实际QuickJS完整查询、确认、旧视图/双调用/隐藏参数拒绝及关闭回归，SDK真正打包API19页面并核对查询参数、拒绝API18/缺权限/未知服务。当前市场请求仍API18、旧包未改；App页面工厂与Git插件HTML/JS、API19线上目录及AI调用尚未完成，不能把协议候选当作公开功能。远程验证待结果，全部构建和测试继续在Actions执行。

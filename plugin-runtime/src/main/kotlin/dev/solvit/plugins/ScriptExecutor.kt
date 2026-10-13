@@ -51,6 +51,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     val permission = when (operation) {
                         "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
                         "model.complete" -> "model"
+                        "gitPage.query", "gitPage.perform" -> "git"
                         "http.request", "web.visit" -> "network"
                         "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions", "workspacePage.query", "workspacePage.perform" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
@@ -74,6 +75,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(operation != "settings.compareAndSet" || pkg.manifest.apiVersion >= 10 && !invokeLifecycle) { "配置写入仅供 API10 插件页面使用" }
                     check(!operation.startsWith("documents.") || pkg.manifest.apiVersion >= 11 && !invokeLifecycle && !background) { "文件选择仅供 API11 插件页面使用" }
                     check(!operation.startsWith("workspacePage.") || pkg.manifest.apiVersion >= 12 && !invokeLifecycle && !background) { "工作区页面需要 API12" }
+                    check(!operation.startsWith("gitPage.") || pkg.manifest.apiVersion >= 19 && !invokeLifecycle && !background &&
+                        "workspace.git" in pkg.manifest.nativeServices && "workspace" in pkg.manifest.permissions) { "Git页面需要API19、Git服务及工作区权限" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
@@ -111,6 +114,17 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                                 val query = arguments.getValue("operation").jsonPrimitive.also { require(it.isString) }.content
                                 page.queryWorkspace(query, arguments.getValue("arguments").jsonObject)
                             }
+                        } else if (operation.startsWith("gitPage.")) {
+                            val page = checkNotNull(currentCoroutineContext()[ScriptPageExecutionContext]) { "Git页面缺少授权" }
+                            check(page.pluginId == pkg.manifest.id)
+                            if (operation == "gitPage.perform") {
+                                require(arguments.isEmpty()) { "Git原生操作只能来自已确认的页面控件" }
+                                page.performGit()
+                            } else {
+                                require(arguments.keys == setOf("operation", "arguments"))
+                                val query = arguments.getValue("operation").jsonPrimitive.also { require(it.isString) }.content
+                                page.queryGit(query, arguments.getValue("arguments").jsonObject)
+                            }
                         } else if (operation == "clock.now") {
                             clockSnapshot().toString()
                         } else try { host.call(pkg.manifest, operation, arguments).toString() }
@@ -130,6 +144,10 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                           jobs: Object.freeze({
                             list: async (options = {}) => JSON.parse(await __solvitHostCall('jobs.list', JSON.stringify(options))),
                             perform: async () => JSON.parse(await __solvitHostCall('jobs.perform', '{}'))
+                          }),
+                          gitPage: Object.freeze({
+                            query: async (operation,args = {}) => JSON.parse(await __solvitHostCall('gitPage.query', JSON.stringify({operation,arguments:args}))),
+                            perform: async () => JSON.parse(await __solvitHostCall('gitPage.perform', '{}'))
                           }),
                           workspacePage: Object.freeze({
                             query: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspacePage.query', JSON.stringify({operation,arguments:args}))),
@@ -333,6 +351,7 @@ class ScriptToolPlugin(
         if ("beforeModel" in pkg.manifest.hooks) add(ContextHookServiceKey)
         if ("afterTurn" in pkg.manifest.hooks) add(PostTurnHookServiceKey)
         if (pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }) add(WorkspaceServiceKey)
+        if ("workspace.git" in pkg.manifest.nativeServices) add(WorkspaceGitServiceKey)
         if ("terminal.pty" in pkg.manifest.nativeServices || pkg.manifest.apiVersion in 5..11 && "shell" in pkg.manifest.permissions) add(TerminalServiceKey)
         if ("web.pages" in pkg.manifest.nativeServices || pkg.manifest.apiVersion in 6..11 && "network" in pkg.manifest.permissions) add(WebPageServiceKey)
     }
