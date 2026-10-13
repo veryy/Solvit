@@ -36,3 +36,7 @@ DSH为MIT，当前仅阅读，没有复制实现。Operit锁定版本终端的�
 独立分支先加入固定根文件契约与6个实际AndroidWorkspaces/Robolectric回归：超过旧片段上限的完整UTF-8、同大小/mtime更新及删除、符号链接/目录/二进制/超限、精确字节上限、读后授权撤销和父取消。当前WorkspaceService默认“不支持”是预期红灯；后续实现只负责文件读取，规则组合仍留在JS/TS。这里没有声称API16插件桥或模型请求投影已交付。
 
 [远程只读契约38400042395](https://github.com/veryy/Solvit/actions/runs/38400042395)实际6个新用例均失败，Kotlin编译成功；当前接口默认不可用未实现。补入固定名称、NOFOLLOW_LINKS、cap+1流读取、严格UTF-8、读取前后元数据核对和前后授权回调；取消向外传播，错误分类为UNAVAILABLE而非缺失。此原语不是原子文件系统快照，外部进程并发写入仍有平台边界。
+
+[只读原语复测38400821619](https://github.com/veryy/Solvit/actions/runs/38400821619)成功，下载/CRC核对实际XML：新WorkspaceInstructionsTest六项0失败/错误/跳过，整个契约报告193项0失败/错误/跳过。源码`6a8b888`的[完整Android38400749477](https://github.com/veryy/Solvit/actions/runs/38400749477)构建/单元/Lint/签名/APK成功，完整模拟器仍在运行。工作尚未合入main或发布新APK，普通Chat Hook仍不能使用此接口。
+
+下一必需落点为API16专用workspace.instructions：仅beforeModel，只接受空参数；通过原生捕获的ContextInput/当前会话绑定读取，不允许脚本选择工作区或路径；实时验证声明、启用状态、workspace授权、角色允许和绑定，读前/读后均验证。只读Hook不因此开放一般workspace.read/write/shell。接实际TS规则renderer和模型请求验证后再做候选完整门禁、包一致性、市场保留旧版本以及新APK；根规则原语不能替代嵌套触达、完整diff、完整任务和真实模型验收。
