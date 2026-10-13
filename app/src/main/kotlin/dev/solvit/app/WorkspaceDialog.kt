@@ -49,10 +49,14 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
         }) }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                 if (id == null) {
-                    Column(Modifier.weight(1f).fillMaxWidth(),horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally,verticalArrangement=Arrangement.Center) {
+                    Column(Modifier.weight(1f).fillMaxWidth(), horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally, verticalArrangement=Arrangement.Center) {
                         UiText("此对话尚未绑定工作区")
                         TextButton(onClick = { creating = true }) { UiText("新建工作区") }
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        TextButton(onClick = { chooser = true }) { UiText("绑定已有工作区") }
+                        error?.let { UiText(it, color=MaterialTheme.colorScheme.error) }
+                    }
+                } else {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     TextButton(onClick = { chooser = true }, enabled = !busy, modifier = Modifier.weight(1f)) {
                         Text(state.workspaces.firstOrNull { it.id == id }?.name ?: uiString("打开工作区…"))
                     }
