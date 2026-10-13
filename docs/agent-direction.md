@@ -143,3 +143,9 @@ TS 插件接口按阶段增加提示段贡献、受限的 `afterTurn`、工具�
 为下一阶段再次读取DSH `workspace-changes/src/recorder.ts` 与 `tests/capture.spec.ts`：采用每轮快照、写前捕获、串行记录、超限/二进制明确分类与取消清理原则；失败快照不能伪装成“无变化”。读取DSH `agent-loop/src/agent.ts` 的持久 `step/start` 边界，Operit `StandardTerminalCommandExecutor.kt` 的会话查找、结束输出/退出码与取消结算。当前Solvit仍主要在轮次结算保存工具记录，尚未交付进程中断后的逐步事实恢复，也未实现该工作区完整验收；仅阅读源码不计作功能完成。
 
 0.20.0正式标签门禁现已全成功并发布：[Actions 38201381181](https://github.com/veryy/Solvit/actions/runs/38201381181)、[Release](https://github.com/veryy/Solvit/releases/tag/v0.20.0)。插件页面机制交付完成，继续以上P3顺序；真实模型/真机验收仍未完成。
+
+## 新增交付要求：角色与队列后接本地Git/GitHub插件
+
+用户要求修复新对话默认角色、角色名展示、对话内工具授权、生成中继续提交消息并展示等待队列，以及逐条直接发送打断。此项在独立`feat/chat-role-queue`推进，不能被当前文件差异阶段替代。随后添加本地Git与GitHub JS/TS插件：工作区Changes查看Git工作树/暂存区差异、状态、选择暂存、提交和历史；远程绑定、拉取/推送和GitHub提交浏览与代码上传。插件自带HTML界面，AI通过已发现的工具操作，沿用对话内授权及凭据加密。不能将当前历史执行副本页冒称Git状态/工作树差异。
+
+已实际阅读锁定Operit `examples/github/src/github/contents.ts` 与 `src/local/terminal.ts`：远程上传使用GitHub Contents API的SHA前置条件，本地执行经宿主Terminal会话；这两个机制不等同，不能把REST上传作为本地Git实现。进一步核对原子多文件提交、冲突/非快进处理、Android Git执行环境与插件生命周期，再提交实现及真实工作区任务门禁。此段是需求和研究证据，尚无Git/GitHub插件发布。
