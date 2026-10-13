@@ -4,6 +4,7 @@ android {
     compileSdk = 36
     defaultConfig { minSdk = 26 }
     testOptions { unitTests.isIncludeAndroidResources = true }
+    sourceSets["test"].resources.srcDir("../market-server/packages")
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
 dependencies {
