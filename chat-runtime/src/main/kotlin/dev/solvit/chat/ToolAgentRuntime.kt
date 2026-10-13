@@ -119,7 +119,6 @@ class ToolAgentRuntime(
                         authorizedDispatch=true
                         emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING))
                     }
-                    if(result.toByteArray(Charsets.UTF_8).size > 256*1024) throw ToolExecutionException(ToolFailureCode.RESOURCE_LIMIT)
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {
                     authorizationDenied=true

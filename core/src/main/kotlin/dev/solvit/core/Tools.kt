@@ -79,9 +79,14 @@ class ToolRegistry(private val events: EventBus, private val policies: ToolPolic
         try {
             // Only this tool's deadline becomes a tool failure. Parent cancellation
             // (including an enclosing deadline) must continue to stop the turn.
-            return withTimeoutOrNull(60_000) {
+            val result = withTimeoutOrNull(60_000) {
                 withContext(if (execution == null) context else context + execution) { tool.execute(argumentsJson) }
             } ?: throw ToolExecutionException(ToolFailureCode.TIMEOUT)
+            // Accept the result before releasing failure cleanup callbacks. A rejected
+            // result must cancel resources owned by this invocation, just like an error.
+            if (result.length > 256 * 1024 || result.toByteArray(Charsets.UTF_8).size > 256 * 1024)
+                throw ToolExecutionException(ToolFailureCode.RESOURCE_LIMIT)
+            return result
         } catch (e: Throwable) { invocation.cancelResources(); throw e }
         finally { invocation.releaseResources() }
     }
