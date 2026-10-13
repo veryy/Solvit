@@ -187,7 +187,13 @@ class AndroidMarketplace(
         if (manager.states.value[id] == PluginState.ENABLED) return
         if (manager.states.value[id] in setOf(PluginState.LOADED, PluginState.INITIALIZED, PluginState.DISABLED)) manager.unload(id)
         prefs.edit().putStringSet("grants.$id", grants.toSet()).commit()
-        manager.load(ScriptToolPlugin(pkg, ScriptHost { manifest, operation, arguments -> hostCall(manifest, operation, arguments) }))
+        manager.load(ScriptToolPlugin(pkg, ScriptHost { manifest, operation, arguments -> hostCall(manifest, operation, arguments) }) {
+            check(packages[id] === pkg && manager.states.value[id] == PluginState.ENABLED &&
+                prefs.getBoolean("enabled.$id", false) &&
+                prefs.getStringSet("grants.$id", emptySet()).orEmpty().containsAll(pkg.manifest.permissions)) {
+                "Agent 插件已停用、被替换或权限已撤销"
+            }
+        })
         try { manager.enableAll() }
         catch (e: Throwable) {
             withContext(NonCancellable) {

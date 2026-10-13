@@ -310,7 +310,11 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
     }
 }
 
-class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptHost) : SolvitPlugin {
+class ScriptToolPlugin(
+    private val pkg: ScriptPackage,
+    private val host: ScriptHost,
+    private val agentAuthorization: suspend () -> Unit = {},
+) : SolvitPlugin {
     override val id = pkg.manifest.id
     override val dependencies = pkg.manifest.dependencies
     override val requires = buildSet {
@@ -329,7 +333,7 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
         context.own { executor.stop() }
         executor.start()
         if (pkg.manifest.agentEnabledSetting != null) {
-            val unregister = context.require(AgentDriversServiceKey).register(id, scriptPluginAgent(pkg)) {
+            val unregister = context.require(AgentDriversServiceKey).register(id, scriptPluginAgent(pkg, agentAuthorization)) {
                 val value = host.call(pkg.manifest, "settings.get", buildJsonObject { put("key", pkg.manifest.agentEnabledSetting) })
                 value is JsonPrimitive && value.isString && value.content == "true"
             }

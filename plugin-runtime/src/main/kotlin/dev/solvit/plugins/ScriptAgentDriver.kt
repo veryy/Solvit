@@ -7,7 +7,12 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 
 /** Dedicated engine per turn; async host work is explicitly parented to that turn. */
-class ScriptAgentDriver(private val source: String, private val timeoutMs: Long? = null, private val observations: Boolean = false) : AgentDriver {
+class ScriptAgentDriver(
+    private val source: String,
+    private val timeoutMs: Long? = null,
+    private val observations: Boolean = false,
+    private val authorize: suspend () -> Unit = {},
+) : AgentDriver {
     override suspend fun run(maxRounds: Int, host: AgentStepHost): Unit = coroutineScope {
         val parent = currentCoroutineContext()
         val js = QuickJs.create(Dispatchers.IO)
@@ -25,14 +30,24 @@ class ScriptAgentDriver(private val source: String, private val timeoutMs: Long?
                 val index = number.toInt()
                 require(number.toDouble() == index.toDouble() && index >= 0)
                 withContext(parent) {
-                    try { host.command(operation, index) }
+                    try {
+                        authorize()
+                        val result = host.command(operation, index)
+                        authorize()
+                        result
+                    }
                     catch (failure: Throwable) { hostFailure = failure; throw failure }
                 }
             }
             if (observations) js.asyncFunction("__solvitAgentObserve") { args ->
                 require(args.isEmpty())
                 withContext(parent) {
-                    try { observationJson(host.observe()) }
+                    try {
+                        authorize()
+                        val result = observationJson(host.observe())
+                        authorize()
+                        result
+                    }
                     catch (failure: Throwable) { hostFailure = failure; throw failure }
                 }
             }
@@ -59,7 +74,7 @@ class ScriptAgentDriverPlugin(private val source: String) : SolvitPlugin {
 }
 
 /** Cold strategy engine. Read access is explicitly declared; credentials/native transcripts stay host-owned. */
-fun scriptPluginAgent(pkg: ScriptPackage): AgentDriver {
+fun scriptPluginAgent(pkg: ScriptPackage, authorize: suspend () -> Unit = {}): AgentDriver {
     val canObserve = pkg.manifest.apiVersion >= 15 && "agent.read" in pkg.manifest.permissions
     val extra = if (canObserve) ", observe: async () => JSON.parse(await __solvitAgentObserve()), decline: index => __solvitAgentCommand('decline', index)" else ""
     return ScriptAgentDriver(pkg.source + """
@@ -73,7 +88,7 @@ fun scriptPluginAgent(pkg: ScriptPackage): AgentDriver {
       });
       await solvitPlugin.agent(Object.freeze({maxRounds}), context);
     }});
-""".trimIndent(), timeoutMs = 600_000, observations = canObserve)
+""".trimIndent(), timeoutMs = 600_000, observations = canObserve, authorize = authorize)
 }
 
 private fun observationJson(value: AgentObservation): String {
