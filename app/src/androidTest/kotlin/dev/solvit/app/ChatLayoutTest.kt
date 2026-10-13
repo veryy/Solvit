@@ -248,7 +248,7 @@ class ChatLayoutTest {
                 suspend fun send() {
                     val chunks = chat.send(session!!.id, "Inspect project rules", ModelConfig(providerId = provider.id)).toList()
                     assertTrue(chunks.none { it is ModelChunk.ToolActivity })
-                    assertTrue(requests.last().contextProblems.isEmpty(), requests.last().contextProblems.toString())
+                    assertTrue(requests.last().contextProblems.toString(), requests.last().contextProblems.isEmpty())
                     val system = requests.last().messages.single { it.role == Role.SYSTEM }.content
                     assertTrue(system.contains(role.name)); assertTrue(system.contains(role.prompt)); assertFalse(system.contains("DEVICE_"))
                 }
