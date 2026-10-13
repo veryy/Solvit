@@ -41,7 +41,7 @@ class WorkspaceFileManagementTest {
         service.makeDirectory(id,"folder")
         service.write(id,"folder/note.txt","inside")
         val other=service.create("outside");val outside=File(service.location(other.id),"keep.txt").apply { writeText("outside") }
-        Files.createSymbolicLink(File(root,"folder/link").toPath(),outside.parentFile.toPath())
+        Files.createSymbolicLink(File(root,"folder/link").toPath(),checkNotNull(outside.parentFile).toPath())
         for(path in listOf("", ".", "..", "../${other.id}",outside.absolutePath)) {
             assertFails { service.deleteEntry(id,path) }
             assertFails { service.makeDirectory(id,path) }

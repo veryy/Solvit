@@ -145,6 +145,51 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             }
         }
     }
+    /** File management does not silently operate on a symlink's target. */
+    private fun managedEntry(workspaceId:String,path:String):File {
+        val target=file(workspaceId,path)
+        require(File(directory(workspaceId),path).absoluteFile.normalize()==target) { "符号链接请通过终端管理。" }
+        return target
+    }
+    override suspend fun makeDirectory(workspaceId:String,path:String)=withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val target=managedEntry(workspaceId,path)
+        check(!target.exists()) { "目标已存在。" }
+        verifyPage(workspaceId)
+        check(managedEntry(workspaceId,path)==target)
+        java.nio.file.Files.createDirectories(target.toPath())
+        Unit
+    } }
+    override suspend fun moveEntry(workspaceId:String,path:String,destination:String)=withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val source=managedEntry(workspaceId,path);val target=managedEntry(workspaceId,destination)
+        check(source.exists()) { "文件或目录不存在。" }
+        check(!target.exists()) { "目标已存在。" }
+        require(!target.path.startsWith(source.path+File.separator)) { "不能移动到自身子目录。" }
+        check(target.parentFile?.isDirectory==true) { "目标父目录不存在。" }
+        verifyPage(workspaceId)
+        check(managedEntry(workspaceId,path)==source && managedEntry(workspaceId,destination)==target)
+        java.nio.file.Files.move(source.toPath(),target.toPath())
+        Unit
+    } }
+    override suspend fun deleteEntry(workspaceId:String,path:String)=withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val target=managedEntry(workspaceId,path)
+        check(target.exists()) { "文件或目录不存在。" }
+        verifyPage(workspaceId)
+        check(managedEntry(workspaceId,path)==target)
+        // walkFileTree without FOLLOW_LINKS removes nested links themselves, never their targets.
+        java.nio.file.Files.walkFileTree(target.toPath(),object:java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
+            override fun visitFile(path:java.nio.file.Path,attrs:java.nio.file.attribute.BasicFileAttributes):java.nio.file.FileVisitResult {
+                java.nio.file.Files.delete(path);return java.nio.file.FileVisitResult.CONTINUE
+            }
+            override fun postVisitDirectory(path:java.nio.file.Path,error:java.io.IOException?):java.nio.file.FileVisitResult {
+                if(error!=null)throw error
+                java.nio.file.Files.delete(path);return java.nio.file.FileVisitResult.CONTINUE
+            }
+        })
+        Unit
+    } }
     override suspend fun readTextChunk(workspaceId: String, path: String, offset: Int,
         expectedSha256: String?): WorkspaceTextChunk = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
