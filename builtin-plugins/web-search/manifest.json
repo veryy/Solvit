@@ -2,7 +2,7 @@
   "id": "dev.solvit.web-search",
   "name": "联网搜索",
   "description": "启用即可用浏览器搜索公开网页，提取标题、摘要、来源与正文；无需密钥。也支持可选的 Tavily、SearXNG 和智谱。",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "apiVersion": 6,
   "permissions": [
     "network"

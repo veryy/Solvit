@@ -79,7 +79,7 @@ test('browser denial falls back to DuckDuckGo and unwraps its source URL',async 
     ]};
   });
   const result=await tools.search({query:'中文 question'},ctx);
-  assert.equal(visits.length,3); assert.match(visits[2],/^https:\/\/html\.duckduckgo\.com\/html\/\?q=/);
+  assert.equal(visits.length,4); assert.match(visits[3],/^https:\/\/html\.duckduckgo\.com\/html\/\?q=/);
   assert.equal(result.provider,'duckduckgo-browser'); assert.equal(result.results[0].url,'https://example.com/guide');
 });
 test('RSS fallback rejects unrelated results and has a bounded HTTP timeout',async () => {
@@ -110,7 +110,7 @@ test('a redirected engine home page is never treated as search results',async ()
       links:[{url:'https://example.com/privacy',title:'Solvit privacy',snippet:'Footer'}]};
   });
   const result=await tools.search({query:'Solvit'},ctx);
-  assert.equal(visits,3); assert.equal(result.results.length,0); assert.ok(result.error);
+  assert.equal(visits,4); assert.equal(result.results.length,0); assert.ok(result.error);
 });
 
 test('default browser failure still obtains real result data from the upstream regional origin',async () => {
@@ -142,4 +142,21 @@ test('a root route with result markers for a different query remains rejected',a
     links:[{url:'https://kotlinlang.org/docs/home.html',title:'Kotlin documentation',snippet:'Footer'}],
   }));
   const result=await tools.search({query:'Kotlin'},ctx);assert.equal(result.results.length,0);assert.ok(result.error);
+});
+
+
+test('an empty regional redirect falls back to explicit international search without changing the query',async()=>{
+  const visits=[];
+  const {tools,ctx}=await plugin({apiKey:'PRIVATE'},undefined,async url=>{
+    visits.push(url);
+    if(url.startsWith('https://www.bing.com/search?'))throw new Error('Primary unavailable');
+    if(!url.includes('&ensearch=1'))return {url:'https://www.bing.com/?q=Kotlin',title:'Home',text:'',truncated:false,searchResults:false,
+      links:[{url:'https://example.com/privacy',title:'Kotlin privacy',snippet:'Footer'}]};
+    return {url,title:'Search',text:'Kotlin',truncated:false,searchResults:true,
+      links:[{url:'https://kotlinlang.org/docs/home.html',title:'Kotlin docs',snippet:'Official documentation'}]};
+  });
+  const result=await tools.search({query:'Kotlin'},ctx);
+  assert.deepEqual(visits,['https://www.bing.com/search?q=Kotlin','https://cn.bing.com/search?q=Kotlin&FORM=HDRSC1','https://cn.bing.com/search?q=Kotlin&ensearch=1']);
+  assert.equal(result.provider,'bing-browser');assert.equal(result.results[0].url,'https://kotlinlang.org/docs/home.html');
+  assert.equal(JSON.stringify(result).includes('PRIVATE'),false);
 });
