@@ -114,3 +114,6 @@ a7ef7b3/38480156649专项成功：取回11856193819（ZIP815,060字节），CRC�
 Git1.1.1已实际部署，Node每步成功标记及远程SHA守卫、原1.1.0备份和失败回滚；备份/opt/solvit-market/.backup-git111-fc83c726cf12。server摘要df284c02bed71fe85bb12d5adffa0520ac7f3467b22839143cd146cc462bb4a7保持。部署前后Node localhost与正常TLS公网分别核对API1–18逐字节相同、API19除Git外条目相同；正常公网下载/api/v1/packages/dev.solvit.git/1.1.1为715,915字节/SHA256 7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd，与市场源文件和APK资产完全一致。暂存已清理，旧客户端及旧公开APK不变。
 
 最新完整Android a7ef7b3/38480134382的build成功；取回11855664389（ZIP319,880字节），CRC及102个实际JUnit XML套件核对406项、0失败/错误/跳过。实际job115580821208日志确认Lint/APK BUILD SUCCESSFUL、固定证书SHA256 f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3。verify-ui 115582793202仍进行中，不能提前宣称完整55项通过；尚未正式发布0.29或创建标签。真实模型/真机、远程GitHub与AI写操作继续保留为未完成。
+
+
+完整候选a7ef7b3/38480134382终态成功：build115580821208及verify-ui115582793202均成功，非标签的SDK/search/release按工作流跳过，并未把跳过任务算作正式标签通过。取回UI11857966002（ZIP4,281,240字节），CRC及三份实际Android testsuites/全部testcase核对55项、0失败/错误/跳过，15套件，其中GitHtmlPageTest两项确实执行；upgrade-seed实际OK (1 test)，覆盖安装和持久数据检查完成。单元11855664389实际406项已核对，签名/Lint/APK及SDK110/市场2与包一致性证据保持。之后fa517ce等只更新docs，git diff a7ef7b3排除docs为空，功能/测试代码和包完全相同。清理后的源码准备合并main并创建未存在的v0.29.0，正式标签必须重新执行全部五项门禁；不会移动旧标签或替换公开资产，公开最新版仍待新Release实际发布。下一阶段源码依据与完整范围见[GitHub阶段](workspace-github-stage.md)。
