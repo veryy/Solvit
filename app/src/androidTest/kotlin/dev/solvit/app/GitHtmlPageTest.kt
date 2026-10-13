@@ -69,28 +69,21 @@ class GitHtmlPageTest {
         }
     }
     @Test fun actualGitPageReviewsFullChangesCommitsOnlyStagedBytesAndPreviewsTheSameShellFiles() {
-        fun phase(value: String) { android.util.Log.i("DEBUG-git-html-timeout", value) }
-        phase("activity-access")
         val app = rule.activity.application as SolvitApplication
         val chat = "git-html-${UUID.randomUUID()}"
         runBlocking { withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() } }
-        phase("app-ready")
         val workspace = runBlocking { app.workspaces.forChat(chat) }
-        phase("workspace-bound")
         val root = File(runBlocking { app.workspaces.location(workspace.id) })
         val original = "// 中文 😀\n" + "const value = 1;\n".repeat(1500) + "LAST_PATCH_LINE\n"
         File(root, "a.txt").writeText(original)
         File(root, "z.txt").writeText("keep local\n")
         val probe = app.workspaceGit.bind(chat, { chat }, {}, {})
-        phase("git-probe-bound")
         val html = HtmlPageProbe(rule.activity)
         val manager = BuiltinWorkspaceManager(app, "dev.solvit.git")
         var visible by mutableStateOf(true)
         fun waitDom(expression: String) { rule.waitUntil(15_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
         fun click(id: String) {
-            phase("waiting-control:$id")
             waitDom("!!document.querySelector('[data-node=$id]') && !document.querySelector('[data-node=$id]').disabled")
-            phase("click-control:$id")
             html.js("document.querySelector('[data-node=$id]').click()")
         }
         fun field(id: String, value: String) {
@@ -107,14 +100,19 @@ class GitHtmlPageTest {
                     access = WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat),
                     git = GitPageBridge(app.workspaceGit, chat) { chat }) }) { visible = false }
             } } }
-            phase("page-mounted")
             click("git_initialize"); click("git_confirm"); confirm(false)
             assertFalse(File(root, ".git").exists())
             click("git_confirm"); confirm(true)
             click("git_working_0")
             waitDom("document.getElementById('git-patch')?.textContent.includes('LAST_PATCH_LINE')===true && !document.querySelector('[data-node=git_stage]').disabled")
             assertTrue(html.js("document.getElementById('git-patch').textContent.includes('中文 😀')") == "true")
+            // DOM completeness alone did not catch a diff clipped to one line in the real screenshot.
+            assertEquals("true", html.js("(()=>{const p=document.getElementById('git-patch');return p.clientHeight>=Math.min(300,innerHeight*.4)&&p.scrollHeight>p.clientHeight})()"))
             html.screenshot("git-workbench-complete-working-diff")
+            html.js("(()=>{const p=document.getElementById('git-patch');p.scrollTop=p.scrollHeight;return true})()")
+            assertEquals("true", html.js("(()=>{const p=document.getElementById('git-patch');return p.scrollTop+p.clientHeight>=p.scrollHeight-2})()"))
+            html.screenshot("git-workbench-complete-diff-end")
+            html.js("document.getElementById('git-patch').scrollTop=0")
             click("git_stage"); click("git_confirm"); confirm(false)
             assertNull(runBlocking { probe.status().entries.first { it.path == "a.txt" }.staged })
             click("git_confirm"); confirm(true)
@@ -150,11 +148,8 @@ class GitHtmlPageTest {
             waitDom("document.getElementById('file-tree').hidden && !!document.querySelector('[data-node=git_files]')")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.git" }.enabled)
         } finally {
-            phase("cleanup-hide-page")
             rule.runOnUiThread { visible = false }; rule.waitForIdle()
-            phase("cleanup-close-probe")
             runBlocking { probe.close(); app.workspaces.unbind(chat) }; root.deleteRecursively()
-            phase("cleanup-finished")
         }
     }
 }
