@@ -5,10 +5,10 @@ const source=await readFile('web-android/src/main/kotlin/dev/solvit/web/PageObse
 const observe=/val script = """([\s\S]*?)"""\.trimIndent\(\)/.exec(source)[1];
 const release=await (await fetch('https://api.github.com/repos/JetBrains/kotlin/releases/latest')).json();
 const queries=['Kotlin programming language official documentation','Python 官方文档 编程语言','Kotlin latest stable release '+release.tag_name.replace(/^v/,'')];
-const origins=[['bing','https://www.bing.com/search?q='],['regional','https://cn.bing.com/search?q='],['brave','https://search.brave.com/search?q='],];
+const origins=[['regional','https://cn.bing.com/search?q='],['international','https://cn.bing.com/search?ensearch=1&q='],['market','https://cn.bing.com/search?setmkt=en-US&q='],['language','https://cn.bing.com/search?setlang=zh-Hans&q=']];
 const browser=await chromium.launch();const observations=[];
 try {
- for(const mode of ['desktop','android']) {
+ for(const mode of ['android']) {
   for(const query of queries) for(const [engine,base] of origins) {
    const context=await browser.newContext({...(mode==='android'?devices['Pixel 7']:{}),locale:'zh-CN'});
    const page=await context.newPage();const url=base+encodeURIComponent(query)+(engine==='regional'?'&FORM=HDRSC1':'');
