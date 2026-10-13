@@ -3,6 +3,7 @@ package dev.solvit.market
 import dev.solvit.core.*
 import dev.solvit.chat.DefaultChatService
 import dev.solvit.chat.ToolAgentRuntime
+import dev.solvit.plugins.ScriptAgentDriver
 import dev.solvit.storage.SqliteChatStore
 import dev.solvit.system.ShellLauncher
 import dev.solvit.system.ShellPaths
@@ -109,7 +110,8 @@ class WorkspaceExecutionEvidenceTest {
                         approvals+=call;return true
                     }
                 }
-                val chat=DefaultChatService(store,ToolAgentRuntime(provider,manager.registry.require(Services.Tools)),EventBus(),workspaces=ws)
+                val source = context.assets.open("agent/chat-driver.js").bufferedReader().use { it.readText() }
+                val chat=DefaultChatService(store,ToolAgentRuntime(provider,manager.registry.require(Services.Tools), driver=ScriptAgentDriver(source)),EventBus(),workspaces=ws)
                 chat.send(session.id,"Create main.sh, run it, repair failures and verify the actual result",ModelConfig(),authorization).toList()
                 assertEquals(7,step);assertEquals(7,approvals.size);assertNotEquals(failedJob,verifiedJob)
                 assertEquals(7,ws.jobs.value.single { it.id==failedJob }.exitCode)

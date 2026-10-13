@@ -7,6 +7,37 @@ import kotlinx.coroutines.flow.*
 import kotlin.test.*
 
 class ScriptAgentDriverTest {
+    @Test fun driverPreservesHostOwnedNativeTranscriptAndRefreshesSeparateReferences() = runBlocking {
+        val native = ProviderTranscript("test", "fixture", "[{\"signature\":\"opaque-signature\"}]")
+        val hooks = ContextHookRegistry()
+        var reference = "before"
+        hooks.register("test.reference", ContextHook { reference })
+        var round = 0
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun separatesRuntimeContext(config: ModelConfig) = true
+            override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                assertFalse(request.messages.single { it.role == Role.SYSTEM }.content.contains(reference))
+                assertEquals(listOf(reference), request.runtimeContext)
+                return if (round++ == 0) flowOf(ModelChunk.NativeTranscript(native),
+                    ModelChunk.ToolCalls(listOf(ToolCall("one", "probe", "{}"))), ModelChunk.Done)
+                else {
+                    assertSame(native, request.messages.last { it.role == Role.ASSISTANT }.providerTranscript)
+                    flowOf(ModelChunk.Text("answer"), ModelChunk.Done)
+                }
+            }
+        }
+        val tools = ToolRegistry(EventBus()).apply {
+            register(object : SolvitTool {
+                override val descriptor = ToolDescriptor("probe", "Probe", "{}")
+                override suspend fun execute(argumentsJson: String): String { reference = "after"; return "changed" }
+            })
+        }
+        ToolAgentRuntime(provider, tools, hooks = hooks, driver = ScriptAgentDriver(source())).run(ModelRequest(ModelConfig(),
+            listOf(ModelMessage(Role.SYSTEM, "role identity"), ModelMessage(Role.USER, "update")),
+            authorization = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true })).toList()
+        assertEquals(2, round)
+    }
     private fun source() = checkNotNull(javaClass.classLoader!!.getResourceAsStream("agent/chat-driver.js")).bufferedReader().use { it.readText() }
     @Test fun bundledJavaScriptSchedulesModelToolsSettlementAndFinish() = runBlocking {
         val operations = mutableListOf<Pair<String, Int>>()
