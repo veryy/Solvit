@@ -12,6 +12,12 @@
     "build:builtins": "node scripts/build-builtins.mjs"
   },
   "devDependencies": {
+    "codemirror": "6.0.2",
+    "@codemirror/lang-javascript": "6.2.5",
+    "@codemirror/lang-json": "6.0.2",
+    "@codemirror/lang-python": "6.2.1",
+    "@codemirror/lang-html": "6.4.12",
+    "@codemirror/lang-css": "6.3.1",
     "cytoscape": "3.34.3",
     "esbuild": "0.25.12",
     "typescript": "5.9.3",

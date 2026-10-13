@@ -1,0 +1,45 @@
+name: Generate reviewable editor dependencies
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  editor-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve pinned dependencies remotely
+        working-directory: plugin-sdk
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Verify resolved installation
+        working-directory: plugin-sdk
+        run: npm ci
+      - name: Collect full editor dependency licenses
+        working-directory: plugin-sdk
+        run: |
+          mkdir -p editor-dependency-review
+          cp package-lock.json editor-dependency-review/
+          node --input-type=module <<'JS'
+          import {readFile,writeFile,readdir} from 'node:fs/promises';
+          import {join} from 'node:path';
+          const roots=['codemirror','@codemirror/lang-javascript','@codemirror/lang-json','@codemirror/lang-python','@codemirror/lang-html','@codemirror/lang-css'];
+          const seen=new Set(),report=[];
+          async function collect(name) {
+            if(seen.has(name))return;seen.add(name);
+            const base=join('node_modules',name),pkg=JSON.parse(await readFile(join(base,'package.json'),'utf8'));
+            const files=(await readdir(base)).filter(file=>/^licen[cs]e(?:\.|$)/i.test(file));
+            if(!files.length)throw Error(`Missing license: ${name}`);
+            const licenses=await Promise.all(files.map(async file=>`${file}\n${await readFile(join(base,file),'utf8')}`));
+            report.push(`${name}@${pkg.version}\nLicense: ${pkg.license}\n${licenses.join('\n')}`);
+            for(const dependency of Object.keys(pkg.dependencies??{}))await collect(dependency);
+          }
+          for(const root of roots)await collect(root);
+          await writeFile('editor-dependency-review/editor-NOTICE.txt',report.join('\n\n--------------------\n\n'));
+          JS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: editor-dependency-review
+          path: plugin-sdk/editor-dependency-review/
