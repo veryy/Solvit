@@ -18,7 +18,7 @@ class ScriptAgentDriverTest {
             override fun separatesRuntimeContext(config: ModelConfig) = true
             override fun stream(request: ModelRequest): Flow<ModelChunk> {
                 assertFalse(request.messages.single { it.role == Role.SYSTEM }.content.contains(reference))
-                assertEquals(listOf(reference), request.runtimeContext)
+                assertEquals(listOf("插件上下文（test.reference）：\n$reference"), request.runtimeContext)
                 return if (round++ == 0) flowOf(ModelChunk.NativeTranscript(native),
                     ModelChunk.ToolCalls(listOf(ToolCall("one", "probe", "{}"))), ModelChunk.Done)
                 else {
