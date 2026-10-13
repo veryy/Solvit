@@ -91,6 +91,20 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
     }
     private suspend fun collect(entry: Entry) {
         try {
+            val pendingOutput = StringBuilder()
+            var lastPublication = System.nanoTime()
+            fun flushOutput() {
+                if (pendingOutput.isEmpty()) return
+                val text = pendingOutput.toString(); pendingOutput.setLength(0)
+                update(entry) { old ->
+                    val output = old.output + text
+                    var drop = (output.length - 65_536).coerceAtLeast(0)
+                    if (drop > 0 && drop < output.length && output[drop].isLowSurrogate() && output[drop - 1].isHighSurrogate()) drop++
+                    old.copy(output = output.substring(drop), outputOffset = old.outputOffset + drop,
+                        revision = old.revision + 1, truncated = old.truncated || drop > 0)
+                }
+                lastPublication = System.nanoTime()
+            }
             val input = object : InputStream() {
                 private var pending = byteArrayOf(); private var offset = 0
                 override fun read(): Int { val one = ByteArray(1); return if (read(one, 0, 1) < 0) -1 else one[0].toInt() and 255 }
@@ -99,7 +113,7 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
                     while (offset == pending.size) {
                         if (!entry.state.active || entry.reader?.isActive == false) return -1
                         pending = entry.pty.read() ?: return -1; offset = 0
-                        if (pending.isEmpty()) Thread.yield()
+                        if (pending.isEmpty()) { flushOutput(); Thread.yield() }
                     }
                     val count = minOf(length, pending.size - offset)
                     pending.copyInto(bytes, start, offset, offset + count); offset += count; return count
@@ -117,14 +131,13 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
                     pendingHigh = text.takeLast(1); text = text.dropLast(1)
                 }
                 if (text.isEmpty()) continue
-                update(entry) { old -> val output = old.output + text
-                    var drop = (output.length - 65_536).coerceAtLeast(0)
-                    if (drop > 0 && drop < output.length && output[drop].isLowSurrogate() && output[drop - 1].isHighSurrogate()) drop++
-                    old.copy(output = output.substring(drop), outputOffset = old.outputOffset + drop,
-                        revision = old.revision + 1, truncated = old.truncated || drop > 0)
+                pendingOutput.append(text)
+                if (pendingOutput.length >= 4096 || System.nanoTime() - lastPublication >= 32_000_000) {
+                    flushOutput(); yield()
                 }
-                yield()
             }
+            flushOutput()
+
             update(entry) { it.copy(active = false, exitCode = entry.pty.exitCode(), revision = it.revision + 1) }
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) {

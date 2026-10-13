@@ -61,3 +61,19 @@ are carried in a native page authority and cannot authorize another chat, even
 when its workspace is shared. Downloaded pages can only attach their own plugin's
 sessions. Model tools never inherit these human grants. Added native and actual
 HTML/PTY regressions for this path instead of silently removing the old capability.
+
+Remote red evidence: diagnostic `38333681117` executed the first real HTML case;
+PTY returned `__UI_READY__` but the rendered terminal did not show it, native size
+was 2×48 and the captured WebView area was blank. Candidate `66502f5` passed 304
+unit tests/Lint/APK, but full `38335021382` stopped in the new native Unicode output
+regression after 8 seconds, before App UI tests. UI anchoring/compact controls are
+not yet verified. Separate diagnostic `38335047051` failed while downloading NDK
+(`ZipFile unknown archive`), before compilation/testing; it is not a product result.
+
+The reader now batches decoded output in 4K/32ms publications and flushes during
+idle native polls and EOF, so continuous tiny writes do not repeatedly copy the
+full retained transcript. The same real-PTY 8s regression remains, with bounded
+failure diagnostics; no timeout or assertion was weakened. The HTML page retains
+an explicit output-gap notice after truncation instead of replacing it on the next
+status update. The actual HTML test also attaches and replays a truncated model
+terminal before checking the notice and subsequent interactive input.

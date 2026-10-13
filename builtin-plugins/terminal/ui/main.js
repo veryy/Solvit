@@ -46,13 +46,13 @@
     if (result.id !== entry.id || result.revision < entry.revision) return;
     if (result.revision !== undefined) entry.revision = result.revision;
     const start = result.outputOffset, end = start + result.output.length;
-    if (entry.position < start || entry.position > end) { entry.term.reset();entry.position=start;report(labels[11]); }
+    if (entry.position < start || entry.position > end) { entry.term.reset();entry.position=start;entry.gap=true; }
     const text = result.output.slice(entry.position-start);
     if (text) entry.term.write(text);
     entry.position=end;entry.active=result.active;
     entry.term.options.disableStdin=!entry.active;
     if (sessions.get(selected) === entry) {
-      $('status').textContent = result.failure || (entry.active ? `${labels[9]} · ${entry.rows} × ${entry.columns}` : `${labels[10]} · ${result.exitCode ?? '—'}`);
+      $('status').textContent = result.failure || (entry.gap ? labels[11]+' · ' : '') + (entry.active ? `${labels[9]} · ${entry.rows} × ${entry.columns}` : `${labels[10]} · ${result.exitCode ?? '—'}`);
       $('command').disabled=!entry.active;$('send').disabled=!entry.active;$('close').disabled=!entry.active;
     }
   }
@@ -98,7 +98,7 @@
         const container=document.createElement('div');container.className='terminal-container';$('terminals').append(container);
         const term=new window.Terminal({fontSize:13,fontFamily:'monospace',cursorBlink:true,scrollback:2000,theme:{background:theme.surface,foreground:theme.onSurface,cursor:theme.primary},allowProposedApi:false});
         const fitAddon=new window.FitAddon.FitAddon();term.loadAddon(fitAddon);term.open(container);
-        entry={id:result.id,term,fit:fitAddon,container,active:result.active,position:result.outputOffset,rows:result.rows,columns:result.columns,revision:result.revision};sessions.set(shellId,entry);
+        entry={id:result.id,term,fit:fitAddon,container,active:result.active,position:result.outputOffset,rows:result.rows,columns:result.columns,revision:result.revision,gap:result.outputOffset>0};sessions.set(shellId,entry);
         term.onData(text=>{ if(entry.active) rpc('input',{id:entry.id,text}).then(result=>update(entry,result)).catch(report); });
       }
       update(entry,result);choose(shellId);fit(entry);

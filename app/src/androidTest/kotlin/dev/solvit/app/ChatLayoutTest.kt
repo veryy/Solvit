@@ -926,11 +926,22 @@ class ChatLayoutTest {
                     app.terminals.open(human.workspaceId,human.shellId)
                 }
             }
+
+            val large="stty -echo; i=0; while [ \$i -lt 34000 ]; do printf 'x '; i=\$((i+1)); done; printf '__LONG_%s__\\n' OK\n"
+            runBlocking {
+                withContext(ConversationContext(checkNotNull(human.chatId),human.workspaceId)+ToolInvocationContext(descriptor,
+                    ToolCall("html-model-input","input",JSONObject().put("id",model.id).put("text",large).toString()))) {
+                    app.terminals.input(human.workspaceId,model.id,large)
+                }
+            }
+            rule.waitUntil(15_000) { app.terminals.sessions.value.any { it.id==model.id && "__LONG_OK__" in it.output && it.outputOffset>0 } }
             js("document.getElementById('refresh').click()")
             rule.waitUntil(8000) { js("Array.from(document.getElementById('running').children).some(e=>e.textContent.includes('test.html-terminal.model'))") == "true" }
             js("document.getElementById('running').value=${kotlinx.serialization.json.JsonPrimitive(model.id)};document.getElementById('attach').click()")
             rule.waitUntil(8000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("terminal_page_allow").performClick()
+            rule.waitUntil(8000) { displayed("__LONG_OK__") }
+            assertEquals("true",js("document.getElementById('status').textContent.includes('部分旧输出已回收')"))
             command("stty -echo; printf '__MODEL_PAGE_%s__\\n' OK")
             rule.waitUntil(8000) { displayed("__MODEL_PAGE_OK__") }
             page.screenshot("workspace-interactive-html-pty")

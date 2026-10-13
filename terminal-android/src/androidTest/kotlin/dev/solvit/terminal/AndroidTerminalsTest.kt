@@ -27,7 +27,11 @@ class AndroidTerminalsTest {
         } finally { remove(); service.shutdown(); workspaces.close(); scope.cancel() }
     }
     private suspend fun waitOutput(service: TerminalService, id: String, marker: String) =
-        withTimeout(8000) { service.sessions.first { list -> list.any { it.id == id && marker in it.output } }.single { it.id == id } }
+        try { withTimeout(8000) { service.sessions.first { list -> list.any { it.id == id && marker in it.output } }.single { it.id == id } } }
+        catch (error: TimeoutCancellationException) {
+            val state=service.sessions.value.singleOrNull { it.id==id }
+            throw AssertionError("Missing $marker: active=${state?.active}, offset=${state?.outputOffset}, chars=${state?.output?.length}, revision=${state?.revision}, tail=${state?.output?.takeLast(160)}",error)
+        }
     @Test fun liveServicePreservesStateAndSupportsInteractiveAnswers() = runBlocking {
         fixture { _, service, workspace, shell ->
             val session = service.open(workspace.id, shell.id)
