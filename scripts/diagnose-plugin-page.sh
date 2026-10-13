@@ -9,6 +9,7 @@ case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   model-settings) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations' ;;
   model-task) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#modelProfilesUiSavesAndAssignsASeparateToolModel' ;;
   skills-documents) solvit_diagnostic_class='dev.solvit.app.SkillsHtmlPageTest' ;;
+  project-rules) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#actualAndroidTsProjectRulesRefreshWithoutChangingRoleOrCreatingUnboundWorkspace' ;;
   chat-role-sequence) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#javascriptPluginUsesPersistentPtyAndDisableClosesItsProcess,dev.solvit.app.ChatLayoutTest#largeNativeTranscriptReopensAndBranchesThroughRealAndroidCursorWindows,dev.solvit.app.ChatLayoutTest#roleAppliedThroughSettingsReachesProviderAndNewChatRequest' ;;
   chat-role) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#roleAppliedThroughSettingsReachesProviderAndNewChatRequest' ;;
   chat-branch) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending' ;;

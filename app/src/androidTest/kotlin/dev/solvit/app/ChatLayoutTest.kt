@@ -214,6 +214,66 @@ class ChatLayoutTest {
         rule.onNodeWithText("branch original question").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("later answer").fetchSemanticsNodes().isNotEmpty() }
     }
+    @Test fun actualAndroidTsProjectRulesRefreshWithoutChangingRoleOrCreatingUnboundWorkspace() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        runBlocking {
+            val id = "dev.solvit.workspace"
+            val wasEnabled = app.marketplace.installed.value.single { it.id == id }.enabled
+            val configuration = app.marketplace.configuration(id)
+            val chat = app.ready.value!!.getOrThrow()
+            val role = AgentRole("project-rules-" + java.util.UUID.randomUUID(), "Project identity", "Retain this role identity", setOf(id))
+            var session: ChatSession? = null
+            var unregister: (() -> Unit)? = null
+            val requests = mutableListOf<ModelRequest>()
+            try {
+                if (wasEnabled) app.marketplace.disable(id)
+                app.marketplace.configure(id, mapOf("projectRules" to "true"))
+                app.marketplace.enable(id, setOf("workspace", "shell"))
+                assertEquals("1.2.0", app.marketplace.installed.value.single { it.id == id }.version)
+                val provider = object : ModelProvider {
+                    override val id = "android-project-rules-fixture"
+                    override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                        requests += request
+                        return kotlinx.coroutines.flow.flowOf(ModelChunk.Text("fixture response"), ModelChunk.Done)
+                    }
+                }
+                unregister = app.modelProviders.register(ModelProviderInfo(provider.id, "Rules fixture", "https://example.com", "fixture"), provider)
+                app.roles.save(role); session = chat.createSession(); app.roles.select(session!!.id, role.id)
+                val workspace = app.workspaces.create("Project rule device fixture")
+                app.workspaces.bind(session!!.id, workspace.id)
+                val text = "DEVICE_FIRST_RULE\n" + "安卓规则🙂".repeat(500)
+                assertTrue(text.toByteArray().size > 6 * 1024)
+                app.workspaces.write(workspace.id, "AGENTS.md", text)
+                suspend fun send() {
+                    val chunks = chat.send(session!!.id, "Inspect project rules", ModelConfig(providerId = provider.id)).toList()
+                    assertTrue(chunks.none { it is ModelChunk.ToolActivity })
+                    assertTrue(requests.last().contextProblems.isEmpty(), requests.last().contextProblems.toString())
+                    val system = requests.last().messages.single { it.role == Role.SYSTEM }.content
+                    assertTrue(system.contains(role.name)); assertTrue(system.contains(role.prompt)); assertFalse(system.contains("DEVICE_"))
+                }
+                send()
+                assertTrue(requests.last().messages.last { it.role == Role.USER }.content.contains("DEVICE_FIRST_RULE"))
+                assertTrue(requests.last().messages.last { it.role == Role.USER }.content.contains("安卓规则🙂"))
+                app.workspaces.write(workspace.id, "AGENTS.md", "DEVICE_CHANGED_RULE")
+                send()
+                assertTrue(requests.last().messages.last { it.role == Role.USER }.content.contains("DEVICE_CHANGED_RULE"))
+                assertFalse(requests.last().messages.any { it.content.contains("DEVICE_FIRST_RULE") })
+                assertTrue(java.io.File(app.workspaces.location(workspace.id), "AGENTS.md").delete())
+                send(); assertFalse(requests.last().messages.any { it.content.contains("DEVICE_CHANGED_RULE") })
+                app.workspaces.unbind(session!!.id); send(); assertNull(app.workspaces.bound(session!!.id))
+                assertEquals(4, requests.size)
+                assertFalse(chat.messages(session!!.id).first().any { it.content.contains("DEVICE_FIRST_RULE") || it.content.contains("DEVICE_CHANGED_RULE") })
+            } finally {
+                unregister?.invoke()
+                session?.let { chat.deleteSession(it.id) }; app.roles.delete(role.id)
+                if (app.marketplace.installed.value.single { it.id == id }.enabled) app.marketplace.disable(id)
+                app.marketplace.configure(id, configuration)
+                if (wasEnabled) app.marketplace.enable(id, setOf("workspace", "shell"))
+            }
+        }
+    }
+
     @Test fun actualAndroidJsMemoryReachesPreparedModelRequestWithoutSearchToolCalls() {
         ready()
         val app = rule.activity.application as SolvitApplication
