@@ -116,6 +116,8 @@ class GitHtmlPageTest {
             click("git_stage"); click("git_confirm"); confirm(false)
             assertNull(runBlocking { probe.status().entries.first { it.path == "a.txt" }.staged })
             click("git_confirm"); confirm(true)
+            // Dialog dismissal happens before PluginPageScreen's async dispatch finishes.
+            waitDom("!!document.querySelector('[data-node=git_files]') && !document.querySelector('[data-node=git_files]').disabled")
             assertEquals("added", runBlocking { probe.status().entries.first { it.path == "a.txt" }.staged })
             val working = "working after staging 😀\n"
             File(root, "a.txt").writeText(working)
