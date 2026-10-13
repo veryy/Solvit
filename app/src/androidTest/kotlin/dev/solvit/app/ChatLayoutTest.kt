@@ -975,7 +975,13 @@ class ChatLayoutTest {
             page.tapElement("#command")
             rule.waitUntil(8000) { page.keyboardVisible() }
             rule.waitUntil(8000) { js("document.querySelector('footer').getBoundingClientRect().bottom<=innerHeight+1 && document.getElementById('terminals').getBoundingClientRect().height>=40") == "true" }
+            assertEquals("true", js("document.getElementById('compact-interrupt').getBoundingClientRect().width>0 && getComputedStyle(document.getElementById('keys')).display==='none'"))
             page.screenshot("workspace-terminal-keyboard")
+            command("sh -c 'printf \"__KEYBOARD_SLEEP_%s__\\n\" STARTED; exec sleep 30'")
+            rule.waitUntil(8000) { app.terminals.sessions.value.any { it.id==model.id && it.output.contains("__KEYBOARD_SLEEP_STARTED__") } }
+            page.tapElement("#compact-interrupt")
+            rule.waitUntil(8000) { app.terminals.sessions.value.any { it.id==model.id &&
+                it.output.substringAfterLast("__KEYBOARD_SLEEP_STARTED__", "").contains("\$ ") } }
             page.hideKeyboard()
             rule.waitUntil(8000) { !page.keyboardVisible() }
             js("document.getElementById('manage').click()")
