@@ -43,3 +43,9 @@ TS changesPage与diff模块已提交，但尚未在manifest注册或从聊天打
 HTML接入阶段继续读取固定DSH packages/client/ui-primitives/src/DiffBlock.tsx及tests/diff-block.client.spec.tsx、ui-tool/tests/diff-card.client.spec.tsx：插件拥有本地化、路径标题、增删配色、空行/终止换行和完整展开行为。采用其任务语义，不复制React/Cordis实现；Solvit原有页桥提供验证后的TS状态与主题/生命周期，插件review/main.mjs使用textContent绘制行号和字面正文、摘要信息默认折叠，不执行文件里的HTML。API17/工作区1.3.0注册changes页面，聊天同一消息内的默认折叠执行记录打开宿主固定run桥接。保留原1.2.0/API16原始包以保证旧目录；未在本地构建，后续须远程生成包、核对提交产物、真正QuickJS/SQLite重开及Android HTML回归，再发布APK。
 
 执行页声明context:execution（API17且workspace权限），普通插件详情仅列出management页，并拒绝泛化openPage调用execution页，避免没有选定执行时展示无效入口或脚本自选run。BuiltinWorkspaceManager只接受宿主固定桥接，而且在缓存页回调、正文/资源返回前后核验当前对话；不因TS已缓存全文就跳过所属对话检查。新增双方清单校验及API16旧包不变检查。
+
+### API16 bundled workspace upgrade regression
+
+Remote Android run 38440313853 reproduced a real upgrade gap: of 73 marketplace tests, only `originalApi16WorkspaceUpgradesWithoutLosingItsSavedRuleSwitchOrGrants` failed (line 119). The byte-identical 1.2.0 package was missing from the original-package SHA-256 allowlist. Added its verified hash `545abc7b667f31468777e378d4c7620709f9e2e03fca6f4c1b490e24bd4b0bbe`; modified packages remain outside the allowlist. The regression retains saved configuration, enabled state and grants, rejects opening execution pages without a run bridge, and checks modified/uninstalled packages are preserved. Remote green verification remains pending.
+
+Actual Android HTML diagnostic run 38439268360 passed `OK (2 tests)`; artifact 11834641603 (798123 bytes) was downloaded and ZIP CRC checked. Dark diff and light long-line-tail screenshots were captured. This is historical snapshot/HTML integration evidence, not a real-model task.
