@@ -15,7 +15,7 @@ suspend fun Call.awaitResponse(): Response = suspendCancellableCoroutine { conti
         override fun onResponse(call: Call,response:Response) { continuation.resume(response) { _,value,_ -> value.close() } }
     })
 }
-suspend fun <T> Call.readResponse(block:suspend (Response)->T): T = coroutineScope {
+suspend fun <T> Call.readResponse(ioDispatcher:CoroutineDispatcher = Dispatchers.IO, block:suspend (Response)->T): T = coroutineScope {
     val call=this@readResponse
     val cancellation=launch(start=CoroutineStart.UNDISPATCHED) { try { awaitCancellation() } finally { call.cancel() } }
     try { call.awaitResponse().use { block(it) } } finally { cancellation.cancelAndJoin();call.cancel() }
