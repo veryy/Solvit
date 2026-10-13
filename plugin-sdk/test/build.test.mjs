@@ -6,6 +6,28 @@ import { tmpdir } from 'node:os';
 import vm from 'node:vm';
 import { buildPlugin } from '../scripts/build-plugin.mjs';
 
+test('API19 Git pages bundle with explicit workspace/Git permissions and reject incompatible manifests', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'solvit-git-page-'));
+  try {
+    const entry = join(dir, 'entry.ts'), file = join(dir, 'manifest.json'), output = join(dir, 'output.json');
+    await writeFile(entry, "export default {tools:{},pages:{main:async(input,ctx)=>{const status=await ctx.gitPage.query('status',{offset:0,limit:10});return {title:'Git',nodes:[{id:'state',kind:'text',text:status.branch}]};}}};");
+    const manifest = {id:'test.git.page',name:'Git',description:'Test',version:'1.0.0',apiVersion:19,
+      permissions:['workspace','git'],nativeServices:['workspace.git'],dependencies:[],tools:[],pages:[{id:'main',title:'Git'}]};
+    for (const invalid of [{...manifest,apiVersion:18},{...manifest,permissions:['workspace']},
+      {...manifest,permissions:['git']},{...manifest,nativeServices:['workspace.unknown']}]) {
+      await writeFile(file,JSON.stringify(invalid));
+      await assert.rejects(()=>buildPlugin(entry,file,output));
+    }
+    await writeFile(file,JSON.stringify(manifest)); await buildPlugin(entry,file,output);
+    const sandbox=vm.createContext({}); vm.runInContext(JSON.parse(await readFile(output,'utf8')).source,sandbox);
+    let reads=0;
+    const view=await sandbox.solvitPlugin.pages.main({locale:'en',event:null},{gitPage:{query:async(operation,args)=>{
+      assert.equal(operation,'status');assert.equal(args.offset,0);assert.equal(args.limit,10);reads++;return {branch:'main'};
+    }}});
+    assert.equal(reads,1);assert.equal(view.nodes[0].text,'main');
+  } finally { await rm(dir,{recursive:true}); }
+});
+
 test('notes example supplies localized native pages and persists through plugin callbacks', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'solvit-notes-'));
   try {

@@ -28,7 +28,7 @@ import dev.solvit.core.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean) -> dev.solvit.core.PageWorkspaceAccess)? = null, terminalAccess: ((String) -> PageTerminalAccess)? = null, onDismiss: () -> Unit) {
+fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean) -> dev.solvit.core.PageWorkspaceAccess)? = null, terminalAccess: ((String) -> PageTerminalAccess)? = null, gitAccess: (() -> PageGitAccess)? = null, onDismiss: () -> Unit) {
     val installed by vm.installed.collectAsStateWithLifecycle()
     val catalog by vm.catalog.collectAsStateWithLifecycle()
     val loading by vm.loading.collectAsStateWithLifecycle()
@@ -173,9 +173,23 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                 val permissions = installed.firstOrNull { it.id == pluginId }?.permissions.orEmpty()
                 // Capture the chat before acquiring a page lease; a missing chat must not leak a lease.
                 val access = if ("workspace" in permissions) workspaceAccess?.invoke("plugins" in permissions) else null
-                vm.openPage(pluginId, page.id, locale).also { session ->
-                    access?.let(session::attachWorkspace)
-                    if (permissions.containsAll(setOf("workspace", "shell"))) terminalAccess?.invoke(pluginId)?.let(session::attachTerminal)
+                var git: PageGitAccess? = null
+                var opened: ExtensionPageSession? = null
+                try {
+                    git = if (permissions.containsAll(setOf("workspace", "git"))) gitAccess?.invoke() else null
+                    vm.openPage(pluginId, page.id, locale).also { session ->
+                        opened = session
+                        access?.let(session::attachWorkspace)
+                        git?.let(session::attachGit)
+                        if (permissions.containsAll(setOf("workspace", "shell"))) terminalAccess?.invoke(pluginId)?.let(session::attachTerminal)
+                    }
+                } catch (failure: Throwable) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                        try { opened?.close() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                        try { access?.close() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                        try { git?.close() } catch (cleanup: Throwable) { failure.addSuppressed(cleanup) }
+                    }
+                    throw failure
                 }
             }) { openedPage = null }
         }
@@ -188,6 +202,7 @@ private fun permissionDescription(permissions: Set<String>): String = if (permis
         "storage" -> "插件自己的持久化存储"
         "network" -> "访问 HTTPS 网络服务"
         "workspace" -> "读取和修改当前对话工作区的文件与会话"
+        "git" -> "读取当前工作区Git状态与差异，确认后暂存和提交"
         "shell" -> "以应用身份运行 Shell，可访问本应用文件和网络"
         "plugins" -> "生成和校验插件草稿；安装与启用需单独操作"
         "model" -> "后台模型调用，可能产生模型服务费用"

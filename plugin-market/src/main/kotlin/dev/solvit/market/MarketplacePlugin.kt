@@ -31,6 +31,7 @@ class AndroidMarketplace(
     private val drafts: (() -> PluginDraftService)? = null,
     private val terminals: TerminalService? = null,
     private val webPages: WebPageService? = null,
+    private val git: WorkspaceGitService? = null,
 ) : MarketplaceService {
     private val directory = File(context.filesDir, "extensions").apply { mkdirs() }
     private val prefs = context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
@@ -134,7 +135,7 @@ class AndroidMarketplace(
     }
 
     override suspend fun catalog(): List<MarketEntry> {
-        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=18", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
+        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=19", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
         check(root.getValue("apiVersion").jsonPrimitive.int == 1) { "市场 API 版本不兼容" }
         val entries = root.getValue("plugins").jsonArray.map { element ->
             val m = element.jsonObject
@@ -310,6 +311,7 @@ class AndroidMarketplace(
         val permission = when (operation) {
             "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
             "model.complete" -> "model"
+            "git.status", "git.diff", "git.history" -> "git"
             "http.request", "web.visit" -> "network"
             "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions" -> "workspace"
             "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
@@ -392,6 +394,27 @@ class AndroidMarketplace(
                     put("url", link.url); put("title", link.title); put("snippet", link.snippet)
                 }) } })
             }
+        }
+        if (operation.startsWith("git.")) {
+            check(manifest.apiVersion >= 19 && "workspace.git" in manifest.nativeServices &&
+                manifest.permissions.containsAll(setOf("workspace", "git")))
+            check(page == null && background == null) { "Git工具只能在已授权的AI工具调用中使用" }
+            val context = currentCoroutineContext()
+            val invocation = context[ToolInvocationContext] ?: error("Git操作必须通过工具授权")
+            val conversation = context[ConversationContext] ?: error("请在绑定工作区的AI对话中调用Git工具")
+            val workspace = checkNotNull(workspaces)
+            suspend fun authorizeGit() {
+                currentCoroutineContext().ensureActive()
+                verifyGrants()
+                check(prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty().containsAll(setOf("workspace", "git")))
+                check(manager.states.value[manifest.id] == PluginState.ENABLED && prefs.getBoolean("enabled.${manifest.id}", false))
+                check(packages[manifest.id]?.manifest == manifest) { "Git插件已被替换" }
+                check(invocation.descriptor.pluginId == manifest.id && context[AgentRoleContext]?.role?.allows(manifest.id) != false)
+                check(Json.parseToJsonElement(invocation.call.argumentsJson) == arguments) { "Git参数与用户确认内容不一致" }
+                check(workspace.state.value.bindings[conversation.sessionId] == conversation.workspaceId) { "对话工作区已变化" }
+            }
+            authorizeGit()
+            return GitToolBridge(checkNotNull(git) { "Git服务不可用" }).query(operation, arguments, conversation, ::authorizeGit)
         }
         if (operation.startsWith("workspace.") || operation.startsWith("terminal.") || operation == "plugins.draft") {
             check(manifest.apiVersion >= 4)
@@ -600,9 +623,9 @@ private fun terminalJson(session: TerminalSession): JsonObject = buildJsonObject
 
 class MarketplacePlugin(private val context: Context, private val manager: PluginManager,
     private val useWorkspaces: Boolean = false, private val drafts: (() -> PluginDraftService)? = null,
-    private val useWebPages: Boolean = false) : SolvitPlugin {
+    private val useWebPages: Boolean = false, private val useGit: Boolean = false) : SolvitPlugin {
     override val id = "builtin.plugins.marketplace"
-    override val requires = buildSet { add(Services.Tools); if (useWorkspaces) { add(WorkspaceServiceKey); add(TerminalServiceKey) }; if (useWebPages) add(WebPageServiceKey) }
+    override val requires = buildSet { add(Services.Tools); if (useWorkspaces) { add(WorkspaceServiceKey); add(TerminalServiceKey) }; if (useWebPages) add(WebPageServiceKey); if (useGit) { add(WorkspaceGitServiceKey); add(WorkspaceServiceKey) } }
     override val provides = setOf(MarketplaceServiceKey)
     lateinit var service: AndroidMarketplace
         private set
@@ -613,7 +636,8 @@ class MarketplacePlugin(private val context: Context, private val manager: Plugi
         service = AndroidMarketplace(this.context, manager, client, context.require(Services.Tools),
             workspaces = if (useWorkspaces) context.require(WorkspaceServiceKey) else null, drafts = drafts,
             terminals = if (useWorkspaces) context.require(TerminalServiceKey) else null,
-            webPages = if (useWebPages) context.require(WebPageServiceKey) else null)
+            webPages = if (useWebPages) context.require(WebPageServiceKey) else null,
+            git = if (useGit) context.require(WorkspaceGitServiceKey) else null)
         context.register(MarketplaceServiceKey, service)
     }
 }

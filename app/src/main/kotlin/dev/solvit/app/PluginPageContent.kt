@@ -92,11 +92,13 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                 val file = metadata?.takeIf { it["kind"]?.jsonPrimitive?.content?.startsWith("document.") == true }
                     ?.let(ScriptPageHostAction::document)
                 val workspace = metadata?.takeIf { it["kind"] == JsonPrimitive("workspace.perform") }?.let(ScriptPageHostAction::workspace)
-                val native = metadata?.takeIf { file == null && workspace == null }?.let(ScriptPageHostAction::parse)
-                if (workspace != null) {
+                val git = metadata?.takeIf { it["kind"] == JsonPrimitive("git.perform") }?.let(ScriptPageHostAction::git)
+                val native = metadata?.takeIf { file == null && workspace == null && git == null }?.let(ScriptPageHostAction::parse)
+                val directoryControl = workspace ?: git
+                if (directoryControl != null) {
                     Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(workspace.operation)
-                        SelectionContainer { Text(workspace.argumentsJson) }
+                        Text(directoryControl.operation)
+                        SelectionContainer { Text(directoryControl.argumentsJson) }
                     }
                 } else if (file != null) {
                     UiText(when(file) {

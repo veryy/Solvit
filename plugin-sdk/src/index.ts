@@ -18,6 +18,11 @@ export interface WorkspaceInstructionSource {
 }
 export interface WorkspaceInstructions {readonly available:boolean;readonly sources:readonly WorkspaceInstructionSource[]}
 export interface PluginContext {
+  /** API19, authorized AI tool only; root and chat selectors are owned by the host. */
+  readonly git?: {call(operation:'status'|'diff'|'history',args?:JsonObject):Promise<JsonValue>};
+  /** API19, page-only. Native reviews are opaque handles; perform consumes a displayed confirmed action. */
+  readonly gitPage?: {query(operation:'status'|'diff'|'diffChunk'|'history'|'reviewCommit',args?:JsonObject):Promise<JsonValue>;
+    perform():Promise<JsonValue>};
   /** API12, human page only. The host captures the chat; scripts cannot supply a chat/workspace id to file queries. */
   readonly workspacePage?: {query(operation:'snapshot'|'list'|'read'|'readChunk'|'editBegin'|'editAppend'|'editFinish'|'editDiscard'|'drafts'|'draft'|'changes'|'changeContent',args?:JsonObject):Promise<JsonValue>;
     perform():Promise<JsonValue>};
@@ -100,16 +105,16 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
-  nativeServices?: ('terminal.pty'|'web.pages')[];
+  nativeServices?: ('terminal.pty'|'web.pages'|'workspace.git')[];
   pages?: { id: string; title: string; entry?: string; context?: 'management'|'execution' }[];
   hooks?: ('beforeModel' | 'afterTurn')[];
   afterTurnEnabledSetting?: string;
   /** API14 + agent permission: a declared boolean setting, default false, globally selects this strategy. */
   agentEnabledSetting?: string;
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret' | 'boolean'; required?: boolean; defaultValue?: 'true' | 'false'; pageManaged?: boolean }[];
-  permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins' | 'model' | 'agent' | 'agent.read')[];
+  permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins' | 'model' | 'agent' | 'agent.read' | 'git')[];
   dependencies: string[];
   tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management' }[];
 }

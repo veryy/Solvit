@@ -1,0 +1,119 @@
+# 工作区 Git 与 GitHub
+
+完整范围：同一工作区文件树/预览/编辑/终端/Changes，工作树与暂存区分别查看，选择暂存/取消暂存、提交/历史、克隆/拉取/推送及冲突处理；JS/TS插件页面与AI工具共用受宿主约束的服务，凭据加密且不传入页面/模型文本。当前仅开始底层Android兼容验证，尚无可用Git插件，不把历史执行快照当作Git状态。
+
+先核对固定DSH d743267388641bc76f17c45ce8b4c231aed1d32c的packages/deliverables/workspace-changes/src/git.ts与tests/git.spec.ts：调用真实git、限制时间与输出、字面路径匹配、索引冲突与失败明确报告。Operit dbf71916fae9750cfdc9f9a774f5a0fee56633fb的examples/github/src/local/terminal.ts实际通过Tools.System.terminal执行命令，github/contents.ts通过GitHub内容API带版本SHA更新文件；后者不能代替本地Git索引与整个项目提交。
+
+Android基础系统不保证git可执行文件存在；不能仅给Shell拼接git命令就认为本地Git可用。核对JGit官方仓库v7.8.0.202609011348-r，实际提交f386af5bb89c42eec92ee1547fc3201d743165cb，pom.xml声明Java17，LICENSE为EDL1.0；阅读StatusCommand及StatusCommandTest、AddCommandTest中真实工作树与索引分别变化、删除后重建与目录前缀行为。先以独立git-android模块、明确JDK desugaring、API26与35真实模拟器验证init/status/diff/add/commit/log/reopen，不依赖系统git或模拟仓库。依赖构建全部远程；许可证随源码保留。只有实际兼容通过后才接绑定目录的宿主服务，严格限制.git/工作树路径与外部配置、关闭默认外部hooks、取消与权限回收，再实现插件页面和AI工具。Java库身份不证明Android兼容，当前结果待远程执行。
+
+官方来源：https://github.com/eclipse-jgit/jgit/tree/v7.8.0.202609011348-r ，https://isomorphic-git.org/docs/en/statusMatrix.html 。isomorphic-git需要fs适配；现有QuickJS与页面不应暴露任意二进制文件读写来强行运行整个Git。JGit仍是候选，若实际平台失败必须根据日志修复或选成熟替代组件，不能削减本地Git/远程GitHub范围。
+
+
+首次38463878364/2706156真实APK编译成功，API35仓库完整用例通过，API26实际NoSuchMethodError在IO.readSome→SilentFileInputStream.readNBytes，Git.init尚未完成。Google官方Java11 desugaring列表未提供readNBytes，直接启用普通desugaring不能证明支持；6.10.1同一IO实现仍调用该方法，降版本不会解决此根因。保持当前JGit7.8与minSDK26，使用构建时ASM转换仅在org/eclipse/jgit类中把readNBytes/readAllBytes虚调用替换到Android宿主流适配；不改Git索引/对象/提交算法，保留EDL许可，变化jar去除失效签名文件。适配遵守长度/EOF/不关闭流/异常传播，新增实际Android边界测试；原完整仓库用例不删，增加gc后的真实pack对象覆盖。全部构建转换与测试继续远程执行，当前修复待验证。官方API依据：https://developer.android.com/reference/java/io/InputStream ，https://developer.android.com/studio/write/java11-nio-support-table 。ASM9.8仅为构建依赖，不进入App运行时。
+
+
+修复后的38464984225/dbb3828两台真实Android模拟器均成功。下载11848647132（API26 ZIP13,397字节）和11847429286（API35 ZIP13,424字节），核对CRC与实际JUnit XML：每台2项、无失败/错误/跳过，分别为流适配边界及真实Git仓库全过程。保留中文/emoji及字面特殊文件名、真实gc打包对象、索引和工作树不同内容、仅提交已暂存版本且未暂存内容保留、关闭重开与删除暂存断言。没有降低minSDK或更换旧库来绕过失败。该结果只证明独立Git模块兼容，绑定工作区的授权/路径隔离、Git插件页面、AI工具、远程克隆/拉取/推送与完整任务仍未实现；后续全部范围继续，0.28文件工作台发布分支保持独立。
+
+
+继续实现原生BoundWorkspaceGit只读能力：只接受宿主已绑定的WorkspaceService与捕获对话，不接受JS目录，调用前、原生目录锁内和返回前复核活动对话/绑定/授权；关闭后拒绝。真实工作树和暂存区分别汇总、分页、显示冲突及提交历史；无仓库明确失败且不得自动init。只打开根目录内实体.git，拒绝外部commondir/alternates、元数据符号链接、外部include配置与重定向worktree。新增实际AndroidWorkspaces+真实JGit索引回归覆盖撤权、切换对话、重绑定、关闭、无仓库、外部配置与链接。该原生服务尚未接JS页面或AI，不宣称Git插件可用；暂存/提交/远程功能随后继续。全部实际测试待新的远程结果。
+
+
+读取JGit同一固定版本DiffCommand.java与DiffCommandTest.java的HEAD/DirCacheIterator/FileTreeIterator及过滤语义后，增加原生diff(path,staged)：真实HEAD→index或index→worktree，字面文件名过滤、首次提交无HEAD采用空树、二进制阈值256KiB、输出超限明确失败。返回HEAD与索引SHA及未暂存文件SHA，读取前后版本变化拒绝返回混合差异；禁止.git路径、跨目录、目录及符号链接读取。版本摘要最多8MiB，超限明确失败。实际Android用例增加暂存/未暂存内容严格不同、读取不改索引或工作文件、外部路径/元数据/链接拒绝。当前原生服务仍未接插件UI/AI，远程结果待确认；暂存/提交与远程GitHub范围保持。
+
+
+继续读取同版本AddCommand.java/Test、ResetCommand.java/Test及CommitCommand.java/Test：字面单路径暂存，reset -- path只恢复索引不改工作文件，commit默认只提交索引；setNoVerify只绕过pre-commit/commit-msg，post-commit仍调用，因此宿主FS明确返回hook不存在并拒绝runInShell，不能仅靠noVerify声称不执行hooks。新增stage/unstage/commit：独立写授权默认拒绝、审阅的HEAD/index/工作文件摘要在授权前后复核、取消暂存不改工作文件、提交不隐式暂存/不amend/不签名/不允许空提交，未完成合并状态拒绝。拒绝自动过滤器配置；该阶段不支持LFS过滤器。实际Android新增未授权不改索引、外部变更拒绝、只暂存单文件、取消暂存保留文件、旧审阅拒绝、提交仅索引且保留其他未暂存内容、三种恶意hooks不执行、删除暂存/取消暂存回归。源码及时提交，远程验证待结果；页面/AI路由与远程GitHub仍待接入。
+
+
+写入审阅边界进一步改为JGit已有DirCacheBuilder/ObjectInserter/RefUpdate底层接口：暂存冻结并核对审阅字节，仅替换一个索引路径；取消暂存从HEAD恢复单个索引条目，工作文件保持；提交在索引锁内写当前审阅树、以expectedOldObjectId更新HEAD，拒绝空变化与冲突，不通过CommitCommand自动hooks。获取索引锁后以及授权回调后重查审阅的HEAD/index摘要，避免check→稍后JGit获取锁期间索引改变。使用现有JGit对象与锁实现，未自行实现Git对象/差异算法。暂存保存原始字节，不运行自动过滤器/换行转换；后续页面必须说明不支持LFS过滤器。新实现在远程测试中，不能只凭锁接口声明并发验收完成；原回归保留。
+
+
+审阅版本继续包含当前分支及可执行位：只比较文件SHA不能发现chmod变化，只比较HEAD SHA不能发现切换到相同提交的另一个分支。暂存记录审阅的可执行位，变更时拒绝；提交指向审阅的分支名并以原HEAD对象CAS更新，拒绝没有文件的初始空提交。增加真实chmod后暂存拒绝且索引不变断言，未删除原写入回归。正式0.28构建已通过build/插件/公网搜索，完整UI仍运行，Git分支保持独立。
+
+
+实际差异服务38467615726/62f5e73成功，取回API26的11851035021和API35的11850865223（各ZIP15,709字节），CRC与实际XML均每台3项无失败/错误/跳过。实际写入第一版38468188677/e6e9036也成功：取回API26 11851495005（16,823字节）与API35 11851415239（16,678字节），实际每台4项无失败/错误/跳过，包括新增真实暂存/取消暂存/仅提交索引/保留工作文件/禁用hooks。该证据对应旧版本，不能代替后来9d28d79/0414c3d索引锁、分支及可执行位改动的验证，最新2cdae7f矩阵继续运行。追加同分支只保留最新Git矩阵的concurrency，取消已被新源码替代的旧矩阵以免堆积；正式0.28发布作业保持原run不重启。
+
+
+增加显式initialize：通过捕获对话的宿主WorkspaceService.location获取根目录、独立写授权、原生锁内再次确认.git不存在，只初始化main分支，已有元数据包括悬空链接不能覆盖；reads仍不自动建仓。新增真实新工作区未授权不建仓、已有文本保留、初始空提交拒绝、无HEAD新增文件diff/暂存/取消暂存、只提交选中文件且其余未跟踪文件保留回归。凭据/网络/JS页面未开放，全部新测试仍待远程结果；同分支旧矩阵由新源码替代，0.28正式发布作业保持不变。
+
+
+共享服务阶段：进一步阅读固定DSH的packages/workspace/workspace/src/index.ts及tests/workspace.spec.ts的服务注入、对话工作区归属与生命周期组合，以及deliverables/workspace-changes服务的有界查询设计。core新增WorkspaceGitService/Session与类型键，不依赖JGit或Android；原生BoundWorkspaceGit实现该接口，原路径/审阅/授权检查保留。WorkspaceGitPlugin声明WorkspaceService依赖，注册服务并拥有所有绑定会话；主动关闭移除会话，停用使旧服务和旧会话失效，重新启用生成新服务并读取同一仓库。页面与AI适配器后续共用接口，必须在宿主持有review值，JS只拿句柄，不接受JS伪造patch/版本。新增实际Android注册、独立读写授权、提交、关闭、停用及重新启用的测试；Git兼容workflow同时监测core修改。当前源码尚未接入App/JS页面/AI工具，新增生命周期测试待远程构建，不声称Git已经可在APK中使用。
+
+
+初始化与首次提交55ad9ae/38469564012已完成：API26、35均成功，取回11851507167（18,089字节）和11850813090（20,676字节），CRC与真实JUnit XML核对每台5项，0失败/错误/跳过；其中BoundWorkspaceGitTest三项、引擎兼容两项。该源包含索引锁、分支/可执行位审阅及首次提交，但不包含后来9940b38服务生命周期，后者由38471186426继续验证。
+
+App候选改为0.29.0/code58以区别不可变公开0.28.0，加入git-android并在最终App启用JDK desugaring；注册WorkspaceGitPlugin，取类型化WorkspaceGitService供后续宿主页面/工具桥使用。尚未升级API18或发布市场包，公开0.28资产及旧市场目录保持原样；Git业务页面/AI工具未接通，候选APK不作为完整Git功能交付。实际App打包、完整旧功能回归和新增生命周期测试均使用远程构建，不在本地执行。
+
+
+页面桥候选新增GitPageBridge：独立PageGitAccess，服务绑定由宿主传入当前对话；只读status/diff/history/索引审阅和确认后的initialize/stage/unstage/commit分别进入不同的协程授权上下文。页面不传根目录、Git命令、patch、HEAD或index SHA；差异及提交版本只保留在宿主，随机句柄匹配，新的审阅替换旧句柄，写入后消耗句柄。差异按4096字符完整分块且不切开emoji，cached chunk也重新检查原生绑定；单页最多一个256KiB差异，关闭清理并关闭原生会话。16KiB查询响应上限显式报错，要求减少分页，不悄悄截断。新增桥层伪造/失效句柄、切换对话、emoji边界、只读不能写、撤销授权及提交使用原生版本对象回归；它们验证宿主协议，真实Git文件效果仍由原生Android用例验证。SDK/API19、插件HTML/JS页面和AI路由尚未接入，因此桥实现不等于用户可操作Git页面。
+
+
+共享服务生命周期9940b38/38471186426两台Android模拟器均成功。取回API26 11852100940（20,121字节）与API35 11852076005（20,144字节），CRC及实际JUnit XML每台6项，0失败/错误/跳过；新增WorkspaceGitPluginTest确实执行，覆盖依赖注册、未授权初始化不建仓、读授权撤回、真实选中文件提交、旧会话关闭、停用后旧服务/会话失效、重新启用保留相同文件和历史、shutdown回收。该结果不包含7fef272页面桥或最终App接线；最新原生38471812126与Android38471812458仍进行中，不能把旧服务结果替代新候选门禁。
+
+
+API19运行时/SDK候选：参考固定DSH client/ui-workspace/src/index.ts中业务页属于独立UI插件，以及workspace-browser.client.spec.tsx新增祖先/子目录保留会话的场景；Android沿用宿主捕获对话/目录，Git服务与JS页独立注册。清单解析与TS构建器接受API19，新增git权限及workspace.git服务（还须workspace权限），ScriptToolPlugin明确注入类型服务而非Shell依赖。ctx.gitPage提供只读query和无参数perform，后者只消费当前已显示且确认的git.perform控件；参数不接受JS隐藏命令，生命周期/Hook/后台不能调用。宿主页面会话拥有PageGitAccess，失败打开/关闭收回接口；通用Marketplace页面转交接口。新增实际QuickJS完整查询、确认、旧视图/双调用/隐藏参数拒绝及关闭回归，SDK真正打包API19页面并核对查询参数、拒绝API18/缺权限/未知服务。当前市场请求仍API18、旧包未改；App页面工厂与Git插件HTML/JS、API19线上目录及AI调用尚未完成，不能把协议候选当作公开功能。远程验证待结果，全部构建和测试继续在Actions执行。
+
+
+App通用插件页工厂接线：当前对话WorkspaceViewModel生成GitPageBridge，插件只有workspace/git双权限才能附加Git页面能力，ScriptPageSession还验证API19及workspace.git显式依赖。打开/附加失败在NonCancellable中关闭已获得的页面租约和工作区/Git接口，并保留原失败及清理失败；原生业务页未新增，Git界面仍由后续HTML/JS插件提供。远程打包与新页面协议回归尚待验证，未发布候选APK。
+
+
+Git HTML/TS页面候选：新增dev.solvit.git 1.0.0/API19，Changes分工作树/暂存区按钮、10项分页、完整差异分块、明确审阅后暂存/取消暂存、暂存区提交表单及原生确认、历史。差异完整读完才显示可用的暂存按钮；提交使用reviewCommit得到的宿主索引句柄。Files直接组合已发布workspacePage，并导入同一workspace/ui/main.mjs复用离线CodeMirror和文件树，包含原许可证；编辑/确认期间不提供跳回Git按钮，保留现有放弃未保存修改的操作。CSS与编辑器许可证复制自现有同仓资源，业务组件代码直接复用。工作区容器新增Git标签，BuiltinWorkspaceManager只接受固定API19包与宿主工作区/Git接口，人工页面不启用插件AI工具。TS/SDK新增实际打包完整差异（跨emoji分块）、分离工作树/暂存区、写前只审阅不写、原生句柄提交、同目录Files与编辑器资源测试。市场服务接受API19用于新增包，当前App市场请求仍API18，旧客户端不会收到Git；服务尚未部署。插件包须Actions生成后取回提交，当前尚无APK业务验收或Git AI工具，远程GitHub全范围继续保留。
+
+
+实际失败保留：d4f2ca6/38472698336的Android构建在GitPageBridgeTest initializationError失败（JUnit要求void方法，测试以runBlocking推断返回最后一次assertFailsWith的异常对象）。两项桥回归显式runBlocking<Unit>，断言保持。8f91406/38473462631实际TS2339在pages.ts待确认操作arguments读取，PageHostAction是包含document等多类型联合；将pending缩窄为Extract<PageHostAction,{kind:'git.perform'}>，保持Git操作与全部元数据验证，不能以跳过typecheck替代修复。重新远程构建和生成，失败前生成的包不作为交付证据。
+
+
+远程生成738e5ac/38473695207已成功，实际日志包含typecheck、109 SDK及2市场测试成功（推送38473669654只因未提交新包的一致性门禁失败）。取回11853386299（ZIP820,252字节）CRC核对；14个生成包逐个检查，所有已存在包字节完全不变，只新增Git包713,413字节，SHA256 72ba8181becb82bebe1120c1f20a6d1e968de304df910bcd97c9ebcf4d677ea2，原字节分别提交市场包与APK资产。App市场请求升级hostApi19，种子测试明确增加第9个Git插件并保留全部默认停用/零授权检查；公共服务尚未部署，新APK未发布。
+
+新增真实Android GitHtmlPageTest与git-workbench诊断入口：固定APK中的HTML/JS、原生确认、取消初始化不建仓、完整多块Unicode差异、取消暂存不写索引、真实暂存、工作文件后改但提交只采用索引、其他未跟踪文件保留、Files实际CodeMirror预览当前文件、同目录真实Shell cat输出一致以及Git插件默认停用。新增用例尚待远程执行，不能用SDK沙箱或原生引擎结果替代UI证据。此前d4f2ca6失败报告中GitPageSessionTest实际三项0失败/错误/跳过已核对；整次Android因桥测试JUnit返回类型失败，仍保留失败结论。
+
+
+生成包提交后的e02eb60/38474358025 TypeScript门禁实际全成功；下载115561267240完整job日志核对109 SDK/2市场均0失败，typecheck、生成包与源码一致性及无配置公网搜索（三来源、cn.bing.com/www.bing.com）通过。生成包原字节未改，23da77e只修正Android ShellOutput列表拼接与退出码断言，SDK源码保持该已验证版本。23da77e完整Android38474418825和真实Git HTML页面诊断38474471661已启动，最后观察分别pending/in_progress；它们尚未有通过结论，不发布0.29或宣称真机/真实模型/GitHub操作完成。
+
+
+AI只读Git工具接线候选：继续对照固定DSH deliverables/workspace-changes/tests/git.spec.ts的配置隔离/失败报告、git.ts真实查询，及Operit examples/github/src/local/terminal.ts原生工具边界。新增ctx.git.call(status/diff/history)，Git插件1.1声明三个聊天工具，页面仍使用同一个WorkspaceGitService。宿主校验API19/显式服务/workspace与git双授权、启用且同清单、当前角色允许、ToolInvocationContext与准确批准参数JSON、ConversationContext绑定；禁止页面/Hook/后台借用工具入口。每次调用创建并最终NonCancellable关闭绑定会话，不保留工具会话或向JS传根目录。差异4096字符分块含patchSha256，后续块必须给相同摘要，变化明确拒绝，emoji边界完整；结果16KiB上限明确报错而不截断。此阶段只读，不把页面已支持的暂存/提交误称为AI已支持；后续AI写入仍需原生审阅句柄/独立授权和生命周期设计。新增桥层撤权、隐藏root、未知写操作、变化摘要、完整Unicode分块及关闭回归，SDK准确参数转交，实际AndroidQuickJS工具→权限→真实仓库状态/差异/历史/拒绝/重绑定回归。新的Git包须继续Actions生成后取回；页面23da77e诊断38474471661仍在运行，不以新工具代码取消该UI证据。完整Android候选由最新功能提交替代旧源，正式0.28公开资产保持原样。真实模型工具选择/回答尚未验收，不能把工具链路回归视为模型质量通过。
+
+
+代码审阅补充：复用文件树模块在无tree_meta的页面默认保留旧树；Git浏览器包装明确在Changes/历史/确认视图隐藏并关闭旧文件树，防止宽屏残留过期文件操作入口。新增实际UI从Files返回Changes断言文件树隐藏，并使用移动端物理打开文件树和物理点击选中文件来验证预览，而不只对隐藏DOM程序点击。该行为尚待新源模拟器结果，不能声称旧候选已覆盖切换场景；需远程再生成变化Git包，其他插件仍保持原字节。
+
+
+真实页面23da77e/38474471661失败：准备APK、覆盖安装和测试启动成功，180秒instrument超时，result仅测试类名，无JUnit完成记录，也未产生阶段截图。取回11853578192（479,662字节），CRC、result与logcat检查，TestRunner开始目标方法但未结束，没有证据证明停在哪一个Git操作，不能把无截图视为Git差异渲染失败的直接证据。保留三项可证伪假设：初始化/页面锁等待、主线程与原生互等、失败后的关闭等待。新用例仅记录DEBUG-git-html-timeout阶段标识（无文件内容/凭据），诊断脚本在原180秒失败时SIGQUIT并捕获bugreport/日志，仍要求原OK测试数；不延长期限/删除步骤来掩盖失败。定位修复后清理临时阶段日志。
+
+
+新工具+切换修复d7c84cf/38475538530生成门禁成功，取回11854225466（ZIP820,923字节）CRC核对：Git1.1.0/API19包含三个聊天工具；现有其他13包逐字节不变。生成Git包原字节同步市场与APK资产。该门禁验证SDK/包构建，页面与工具真实Android新用例仍待诊断，不发布0.29或宣称真实模型可正确使用Git。
+
+
+为区分原生/QuickJS查询与HTML页面阻塞，新增git-queries独立诊断，只运行真实工具权限/目录/仓库查询方法，完整git-workbench仍运行两项（不会删掉失败的UI方法或减弱完整门禁）。3781fb8源码与Git1.1包一致性检查38475902590成功；新完整Android38475902766与有阶段/线程捕获的页面38475947769保持原run追踪。当前首轮页面失败原因仍待新诊断，不把准备包成功说成UI通过。
+
+
+超时定位：3781fb8/38475947769仍180秒失败，取回11854721220（ZIP4,642,309字节），CRC核对result/logcat及内嵌bugreport/ART线程栈。阶段日志实际到click-control:git_confirm后立即cleanup-hide-page；测试线程停在GitHtmlPageTest.kt:154的Compose runOnUiThread清理，主线程在Looper轮询，并非证据中的JGit索引锁等待。检查真实PluginPageContent确认回调：git.perform未分类为目录控制，被传入只接受postTurn的ScriptPageHostAction.parse，导致确认Compose渲染错误；同一界面后续cleanup同步隐藏了原始异常完成。修复宿主确认仅为git.perform调用ScriptPageHostAction.git，显示被审阅的操作/参数，原确认/取消/一次消费检查保持。原完整GitHtml场景已在正确HTML→原生确认接缝实际失败，保留其全部取消/文件/暂存/提交/预览/Shell断言，继续以同一180秒反馈环远程验证；DEBUG阶段日志待成功后清理。
+
+独立工具f2aed1a/38476226967成功：取回11854501695（472,623字节），CRC及实际instrument输出OK (1 test)，4.399秒；实际方法为actualQuickJsGitToolsReadBoundRepositoryAndDenyUnapprovedOrReboundCalls，使用真实App/QuickJS/ToolRegistry/原生JGit/workspace，验证未确认拒绝、真实状态/差异/历史、隐藏工作区参数与解绑后拒绝，文件保持。该结果不证明HTML确认或真实模型选择工具已通过。
+
+API19市场已实际部署：服务器Node提供执行环境，首次用python3的暂存命令未执行，远程helper进程退出0也不代表远程命令成功；检查确认原server SHA和包缺失，后改Node并强制成功标记及远程文件摘要，未据helper的0退出误报部署。新server SHA df284c02bed71fe85bb12d5adffa0520ac7f3467b22839143cd146cc462bb4a7，备份/opt/solvit-market/.backup-git-api19-c55b3e081922。部署前/后分别捕获localhost与正常TLS公网API1–18完整响应，18个响应逐字节一致；API19提供Git1.1.0，公网downloadPath返回715,699字节，SHA256 8e5829ba417ec4be02f1f97e929acba45779faf703b21cea29eba541be5364a2，与仓库市场包/APK资产完全相同。旧包及旧客户端下载保持；本次市场证据不代表候选APK/页面通过，公开最新版仍0.28。
+
+
+修复前完整构建f2aed1a/38476197403的build成功，下载11855190532（319,857字节）CRC及实际JUnit XML核对406项，无失败/错误/跳过，包括GitPageBridgeTest两项、GitToolBridgeTest两项、GitPageSessionTest三项；该源Lint、固定签名/APK构建也通过。verify-ui被新修复源替代取消，该包保留已知git.perform确认UI问题，不能发作完整0.29。修复源fdc1766页面38477455570与完整Android38477417899继续原run追踪；准备release-0.29.0候选说明，明确尚未发布、AI只读、远程GitHub未完成、原生/真实模型/真机验证边界，不移动0.28标签或替换旧APK。
+
+
+确认修复fdc1766/38477455570专项成功，取回11855985770（585,461字节），ZIP CRC及实际instrument输出核对：GitHtmlPageTest两项，21.472秒，OK (2 tests)。完整保留初始化/暂存取消、真实暂存/索引提交、工作文件及未跟踪文件保留、物理打开树/文件预览、真实Shell同目录输出、旧树隐藏和AI查询授权拒绝检查。取回并实际查看两张截图：文件CodeMirror可见，但Git差异框仅一行多高；这说明DOM全文检查不能证明可读布局。新增真实WebView差异可见高度、内滚动到底和末尾截图断言，保留全部原始操作；先用未修布局的包验证该断言能检出问题，再调整布局。原确认故障的DEBUG阶段日志已清除；完整Android38477417899的build成功，UI仍进行中，未正式发布。
+
+
+布局候选再次阅读固定DSH packages/client/ui-primitives/src/DiffBlock.tsx、DiffBlock.module.css及tests/diff-block.client.spec.tsx：差异内容应有独立可读滚动区域，不能以DOM全文存在替代展示。Android插件保留安全TextNode/完整Git patch，不复制React组件或引入新运行时；Git diff单独标记为flex列，标题不收缩，patch占剩余高度且最小160px，切出diff时恢复原文件/Changes布局。新增高度和末尾滚动用例先在e767a62/38478914473未修布局源运行；候选Git包改为1.1.1，须远程重新生成后同步资产和市场，不能将1.1.0同版本静默改字节。修复源尚待同一专项与完整门禁。确认修复fdc1766完整build报告11857035872（319,825字节）已取回CRC/JUnit核对406项，0失败/错误/跳过；这不替代新布局源的完整门禁。
+
+
+布局源0ba8804远程生成38479131499成功，下载11856127028（ZIP820,969字节），CRC及全部14包对比：只有Git包变化，其他13包逐字节不变。Git1.1.1原包715,915字节，SHA256 7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd，同步市场文件与APK资产。完整job日志实际110 SDK/2市场测试均0失败，typecheck及公网检查成功；普通push38479116683在生成后源码/包一致性步骤失败，保留此结论，本提交同步后须正常门禁再验证一致性。市场当前仍旧1.1.0，1.1.1尚未部署；未发布0.29。
+
+
+布局红/首次修复结果已取回：e767a62/38478914473，11856322553（ZIP4,494,313字节）CRC及实际result，两项运行10.379秒，一项准确在GitHtmlPageTest.kt:110可见高度断言失败。0ba8804/38479133821，11856782780（ZIP4,890,547字节）CRC、result/logcat与两张实际截图已核对：高度与末尾滚动断言通过，差异首屏完整高度、末屏LAST_PATCH_LINE可见；之后在119行原暂存结果断言读到null，一项失败，不能将其宣称完整专项成功。检查PluginPageContent确认按钮先关闭dialog，再PluginPageScreen scope.launch异步dispatch写入；旧用例只等dialog消失就立即读取索引，存在读早于完成的接缝。补充等待操作成功回到Changes且git_files启用，再保留原added索引断言；若写入拒绝/旧审阅失效不会进入成功页面，原断言及取消、文件、提交、预览/Shell检查保留。此同步修正仍须原专项与完整门禁验证，不以截图通过替代全流程。
+
+干净2fd92e6 SDK38479342143首次110 SDK/2市场及源码/包一致性成功，但公网搜索明确无结果，整项失败，日志已保留。原条件失败任务复核115578350692成功，实际110/2零失败和三来源cn.bing.com/www.bing.com查询通过；该复核不是搜索间歇不可用的根因修复，保留此质量风险。
+
+
+a7ef7b3/38480156649专项成功：取回11856193819（ZIP815,060字节），CRC及实际result核对GitHtmlPageTest两项、18.179秒、OK (2 tests)。取回并实际查看三张截图，首屏差异占可用高度，末屏LAST_PATCH_LINE可见，文件CodeMirror预览正确。完整保留全部初始化/取消/暂存/索引提交/工作文件与未跟踪保留/Files物理点击/同目录Shell/树隐藏及真实QuickJS工具授权检查；等待Changes成功完成后再核对索引的同步修正已通过，同一反馈环无临时DEBUG日志。
+
+Git1.1.1已实际部署，Node每步成功标记及远程SHA守卫、原1.1.0备份和失败回滚；备份/opt/solvit-market/.backup-git111-fc83c726cf12。server摘要df284c02bed71fe85bb12d5adffa0520ac7f3467b22839143cd146cc462bb4a7保持。部署前后Node localhost与正常TLS公网分别核对API1–18逐字节相同、API19除Git外条目相同；正常公网下载/api/v1/packages/dev.solvit.git/1.1.1为715,915字节/SHA256 7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd，与市场源文件和APK资产完全一致。暂存已清理，旧客户端及旧公开APK不变。
+
+最新完整Android a7ef7b3/38480134382的build成功；取回11855664389（ZIP319,880字节），CRC及102个实际JUnit XML套件核对406项、0失败/错误/跳过。实际job115580821208日志确认Lint/APK BUILD SUCCESSFUL、固定证书SHA256 f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3。verify-ui 115582793202仍进行中，不能提前宣称完整55项通过；尚未正式发布0.29或创建标签。真实模型/真机、远程GitHub与AI写操作继续保留为未完成。
+
+
+完整候选a7ef7b3/38480134382终态成功：build115580821208及verify-ui115582793202均成功，非标签的SDK/search/release按工作流跳过，并未把跳过任务算作正式标签通过。取回UI11857966002（ZIP4,281,240字节），CRC及三份实际Android testsuites/全部testcase核对55项、0失败/错误/跳过，15套件，其中GitHtmlPageTest两项确实执行；upgrade-seed实际OK (1 test)，覆盖安装和持久数据检查完成。单元11855664389实际406项已核对，签名/Lint/APK及SDK110/市场2与包一致性证据保持。之后fa517ce等只更新docs，git diff a7ef7b3排除docs为空，功能/测试代码和包完全相同。清理后的源码准备合并main并创建未存在的v0.29.0，正式标签必须重新执行全部五项门禁；不会移动旧标签或替换公开资产，公开最新版仍待新Release实际发布。下一阶段源码依据与完整范围见[GitHub阶段](workspace-github-stage.md)。
