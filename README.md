@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。0.22.2 候选（build37/API12）使用插件自带的离线 HTML/JS 记忆图谱、任务、多 MCP、Skills 和工作目录页面。[Android 验证](https://github.com/veryy/Solvit/actions/runs/38325315067)通过302个单元、46个模拟器测试和Lint/固定签名APK，包括真实文件编辑、约3550字节保存确认、外部修改冲突拒绝及覆盖升级后配置/聊天保留。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38325315067/artifacts/11780996811)需要登录GitHub下载；公开搜索门禁尚未通过，未发布正式Release，顶部最新下载仍为0.21.3。交互PTY界面仍是原生；真实模型角色回答、流式/工具选择及完整未完成范围见[产品进度](docs/product-roadmap.md)和[本阶段证据](docs/plugin-workspace-stage.md)。
+[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。0.22.2 候选（build38/API12）使用插件自带的离线 HTML/JS 记忆图谱、任务、多 MCP、Skills 和工作目录页面。[Android 验证](https://github.com/veryy/Solvit/actions/runs/38329902814)通过302个单元、46个模拟器测试和Lint/固定签名APK，包括流式期间富文本显示、长回复跟随、旧问题分支、真实终端、文件保存确认及覆盖升级后配置/聊天保留。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38329902814/artifacts/11781624309)需要登录GitHub下载；公开搜索门禁尚未通过，未发布正式Release，顶部最新下载仍为0.21.3。交互PTY界面仍是原生；真实模型角色回答、流式/工具选择及完整未完成范围见[产品进度](docs/product-roadmap.md)和[流式修复证据](docs/chat-rich-stream-stage.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 

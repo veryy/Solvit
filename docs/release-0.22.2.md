@@ -22,6 +22,16 @@
 
 ## 当前候选验证与下载
 
+源码 `4b1f860` 的[完整Android运行38329902814](https://github.com/veryy/Solvit/actions/runs/38329902814)成功：实际302个单元、46个模拟器测试均无失败、错误或跳过，Lint、APK、固定签名及旧APK覆盖升级后的加密配置/聊天保留通过。流式气泡在模型未结束时使用既有富文本库，合并刷新，并跟随实际回复高度；主动滚动及无障碍滚回旧消息不再被强制拉回末尾。
+
+实际流式长回复用例9.75秒、旧问题分支4.637秒、真实交互终端8.632秒均通过；终端保留环境、输出、原始输入、中断和关闭检查。[未结束时的实际截图](screenshots/0.22.2/chat-rich-stream-before-done.png)来自最终全量模拟器产物11782691942。首轮普通Text复现失败、富文本刷新后末尾不可见和过度跟随导致分支卡住的修复链见[阶段记录](chat-rich-stream-stage.md)。
+
+[build38候选APK](https://github.com/veryy/Solvit/actions/runs/38329902814/artifacts/11781624309)为23,378,892字节，SHA-256 `47e8d3d2721e77f025f5355563069e0865877554f4ce98c98d582eb4606bfcf7`；已下载并核对ZIP完整性，远程apksigner固定证书保持 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。插件包与市场不因展示修复改变，API12兼容范围保持。
+
+真实模型角色、网关流式缓冲、工具选择、搜索质量与真机仍未验收；本轮使用确定性Provider，不能称为聊天内核整体达标。公开搜索门禁仍未通过，未创建v0.22.2正式Release。完整长期路线继续保留。
+
+### 此前build37的验证记录
+
 源码 `60abb44` 的[完整Android运行38325315067](https://github.com/veryy/Solvit/actions/runs/38325315067)成功。实际XML核对302个单元、46个模拟器测试均无失败、错误或跳过；Lint、固定证书、旧版覆盖更新后的加密配置及聊天保留通过。工作区HTML用例实际创建/绑定、取消不写入、确认写入约3550字节文本、外部修改后的旧摘要拒绝、关闭重开后读取持久文件；模型任务选择保留保存、分配与重开检查，全量用例6.469秒通过。工作区修改操作均通过原生确认，不自动启用AI插件。
 
 [build37候选APK](https://github.com/veryy/Solvit/actions/runs/38325315067/artifacts/11780996811)为23,378,892字节，SHA-256 `350c607675ca79df0b5a8c1749b3ff579ed6c3cf42e7baa40185bf9ca492aa23`。固定证书SHA-256 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。APK内工作区1.1.0/API12包与仓库及线上包字节一致；正常SDK38321717691通过82 SDK/2市场及源码包一致性。实际[目录截图](screenshots/0.22.2/workspace-html-directory.png)与[编辑截图](screenshots/0.22.2/workspace-html-editor.png)取自最终全量模拟器产物11780673525。
