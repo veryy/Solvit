@@ -1,4 +1,4 @@
-# Solvit JS/TS 插件 API 1–7
+# Solvit JS/TS 插件 API 1–12
 
 插件宿主使用 QuickJS，执行 JavaScript。[TS SDK](../plugin-sdk/README.md) 提供工具、生命周期、存储与网络接口类型；TypeScript 在发布前编译并打包为 JS；没有 Node.js 或 npm 模块运行时。
 
@@ -8,7 +8,7 @@ UTF-8 `.solvit.json` 包含 `manifest` 与 `source`。市场示例：[当前时�
 
 - `id`：稳定 ID，最长 40 字符，使用小写域名形式。
 - `version`：三段数字版本。
-- `apiVersion`：整数 `1`–`7`；API 2 增加配置，API 3 增加 Hook 和角色，API 4 增加工作区与插件草稿，API 5 增加交互 PTY，API 6 增加匿名浏览器观察与单次 HTTP 超时，API 7 增加布尔配置及 Hook 公共配置快照。
+- `apiVersion`：整数 `1`–`12`；API 2 增加配置，API 3 增加 Hook 和角色，API 4 增加工作区与插件草稿，API 5 增加交互 PTY，API 6 增加匿名浏览器观察与单次 HTTP 超时，API 7 增加布尔配置及 Hook 公共配置快照。
 - `permissions`：`storage`、`network`；API 4 起还支持 `workspace`、`shell`、`plugins`。无权限插件填写空数组。
 - `dependencies`：先启用的插件 ID 集合。
 - `tools`：工具名、描述、JSON 对象输入 schema；工具名最长 20 字符。
@@ -79,3 +79,11 @@ globalThis.solvitPlugin = {
 ## API10：插件自己绘制 HTML/JS 页面
 
 页面清单可声明本包HTML入口，资源随包离线分发。宿主负责通用WebView、权限/确认与关闭清理；业务布局和图谱由插件JS绘制。开发与桥接示例见[HTML页面指南](plugin-html-pages.md)。API9旧页面继续兼容；新版宿主查询 `hostApi=10`，旧宿主保留对应版本包。实际交付状态见阶段记录，不能把资源支持当作全部插件/聊天功能已经迁移。
+
+## API12：工作区页面与独立原生服务依赖
+
+插件可以携带自己的 HTML/CSS/JS 工作区页面。`ctx.workspacePage.query(operation,args)` 支持 `snapshot`、`list`、`read`、`drafts`、`draft`，聊天及绑定由宿主捕获，文件查询不能提供其他聊天或工作区 ID。`list` 每页40项；`read` 返回最多4KB UTF-8文本和读取时 SHA-256。
+
+页面按钮声明 `hostAction: {kind:"workspace.perform", operation, arguments}`，可预览创建、绑定、解除绑定、创建Shell、写文件或安装草稿。宿主显示操作及参数，用户确认后，页面通过无参数 `await ctx.workspacePage.perform()` 消费一次该确认。写入带 `expectedSha256`，新文件用 null；草稿安装带已审阅摘要并保持停用。切换聊天、外部重新绑定、关闭页面或撤权会拒绝旧能力。模型工具、Hook及生命周期回调不能调用此人工页面接口，AI仍通过独立工具授权执行。下载插件需声明并获得对应权限，安装草稿还需 `plugins` 权限。
+
+API12 将权限与服务依赖分开：有限Shell作业不再自动依赖PTY；普通HTTP也不自动依赖浏览器。调用 `ctx.terminal` 的插件显式声明 `nativeServices:["terminal.pty"]` 和 `shell` 权限；调用 `ctx.web.visit` 的插件声明 `nativeServices:["web.pages"]` 和 `network` 权限。API5–11的隐式依赖保留兼容。新版市场查询 `hostApi=12`，旧宿主仍选择旧包。示例及实际验证范围见[工作区页面阶段](plugin-workspace-stage.md)。
