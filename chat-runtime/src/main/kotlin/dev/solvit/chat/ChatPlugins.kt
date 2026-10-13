@@ -6,13 +6,13 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.sync.Mutex
 import java.util.UUID
 
-class ChatAgentPlugin : SolvitPlugin {
+class ChatAgentPlugin(private val requireDriver: Boolean = false) : SolvitPlugin {
     override val id = "builtin.agent.chat"
-    override val requires = setOf(Services.Model, Services.Tools, ContextHookServiceKey, ModelProfilesServiceKey, RequestInspectionServiceKey, ContextPreparationServiceKey)
+    override val requires = setOf(Services.Model, Services.Tools, ContextHookServiceKey, ModelProfilesServiceKey, RequestInspectionServiceKey, ContextPreparationServiceKey) + if (requireDriver) setOf(AgentDriverServiceKey) else emptySet()
     override val provides = setOf(Services.Agent)
     override suspend fun enable(context: PluginContext) {
         val provider = context.require(Services.Model)
-        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools), hooks = context.require(ContextHookServiceKey), modelProfiles = context.require(ModelProfilesServiceKey), inspection = context.require(RequestInspectionServiceKey), contextPreparation = context.require(ContextPreparationServiceKey)))
+        context.register(Services.Agent, ToolAgentRuntime(provider, context.require(Services.Tools), hooks = context.require(ContextHookServiceKey), modelProfiles = context.require(ModelProfilesServiceKey), inspection = context.require(RequestInspectionServiceKey), contextPreparation = context.require(ContextPreparationServiceKey), driver = if (requireDriver) context.require(AgentDriverServiceKey) else NativeAgentDriver))
     }
 }
 

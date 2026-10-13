@@ -3,7 +3,7 @@ package dev.solvit.chat
 import dev.solvit.core.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.channelFlow
 
 /** Bounded orchestration; native and JS tools share the same authorization gate. */
 class ToolAgentRuntime(
@@ -15,9 +15,10 @@ class ToolAgentRuntime(
     private val modelProfiles: ModelProfilesService? = null,
     private val inspection: RequestInspectionService? = null,
     private val contextPreparation: ContextPreparationService? = null,
+    private val driver: AgentDriver = NativeAgentDriver,
 ) : AgentRuntime {
     init { require(maxRounds > 0 && maxCalls > 0) }
-    override fun run(request: ModelRequest): Flow<ModelChunk> = flow {
+    override fun run(request: ModelRequest): Flow<ModelChunk> = channelFlow {
         val execution = AgentExecutionContext()
         try {
         val followUpConfig = modelProfiles?.resolve(ModelTask.TOOL_FOLLOW_UP, request.config) ?: request.config
@@ -26,11 +27,24 @@ class ToolAgentRuntime(
         val userText = request.messages.lastOrNull { it.role == Role.USER }?.content.orEmpty()
         val seen = mutableSetOf<String>()
         var executions = 0
-        for (round in 0 until maxRounds) {
-            val step=round+1
+        var nextRound = 0
+        var step = 0
+        var advertised = emptyList<ToolDescriptor>()
+        var pendingCalls = emptyList<ToolCall>()
+        var nextCall = 0
+        var pendingNative: ProviderTranscript? = null
+        var modelCompleted = false
+        var finished = false
+        driver.run(maxRounds, AgentStepHost { operation, index ->
+            check(!finished) { "Agent command after completion" }
+            when (operation) {
+            "model" -> {
+            check(index == nextRound && index < maxRounds && pendingCalls.isEmpty() && !modelCompleted) { "Invalid Agent model step" }
+            val round = index
+            step=round+1
             request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.STEP_STARTED)))
             // Fresh context and tool availability for every step; do not accumulate old Hook text.
-            val advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false &&
+            advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false &&
                 (request.conversation != null || it.capabilities.none { permission -> permission in setOf("workspace","shell","plugins") }) }.take(64)
             val allowed = advertised.map { it.name }.toSet()
             val workspaceGuidance = if(advertised.any { it.capabilities.any { capability -> capability in setOf("workspace","shell") } })
@@ -78,8 +92,8 @@ class ToolAgentRuntime(
             provider.stream(prepared).collect { chunk ->
                 check(!completed) { "Provider emitted after completion" }
                 when (chunk) {
-                    is ModelChunk.Text -> { text.append(chunk.value); emit(chunk) }
-                    is ModelChunk.Reasoning -> { reasoning.append(chunk.value); emit(chunk) }
+                    is ModelChunk.Text -> { text.append(chunk.value); send(chunk) }
+                    is ModelChunk.Reasoning -> { reasoning.append(chunk.value); send(chunk) }
                     is ModelChunk.NativeTranscript -> { check(native == null); native = chunk.value }
                     is ModelChunk.ToolCalls -> {
                         check(calls.isEmpty()) { "Duplicate tool call batch" }
@@ -90,20 +104,25 @@ class ToolAgentRuntime(
                 }
             }
             check(completed) { "模型响应提前结束" }
-            if (calls.isEmpty()) {
-                request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.STEP_FINISHED)))
-                native?.let { emit(ModelChunk.NativeTranscript(it)) }; emit(ModelChunk.Done); return@flow
-            }
+            modelCompleted = true
+            pendingNative = native
+            if (calls.isEmpty()) return@AgentStepHost 0
             if (round == maxRounds - 1 || executions + calls.size > maxCalls) throw ModelException("已达到工具执行上限，请继续对话")
             if (calls.any { it.name !in allowed || !seen.add(it.id) }) throw ModelException("模型调用了未提供或重复的工具")
             request.executionJournal.append(calls.map { call -> ExecutionEvent(step,ExecutionKind.TOOL_PROPOSED,
                 call=call,pluginId=advertised.first { it.name==call.name }.pluginId) })
             val assistant = ModelMessage(Role.ASSISTANT, text.toString(), calls, reasoning = reasoning.toString(), providerTranscript = native)
             messages += assistant
-            emit(ModelChunk.Transcript(assistant))
-            for (call in calls) {
+            send(ModelChunk.Transcript(assistant))
+            pendingCalls = calls
+            nextCall = 0
+            calls.size
+            }
+            "tool" -> {
+                check(modelCompleted && pendingCalls.isNotEmpty() && index == nextCall && index < pendingCalls.size) { "Invalid Agent tool order" }
+                val call = pendingCalls[index]
                 executions++
-                emit(ModelChunk.ToolActivity(call, ToolStage.CONFIRMING))
+                send(ModelChunk.ToolActivity(call, ToolStage.CONFIRMING))
                 val gate = object : ToolAuthorization {
                     override suspend fun authorize(descriptor: ToolDescriptor) = false
                     override suspend fun authorizeCallForRole(descriptor: ToolDescriptor, actual: ToolCall, role: AgentRole?): Boolean {
@@ -117,7 +136,7 @@ class ToolAgentRuntime(
                         request.executionJournal.beforeTool(step,advertised.first { it.name==call.name })
                         request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_STARTED,callId=call.id)))
                         authorizedDispatch=true
-                        emit(ModelChunk.ToolActivity(call, ToolStage.RUNNING))
+                        send(ModelChunk.ToolActivity(call, ToolStage.RUNNING))
                     }
                     ToolStage.SUCCEEDED to result
                 } catch (e: ToolDeniedException) {
@@ -139,13 +158,33 @@ class ToolAgentRuntime(
                 request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_FINISHED,
                     callId=call.id,stage=outcome.first,result=outcome.second)))
                 if(authorizedDispatch && !authorizationDenied) request.executionJournal.afterTool(step,advertised.first { it.name==call.name })
-                emit(ModelChunk.ToolActivity(call, outcome.first, outcome.second))
+                send(ModelChunk.ToolActivity(call, outcome.first, outcome.second))
                 val result = ModelMessage(Role.TOOL, outcome.second, toolCallId = call.id, toolStage = outcome.first)
                 messages += result
-                emit(ModelChunk.Transcript(result))
+                send(ModelChunk.Transcript(result))
+                nextCall++
+                0
             }
-            request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.STEP_FINISHED)))
-        }
+            "settle" -> {
+                check(index == nextRound && modelCompleted && pendingCalls.isNotEmpty() && nextCall == pendingCalls.size) { "Agent skipped tool settlement" }
+                request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.STEP_FINISHED)))
+                pendingCalls = emptyList()
+                modelCompleted = false
+                nextRound++
+                0
+            }
+            "finish" -> {
+                check(index == nextRound && modelCompleted && pendingCalls.isEmpty()) { "Invalid Agent finish" }
+                request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.STEP_FINISHED)))
+                pendingNative?.let { send(ModelChunk.NativeTranscript(it)) }
+                send(ModelChunk.Done)
+                finished = true
+                0
+            }
+            else -> error("Unknown Agent command")
+            }
+        })
+        check(finished) { "Agent returned before completion" }
         } catch (e: Throwable) { execution.cancel(); throw e }
         finally { execution.release() }
     }
