@@ -30,6 +30,10 @@ interface WorkspaceService {
     suspend fun create(name: String): Workspace
     suspend fun createShell(workspaceId: String, name: String): ShellSession
     suspend fun location(workspaceId: String): String { error("工作区目录服务不可用") }
+    /** Fixed-name root instruction sources only. Recheck host authority around every read. */
+    suspend fun instructionSources(workspaceId: String, authorize: suspend () -> Unit): List<WorkspaceInstructionSource> {
+        error("工作区项目规则读取服务不可用")
+    }
     suspend fun snapshot(workspaceId: String): WorkspaceSnapshot = WorkspaceSnapshot(workspaceId,emptyMap(),false,System.currentTimeMillis())
     suspend fun list(workspaceId: String, path: String = ""): List<WorkspaceFile> { error("工作区目录服务不可用") }
     suspend fun read(workspaceId: String, path: String): String
