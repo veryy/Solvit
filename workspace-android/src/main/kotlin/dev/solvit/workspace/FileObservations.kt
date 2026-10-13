@@ -9,7 +9,7 @@ import java.security.MessageDigest
 
 /** Read at most cap+1 bytes. An unread/oversized file must never be treated as absent or unchanged. */
 internal object FileObservations {
-    const val CAP=256*1024
+    const val CAP=MAX_FILE_CAPTURE_BYTES
     private const val EXCERPT=6*1024
     fun capture(file: File, cap: Int = CAP, excerptLimit: Int = EXCERPT): FileObservation {
         require(cap in 0..CAP && excerptLimit in 0..EXCERPT)
@@ -38,7 +38,7 @@ internal object FileObservations {
         if(text==null) return FileObservation(FileObservationKind.BINARY,bytes.size.toLong(),hash)
         val excerpt=if(bytes.size<=excerptLimit) text else Charsets.UTF_8.newDecoder()
             .onMalformedInput(CodingErrorAction.IGNORE).decode(ByteBuffer.wrap(bytes,0,excerptLimit)).toString()
-        return FileObservation(FileObservationKind.TEXT,bytes.size.toLong(),hash,excerpt,bytes.size>excerptLimit)
+        return FileObservation(FileObservationKind.TEXT,bytes.size.toLong(),hash,excerpt,bytes.size>excerptLimit,text,hash)
     }
     fun changed(before: FileObservation,after: FileObservation): Boolean? = when {
         before.kind==FileObservationKind.ABSENT -> true

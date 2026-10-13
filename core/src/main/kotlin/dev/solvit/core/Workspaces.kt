@@ -10,7 +10,22 @@ enum class FileObservationKind { ABSENT, TEXT, BINARY, OVERSIZED, UNAVAILABLE }
 data class FileObservation(val kind: FileObservationKind, val bytes: Long? = null,
     val sha256: String? = null, val excerpt: String? = null, val excerptTruncated: Boolean = false,
     /** Only present on fresh captures; durable journals store it separately from the event payload. */
-    val captureText: String? = null, val captureSha256: String? = null)
+    val captureText: String? = null, val captureSha256: String? = null) {
+    fun validateCapture() {
+        if (captureSha256 != null) {
+            require(kind == FileObservationKind.TEXT && captureSha256 == sha256 && captureSha256.matches(Regex("[a-f0-9]{64}")))
+            require(bytes != null && bytes in 0..MAX_FILE_CAPTURE_BYTES.toLong())
+        }
+        captureText?.let { text ->
+            val encoded = text.toByteArray(Charsets.UTF_8)
+            require(captureSha256 != null && '\u0000' !in text && encoded.size <= MAX_FILE_CAPTURE_BYTES && bytes == encoded.size.toLong())
+            val hash = java.security.MessageDigest.getInstance("SHA-256").digest(encoded).joinToString("") { "%02x".format(it) }
+            require(hash == captureSha256) { "File capture digest differs from its content" }
+        }
+    }
+}
+const val MAX_FILE_CAPTURE_BYTES = 256 * 1024
+const val MAX_WORKSPACE_CAPTURE_BYTES = 2 * 1024 * 1024
 /** Per-write observations, not a whole-project diff or a promise that Shell did not change other files. */
 data class WorkspaceWriteEvidence(val workspaceId: String, val path: String,
     val before: FileObservation, val after: FileObservation, val changed: Boolean?, val verified: Boolean)

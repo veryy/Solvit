@@ -7,7 +7,9 @@ data class WorkspaceSnapshot(val workspaceId: String, val files: Map<String,File
         require(workspaceId.isNotBlank() && workspaceId.length<=128 && observedAt>=0 && files.size<=64)
         require(files.keys.all { path -> path.isNotBlank() && path.toByteArray(Charsets.UTF_8).size<=1024 && !path.startsWith('/') &&
             path.none(Char::isISOControl) && path.split('/').none { it in setOf("",".","..") } })
+        require(files.values.sumOf { it.captureText?.toByteArray(Charsets.UTF_8)?.size?.toLong() ?: 0 } <= MAX_WORKSPACE_CAPTURE_BYTES)
         files.values.forEach { value ->
+            value.validateCapture()
             require(value.bytes==null || value.bytes>=0)
             require(value.sha256==null || value.sha256.matches(Regex("[a-f0-9]{64}")))
             require(value.excerpt==null || value.excerpt.toByteArray(Charsets.UTF_8).size<=2048)
