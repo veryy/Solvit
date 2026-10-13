@@ -963,7 +963,7 @@ class ChatLayoutTest {
             js("document.getElementById('manage').click()")
             assertEquals("true", js("document.getElementById('session-manager').open"))
             rule.waitUntil(8000) { js("Array.from(document.getElementById('running').children).some(e=>e.textContent.includes('test.html-terminal.model'))") == "true" }
-            assertEquals("true", js("(()=>{const bounds=document.getElementById('session-manager').getBoundingClientRect();return Array.from(document.querySelectorAll('#manager-keys button')).every(button=>{const r=button.getBoundingClientRect();return r.width>0 && r.left>=bounds.left && r.right<=bounds.right})})()"))
+            assertEquals("true", js("(()=>{const bounds=document.getElementById('session-manager').getBoundingClientRect();return Array.from(document.querySelectorAll('#session-manager button')).every(button=>{const r=button.getBoundingClientRect();return r.width>0 && r.left>=bounds.left && r.right<=bounds.right && r.top>=bounds.top && r.bottom<=bounds.bottom})})()"))
             page.screenshot("workspace-terminal-session-manager")
             js("document.getElementById('running').value=${kotlinx.serialization.json.JsonPrimitive(model.id)};document.getElementById('attach').click()")
             rule.waitUntil(8000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
@@ -983,6 +983,10 @@ class ChatLayoutTest {
             page.tapElement("#compact-interrupt")
             rule.waitUntil(8000) { app.terminals.sessions.value.any { it.id==model.id &&
                 it.output.substringAfterLast("__KEYBOARD_SLEEP_STARTED__", "").contains("\$ ") } }
+            js("document.getElementById('manage').click()")
+            rule.waitUntil(8000) { js("(()=>{const r=document.getElementById('dismiss').getBoundingClientRect();return document.getElementById('session-manager').open && r.height>0 && r.top>=0 && r.bottom<=innerHeight})()") == "true" }
+            page.screenshot("workspace-terminal-keyboard-menu")
+            js("document.getElementById('dismiss').click()")
             page.hideKeyboard()
             rule.waitUntil(8000) { !page.keyboardVisible() }
             js("document.getElementById('manage').click()")

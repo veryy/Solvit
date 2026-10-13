@@ -75,7 +75,7 @@ class AndroidMarketplace(
                     if (base.isFile && base.length() <= ScriptPackage.MAX_BYTES) {
                         val original = AtomicFile(base).readFully()
                         val digest = java.security.MessageDigest.getInstance("SHA-256").digest(original).joinToString("") { "%02x".format(it) }
-                        val originals = if (name == "dev.solvit.terminal.solvit.json") setOf("443a011bc592520919740aa8784d87c01f5dacbf7ca612d8012114f7603d9f56", "e05c420559d3f6a14924fbc455cefe71f510844c3f0802a457ff754c3fd2f4d8", "d124c4f16262d0d559eb0b45c21c790e79f8ee1aaacfc9b1464397a1520682a3")
+                        val originals = if (name == "dev.solvit.terminal.solvit.json") setOf("eca040c2851d415ababda789a45d49bbbdb547c8173dd6db2616bc83c4678ee0", "443a011bc592520919740aa8784d87c01f5dacbf7ca612d8012114f7603d9f56", "e05c420559d3f6a14924fbc455cefe71f510844c3f0802a457ff754c3fd2f4d8", "d124c4f16262d0d559eb0b45c21c790e79f8ee1aaacfc9b1464397a1520682a3")
                             else if (name == "dev.solvit.workspace.solvit.json") setOf("7d80dbfc71c177b3a2a81df5c15bfa05b6d0cb274baf536a5d179dad55ce0004")
                             else if (name == "dev.solvit.mcp.solvit.json") setOf("c2c4ad230e7ce37d841314deb162bc8e70d84ec40f1c1bbb8be47b0bb95d80fe", "111d17a33de9272b9b645e54ddc599aaed909e45960231b3254ba4dcb05f0f2c")
                             else if (name == "dev.solvit.skills.solvit.json") setOf("0c51650719024e18c45a38b8e631946972881d1953302ea92751263a276308a6", "585a182857fb58b2870f048cbdecef12d90b91859a09fe6870a3e0cbe359a3b2")

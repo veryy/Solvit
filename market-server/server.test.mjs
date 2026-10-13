@@ -64,7 +64,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(htmlWorkspace.version, '1.1.0'); assert.equal(htmlWorkspace.apiVersion, 12);
     const api13 = await (await fetch(base + '/api/v1/plugins?hostApi=13')).json();
     const htmlTerminal = api13.plugins.find(plugin => plugin.id === 'dev.solvit.terminal');
-    assert.equal(htmlTerminal.version, '1.1.2'); assert.equal(htmlTerminal.apiVersion, 13);
+    assert.equal(htmlTerminal.version, '1.1.3'); assert.equal(htmlTerminal.apiVersion, 13);
     assert.equal(htmlTerminal.pages[0].entry, 'ui/index.html');
     const api14 = await (await fetch(base + '/api/v1/plugins?hostApi=14')).json();
     const agent = api14.plugins.find(plugin => plugin.id === 'example.agent');
@@ -74,7 +74,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(agentPackage.manifest.agentEnabledSetting, 'selected');
     assert.deepEqual(agentPackage.manifest.permissions, ['agent']);
     assert.equal(api12.plugins.find(plugin => plugin.id === 'dev.solvit.terminal').version, '1.0.0');
-    for(const [id,previous] of [['memory','1.4.0'],['terminal','1.1.0'],['terminal','1.1.1']]) {
+    for(const [id,previous] of [['memory','1.4.0'],['terminal','1.1.0'],['terminal','1.1.1'],['terminal','1.1.2']]) {
       const original = Buffer.from(await (await fetch(base + `/api/v1/packages/dev.solvit.${id}/${previous}`)).arrayBuffer());
       assert.deepEqual(original, await readFile(new URL(`./packages/legacy/dev.solvit.${id}-${previous}.solvit.json`, import.meta.url)));
     }

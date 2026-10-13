@@ -14,3 +14,15 @@ body{position:fixed;inset:0;height:auto}*[hidden]{display:none!important}header,
 }
 
 #manager-keys{flex-wrap:wrap;overflow:visible}
+
+#session-manager{padding:16px;max-height:calc(100% - 32px)}
+#session-manager[open]{display:flex;flex-direction:column}
+#manager-title,#dismiss{flex-shrink:0}
+#manager-content{min-height:0;overflow:auto}
+#sessions{margin:12px 0}
+#running-label{margin:0}
+#manager-keys{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#manager-keys button{min-width:0;min-height:44px;padding:8px 6px;font-size:14px}
+.manager-actions{margin:8px 0}
+#dismiss{margin-top:8px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--primary);outline-offset:1px}
