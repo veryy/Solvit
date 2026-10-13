@@ -376,7 +376,7 @@ class ChatLayoutTest {
             rule.onNodeWithTag("request_diagnostics").performScrollToIndex(12)
             rule.onNode(hasText("首段文字显示：", substring = true)).assertExists()
             screenshot("request-diagnostics")
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             screenshot("chat-live-stream-failure")
             throw AssertionError(rule.onRoot().printToString(), e)
         } finally {
