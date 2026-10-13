@@ -146,10 +146,16 @@ class BuiltinMcpUpgradeTest {
         }
     }
     @Test fun originalMemoryPageUpgradesWithoutLosingFactsOrExistingGrants() = runBlocking<Unit> {
+        verifyMemoryUpgrade("memory-1.3.1.solvit.json")
+    }
+    @Test fun previousHtmlMemoryUpgradesWithoutLosingFactsOrExistingGrants() = runBlocking<Unit> {
+        verifyMemoryUpgrade("memory-1.4.0.solvit.json")
+    }
+    private suspend fun verifyMemoryUpgrade(resource: String) {
         fixture { market, _, _ ->
             val app = RuntimeEnvironment.getApplication()
             val memoryFile = File(app.filesDir, "extensions/dev.solvit.memory.solvit.json")
-            memoryFile.writeBytes(javaClass.getResourceAsStream("/memory-1.3.1.solvit.json")!!.use { it.readBytes() })
+            memoryFile.writeBytes(javaClass.getResourceAsStream("/$resource")!!.use { it.readBytes() })
             val prefs = app.getSharedPreferences("extension_permissions", 0)
             prefs.edit().putBoolean("seeded.dev.solvit.memory.solvit.json", true)
                 .putBoolean("enabled.dev.solvit.memory", true).putStringSet("grants.dev.solvit.memory", setOf("storage", "model")).commit()
@@ -158,7 +164,7 @@ class BuiltinMcpUpgradeTest {
                 .getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
             market.restore()
             val installed = market.installed.value.single { it.id == "dev.solvit.memory" }
-            assertEquals("1.4.0", installed.version); assertTrue(installed.enabled)
+            assertEquals("1.4.1", installed.version); assertTrue(installed.enabled)
             val page = market.openPage("dev.solvit.memory", "main", "en")
             try {
                 assertTrue(page.open().json.contains(fact))

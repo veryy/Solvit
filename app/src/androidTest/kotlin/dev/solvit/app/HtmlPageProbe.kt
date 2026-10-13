@@ -41,6 +41,30 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
     }
     fun tapMemoryNode(id: String) {
         val point = Json.parseToJsonElement(js("(()=>{const node=document.querySelector('[data-memory-id='+${JsonPrimitive(id)}+']');return [Number(node.dataset.x),Number(node.dataset.y),innerWidth]})()")) .jsonArray
+        tapPoint(point)
+    }
+    fun tapElement(selector: String) {
+        val point = Json.parseToJsonElement(js("(()=>{const r=document.querySelector(${JsonPrimitive(selector)}).getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2,innerWidth]})()")) .jsonArray
+        tapPoint(point)
+    }
+    fun keyboardVisible(): Boolean = runBlocking {
+        val result = CompletableDeferred<Boolean>()
+        activity.runOnUiThread {
+            result.complete(activeBrowser()?.rootWindowInsets?.isVisible(android.view.WindowInsets.Type.ime()) == true)
+        }
+        withTimeout(10_000) { result.await() }
+    }
+    fun hideKeyboard() = runBlocking {
+        val result = CompletableDeferred<Unit>()
+        activity.runOnUiThread {
+            val web = checkNotNull(activeBrowser())
+            (activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                .hideSoftInputFromWindow(web.windowToken, 0)
+            result.complete(Unit)
+        }
+        withTimeout(10_000) { result.await() }
+    }
+    private fun tapPoint(point: JsonArray) {
         var x = 0f; var y = 0f
         val ready = CompletableDeferred<Unit>()
         activity.runOnUiThread {

@@ -2,7 +2,7 @@
   "id": "dev.solvit.terminal",
   "name": "交互式终端",
   "description": "离线 HTML/JS 交互终端，xterm.js 处理 ANSI、光标与键盘；Android PTY 保留工作目录和环境，支持多 Shell、尺寸调整和关闭。暂不支持 Root PTY 或 Linux 发行版。",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "apiVersion": 13,
   "permissions": [
     "workspace",

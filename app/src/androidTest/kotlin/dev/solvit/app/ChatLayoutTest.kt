@@ -903,6 +903,12 @@ class ChatLayoutTest {
             rule.onNodeWithText("取消").performClick()
             rule.waitUntil(8000) { js("!document.getElementById('open').disabled") == "true" }
             openTerminal()
+            assertEquals("false", js("document.getElementById('session-manager').open"))
+            assertEquals("true", js("document.getElementById('extra-keys').hidden"))
+            rule.waitUntil(8000) { js("document.getElementById('terminals').getBoundingClientRect().height>innerHeight*.5") == "true" }
+            js("document.getElementById('toggle-keys').click()")
+            assertEquals("false", js("document.getElementById('extra-keys').hidden"))
+            js("document.getElementById('toggle-keys').click()")
             command("stty -echo; export UI_PTY_STATE=retained; printf '__UI_%s__\\n' READY")
             rule.waitUntil(8000) { displayed("__UI_READY__") }
             command("printf 'ui-result:%s\\n' \"\$UI_PTY_STATE\"")
@@ -954,8 +960,10 @@ class ChatLayoutTest {
                 }
             }
             rule.waitUntil(15_000) { app.terminals.sessions.value.any { it.id==model.id && "__LONG_OK__" in it.output && it.outputOffset>0 } }
-            js("document.getElementById('refresh').click()")
+            js("document.getElementById('manage').click()")
+            assertEquals("true", js("document.getElementById('session-manager').open"))
             rule.waitUntil(8000) { js("Array.from(document.getElementById('running').children).some(e=>e.textContent.includes('test.html-terminal.model'))") == "true" }
+            page.screenshot("workspace-terminal-session-manager")
             js("document.getElementById('running').value=${kotlinx.serialization.json.JsonPrimitive(model.id)};document.getElementById('attach').click()")
             rule.waitUntil(8000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("terminal_page_allow").performClick()
@@ -964,6 +972,14 @@ class ChatLayoutTest {
             command("stty -echo; printf '__MODEL_PAGE_%s__\\n' OK")
             rule.waitUntil(8000) { displayed("__MODEL_PAGE_OK__") }
             page.screenshot("workspace-interactive-html-pty")
+            page.tapElement("#command")
+            rule.waitUntil(8000) { page.keyboardVisible() }
+            rule.waitUntil(8000) { js("document.querySelector('footer').getBoundingClientRect().bottom<=innerHeight+1 && document.getElementById('terminals').getBoundingClientRect().height>=40") == "true" }
+            page.screenshot("workspace-terminal-keyboard")
+            page.hideKeyboard()
+            rule.waitUntil(8000) { !page.keyboardVisible() }
+            js("document.getElementById('manage').click()")
+            assertEquals("true", js("document.getElementById('session-manager').open"))
             js("document.getElementById('close').click()")
             rule.waitUntil(8000) { js("document.getElementById('close').disabled") == "true" }
             assertTrue(app.terminals.sessions.value.any { it.id==model.id && !it.active })

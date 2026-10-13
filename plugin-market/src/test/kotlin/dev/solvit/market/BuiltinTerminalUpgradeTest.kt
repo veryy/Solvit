@@ -45,14 +45,20 @@ class BuiltinTerminalUpgradeTest {
         } finally { manager.shutdown();workspace.close();scope.cancel();client.connectionPool.evictAll();client.dispatcher.executorService.shutdown() }
     }
     @Test fun originalTerminalUpgradesToHtmlWithoutLosingActivationAndGrants()=runBlocking<Unit> {
+        verifyTerminalUpgrade("terminal-1.0.0.solvit.json")
+    }
+    @Test fun previousHtmlTerminalUpgradesWithoutLosingActivationAndGrants()=runBlocking<Unit> {
+        verifyTerminalUpgrade("terminal-1.1.0.solvit.json")
+    }
+    private suspend fun verifyTerminalUpgrade(resource:String) {
         fixture { market,file ->
-            file.writeBytes(javaClass.getResourceAsStream("/terminal-1.0.0.solvit.json")!!.use { it.readBytes() })
+            file.writeBytes(javaClass.getResourceAsStream("/$resource")!!.use { it.readBytes() })
             val prefs=RuntimeEnvironment.getApplication().getSharedPreferences("extension_permissions",0)
             prefs.edit().putBoolean("seeded.dev.solvit.terminal.solvit.json",true).putBoolean("enabled.dev.solvit.terminal",true)
                 .putStringSet("grants.dev.solvit.terminal",setOf("workspace","shell")).commit()
             market.restore()
             val installed=market.installed.value.single { it.id=="dev.solvit.terminal" }
-            assertEquals("1.1.0",installed.version);assertTrue(installed.enabled)
+            assertEquals("1.1.1",installed.version);assertTrue(installed.enabled)
             assertEquals(setOf("workspace","shell"),prefs.getStringSet("grants.dev.solvit.terminal",emptySet()))
             val page=market.openPage(installed.id,"main","zh")
             try { page.open();assertEquals("ui/index.html",page.document()!!.entry);assertTrue(page.resource("ui/xterm.js").content.isNotEmpty()) }

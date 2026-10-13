@@ -12,6 +12,15 @@
     es: ['Terminal','El directorio y entorno se conservan. Se ejecuta como esta app.','Abrir terminal','Comando o respuesta','Enviar','Cerrar','Nombre de Shell','Cancelar','Crear','En ejecución','Cerrado','Se descartó la salida antigua','Cola de entrada llena'],
     fr: ['Terminal','Le répertoire et l’environnement sont conservés. Exécution sous cette application.','Ouvrir le terminal','Commande ou réponse','Envoyer','Fermer','Nom du Shell','Annuler','Créer','En cours','Fermé','Ancienne sortie supprimée','File de saisie pleine']
   };
+  const controls = {
+    zh: ['终端管理','当前聊天的终端','连接已有终端','刷新终端','关闭当前终端','返回终端','更多按键','收起按键','添加 Shell'],
+    en: ['Manage terminals','Terminals in this chat','Connect session','Refresh terminals','Close current terminal','Back to terminal','More keys','Fewer keys','Add Shell'],
+    ja: ['端末管理','このチャットの端末','端末に接続','端末を更新','現在の端末を閉じる','端末に戻る','追加キー','キーを閉じる','Shellを追加'],
+    ko: ['터미널 관리','이 채팅의 터미널','세션 연결','터미널 새로고침','현재 터미널 닫기','터미널로 돌아가기','추가 키','키 접기','Shell 추가'],
+    es: ['Gestionar terminales','Terminales de este chat','Conectar sesión','Actualizar terminales','Cerrar terminal actual','Volver al terminal','Más teclas','Menos teclas','Añadir Shell'],
+    fr: ['Gérer les terminaux','Terminaux de cette conversation','Connecter une session','Actualiser les terminaux','Fermer le terminal actuel','Retour au terminal','Plus de touches','Moins de touches','Ajouter un Shell']
+  };
+  let controlLabels=controls.en;
   function report(error) { $('status').textContent = error instanceof Error ? error.message : String(error); }
   function rpc(operation, args = {}) {
     if (closed || !token) return Promise.reject(Error('Page closed'));
@@ -78,7 +87,7 @@
   async function refreshShells() {
     const state=await rpc('snapshot');shells=state.shells;
     $('shells').replaceChildren(...shells.map(shell => {
-      const button=document.createElement('button');button.textContent=shell.name;button.dataset.id=shell.id;button.onclick=()=>choose(shell.id);return button;
+      const button=document.createElement('button');button.textContent=shell.name;button.title=shell.name;button.dataset.id=shell.id;button.onclick=()=>choose(shell.id);return button;
     }));
     terminalChoices(state);
     choose(shells.some(s=>s.id===selected)?selected:shells[0]?.id ?? null);$('open').disabled=!selected;
@@ -104,15 +113,22 @@
       update(entry,result);choose(shellId);fit(entry);
   }
   $('open').onclick=open;
+  $('manage').onclick=()=>{$('session-manager').showModal();refreshShells().catch(report)};
+  $('dismiss').onclick=()=>$('session-manager').close();
+  $('toggle-keys').onclick=()=>{
+    const expanded=$('extra-keys').hidden;
+    $('extra-keys').hidden=!expanded;$('toggle-keys').setAttribute('aria-expanded',String(expanded));
+    $('toggle-keys').textContent=controlLabels[expanded?7:6];
+  };
   $('refresh').onclick=()=>refreshShells().catch(report);
-  $('attach').onclick=async()=>{const candidate=availableTerminals.find(s=>s.id===$('running').value);if(!candidate)return;try{acceptSession(candidate.shellId,await rpc('attach',{id:candidate.id}))}catch(error){report(error)}};
+  $('attach').onclick=async()=>{const candidate=availableTerminals.find(s=>s.id===$('running').value);if(!candidate)return;try{$('session-manager').close();acceptSession(candidate.shellId,await rpc('attach',{id:candidate.id}))}catch(error){report(error)}};
   $('keys').addEventListener('click',event=>{
     const key=event.target.dataset.key,entry=sessions.get(selected);
     if(!key || !entry?.active)return;
     const text=key.replace(/\\u([0-9a-f]{4})/gi,(_,hex)=>String.fromCharCode(parseInt(hex,16)));
     rpc(text==='\x03'?'interrupt':'input',text==='\x03'?{id:entry.id}:{id:entry.id,text}).then(result=>update(entry,result)).catch(report);
   });
-  $('close').onclick=async()=>{const entry=sessions.get(selected);if(!entry)return;try{await rpc('close',{id:entry.id});entry.active=false;entry.term.options.disableStdin=true;choose(selected);$('welcome').hidden=false;}catch(error){report(error)}};
+  $('close').onclick=async()=>{const entry=sessions.get(selected);if(!entry)return;try{$('session-manager').close();await rpc('close',{id:entry.id});entry.active=false;entry.term.options.disableStdin=true;choose(selected);$('welcome').hidden=false;}catch(error){report(error)}};
   $('input-form').onsubmit=event=>{event.preventDefault();const entry=sessions.get(selected),text=$('command').value;if(!entry?.active)return;
     // Preserve the typed command on failure, rather than silently discarding it.
     $('send').disabled=true;rpc('input',{id:entry.id,text:text+'\n'}).then(result=>{if($('command').value===text)$('command').value='';update(entry,result)}).catch(report).finally(()=>{$('send').disabled=!sessions.get(selected)?.active});};
@@ -125,7 +141,11 @@
     token=state.token;theme=state.theme;labels=translations[state.locale.split(/[-_]/)[0]]??translations.en;
     for(const [key,value] of Object.entries(theme))document.documentElement.style.setProperty('--'+key,value);
     for(const [id,index] of [['title',0],['intro',1],['open',2],['send',4],['close',5],['name-label',6],['cancel',7],['create',8]])$(id).textContent=labels[index];
-    $('attach').textContent=state.locale.startsWith('zh')?'连接已有终端':'Connect session';
+    controlLabels=controls[state.locale.split(/[-_]/)[0]]??controls.en;
+    for(const [id,index] of [['manager-title',0],['running-label',1],['attach',2],['refresh',3],['close',4],['dismiss',5]])$(id).textContent=controlLabels[index];
+    $('manage').setAttribute('aria-label',controlLabels[0]);$('manage').title=controlLabels[0];
+    $('add').setAttribute('aria-label',controlLabels[8]);$('add').title=controlLabels[8];
+    $('toggle-keys').textContent=controlLabels[$('extra-keys').hidden?6:7];
     $('command').placeholder=labels[3];$('command').setAttribute('aria-label',labels[3]);
     for(const entry of sessions.values())entry.term.options.theme={background:theme.surface,foreground:theme.onSurface,cursor:theme.primary};
     if(!initialized){initialized=true;refreshShells().catch(report);poll()}
