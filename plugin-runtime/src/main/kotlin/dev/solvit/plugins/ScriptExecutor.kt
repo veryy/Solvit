@@ -158,6 +158,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     if ("beforeModel" in pkg.manifest.hooks) {
                         js.evaluate<Any?>("if (typeof solvitPlugin.beforeModel !== 'function') throw new Error('Missing beforeModel hook');")
                     }
+                    if (pkg.manifest.agentEnabledSetting != null) js.evaluate<Any?>("if (typeof solvitPlugin.agent !== 'function') throw new Error('Missing agent strategy');")
                     if ("afterTurn" in pkg.manifest.hooks) js.evaluate<Any?>("if (typeof solvitPlugin.afterTurn !== 'function') throw new Error('Missing afterTurn hook');")
                     for (page in pkg.manifest.pages) {
                         js.evaluate<Any?>("if (typeof solvitPlugin.pages?.[${JsonPrimitive(page.id)}] !== 'function') throw new Error('Missing page handler');")
@@ -314,6 +315,7 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
     override val dependencies = pkg.manifest.dependencies
     override val requires = buildSet {
         add(Services.Tools)
+        if (pkg.manifest.agentEnabledSetting != null) add(AgentDriversServiceKey)
         if ("beforeModel" in pkg.manifest.hooks) add(ContextHookServiceKey)
         if ("afterTurn" in pkg.manifest.hooks) add(PostTurnHookServiceKey)
         if (pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }) add(WorkspaceServiceKey)
@@ -326,6 +328,13 @@ class ScriptToolPlugin(private val pkg: ScriptPackage, private val host: ScriptH
         if (TerminalServiceKey in requires) context.own { context.require(TerminalServiceKey).cancelOwner(id) }
         context.own { executor.stop() }
         executor.start()
+        if (pkg.manifest.agentEnabledSetting != null) {
+            val unregister = context.require(AgentDriversServiceKey).register(id, scriptPluginAgent(pkg)) {
+                val value = host.call(pkg.manifest, "settings.get", buildJsonObject { put("key", pkg.manifest.agentEnabledSetting) })
+                value is JsonPrimitive && value.isString && value.content == "true"
+            }
+            context.own { unregister() }
+        }
         if ("afterTurn" in pkg.manifest.hooks) {
             val lifecycle = Any()
             val running = mutableSetOf<ScriptExecutor>()

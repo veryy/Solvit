@@ -38,7 +38,7 @@ async function webResources(manifest, manifestFile) {
 
 export async function buildPlugin(entry, manifestFile, output) {
   const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
   if (manifest.nativeServices !== undefined && (manifest.apiVersion < 12 || !Array.isArray(manifest.nativeServices) ||
       manifest.nativeServices.some(service => !(service==='terminal.pty' && manifest.permissions?.includes('shell') || service==='web.pages' && manifest.permissions?.includes('network'))))) throw new Error('Invalid native services');
   const pages = manifest.pages ?? [];
@@ -55,6 +55,11 @@ export async function buildPlugin(entry, manifestFile, output) {
     const field = (manifest.settings ?? []).find(field => field.key === manifest.afterTurnEnabledSetting);
     if (!field || field.kind !== 'boolean' || field.defaultValue !== undefined && field.defaultValue !== 'false' && field.defaultValue !== false) throw new Error('afterTurn requires a default-off setting');
   } else if (manifest.afterTurnEnabledSetting !== undefined || (manifest.permissions ?? []).includes('model')) throw new Error('Model permission requires afterTurn');
+  if (manifest.agentEnabledSetting !== undefined) {
+    const field = (manifest.settings ?? []).find(field => field.key === manifest.agentEnabledSetting);
+    if (manifest.apiVersion < 14 || !manifest.permissions?.includes('agent') || !field || field.kind !== 'boolean' ||
+        field.defaultValue !== undefined && field.defaultValue !== 'false') throw new Error('Agent requires API14, permission and a default-off setting');
+  } else if (manifest.permissions?.includes('agent')) throw new Error('Agent permission requires strategy declaration');
   const result = await build({
     entryPoints: [entry], bundle: true, write: false, format: 'iife', globalName: '__solvitBundle',
     platform: 'neutral', target: 'es2020', legalComments: 'inline', minify: false,

@@ -50,7 +50,16 @@ export interface PluginContext {
   };
 }
 export type ToolHandler = (arguments_: JsonObject, context: PluginContext) => JsonValue | Promise<JsonValue>;
+/** API14: isolated per-turn strategy instance; all model/tool effects remain host validated. */
+export interface AgentContext {
+  model(round: number): Promise<number>;
+  tool(index: number): Promise<number>;
+  settle(round: number): Promise<number>;
+  finish(round: number): Promise<number>;
+}
 export interface PluginDefinition {
+  agent?(input: Readonly<{maxRounds: number}>, context: AgentContext): Promise<void>;
+
   tools: Record<string, ToolHandler>;
   /** API 9: independent page instance; does not share activate() or chat state. */
   pages?: Record<string, (input: PluginPageInput, context: PluginContext) => PluginPageView | Promise<PluginPageView>>;
@@ -67,14 +76,16 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
   nativeServices?: ('terminal.pty'|'web.pages')[];
   pages?: { id: string; title: string; entry?: string }[];
   hooks?: ('beforeModel' | 'afterTurn')[];
   afterTurnEnabledSetting?: string;
+  /** API14 + agent permission: a declared boolean setting, default false, globally selects this strategy. */
+  agentEnabledSetting?: string;
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret' | 'boolean'; required?: boolean; defaultValue?: 'true' | 'false'; pageManaged?: boolean }[];
-  permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins' | 'model')[];
+  permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins' | 'model' | 'agent')[];
   dependencies: string[];
   tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management' }[];
 }

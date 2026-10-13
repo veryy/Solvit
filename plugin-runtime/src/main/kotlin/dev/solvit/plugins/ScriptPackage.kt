@@ -20,6 +20,7 @@ data class ScriptManifest(
     val afterTurnEnabledSetting: String? = null,
     val pages: List<ScriptPage> = emptyList(),
     val nativeServices: Set<String> = emptySet(),
+    val agentEnabledSetting: String? = null,
 )
 data class ScriptPackage(val manifest: ScriptManifest, val source: String, val payload: ByteArray,
     val resources: Map<String, String> = emptyMap()) {
@@ -50,7 +51,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
         fun parseManifest(m: JsonObject): ScriptManifest {
             require(m.toString().toByteArray(Charsets.UTF_8).size <= MAX_BYTES)
             val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..13) { "插件需要其他版本的宿主 API" }
+            require(apiVersion in 1..14) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -59,7 +60,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val version = string("version")
             require(version.matches(Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"))) { "插件版本无效" }
             val permissions = strings("permissions")
-            require(permissions.all { it in setOf("storage", "network") || apiVersion >= 4 && it in setOf("workspace", "shell", "plugins") || apiVersion >= 8 && it == "model" }) { "插件声明了尚未支持的权限" }
+            require(permissions.all { it in setOf("storage", "network") || apiVersion >= 4 && it in setOf("workspace", "shell", "plugins") || apiVersion >= 8 && it == "model" || apiVersion >= 14 && it == "agent" }) { "插件声明了尚未支持的权限" }
             val dependencies = strings("dependencies")
             require(id !in dependencies) { "插件不能依赖自身" }
             val nativeServices = m["nativeServices"]?.jsonArray?.map { it.jsonPrimitive.also { p -> require(p.isString) }.content }?.toSet().orEmpty()
@@ -91,6 +92,12 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
                 ExtensionSetting(key, label, kind, field["required"]?.jsonPrimitive?.boolean ?: false, defaultValue, pageManaged)
             }.orEmpty()
             require(settings.size <= 16 && settings.map { it.key }.toSet().size == settings.size && (settings.isEmpty() || apiVersion >= 2))
+            val agentSetting = m["agentEnabledSetting"]?.jsonPrimitive?.also { require(it.isString) }?.content
+            if (agentSetting != null) {
+                require(apiVersion >= 14 && "agent" in permissions && settings.any {
+                    it.key == agentSetting && it.kind == "boolean" && it.defaultValue != "true"
+                }) { "Agent 驱动需要 API14、agent 权限和默认关闭的配置开关" }
+            } else require("agent" !in permissions) { "Agent 权限需要驱动配置声明" }
             val hooks = m["hooks"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty()
             require(hooks.all { it == "beforeModel" && apiVersion >= 3 || it == "afterTurn" && apiVersion >= 8 }) { "插件 Hook 声明无效" }
             val afterTurnSetting = m["afterTurnEnabledSetting"]?.jsonPrimitive?.content
@@ -112,7 +119,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             }.orEmpty()
             require(pages.size <= 8 && pages.map { it.id }.distinct().size == pages.size && (pages.isEmpty() || apiVersion >= 9)) { "插件页面需要 API 9 且 ID 不得重复" }
             return ScriptManifest(id, string("name"), string("description"), version,
-                permissions, dependencies, tools, apiVersion, settings, hooks, afterTurnSetting, pages, nativeServices)
+                permissions, dependencies, tools, apiVersion, settings, hooks, afterTurnSetting, pages, nativeServices, agentSetting)
         }
     }
 }

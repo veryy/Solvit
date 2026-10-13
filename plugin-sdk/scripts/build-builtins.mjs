@@ -19,3 +19,7 @@ for (const directory of plugins.filter(entry => entry.isDirectory())) {
 const notes = resolve('../plugin-examples/notes');
 await buildPlugin(join(notes, 'index.ts'), join(notes, 'manifest.json'),
   resolve('../market-server/packages/example.notes.solvit.json'));
+
+const agent = resolve('../plugin-examples/agent');
+await buildPlugin(join(agent, 'index.ts'), join(agent, 'manifest.json'),
+  resolve('../market-server/packages/example.agent.solvit.json'));
