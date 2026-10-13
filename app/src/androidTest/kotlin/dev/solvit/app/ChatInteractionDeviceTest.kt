@@ -155,8 +155,13 @@ class ChatInteractionDeviceTest {
         var open by mutableStateOf(true)
         var displayedStore by mutableStateOf(store)
         rule.runOnUiThread { rule.activity.setContent { MaterialTheme { if(open)ChatAppearanceScreen(displayedStore){open=false} } } }
+        val before=rule.onNodeWithTag("chat_font_size").fetchSemanticsNode().boundsInRoot
         rule.onNodeWithTag("chat_font_size").performTouchInput { swipeRight() }
-        rule.waitUntil(8000) { store.chat.value.fontSize>20f }
+        try { rule.waitUntil(8000) { store.chat.value.fontSize>20f } }
+        catch(failure:Throwable) {
+            screenshot("chat-font-slider-failure")
+            throw AssertionError("[DEBUG-chat-font] saved=${store.chat.value.fontSize} before=$before after=${rule.onNodeWithTag("chat_font_size").fetchSemanticsNode().boundsInRoot}\n"+rule.onRoot().printToString(),failure)
+        }
         rule.onNodeWithTag("chat_appearance_settings").performScrollToNode(hasTestTag("reply_speed_30"))
         rule.onNodeWithTag("reply_speed_30").performClick()
         rule.onNodeWithTag("chat_appearance_settings").performScrollToNode(hasTestTag("chat_style_plain"))
