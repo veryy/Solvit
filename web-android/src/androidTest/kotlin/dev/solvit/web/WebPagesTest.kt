@@ -30,5 +30,14 @@ class WebPagesTest {
         """.trimIndent())
         assertTrue(search.searchResults)
         assertEquals("https://kotlinlang.org/docs/home.html", search.links.single().url)
+        val mobile = service.observeFixture("https://www.bing.com/?q=Kotlin", """
+            <html><head><title>Mobile search fixture</title></head><body><main>
+            <div class="b_algo"><div class="b_algoheader"><a href="https://kotlinlang.org/docs/home.html"><h2>Kotlin docs</h2></a></div><p>Official mobile source</p></div>
+            <a href="https://example.org/footer">Footer</a>
+            </main></body></html>
+        """.trimIndent())
+        assertTrue(mobile.searchResults)
+        assertEquals("https://kotlinlang.org/docs/home.html", mobile.links.single().url)
+        assertTrue(mobile.links.single().snippet.contains("Official mobile source"))
     }
 }
