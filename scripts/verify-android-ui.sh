@@ -2,7 +2,8 @@
 # Keep capture and tests in one shell: emulator-runner runs each script line separately.
 set -uo pipefail
 mkdir -p ui-screenshots
-solvit_exclusions=dev.solvit.app.SeedUpgradeConfigurationTest
+# Live credentials are required by the separate real-model acceptance workflow.
+solvit_exclusions=dev.solvit.app.SeedUpgradeConfigurationTest,dev.solvit.app.RealModelAcceptanceTest
 if [ -f .signing/debug.keystore ]; then
   test -f ui-screenshots/previous.apk || exit 1
   printf '%s\n' '88684ed71af4c390217d4ee6f58e3a169d513e812744eb97af34318d71d5d631  ui-screenshots/previous.apk' | sha256sum --check || exit 1
