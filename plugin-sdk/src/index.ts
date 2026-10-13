@@ -10,6 +10,13 @@ export interface PluginTask {
 export interface PluginTaskListing {
   available:boolean; jobs:PluginTask[]; activeJobId:string|null; nextCursor:{updatedAt:number;id:string}|null;
 }
+/** API16 fixed root candidates; no absolute path or chat/workspace selector is exposed. */
+export interface WorkspaceInstructionSource {
+  readonly path:'AGENTS.md'|'CLAUDE.md'|'AGENTS.local.md'|'CLAUDE.local.md';
+  readonly status:'TEXT'|'ABSENT'|'BINARY'|'OVERSIZED'|'UNAVAILABLE';
+  readonly text?:string|null; readonly sha256?:string|null;
+}
+export interface WorkspaceInstructions {readonly available:boolean;readonly sources:readonly WorkspaceInstructionSource[]}
 export interface PluginContext {
   /** API12, human page only. The host captures the chat; scripts cannot supply a chat/workspace id to file queries. */
   readonly workspacePage?: {query(operation:'snapshot'|'list'|'read'|'drafts'|'draft',args?:JsonObject):Promise<JsonValue>;
@@ -31,7 +38,9 @@ export interface PluginContext {
   readonly terminal?: { call(operation: 'open' | 'status' | 'input' | 'interrupt' | 'close', args: JsonObject): Promise<JsonValue> };
   /** Optional on hosts older than Solvit 0.7.0; use JS Date as a UTC fallback. */
   /** API 4; operations are bound to the active chat and the exact approved tool arguments. */
-  readonly workspace?: { call(operation: 'info' | 'read' | 'write' | 'createShell' | 'start' | 'status' | 'cancel', args?: JsonObject): Promise<JsonValue> };
+  readonly workspace?: { call(operation: 'info' | 'read' | 'write' | 'createShell' | 'start' | 'status' | 'cancel', args?: JsonObject): Promise<JsonValue>;
+    /** API16, beforeModel only + workspace grant; host captures the current conversation. */
+    instructions?():Promise<WorkspaceInstructions> };
   readonly plugins?: { draft(args: { manifestJson: string; source: string }): Promise<JsonValue> };
   readonly clock?: { now(): Promise<{ utc: string; localTime: string; timezone: string; timezoneOffsetMinutes: number;
     utcOffset?: string; weekday?: number; displayLocal?: string; displayUtc?: string }> };
@@ -91,7 +100,7 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
   nativeServices?: ('terminal.pty'|'web.pages')[];
   pages?: { id: string; title: string; entry?: string }[];
