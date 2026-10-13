@@ -10,3 +10,6 @@ Android基础系统不保证git可执行文件存在；不能仅给Shell拼接gi
 
 
 首次38463878364/2706156真实APK编译成功，API35仓库完整用例通过，API26实际NoSuchMethodError在IO.readSome→SilentFileInputStream.readNBytes，Git.init尚未完成。Google官方Java11 desugaring列表未提供readNBytes，直接启用普通desugaring不能证明支持；6.10.1同一IO实现仍调用该方法，降版本不会解决此根因。保持当前JGit7.8与minSDK26，使用构建时ASM转换仅在org/eclipse/jgit类中把readNBytes/readAllBytes虚调用替换到Android宿主流适配；不改Git索引/对象/提交算法，保留EDL许可，变化jar去除失效签名文件。适配遵守长度/EOF/不关闭流/异常传播，新增实际Android边界测试；原完整仓库用例不删，增加gc后的真实pack对象覆盖。全部构建转换与测试继续远程执行，当前修复待验证。官方API依据：https://developer.android.com/reference/java/io/InputStream ，https://developer.android.com/studio/write/java11-nio-support-table 。ASM9.8仅为构建依赖，不进入App运行时。
+
+
+修复后的38464984225/dbb3828两台真实Android模拟器均成功。下载11848647132（API26 ZIP13,397字节）和11847429286（API35 ZIP13,424字节），核对CRC与实际JUnit XML：每台2项、无失败/错误/跳过，分别为流适配边界及真实Git仓库全过程。保留中文/emoji及字面特殊文件名、真实gc打包对象、索引和工作树不同内容、仅提交已暂存版本且未暂存内容保留、关闭重开与删除暂存断言。没有降低minSDK或更换旧库来绕过失败。该结果只证明独立Git模块兼容，绑定工作区的授权/路径隔离、Git插件页面、AI工具、远程克隆/拉取/推送与完整任务仍未实现；后续全部范围继续，0.28文件工作台发布分支保持独立。
