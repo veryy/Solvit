@@ -32,7 +32,7 @@ def main():
         adb("install", "-r", "app/build/outputs/apk/debug/app-debug.apk", timeout=90)
         adb("install", "-r", "app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk", timeout=90)
         # Static shell syntax only: never interpolate config, user input or key.
-        adb("shell", "run-as dev.solvit.app sh -c 'umask 077; cat > files/model-acceptance.json'", data=payload)
+        adb("shell", "run-as dev.solvit.app sh -c 'umask 077; mkdir -p files; cat > files/model-acceptance.json'", data=payload)
         instrument = adb("shell", "am", "instrument", "-w", "-e", "solvitRealModel", "true",
                          "-e", "class", "dev.solvit.app.RealModelAcceptanceTest",
                          "dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner", timeout=1200)
