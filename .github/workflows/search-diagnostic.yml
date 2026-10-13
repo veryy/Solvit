@@ -1,5 +1,8 @@
 name: Search release diagnosis
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches: [diagnose/search-release]
 permissions:
   contents: read
 jobs:
