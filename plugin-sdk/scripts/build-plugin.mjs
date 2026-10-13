@@ -38,7 +38,7 @@ async function webResources(manifest, manifestFile) {
 
 export async function buildPlugin(entry, manifestFile, output) {
   const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
   if (manifest.nativeServices !== undefined && (manifest.apiVersion < 12 || !Array.isArray(manifest.nativeServices) ||
       manifest.nativeServices.some(service => !(service==='terminal.pty' && manifest.permissions?.includes('shell') || service==='web.pages' && manifest.permissions?.includes('network'))))) throw new Error('Invalid native services');
   if (manifest.permissions?.includes('agent.read') && (manifest.apiVersion < 15 || !manifest.permissions.includes('agent')))

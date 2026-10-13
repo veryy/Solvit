@@ -54,6 +54,19 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                     require(args.keys == setOf("path"))
                     service.readForEdit(workspace(), text("path")).let { buildJsonObject { put("text", it.text); put("sha256", it.sha256) } }
                 }
+                "readChunk" -> {
+                    require(args.keys == setOf("path", "offset", "expectedSha256"))
+                    val offset=args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int
+                    val expected=args.getValue("expectedSha256").let { value ->
+                        if(value==JsonNull)null else value.jsonPrimitive.also {
+                            require(it.isString && it.content.matches(Regex("[a-f0-9]{64}")))
+                        }.content
+                    }
+                    service.readTextChunk(workspace(),text("path"),offset,expected).let { chunk -> buildJsonObject {
+                        put("text",chunk.text);put("offset",chunk.offset);put("nextOffset",chunk.nextOffset)
+                        put("total",chunk.total);put("sha256",chunk.sha256)
+                    } }
+                }
                 "drafts" -> {
                     require(args.isEmpty())
                     buildJsonArray { drafts?.drafts?.value.orEmpty().filter { it.workspaceId == workspace() }.takeLast(40).reversed().forEach { d -> add(buildJsonObject {

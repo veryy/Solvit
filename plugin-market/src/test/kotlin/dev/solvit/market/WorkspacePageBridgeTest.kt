@@ -78,4 +78,32 @@ class WorkspacePageBridgeTest {
             assertEquals(1, service.state.value.shells.count { it.workspaceId == workspace.id })
         } finally { service.close(); scope.cancel() }
     }
+    @Test fun wholePreviewChunksRemainVersionedAndBoundToTheCapturedConversation()=runBlocking<Unit> {
+        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
+        val service=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope)
+        try {
+            val workspace=service.forChat("preview-a");val other=service.forChat("preview-b")
+            val content="a".repeat(4095)+"🙂"+"完整代码\n".repeat(4000)
+            service.write(workspace.id,"code.kt",content);service.write(other.id,"private.txt","private")
+            var active="preview-a"
+            val bridge=WorkspacePageBridge(service,null,active,activeChat={active})
+            fun args(offset:Int=0,hash:String?=null)=buildJsonObject {
+                put("path","code.kt");put("offset",offset);put("expectedSha256",hash?.let(::JsonPrimitive)?:JsonNull)
+            }.toString()
+            val first=Json.parseToJsonElement(bridge.query("readChunk",args()) {}).jsonObject
+            assertEquals(content.length,first["total"]!!.jsonPrimitive.int)
+            assertEquals(4095,first["nextOffset"]!!.jsonPrimitive.int)
+            val sha=first["sha256"]!!.jsonPrimitive.content
+            val next=Json.parseToJsonElement(bridge.query("readChunk",args(4095,sha)) {}).jsonObject
+            assertTrue(next["text"]!!.jsonPrimitive.content.startsWith("🙂"))
+            assertFails { bridge.query("readChunk",args(4095)) {} }
+            assertFails { bridge.query("readChunk","""{"path":"../${other.id}/private.txt","offset":0,"expectedSha256":null}""") {} }
+            assertFails { bridge.query("readChunk","""{"path":"code.kt","offset":0,"expectedSha256":null,"workspaceId":"${other.id}"}""") {} }
+            service.write(workspace.id,"code.kt","changed")
+            assertFails { bridge.query("readChunk",args(4095,sha)) {} }
+            active="preview-b";assertFails { bridge.query("readChunk",args()) {} }
+            active="preview-a";service.bind(active,other.id);assertFails { bridge.query("readChunk",args()) {} }
+        }finally { service.close();scope.cancel() }
+    }
+
 }

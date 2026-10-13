@@ -13,3 +13,5 @@
 文件编辑组件继续核对Operit同版本workspace/editor/CodeEditor.kt（45–125）：其CodeEditor通过AndroidView加载NativeCodeEditor/CanvasCodeEditorView，并非JS网页编辑器。本项目按用户要求让插件自带HTML/JS工作台，计划采用CodeMirror的浏览器编辑组件，而不把Operit原生控件直接搬进插件。官方基本示例https://codemirror.net/examples/basic/与只读示例https://codemirror.net/examples/readonly/提供EditorView、行号、语法高亮、撤销/重做与只读模式；https://codemirror.net/声明MIT许可和移动端支持。正式接入还需锁定依赖、分发许可、远程打包与实际Android输入/选择/保存/关闭重开验收，未仅凭官方说明宣称已经适配完成。
 
 实现顺序：将原生分段读取接入受当前对话约束的页面桥；插件完整重建文件文本并以CodeMirror只读预览/可编辑模式呈现；保存使用分段暂存和一次带原始文件SHA的原子提交，不能逐段覆盖目标文件。新建目录/重命名/删除与文件树在同一插件工作台呈现，再接本地Git状态/暂存/提交和GitHub远程操作。当前原生读取仍未交付页面或编辑能力，全范围继续。
+
+原生预览接入workspacePage.query(readChunk)，参数只允许path/offset/expectedSha256，绑定创建桥时的对话与工作区，读取前后复核授权，不接收外部workspaceId。新增API18原生解析/TS构建声明和QuickJS强制门禁：API17调用在进入宿主前拒绝，API18实际经过页面能力访问；新增真实原生桥大文件Unicode/版本变化/切换对话/重绑定/跨目录回归。当前市场客户端仍请求API17、既有包未改，服务端API18及新工作区包待业务页面完成一起部署，不冒称API18已经发布。

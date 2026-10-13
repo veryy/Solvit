@@ -51,7 +51,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
         fun parseManifest(m: JsonObject): ScriptManifest {
             require(m.toString().toByteArray(Charsets.UTF_8).size <= MAX_BYTES)
             val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..17) { "插件需要其他版本的宿主 API" }
+            require(apiVersion in 1..18) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")

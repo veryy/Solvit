@@ -58,4 +58,27 @@ class WorkspacePageSessionTest {
         try { val initial = old.open(); assertFails { old.dispatch(initial, "create", confirmed = true) }; assertEquals(2, writes) }
         finally { old.close() }
     }
+    @Test fun fullTextChunkQueriesRequireApi18AndActuallyCrossTheQuickJsPageBoundary()=runBlocking<Unit> {
+        var reads=0
+        val access=object:PageWorkspaceAccess {
+            override suspend fun query(operation:String,argumentsJson:String,authorize:suspend ()->Unit):String {
+                authorize();assertEquals("readChunk",operation)
+                val args=Json.parseToJsonElement(argumentsJson).jsonObject
+                assertEquals(JsonPrimitive("code.kt"),args["path"]);assertEquals(JsonNull,args["expectedSha256"])
+                reads++;return """{"text":"fixture","offset":0,"nextOffset":7,"total":7,"sha256":"${"a".repeat(64)}"}"""
+            }
+            override suspend fun perform(control:PageWorkspaceControl,authorize:suspend ()->Unit)=error("Preview must not write")
+        }
+        val action="await ctx.workspacePage.query('readChunk',{path:'code.kt',offset:0,expectedSha256:null})"
+        for(api in listOf(17,18)) {
+            val page=ScriptPageSession(pkg(api=api,action=action),"main","en",ScriptHost { _,_,_ -> error("Not exposed") }) {}
+            page.attachWorkspace(access)
+            try {
+                val initial=page.open()
+                if(api==17) { assertFails { page.dispatch(initial,"create",confirmed=true) };assertEquals(0,reads) }
+                else { page.dispatch(initial,"create",confirmed=true);assertEquals(1,reads) }
+            }finally { page.close() }
+        }
+    }
+
 }
