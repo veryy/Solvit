@@ -96,10 +96,14 @@ class SolvitApplication : Application() {
                 pluginDrafts = manager.registry.require(PluginDraftServiceKey)
                 marketPlugin.service.restore()
                 postTurnWorker.start()
-                mutableReady.value = Result.success(manager.registry.require(Services.Chat))
+                val chat = manager.registry.require(Services.Chat)
+                // Keep initialization in the background, publish the UI transition on Main.
+                // Otherwise a resumed test frame can initialize Android lazy prefetch on
+                // the publishing worker, which has no Choreographer/Looper.
+                withContext(Dispatchers.Main.immediate) { mutableReady.value = Result.success(chat) }
             } catch (e: Exception) {
                 try { manager.shutdown() } catch (cleanup: Exception) { e.addSuppressed(cleanup) }
-                mutableReady.value = Result.failure(e)
+                withContext(Dispatchers.Main.immediate) { mutableReady.value = Result.failure(e) }
             }
         }
     }

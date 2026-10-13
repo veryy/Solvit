@@ -33,3 +33,5 @@ beb49dd的[契约38428975426](https://github.com/veryy/Solvit/actions/runs/38428
 只读桥接[38431058558](https://github.com/veryy/Solvit/actions/runs/38431058558)报告artifact11830946755、ZIP68876bytes已核对CRC/XML：290测试0失败/错误/跳过，ExecutionChangesPageBridgeTest五项均通过。独立diff计算[38431700792](https://github.com/veryy/Solvit/actions/runs/38431700792)远程98 SDK、2市场通过。TS页141a4e2在38432405884先复现两个类型错误：SDK query联合类型未声明changes/changeContent；5ee97fb补入声明，不以as any绕过。其[38432771825](https://github.com/veryy/Solvit/actions/runs/38432771825)实际日志102 SDK、2市场0失败/跳过，npm ci/typecheck/包一致性/公开搜索检查通过。页面测试包含分块全文尾部编辑、缺失和可重试错误、创建与HTML字面量、256KiB转义长行跨所有分页且每个视图不超过原生128KiB/文本16384单位边界。
 
 TS changesPage与diff模块已提交，但尚未在manifest注册或从聊天打开。下一步新增插件HTML入口与自绘增删行/行号，把jsdiff完整许可纳入插件资源，宿主只打开固定run只读桥接；补真实QuickJS/SQLite重开和模拟器HTML任务证据，再发布完整差异页APK。当前0.25.2的发布范围只有捕获/持久化和角色自动化点击时序修正，不能把纯TS测试称作实际页面或真实Agent验证。
+
+追加序列诊断38432919598首轮3项1失败，失败是javascriptPluginUsesPersistentPtyAndDisableClosesItsProcess启动时LazyLayout的Choreographer要求Looper，堆栈直接来自SolvitApplication.kt:99在Default worker发布ready状态；其余两项（包括角色）通过，但不能记作十轮通过。独立分支调整初始化仍在后台、成功/失败的ready UI转换在Dispatchers.Main.immediate发布；保留全部三项原测试并重跑同序列。此修正不在不可变0.25.2标签内；不能冒称该版本额外十轮成功。
