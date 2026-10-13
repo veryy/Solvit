@@ -503,6 +503,13 @@ class ChatLayoutTest {
             market = MarketplaceViewModel(app.marketplace)
             rule.activity.setContent { MaterialTheme { ChatScreen(vm, updates, market, agents, workspaces) } }
         }
+        var tapBounds = ""
+        fun tapRoleSend() {
+            val button = rule.onNodeWithContentDescription("发送").assertIsEnabled()
+            val before = button.fetchSemanticsNode().boundsInRoot
+            button.performClick()
+            tapBounds = "before=$before after=${button.fetchSemanticsNode().boundsInRoot}"
+        }
         fun awaitRoleRequest(expected: Int) {
             try {
                 rule.waitUntil(8000) { requests.size == expected && !vm.busy.value }
@@ -512,7 +519,7 @@ class ChatLayoutTest {
                     "busy=${vm.busy.value} hasError=${vm.error.value != null} " +
                     "agentBusy=${agents.busy.value} missingRole=${agents.missingRole.value} " +
                     "branching=${vm.branching.value} invalidConfig=${vm.config.value.validate() != null} " +
-                    "outcome=${vm.replyTiming.value?.outcome} saved=${saved.value.size}"
+                    "outcome=${vm.replyTiming.value?.outcome} saved=${saved.value.size} attempts=${vm.sendAttemptCount} $tapBounds"
                 screenshot("role-settings-to-provider-failure")
                 throw AssertionError(state + "\n" + rule.onRoot().printToString(), failure)
             }
@@ -529,13 +536,13 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("关闭").performClick()
             rule.onNodeWithContentDescription("返回聊天").performClick()
             rule.onNode(hasSetTextAction()).performTextInput("你是什么角色？")
-            rule.onNodeWithContentDescription("发送").performClick()
+            tapRoleSend()
             awaitRoleRequest(1)
             rule.onNodeWithContentDescription("对话历史").performClick()
             rule.onNodeWithTag("new_chat").performClick()
             rule.waitUntil(8000) { vm.sessionId.value != originalSession && agents.activeRole.value?.id == role.id }
             rule.onNode(hasSetTextAction()).performTextInput("新对话中你是谁？")
-            rule.onNodeWithContentDescription("发送").performClick()
+            tapRoleSend()
             awaitRoleRequest(2)
             val sent = requests.toList()
             assertNotEquals(sent[0].sessionId, sent[1].sessionId)
