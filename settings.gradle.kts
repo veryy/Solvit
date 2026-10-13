@@ -14,3 +14,5 @@ include(":terminal-android")
 
 include(":provider-http", ":provider-anthropic")
 include(":web-android")
+
+include(":git-android")
