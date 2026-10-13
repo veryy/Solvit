@@ -18,6 +18,8 @@ export interface WorkspaceInstructionSource {
 }
 export interface WorkspaceInstructions {readonly available:boolean;readonly sources:readonly WorkspaceInstructionSource[]}
 export interface PluginContext {
+  /** API19, authorized AI tool only; root and chat selectors are owned by the host. */
+  readonly git?: {call(operation:'status'|'diff'|'history',args?:JsonObject):Promise<JsonValue>};
   /** API19, page-only. Native reviews are opaque handles; perform consumes a displayed confirmed action. */
   readonly gitPage?: {query(operation:'status'|'diff'|'diffChunk'|'history'|'reviewCommit',args?:JsonObject):Promise<JsonValue>;
     perform():Promise<JsonValue>};

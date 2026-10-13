@@ -23,7 +23,7 @@ case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
 esac
 solvit_diagnostic_iterations=1
 solvit_diagnostic_expected='OK (1 test)'
-if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = file-diff ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-interaction ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = workspace-files ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
+if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = file-diff ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-interaction ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = workspace-files ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = git-workbench ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role ]; then solvit_diagnostic_iterations=10; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role-sequence ]; then
   solvit_diagnostic_iterations=10

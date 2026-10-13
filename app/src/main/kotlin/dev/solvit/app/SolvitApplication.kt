@@ -77,7 +77,7 @@ class SolvitApplication : Application() {
         scope.launch {
             modelProfiles.initialize()
             val manager = PluginManager(scope = scope)
-            val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts }, useWebPages = true)
+            val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts }, useWebPages = true, useGit = true)
             try {
                 // Deliberately unordered: dependency declarations control activation.
                 listOf(PostTurnWorkerPlugin(), PostTurnHooksPlugin(), ContextBudgetPlugin(), ContextPreparationPlugin(), WebPagesPlugin(this@SolvitApplication), RequestInspectionPlugin(), ModelProvidersPlugin(), ModelRoutingPlugin(), ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), WorkspaceGitPlugin(), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true), WorkspacePlugin(this@SolvitApplication), ScriptAgentDriverPlugin(assets.open("agent/chat-driver.js").bufferedReader().use { it.readText() }), ChatAgentPlugin(requireDriver = true), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),

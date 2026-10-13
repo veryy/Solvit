@@ -68,3 +68,6 @@ Git HTML/TS页面候选：新增dev.solvit.git 1.0.0/API19，Changes分工作树
 
 
 生成包提交后的e02eb60/38474358025 TypeScript门禁实际全成功；下载115561267240完整job日志核对109 SDK/2市场均0失败，typecheck、生成包与源码一致性及无配置公网搜索（三来源、cn.bing.com/www.bing.com）通过。生成包原字节未改，23da77e只修正Android ShellOutput列表拼接与退出码断言，SDK源码保持该已验证版本。23da77e完整Android38474418825和真实Git HTML页面诊断38474471661已启动，最后观察分别pending/in_progress；它们尚未有通过结论，不发布0.29或宣称真机/真实模型/GitHub操作完成。
+
+
+AI只读Git工具接线候选：继续对照固定DSH deliverables/workspace-changes/tests/git.spec.ts的配置隔离/失败报告、git.ts真实查询，及Operit examples/github/src/local/terminal.ts原生工具边界。新增ctx.git.call(status/diff/history)，Git插件1.1声明三个聊天工具，页面仍使用同一个WorkspaceGitService。宿主校验API19/显式服务/workspace与git双授权、启用且同清单、当前角色允许、ToolInvocationContext与准确批准参数JSON、ConversationContext绑定；禁止页面/Hook/后台借用工具入口。每次调用创建并最终NonCancellable关闭绑定会话，不保留工具会话或向JS传根目录。差异4096字符分块含patchSha256，后续块必须给相同摘要，变化明确拒绝，emoji边界完整；结果16KiB上限明确报错而不截断。此阶段只读，不把页面已支持的暂存/提交误称为AI已支持；后续AI写入仍需原生审阅句柄/独立授权和生命周期设计。新增桥层撤权、隐藏root、未知写操作、变化摘要、完整Unicode分块及关闭回归，SDK准确参数转交，实际AndroidQuickJS工具→权限→真实仓库状态/差异/历史/拒绝/重绑定回归。新的Git包须继续Actions生成后取回；页面23da77e诊断38474471661仍在运行，不以新工具代码取消该UI证据。完整Android候选由最新功能提交替代旧源，正式0.28公开资产保持原样。真实模型工具选择/回答尚未验收，不能把工具链路回归视为模型质量通过。

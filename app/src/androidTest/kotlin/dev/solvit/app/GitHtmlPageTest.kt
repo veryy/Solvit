@@ -20,6 +20,54 @@ import java.util.UUID
 
 class GitHtmlPageTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    @Test fun actualQuickJsGitToolsReadBoundRepositoryAndDenyUnapprovedOrReboundCalls() {
+        val app = rule.activity.application as SolvitApplication
+        runBlocking {
+            withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }
+            val chat = "git-tools-${UUID.randomUUID()}"
+            val workspace = app.workspaces.forChat(chat)
+            val root = File(app.workspaces.location(workspace.id))
+            val native = app.workspaceGit.bind(chat, { chat }, {}, {})
+            val plugin = "dev.solvit.git"
+            val wasEnabled = app.marketplace.installed.value.single { it.id == plugin }.enabled
+            try {
+                native.initialize()
+                File(root, "read.txt").writeText("actual Git tool 中文 😀\n")
+                native.commit(native.stage(native.diff("read.txt", false)), "Tool history", "Fixture", "test@example.invalid")
+                File(root, "read.txt").writeText("modified tool result 😀\n")
+                if (!wasEnabled) app.marketplace.enable(plugin, setOf("workspace", "git"))
+                val descriptor = app.marketplace.installed.value.single { it.id == plugin }.tools.single { it.name.endsWith("_status") }
+                assertTrue(descriptor.chatVisible)
+                val allow = object : dev.solvit.core.ToolAuthorization {
+                    override suspend fun authorize(descriptor: dev.solvit.core.ToolDescriptor): Boolean {
+                        assertEquals(plugin, descriptor.pluginId)
+                        assertEquals(setOf("workspace", "git"), descriptor.capabilities)
+                        return true
+                    }
+                }
+                withContext(dev.solvit.core.ConversationContext(chat, workspace.id)) {
+                    try { app.marketplace.runTool("dev_solvit_git_status", "{}", dev.solvit.core.DenyTools); fail("Expected denied tool") }
+                    catch (_: dev.solvit.core.ToolDeniedException) { }
+                    val status = org.json.JSONObject(app.marketplace.runTool("dev_solvit_git_status", "{}", allow))
+                    assertEquals("modified", status.getJSONArray("entries").getJSONObject(0).getString("working"))
+                    val diff = org.json.JSONObject(app.marketplace.runTool("dev_solvit_git_diff", """{"path":"read.txt","staged":false}""", allow))
+                    assertTrue(diff.getString("patch").contains("+modified tool result 😀"))
+                    assertEquals(diff.getInt("total"), diff.getInt("nextOffset"))
+                    val history = org.json.JSONArray(app.marketplace.runTool("dev_solvit_git_history", "{}", allow))
+                    assertEquals("Tool history", history.getJSONObject(0).getString("message"))
+                    try { app.marketplace.runTool("dev_solvit_git_status", """{"workspaceId":"other"}""", allow); fail("Expected hidden-root rejection") }
+                    catch (_: Exception) { }
+                    app.workspaces.unbind(chat)
+                    try { app.marketplace.runTool("dev_solvit_git_status", "{}", allow); fail("Expected rebound invocation rejection") }
+                    catch (_: Exception) { }
+                }
+                assertEquals("modified tool result 😀\n", File(root, "read.txt").readText())
+            } finally {
+                if (!wasEnabled) app.marketplace.disable(plugin)
+                native.close(); app.workspaces.unbind(chat); root.deleteRecursively()
+            }
+        }
+    }
     @Test fun actualGitPageReviewsFullChangesCommitsOnlyStagedBytesAndPreviewsTheSameShellFiles() {
         val app = rule.activity.application as SolvitApplication
         val chat = "git-html-${UUID.randomUUID()}"

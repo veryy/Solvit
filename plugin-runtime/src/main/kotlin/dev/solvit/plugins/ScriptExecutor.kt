@@ -51,7 +51,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     val permission = when (operation) {
                         "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
                         "model.complete" -> "model"
-                        "gitPage.query", "gitPage.perform" -> "git"
+                        "gitPage.query", "gitPage.perform", "git.status", "git.diff", "git.history" -> "git"
                         "http.request", "web.visit" -> "network"
                         "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions", "workspacePage.query", "workspacePage.perform" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
@@ -77,6 +77,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     check(!operation.startsWith("workspacePage.") || pkg.manifest.apiVersion >= 12 && !invokeLifecycle && !background) { "工作区页面需要 API12" }
                     check(!operation.startsWith("gitPage.") || pkg.manifest.apiVersion >= 19 && !invokeLifecycle && !background &&
                         "workspace.git" in pkg.manifest.nativeServices && "workspace" in pkg.manifest.permissions) { "Git页面需要API19、Git服务及工作区权限" }
+                    check(!operation.startsWith("git.") || pkg.manifest.apiVersion >= 19 && "workspace.git" in pkg.manifest.nativeServices &&
+                        "workspace" in pkg.manifest.permissions) { "Git工具需要API19、Git服务及工作区权限" }
                     val parent = executionContext ?: error("宿主调用没有活动的插件执行")
                     // QuickJS async bindings have their own scope. Explicitly
                     // parent native work to this invocation, including cleanup.
@@ -145,6 +147,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             list: async (options = {}) => JSON.parse(await __solvitHostCall('jobs.list', JSON.stringify(options))),
                             perform: async () => JSON.parse(await __solvitHostCall('jobs.perform', '{}'))
                           }),
+                          git: Object.freeze({call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('git.' + operation, JSON.stringify(args)))}),
                           gitPage: Object.freeze({
                             query: async (operation,args = {}) => JSON.parse(await __solvitHostCall('gitPage.query', JSON.stringify({operation,arguments:args}))),
                             perform: async () => JSON.parse(await __solvitHostCall('gitPage.perform', '{}'))

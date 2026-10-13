@@ -67,3 +67,18 @@ test('Git commit uses the captured index handle and Files reuses the bound direc
   assert.ok(h.pkg.resources['ui/editor-NOTICE.txt'].includes('MIT'));
  }finally{await h.close()}
 });
+
+
+test('Git AI tools forward the exact approved JSON to the shared host query capability',async()=>{
+ const h=await harness();try{
+  for(const [name,args]of [['status',{offset:10,limit:5}],['diff',{path:'src/code.kt',staged:true,offset:4095,expectedPatchSha256:'a'.repeat(64)}],['history',{limit:3}]]){
+   let calls=0;
+   const result=await h.pkg.manifest.tools.find(t=>t.name===name);assert.ok(result);
+   const sandbox=vm.createContext({});vm.runInContext(h.pkg.source,sandbox);
+   await sandbox.solvitPlugin.tools[name](args,{git:{call:async(op,approved)=>{
+    calls++;assert.equal(op,name);assert.deepEqual(JSON.parse(JSON.stringify(approved)),args);return {native:true};
+   }}});
+   assert.equal(calls,1);
+  }
+ }finally{await h.close()}
+});
