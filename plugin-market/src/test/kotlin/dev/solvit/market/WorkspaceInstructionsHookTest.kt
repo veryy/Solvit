@@ -25,7 +25,13 @@ class WorkspaceInstructionsHookTest {
         val client = OkHttpClient()
         val workspaces = AndroidWorkspaces(context, scope)
         try {
-            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin()); manager.enableAll()
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin())
+            manager.load(object : SolvitPlugin {
+                override val id = "host.workspace-fixture"
+                override val provides = setOf(WorkspaceServiceKey)
+                override suspend fun enable(context: PluginContext) { context.register(WorkspaceServiceKey, workspaces) }
+            })
+            manager.enableAll()
             val config = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { 5 }, "AES") }
             val tools = manager.registry.require(Services.Tools)
             val market = AndroidMarketplace(context, manager, client, tools, config, workspaces = workspaces)
