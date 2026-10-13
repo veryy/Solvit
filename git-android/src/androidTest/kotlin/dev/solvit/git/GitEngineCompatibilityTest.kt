@@ -6,13 +6,40 @@ import org.eclipse.jgit.api.Git
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
+import java.io.IOException
 import java.io.File
 import java.util.UUID
 
 /** Real Android storage and Git index/objects; no mocked repository or installed git executable. */
 @RunWith(AndroidJUnit4::class)
 class GitEngineCompatibilityTest {
+    @Test fun androidStreamReadsHonorBoundsShortReadsAndLeaveTheStreamOpen() {
+        var closed = false
+        val input = object : ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5)) {
+            override fun read(target: ByteArray, offset: Int, length: Int): Int =
+                super.read(target, offset, minOf(length, 1))
+            override fun close() { closed = true; super.close() }
+        }
+        assertArrayEquals(byteArrayOf(1, 2, 3), AndroidInputStreams.readNBytes(input, 3))
+        assertEquals(4, input.read())
+        val target = ByteArray(4) { 9 }
+        assertEquals(1, AndroidInputStreams.readNBytes(input, target, 1, 2))
+        assertArrayEquals(byteArrayOf(9, 5, 9, 9), target)
+        assertEquals(0, AndroidInputStreams.readNBytes(input, target, 0, 0))
+        assertArrayEquals(byteArrayOf(), AndroidInputStreams.readAllBytes(input))
+        assertFalse(closed)
+        try { AndroidInputStreams.readNBytes(input, -1); fail("Negative length must fail") }
+        catch (_: IllegalArgumentException) {}
+        try { AndroidInputStreams.readNBytes(input, target, 3, 2); fail("Invalid bounds must fail") }
+        catch (_: IndexOutOfBoundsException) {}
+        val broken = object : InputStream() { override fun read(): Int = throw IOException("fixture read failure") }
+        try { AndroidInputStreams.readAllBytes(broken); fail("Read errors must propagate") }
+        catch (error: IOException) { assertEquals("fixture read failure", error.message) }
+    }
+
     @Test fun realRepositoryPreservesSeparateIndexAndWorktreeChangesAcrossReopen() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val root = File(context.filesDir, "git-compat-${UUID.randomUUID()}")
@@ -30,6 +57,7 @@ class GitEngineCompatibilityTest {
                 git.commit().setMessage("Initial document").setAuthor("Solvit test", "test@example.invalid")
                     .setCommitter("Solvit test", "test@example.invalid").call()
                 assertTrue(git.status().call().isClean)
+                git.gc().call() // Actual packed objects, not only loose-file reads.
                 file.writeText("staged 中文 😀\n")
                 assertEquals(setOf(path), git.status().call().modified)
                 git.add().addFilepattern(path).call()

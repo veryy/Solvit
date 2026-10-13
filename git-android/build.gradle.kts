@@ -1,3 +1,6 @@
+import dev.solvit.build.AndroidJgitTransform
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition
+
 plugins { id("com.android.library") }
 android {
     namespace = "dev.solvit.git"
@@ -12,8 +15,18 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 }
+val jgitAndroidEngine = configurations.create("jgitAndroidEngine") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    attributes.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, "solvit-android-jgit")
+}
 dependencies {
-    implementation("org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r")
+    registerTransform(AndroidJgitTransform::class) {
+        from.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, "jar")
+        to.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, "solvit-android-jgit")
+    }
+    add(jgitAndroidEngine.name, "org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r")
+    implementation(files(jgitAndroidEngine))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

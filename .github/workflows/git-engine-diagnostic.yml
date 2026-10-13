@@ -2,7 +2,7 @@ name: Android Git engine compatibility
 on:
   push:
     branches: [feat/workspace-git]
-    paths: ['git-android/**', 'settings.gradle.kts', '.github/workflows/git-engine-diagnostic.yml']
+    paths: ['git-android/**', 'buildSrc/**', 'settings.gradle.kts', '.github/workflows/git-engine-diagnostic.yml']
   workflow_dispatch:
 permissions:
   contents: read
