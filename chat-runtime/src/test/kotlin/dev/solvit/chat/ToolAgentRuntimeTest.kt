@@ -7,6 +7,29 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class ToolAgentRuntimeTest {
+    @Test fun oversizedToolResultCancelsOwnedResourcesAndReturnsOnlySafeFailure() = runTest {
+        var cancelled = false
+        var round = 0
+        val provider = object : ModelProvider {
+            override val id = "test"
+            override fun stream(request: ModelRequest): Flow<ModelChunk> {
+                if (round++ == 0) return flowOf(ModelChunk.ToolCalls(listOf(call)), ModelChunk.Done)
+                val result = request.messages.last { it.role == Role.TOOL }
+                assertEquals(ToolStage.FAILED, result.toolStage)
+                assertEquals(call.id, result.toolCallId)
+                assertTrue(result.content.contains("RESOURCE_LIMIT"))
+                assertFalse(request.messages.any { "PRIVATE_RESULT_SENTINEL" in it.content })
+                assertTrue(cancelled, "The failed invocation must cancel its owned task before model follow-up")
+                return flowOf(ModelChunk.Text("Result exceeded the limit; check the actual task."), ModelChunk.Done)
+            }
+        }
+        val chunks = ToolAgentRuntime(provider, registry {
+            currentCoroutineContext()[ToolInvocationContext]!!.own("task") { cancelled = true }
+            "PRIVATE_RESULT_SENTINEL" + "x".repeat(256 * 1024)
+        }).run(ModelRequest(ModelConfig(), listOf(ModelMessage(Role.USER, "use the tool")), authorization = allow)).toList()
+        assertEquals(2, round)
+        assertTrue(chunks.none { it is ModelChunk.Transcript && "PRIVATE_RESULT_SENTINEL" in it.message.content })
+    }
     @Test fun userStopDuringToolRemainsCancellationWithoutModelFollowUp() = runTest {
         val started = CompletableDeferred<Unit>()
         var round = 0
