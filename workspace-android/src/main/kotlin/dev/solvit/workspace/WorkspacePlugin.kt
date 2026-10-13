@@ -145,6 +145,22 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             }
         }
     }
+    override suspend fun readTextChunk(workspaceId: String, path: String, offset: Int,
+        expectedSha256: String?): WorkspaceTextChunk = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        require(offset >= 0 && (offset == 0 || expectedSha256 != null)) { "后续片段需提供首次读取的文件版本。" }
+        require(expectedSha256 == null || expectedSha256.matches(Regex("[a-f0-9]{64}")))
+        val observed=FileObservations.capture(file(workspaceId,path))
+        require(observed.kind==FileObservationKind.TEXT) { "预览只支持不超过256KiB的UTF-8文本。" }
+        val content=checkNotNull(observed.captureText)
+        val digest=checkNotNull(observed.sha256)
+        check(expectedSha256==null || expectedSha256==digest) { "文件已变化，请重新打开预览。" }
+        require(offset<=content.length && (offset==content.length || !content[offset].isLowSurrogate())) { "无效的文本分页位置。" }
+        var end=minOf(offset.toLong()+4096,content.length.toLong()).toInt()
+        if(end<content.length && end>offset && content[end-1].isHighSurrogate())end--
+        verifyPage(workspaceId)
+        WorkspaceTextChunk(content.substring(offset,end),offset,end,content.length,digest)
+    } }
     override suspend fun readForEdit(workspaceId: String, path: String): WorkspaceTextFile = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         val observed = FileObservations.capture(file(workspaceId, path), 4096, 4096)

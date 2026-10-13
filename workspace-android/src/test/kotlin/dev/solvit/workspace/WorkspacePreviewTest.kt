@@ -68,5 +68,12 @@ class WorkspacePreviewTest {
             allowed=false
             assertFailsWith<IllegalStateException> { service.readTextChunk(id,"emoji.txt") }
         }
+        var checks=0
+        withContext(WorkspacePageAuthority { target,_ ->
+            assertEquals(id,target);checks++;check(checks<2) { "revoked during read" }
+        }) {
+            assertFailsWith<IllegalStateException> { service.readTextChunk(id,"emoji.txt") }
+        }
+        assertEquals(2,checks)
     }
 }
