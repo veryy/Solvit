@@ -54,6 +54,26 @@ class BoundWorkspaceGitTest {
             assertEquals("untracked", status.entries.single { it.path == "new.txt" }.working)
             assertEquals(1, bound.status(limit = 1).entries.size)
             assertEquals("Reviewed initial", bound.history().single().message)
+            val indexBefore = File(root, ".git/index").readBytes()
+            val stagedDiff = bound.diff("tracked.txt", staged = true)
+            assertTrue(stagedDiff.patch.contains("-original"))
+            assertTrue(stagedDiff.patch.contains("+staged"))
+            assertFalse(stagedDiff.patch.contains("+working"))
+            val workingDiff = bound.diff("tracked.txt", staged = false)
+            assertTrue(workingDiff.patch.contains("-staged"))
+            assertTrue(workingDiff.patch.contains("+working"))
+            assertEquals(stagedDiff.revision, workingDiff.revision)
+            assertNotNull(workingDiff.workingSha256)
+            assertArrayEquals(indexBefore, File(root, ".git/index").readBytes())
+            assertEquals("working\n", File(root, "tracked.txt").readText())
+            try { bound.diff("../outside", staged = false); fail("Outside path must fail") }
+            catch (_: IllegalArgumentException) { }
+            try { bound.diff(".git/config", staged = false); fail("Metadata path must fail") }
+            catch (_: IllegalArgumentException) { }
+            val worktreeLink = File(root, "outside-link").toPath()
+            Files.createSymbolicLink(worktreeLink, external.toPath())
+            rejected { bound.diff("outside-link/config", staged = false) }
+            Files.delete(worktreeLink)
             allowed = false; rejected { bound.status() }; allowed = true
             active = "other"; rejected { bound.history() }; active = chat
             val config = File(root, ".git/config"); val original = config.readText()

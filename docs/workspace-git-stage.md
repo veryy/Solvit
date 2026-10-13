@@ -16,3 +16,6 @@ Android基础系统不保证git可执行文件存在；不能仅给Shell拼接gi
 
 
 继续实现原生BoundWorkspaceGit只读能力：只接受宿主已绑定的WorkspaceService与捕获对话，不接受JS目录，调用前、原生目录锁内和返回前复核活动对话/绑定/授权；关闭后拒绝。真实工作树和暂存区分别汇总、分页、显示冲突及提交历史；无仓库明确失败且不得自动init。只打开根目录内实体.git，拒绝外部commondir/alternates、元数据符号链接、外部include配置与重定向worktree。新增实际AndroidWorkspaces+真实JGit索引回归覆盖撤权、切换对话、重绑定、关闭、无仓库、外部配置与链接。该原生服务尚未接JS页面或AI，不宣称Git插件可用；暂存/提交/远程功能随后继续。全部实际测试待新的远程结果。
+
+
+读取JGit同一固定版本DiffCommand.java与DiffCommandTest.java的HEAD/DirCacheIterator/FileTreeIterator及过滤语义后，增加原生diff(path,staged)：真实HEAD→index或index→worktree，字面文件名过滤、首次提交无HEAD采用空树、二进制阈值256KiB、输出超限明确失败。返回HEAD与索引SHA及未暂存文件SHA，读取前后版本变化拒绝返回混合差异；禁止.git路径、跨目录、目录及符号链接读取。版本摘要最多8MiB，超限明确失败。实际Android用例增加暂存/未暂存内容严格不同、读取不改索引或工作文件、外部路径/元数据/链接拒绝。当前原生服务仍未接插件UI/AI，远程结果待确认；暂存/提交与远程GitHub范围保持。
