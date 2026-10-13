@@ -46,9 +46,9 @@ class BoundWorkspaceGit(
     private var closed = false
     data class Entry(val path: String, val staged: String?, val working: String?, val conflict: Boolean)
     data class Status(val branch: String?, val head: String?, val entries: List<Entry>, val total: Int)
-    data class Revision(val head: String?, val indexSha256: String?)
+    data class Revision(val head: String?, val indexSha256: String?, val branch: String?)
     data class Diff(val path: String, val staged: Boolean, val patch: String, val revision: Revision,
-        val workingSha256: String?)
+        val workingSha256: String?, val workingExecutable: Boolean?)
     data class Commit(val id: String, val message: String, val author: String, val timeSeconds: Int)
 
     private suspend fun verify() {
@@ -147,13 +147,14 @@ class BoundWorkspaceGit(
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
     private fun revision(git: Git) = Revision(git.repository.resolve(Constants.HEAD)?.name,
-        digest(File(git.repository.directory, "index")))
+        digest(File(git.repository.directory, "index")), git.repository.fullBranch)
 
     /** Read a real HEAD/index or index/worktree patch without changing either tree. */
     suspend fun diff(path: String, staged: Boolean): Diff = access { git ->
         val file = checkedPath(git.repository.workTree.canonicalFile, path)
         val before = revision(git)
         val workingBefore = if (staged) null else digest(file)
+        val executableBefore = if (staged || !file.exists()) null else file.canExecute()
         val output = object : ByteArrayOutputStream() {
             override fun write(value: Int) {
                 check(size() < 256 * 1024) { "Git差异超过256KiB，请缩小文件范围" }
@@ -179,12 +180,12 @@ class BoundWorkspaceGit(
             } else formatter.scan(index, FileTreeIterator(git.repository))
             formatter.format(entries); formatter.flush()
         }
-        check(before == revision(git) && (staged || workingBefore == digest(file))) {
+        check(before == revision(git) && (staged || workingBefore == digest(file) && executableBefore == if (file.exists()) file.canExecute() else null)) {
             "Git文件或暂存区在读取中变化，请刷新差异"
         }
         val patch = Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
             .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(output.toByteArray())).toString()
-        Diff(path, staged, patch, before, workingBefore)
+        Diff(path, staged, patch, before, workingBefore, executableBefore)
     }
 
     suspend fun history(limit: Int = 30): List<Commit> {
@@ -205,11 +206,13 @@ class BoundWorkspaceGit(
     suspend fun stage(review: Diff): Revision = access { git ->
         require(!review.staged) { "请先审阅工作树差异" }
         val file = checkedPath(git.repository.workTree.canonicalFile, review.path)
-        check(revision(git) == review.revision && digest(file) == review.workingSha256) {
+        check(revision(git) == review.revision && digest(file) == review.workingSha256 &&
+            (if (file.exists()) file.canExecute() else null) == review.workingExecutable) {
             "文件或暂存区已变化，请重新审阅后暂存"
         }
         verifyWrite()
-        check(revision(git) == review.revision && digest(file) == review.workingSha256) {
+        check(revision(git) == review.revision && digest(file) == review.workingSha256 &&
+            (if (file.exists()) file.canExecute() else null) == review.workingExecutable) {
             "文件或暂存区在授权期间变化，请刷新"
         }
         val content = if (file.exists()) file.inputStream().use { input ->
@@ -245,7 +248,7 @@ class BoundWorkspaceGit(
                     val blob = inserter.insert(Constants.OBJ_BLOB, content)
                     inserter.flush()
                     val entry = DirCacheEntry(review.path)
-                    entry.fileMode = if (file.canExecute()) FileMode.EXECUTABLE_FILE else FileMode.REGULAR_FILE
+                    entry.fileMode = if (review.workingExecutable == true) FileMode.EXECUTABLE_FILE else FileMode.REGULAR_FILE
                     entry.setObjectId(blob)
                     builder.add(entry)
                 }
@@ -297,7 +300,7 @@ class BoundWorkspaceGit(
             check(revision(git) == expected) { "HEAD或暂存区在获取索引锁时变化" }
             git.repository.newObjectInserter().use { inserter ->
                 val tree = cache.writeTree(inserter)
-                check(tree != git.repository.resolve("HEAD^{tree}")) { "暂存区没有需要提交的变化" }
+                check((expected.head != null || cache.entryCount > 0) && tree != git.repository.resolve("HEAD^{tree}")) { "暂存区没有需要提交的变化" }
                 val identity = PersonIdent(author, email)
                 val commit = CommitBuilder().apply {
                     setTreeId(tree)
@@ -308,7 +311,7 @@ class BoundWorkspaceGit(
                 inserter.flush()
                 verifyWrite()
                 check(revision(git) == expected) { "HEAD或暂存区在提交前变化，请刷新" }
-                val update = git.repository.updateRef(Constants.HEAD)
+                val update = git.repository.updateRef(expected.branch?.takeIf { it.startsWith("refs/heads/") } ?: Constants.HEAD)
                 update.setExpectedOldObjectId(expected.head?.let(ObjectId::fromString) ?: ObjectId.zeroId())
                 update.setNewObjectId(id)
                 update.setRefLogIdent(identity)

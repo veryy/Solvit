@@ -41,6 +41,11 @@ class BoundWorkspaceGitTest {
             rejected { page.stage(review) }
             assertArrayEquals(originalIndex, File(root, ".git/index").readBytes())
             writable = true
+            val mode = File(root, "reviewed.txt").canExecute()
+            assertTrue(File(root, "reviewed.txt").setExecutable(!mode))
+            rejected { page.stage(review) }
+            assertArrayEquals(originalIndex, File(root, ".git/index").readBytes())
+            assertTrue(File(root, "reviewed.txt").setExecutable(mode))
             File(root, "reviewed.txt").writeText("external change\n")
             rejected { page.stage(review) }
             assertArrayEquals(originalIndex, File(root, ".git/index").readBytes())
