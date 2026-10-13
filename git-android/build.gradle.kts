@@ -1,4 +1,4 @@
-import dev.solvit.build.AndroidJgitTransform
+import dev.solvit.buildtools.AndroidJgitTransform
 import org.gradle.api.artifacts.type.ArtifactTypeDefinition
 
 plugins { id("com.android.library") }
