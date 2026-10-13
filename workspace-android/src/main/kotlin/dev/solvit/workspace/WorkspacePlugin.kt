@@ -176,16 +176,37 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         }
         writeLocked(workspaceId, path, text)
     } }
+    override suspend fun writeTextForEdit(workspaceId: String, path: String, text: String,
+        expectedSha256: String?): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        require(expectedSha256 == null || expectedSha256.matches(Regex("[a-f0-9]{64}")))
+        require(text.length <= MAX_FILE_CAPTURE_BYTES && '\u0000' !in text) { "只支持不超过256KiB的UTF-8文本。" }
+        // String.toByteArray replaces unpaired surrogates; editing must reject them instead.
+        val encoded=Charsets.UTF_8.newEncoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+            .encode(java.nio.CharBuffer.wrap(text))
+        require(encoded.remaining() <= MAX_FILE_CAPTURE_BYTES) { "文本超过256KiB。" }
+        file(workspaceId,path)
+        // Authorization can suspend or revoke the binding. Recheck before any filesystem mutation.
+        verifyPage(workspaceId)
+        writeLocked(workspaceId,path,text,requireVersion=true,expectedSha256=expectedSha256)
+    } }
     override suspend fun write(workspaceId: String, path: String, text: String) { writeObserved(workspaceId,path,text) }
     override suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         writeLocked(workspaceId, path, text)
     } }
-    private fun writeLocked(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence {
+    private fun writeLocked(workspaceId: String, path: String, text: String,
+        requireVersion: Boolean = false, expectedSha256: String? = null): WorkspaceWriteEvidence {
         val bytes = text.toByteArray(Charsets.UTF_8)
         if(bytes.size>MAX_TEXT) throw ToolExecutionException(ToolFailureCode.FILE_TOO_LARGE)
         val target = file(workspaceId, path)
         val before=FileObservations.capture(target)
+        if(requireVersion) check(if(expectedSha256==null) before.kind==FileObservationKind.ABSENT
+            else before.kind==FileObservationKind.TEXT && before.sha256==expectedSha256) {
+            "文件已变化，请重新读取后保存。"
+        }
         check(target.parentFile!!.mkdirs() || target.parentFile!!.isDirectory)
         // Recheck after creating parents, before opening the atomic file.
         check(file(workspaceId, path) == target)
