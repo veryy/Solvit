@@ -42,4 +42,17 @@
 readResponse；原有 SSE、模型列表、取消与错误诊断测试保留。全套 Android 构建与
 原正式模拟器场景仍待验证，不能以三项测试代替正式发布门禁。
 
+## Provider 接入回归
+
+完整运行38486119881在 OpenAI 流式用例出现6项失败，源11f3a4a的普通flow在
+readResponse新增的IO协程上下文内发送。改为channelFlow/send并使用零缓冲，允许
+资源读取上下文逐段发送，同时保留消费者背压、原解析与错误详情。
+Anthropic同样采用该发送方式，NativeBlocks的原生块解析不变。
+
+源8613671的完整运行38486618500仍失败：插件市场MCP取消通知的一个旧await调用
+遗漏迁移，编译在MarketplacePlugin.kt:528失败。其前面已完成的实际报告产物
+11859074960经ZIP CRC/XML核对：HTTP5、OpenAI19、Anthropic15，共39项测试均通过，
+无失败、错误或跳过。随后源ffee1dd把取消通知也迁移到readResponse，保留原清理时限。
+完整Android、Lint/APK与原模拟器结果仍待检查，未正式发布。
+
 真实模型自主任务、真机以及 GitHub 远程操作仍未完成，不以 HTTP 回归替代。
