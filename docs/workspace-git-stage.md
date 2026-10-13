@@ -90,3 +90,6 @@ AI只读Git工具接线候选：继续对照固定DSH deliverables/workspace-cha
 独立工具f2aed1a/38476226967成功：取回11854501695（472,623字节），CRC及实际instrument输出OK (1 test)，4.399秒；实际方法为actualQuickJsGitToolsReadBoundRepositoryAndDenyUnapprovedOrReboundCalls，使用真实App/QuickJS/ToolRegistry/原生JGit/workspace，验证未确认拒绝、真实状态/差异/历史、隐藏工作区参数与解绑后拒绝，文件保持。该结果不证明HTML确认或真实模型选择工具已通过。
 
 API19市场已实际部署：服务器Node提供执行环境，首次用python3的暂存命令未执行，远程helper进程退出0也不代表远程命令成功；检查确认原server SHA和包缺失，后改Node并强制成功标记及远程文件摘要，未据helper的0退出误报部署。新server SHA df284c02bed71fe85bb12d5adffa0520ac7f3467b22839143cd146cc462bb4a7，备份/opt/solvit-market/.backup-git-api19-c55b3e081922。部署前/后分别捕获localhost与正常TLS公网API1–18完整响应，18个响应逐字节一致；API19提供Git1.1.0，公网downloadPath返回715,699字节，SHA256 8e5829ba417ec4be02f1f97e929acba45779faf703b21cea29eba541be5364a2，与仓库市场包/APK资产完全相同。旧包及旧客户端下载保持；本次市场证据不代表候选APK/页面通过，公开最新版仍0.28。
+
+
+修复前完整构建f2aed1a/38476197403的build成功，下载11855190532（319,857字节）CRC及实际JUnit XML核对406项，无失败/错误/跳过，包括GitPageBridgeTest两项、GitToolBridgeTest两项、GitPageSessionTest三项；该源Lint、固定签名/APK构建也通过。verify-ui被新修复源替代取消，该包保留已知git.perform确认UI问题，不能发作完整0.29。修复源fdc1766页面38477455570与完整Android38477417899继续原run追踪；准备release-0.29.0候选说明，明确尚未发布、AI只读、远程GitHub未完成、原生/真实模型/真机验证边界，不移动0.28标签或替换旧APK。
