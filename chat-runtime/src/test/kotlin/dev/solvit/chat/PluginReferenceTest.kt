@@ -28,8 +28,8 @@ class PluginReferenceTest {
     @Test fun referenceWithoutAUserTurnStillUsesDataRoleAndPreservesSystem() {
         val instructions = ModelMessage(Role.SYSTEM, "trusted")
         val projected = attachPluginReference(listOf(instructions), listOf("data"))
-        assertEquals(listOf(Role.USER, Role.SYSTEM), projected.map { it.role })
-        assertEquals(instructions, projected.last())
+        assertEquals(listOf(Role.SYSTEM, Role.USER), projected.map { it.role })
+        assertEquals(instructions, projected.first())
     }
 
     @Test fun nativeProviderKeepsCanonicalPrefixAndReceivesSeparateContextPerStep() = runTest {
