@@ -34,6 +34,10 @@ interface RoleService {
     suspend fun delete(id: String)
     suspend fun selected(sessionId: String): AgentRole?
     suspend fun select(sessionId: String, roleId: String?)
+    /** Explicit UI choice also becomes the persistent default for newly created chats. */
+    suspend fun selectForNewChats(sessionId: String, roleId: String?) = select(sessionId, roleId)
+    /** Legacy services inherit the source chat; native persistence can remember an explicit default. */
+    suspend fun forNewChat(sourceSessionId: String?): AgentRole? = sourceSessionId?.let { selected(it) }
 }
 
 val RoleServiceKey = ServiceKey("agent.roles", RoleService::class)

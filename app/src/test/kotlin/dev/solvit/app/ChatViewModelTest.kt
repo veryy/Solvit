@@ -171,4 +171,34 @@ class ChatViewModelTest {
             vm.viewModelScope.cancel()
         } finally { Dispatchers.resetMain() }
     }
+    @Test fun busyComposerAcceptsMessagesAndRunsThemOnceInFifoOrder() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val release=CompletableDeferred<Unit>();val received=mutableListOf<String>()
+            var running=0;var maximum=0
+            val chat=object:ChatService {
+                override fun sessions()=flowOf(listOf(ChatSession("session","Test",0)))
+                override fun messages(sessionId:String)=flowOf(emptyList<ChatMessage>())
+                override suspend fun createSession()=ChatSession("new","New",0)
+                override suspend fun deleteSession(sessionId:String)=Unit
+                override fun send(sessionId:String,text:String,config:ModelConfig,authorization:ToolAuthorization)=flow {
+                    received+=text;maximum=maxOf(maximum,++running)
+                    try { if(text=="first")release.await();emit(ModelChunk.Text(text));emit(ModelChunk.Done) }
+                    finally { running-- }
+                }
+            }
+            val settings=object:SettingsStore {
+                override suspend fun load()=ModelConfig(apiKey="fixture")
+                override suspend fun save(value:ModelConfig)=Unit
+            }
+            val vm=ChatViewModel(chat,settings);runCurrent()
+            assertTrue(vm.send("first"));runCurrent()
+            assertTrue(vm.send("second"));assertTrue(vm.send("third"));runCurrent()
+            assertEquals(listOf("first"),received)
+            release.complete(Unit);advanceUntilIdle()
+            assertEquals(listOf("first","second","third"),received);assertEquals(1,maximum)
+            assertFalse(vm.busy.value);vm.viewModelScope.cancel()
+        }finally { Dispatchers.resetMain() }
+    }
+
 }
