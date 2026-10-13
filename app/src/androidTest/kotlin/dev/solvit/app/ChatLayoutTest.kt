@@ -595,7 +595,7 @@ class ChatLayoutTest {
         try {
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithText("角色管理与 Skills").performClick()
-            rule.onNodeWithText(role.name).performScrollTo()
+            rule.onNodeWithTag("apply_role_${role.id}").performScrollTo()
             rule.onNodeWithTag("apply_role_${role.id}").performClick()
             rule.waitUntil(8000) { rule.onAllNodes(hasText("已应用UI role switch",substring=true)).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithContentDescription("关闭").performClick()
@@ -605,8 +605,8 @@ class ChatLayoutTest {
             rule.waitUntil(8000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithText("角色管理与 Skills").performClick()
-            rule.onNodeWithText(role.name).performScrollTo()
-            rule.onNodeWithText("✓ 当前使用").assertExists()
+            rule.onNodeWithTag("apply_role_${role.id}").performScrollTo()
+            rule.onNodeWithTag("apply_role_${role.id}").assertTextEquals("✓ 当前使用")
             screenshot("role-applied-new-chat")
         } finally {
             // Clear bindings before deleting a restricted role, so later fixtures stay usable.
