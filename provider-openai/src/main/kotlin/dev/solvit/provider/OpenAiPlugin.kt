@@ -1,6 +1,7 @@
 package dev.solvit.provider
 
 import dev.solvit.core.*
+import dev.solvit.http.readResponse
 import dev.solvit.http.ResponseDiagnostics
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -10,7 +11,6 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.resumeWithException
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
@@ -61,12 +61,8 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
         var hasText = false
         val call = client.newCall(httpRequest)
         coroutineScope {
-            // Cancels the blocking SSE read when the collecting coroutine is cancelled.
-            val cancellation = launch(start = CoroutineStart.UNDISPATCHED) {
-                try { awaitCancellation() } finally { call.cancel() }
-            }
             try {
-                call.await().use { response ->
+                call.readResponse { response ->
                     lastResponse = diagnostics.details(response)
                     if (!response.isSuccessful) throw diagnostics.httpFailure(response, when (response.code) {
                         401, 403 -> "认证失败，请检查 API Key 和模型权限"
@@ -157,7 +153,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
                 throw ModelException("模型连接失败，请查看详细信息", diagnostics.details(body = "${e.javaClass.simpleName}: ${e.message.orEmpty()}"))
             } catch (e: Exception) {
                 throw ModelException("模型响应格式异常，请查看详细信息", lastResponse ?: diagnostics.details())
-            } finally { cancellation.cancelAndJoin(); call.cancel() }
+            }
         }
     }.flowOn(Dispatchers.IO)
 
@@ -206,17 +202,7 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
         fun complete() = ToolCall(id.toString(), name.toString(), arguments.toString())
     }
 
-    private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
-        continuation.invokeOnCancellation { cancel() }
-        enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                if (continuation.isActive) continuation.resumeWithException(e)
-            }
-            override fun onResponse(call: Call, response: Response) {
-                continuation.resume(response) { _, value, _ -> value.close() }
-            }
-        })
-    }
+
 }
 
 class OpenAiPlugin : SolvitPlugin {
