@@ -42,6 +42,14 @@
       "commit": "2301018b1f61073c501a8e7a4813ef48c239163b",
       "licenseFile": "LICENSE.md",
       "kind": "public-examples-and-docs-only"
+    },
+    {
+      "name": "jgit",
+      "url": "https://github.com/eclipse-jgit/jgit.git",
+      "commit": "f386af5bb89c42eec92ee1547fc3201d743165cb",
+      "licenseFile": "LICENSE",
+      "kind": "git-engine",
+      "addedAt": "2026-10-14"
     }
   ]
 }
