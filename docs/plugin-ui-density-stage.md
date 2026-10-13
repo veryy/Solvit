@@ -19,3 +19,9 @@ Solvit现有Cytoscape首页对两个节点执行自动fit，允许放大至4倍�
 实际截图显示管理弹窗方向键横排裁切，改成换行并在真实页面断言全部按键横向完整可见。终端1.1.1已上线的原字节继续保留，后续修正使用1.1.2，不覆盖现有版本下载。
 
 截图复核发现返回按钮需要滚动，进一步把管理页返回按钮固定、内容单独滚动，常规视口减少多余间距；新增全按钮垂直可见与IME下返回按钮可见断言。终端1.1.2原字节保留，最终候选1.1.3待实际复核；焦点颜色跟随主题。
+
+候选源码 `c24514a` 的[完整构建38389698924](https://github.com/veryy/Solvit/actions/runs/38389698924)测试、Lint、签名与APK成功；下载的单元XML为344项、0失败/错误/跳过。终端升级类5项全通过，确认原始1.0.0、1.1.0、1.1.1和1.1.2升级到1.1.3保留启用及授权；修改过/已卸载的包仍保留原处理。此前[38389025920](https://github.com/veryy/Solvit/actions/runs/38389025920)4个失败的XML明确为期望1.1.3、实际1.1.2，提交远程生成包后已修复。
+
+[终端回归38389028704](https://github.com/veryy/Solvit/actions/runs/38389028704)实际OK (1 test)：真实DOM→Android PTY、多Shell、连接模型所有者的受控会话、长输出、IME触摸、紧凑中断、全部菜单按钮完整显示和关闭均通过。输入区触摸确实打开Android键盘；打开管理菜单会转移焦点并收起键盘，返回按钮仍可见，不声称菜单同时保留IME。[管理弹窗](screenshots/0.24.1/terminal-session-manager.png)、[实际键盘](screenshots/0.24.1/terminal-keyboard.png)、[PTY](screenshots/0.24.1/terminal-pty.png)、[图谱](screenshots/0.24.1/memory-html-graph-home.png)为真实模拟器截图，已逐张复核；内容属于测试夹具，不是真实模型任务。
+
+市场HTTPS已逐项核对API1–15：API1–9保持原目录；仅记忆API10+和终端API13+升级，其他条目相同。记忆1.4.0/1.4.1与终端1.1.0/1.1.1/1.1.2/1.1.3六个下载包逐字节匹配提交。最终记忆539688 bytes，SHA `24620ba62dee1b98ce03b49fbb94524868947dc5b4a7f7f5135e5977d21fd7d9`；终端327484 bytes，SHA `a92b18a94aa53900d8a7dc3cca6ea61b7a9cecf8771f8583a3bbc0e12ad1b37d`。备份 `/opt/solvit-market/.backup-ui-0241-1791889116049`、`.backup-terminal112-1791889711117`、`.backup-terminal113-1791890741013`。正式标签门禁与公开APK核对待完成；没有进行本地Android/TS构建或测试。
