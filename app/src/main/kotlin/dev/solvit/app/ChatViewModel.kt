@@ -161,11 +161,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         try { persistConfiguration(value); config.value = value; modelConfigured.value = true; error.value = null }
         finally { saving.value = false }
     }
-    // [DEBUG-role-send] Temporary callback-boundary probe; no user text is recorded.
-    internal var sendAttemptCount = 0
-        private set
     fun send(text: String): Boolean {
-        sendAttemptCount++
         val id = selected.value ?: return false
         if (branching.value || !ready.value || text.isBlank()) return false
         config.value.validate()?.let { error.value = it; return false }
