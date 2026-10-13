@@ -19,7 +19,8 @@ class WholeFileCaptureStoreTest {
     private fun capture(text:String):FileObservation {
         val b=text.toByteArray(Charsets.UTF_8)
         val hash=MessageDigest.getInstance("SHA-256").digest(b).joinToString("") { "%02x".format(it) }
-        return FileObservation(FileObservationKind.TEXT,b.size.toLong(),hash,text.take(40),b.size>40,text,hash)
+        val excerpt=StringBuilder().apply { text.codePoints().limit(40).forEach { appendCodePoint(it) } }.toString()
+        return FileObservation(FileObservationKind.TEXT,b.size.toLong(),hash,excerpt,b.size>excerpt.toByteArray().size,text,hash)
     }
     private suspend fun save(store:SqliteChatStore,id:String,text:String):ExecutionRun {
         val session=store.createSession()

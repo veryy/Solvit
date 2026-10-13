@@ -162,6 +162,30 @@ class ExecutionJournalRuntimeTest {
         }
         assertEquals(file,source.getValue("$secret.txt"));assertEquals(file,source.getValue("public.txt"))
     }
+    @Test fun immutableFullCopiesCannotBypassJournalCredentialFiltering() = runTest {
+        val secret="private-model-key"
+        val sensitive="ordinary code\n".repeat(200)+"Bearer upstream-key $secret"
+        val clean="safe code🙂\n".repeat(200)
+        fun full(text:String):FileObservation {
+            val b=text.toByteArray(Charsets.UTF_8)
+            val hash=java.security.MessageDigest.getInstance("SHA-256").digest(b).joinToString("") { "%02x".format(it) }
+            return FileObservation(FileObservationKind.TEXT,b.size.toLong(),hash,"ordinary preview",true,text,hash)
+        }
+        val original=mapOf("sensitive.txt" to full(sensitive),"clean.txt" to full(clean))
+        val ws=ObservedWorkspace().apply { supplied=original };val store=JournalStore()
+        DefaultChatService(store,ToolAgentRuntime(provider(),tools(setOf("workspace")) { "ok" }),EventBus(),workspaces=ws)
+            .send("session","run",ModelConfig(apiKey=secret),allow).toList()
+        val snapshots=store.events.mapNotNull { it.workspace };assertEquals(2,snapshots.size)
+        snapshots.forEach { snapshot ->
+            val withheld=snapshot.files.getValue("sensitive.txt")
+            assertNull(withheld.captureText);assertNull(withheld.captureSha256)
+            assertEquals(original.getValue("sensitive.txt").sha256,withheld.sha256)
+            assertEquals(clean,snapshot.files.getValue("clean.txt").captureText)
+            assertEquals(original.getValue("clean.txt").sha256,snapshot.files.getValue("clean.txt").captureSha256)
+        }
+        assertFalse(store.events.toString().contains(secret));assertFalse(store.events.toString().contains("upstream-key"))
+        assertEquals(sensitive,original.getValue("sensitive.txt").captureText)
+    }
     @Test fun recordsProposalBeforeApprovalAndStartBeforeEffectsAndResultBeforeFollowUp() = runTest {
         val store=JournalStore()
         val gate=object : ToolAuthorization {
