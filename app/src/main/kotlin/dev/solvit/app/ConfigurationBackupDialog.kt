@@ -16,15 +16,16 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 
-private data class RestoredConfiguration(val model: ModelConfig, val roles: List<AgentRole>, val theme: String, val dynamic: Boolean, val language: String, val profiles: ModelProfilesState?)
+private data class RestoredConfiguration(val model: ModelConfig, val roles: List<AgentRole>, val theme: String, val dynamic: Boolean, val language: String, val profiles: ModelProfilesState?, val chatAppearance: ChatAppearance)
 
-private fun configurationJson(config: ModelConfig, roles: List<AgentRole>, theme: String, dynamic: Boolean, language: String, profiles: ModelProfilesState): ByteArray = JSONObject()
+private fun configurationJson(config: ModelConfig, roles: List<AgentRole>, theme: String, dynamic: Boolean, language: String, profiles: ModelProfilesState, chatAppearance: ChatAppearance): ByteArray = JSONObject()
     .put("format", 1).put("modelProfiles", encodeModelProfiles(profiles)).put("model", JSONObject().put("base", config.baseUrl).put("name", config.model)
         .put("key", config.apiKey).put("prompt", config.systemPrompt)
         .put("modelListUrl", config.modelListUrl).put("modelListUsesApiKey", config.modelListUsesApiKey).put("provider",config.providerId).put("options",JSONObject(config.providerOptions)).put("context",encodeContextBudget(config.contextBudget)))
     .put("roles", JSONArray(roles.map { role -> JSONObject().put("id", role.id).put("name", role.name).put("prompt", role.prompt)
         .put("plugins", JSONArray(role.pluginIds.sorted())).put("skills", JSONArray(role.skillIds.sorted())) }))
-    .put("theme", theme).put("dynamic", dynamic).put("language", language).toString().toByteArray(Charsets.UTF_8)
+    .put("theme", theme).put("dynamic", dynamic).put("language", language)
+    .put("chatAppearance", JSONObject().put("fontSize",chatAppearance.fontSize).put("replySpeed",chatAppearance.replySpeed).put("style",chatAppearance.style)).toString().toByteArray(Charsets.UTF_8)
 
 private fun parseConfiguration(bytes: ByteArray): RestoredConfiguration {
     val root = JSONObject(bytes.toString(Charsets.UTF_8))
@@ -44,7 +45,8 @@ private fun parseConfiguration(bytes: ByteArray): RestoredConfiguration {
     require(roles.map { it.id }.toSet().size == roles.size)
     val theme = root.getString("theme"); require(theme in setOf("system", "light", "dark"))
     val language = root.optString("language", "zh"); require(uiLanguages.any { it.code == language })
-    return RestoredConfiguration(model, roles, theme, root.getBoolean("dynamic"), language, root.optJSONObject("modelProfiles")?.let { decodeModelProfiles(it) })
+    return RestoredConfiguration(model, roles, theme, root.getBoolean("dynamic"), language, root.optJSONObject("modelProfiles")?.let { decodeModelProfiles(it) },
+        root.optJSONObject("chatAppearance")?.let { ChatAppearance(it.getDouble("fontSize").toFloat(),it.getInt("replySpeed"),it.getString("style")).also { value -> value.validate() } } ?: ChatAppearance())
 }
 
 @Composable
@@ -105,7 +107,7 @@ fun ConfigurationBackupDialog(vm: ChatViewModel, roles: RoleService, appearance:
                         val chars = password.toCharArray()
                         try {
                             check(modelProfiles.loadError.value == null) { "请先恢复模型配置备份" }
-                            val plain = configurationJson(vm.config.value, roles.roles().first(), appearance.theme.value, appearance.dynamicColors.value, language.language.value, modelProfiles.state.value)
+                            val plain = configurationJson(vm.config.value, roles.roles().first(), appearance.theme.value, appearance.dynamicColors.value, language.language.value, modelProfiles.state.value, appearance.chat.value)
                             archive = withContext(Dispatchers.IO) { try { ConfigurationBackupCipher.encrypt(plain, chars) } finally { plain.fill(0) } }
                             export.launch("solvit-configuration.solvitbackup")
                         } catch (e: Exception) { message = "无法创建配置备份，请检查配置后重试"; busy = false }
@@ -127,6 +129,7 @@ fun ConfigurationBackupDialog(vm: ChatViewModel, roles: RoleService, appearance:
                 var modelsChanged = false
                 var previousRoles = emptyList<AgentRole>()
                 var started = false
+                val previousChatAppearance=appearance.chat.value
                 val previousTheme = appearance.theme.value; val previousDynamic = appearance.dynamicColors.value; val previousLanguage = language.language.value
                 try {
                     previousRoles = roles.roles().first()
@@ -134,7 +137,7 @@ fun ConfigurationBackupDialog(vm: ChatViewModel, roles: RoleService, appearance:
                     require((previousRoles.map { it.id } + incoming.roles.map { it.id }).toSet().size <= 64)
                     started = true
                     incoming.roles.forEach { roles.save(it) }
-                    appearance.setTheme(incoming.theme); appearance.setDynamicColors(incoming.dynamic); language.set(incoming.language)
+                    appearance.setChat(incoming.chatAppearance); appearance.setTheme(incoming.theme); appearance.setDynamicColors(incoming.dynamic); language.set(incoming.language)
                     modelProfiles.replace(incoming.profiles ?: ModelProfilesState(listOf(ModelProfile("default","默认配置",incoming.model)),mapOf(ModelTask.CHAT to "default")))
                     modelsChanged = true
                     preview = null; message = "配置已恢复，API Key 已重新加密保存在本机。"
@@ -142,7 +145,7 @@ fun ConfigurationBackupDialog(vm: ChatViewModel, roles: RoleService, appearance:
                     val rolledBack = !started || withContext(NonCancellable) { runCatching {
                         incoming.roles.filter { r -> previousRoles.none { it.id == r.id } }.forEach { roles.delete(it.id) }
                         previousRoles.forEach { roles.save(it) }; if (modelsChanged) modelProfiles.replace(previousProfiles)
-                        appearance.setTheme(previousTheme); appearance.setDynamicColors(previousDynamic); language.set(previousLanguage)
+                        appearance.setChat(previousChatAppearance); appearance.setTheme(previousTheme); appearance.setDynamicColors(previousDynamic); language.set(previousLanguage)
                     }.isSuccess }
                     if (e is CancellationException) throw e
                     message = if (rolledBack) "恢复失败，已有配置未修改或已恢复，请检查本机存储后重试。"

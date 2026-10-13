@@ -15,3 +15,7 @@
 终端用户报告进一步定位：WorkspaceDialog.interactive默认false，首屏显示LazyColumn命令任务+TextField，并非真正终端；现默认true进入已有插件xterm.js+addon-fit+Android PTY。保留明确“命令任务”切换，已有真实Android页面回归改为直接验证默认终端入口，其DOM input→xterm.onData→PTY、环境持久、输出、Ctrl-C等原断言不删。官方https://github.com/xtermjs/xterm.js/blob/master/README.md说明其输入输出需接真实PTY；https://github.com/termux/termux-app/blob/master/terminal-view/src/main/java/com/termux/view/TerminalView.java提供原生备选。本次不再引入第二套同用途组件，仍须实际远程默认入口验证。
 
 追加用户要求：设置加入“聊天外观”界面配置，持久字体大小、回复显示速度与聊天样式，参考Operit设置组件。显示速度只调呈现队列，接收/解析继续独立；保留停止及生成期间继续输入。尚未实现与发布，不以默认角色/队列的修改代替此要求。
+
+聊天外观实现读取Operit settings/sections/ThemeSettingsFontAvatarSections.kt与components/ChatStyleOption.kt（LGPL仅阅读，未复制），采用独立配置页、滑块、选中样式与实际消息预览。新增12–24sp字体、气泡/紧凑/简洁、自动/自定义10–400字每秒/即时显示，SharedPreferences持久及加密配置备份兼容；生产VM显示队列读取实时速度，接收与工具事件入队不等待显示，Unicode按codepoint处理。默认自动保留原追赶算法，慢速可停止；新增源已接收长回复且显示速度受控/即时切换和取消回归。仍须远程编译及实际设置/重开/字体/气泡/键盘布局验收。
+
+工作区范围补充：本地Git之外需文件树、文件管理、文本/代码预览、编辑与Changes在同一个工作台；不把当前历史执行diff冒称完整Git/file explorer。路线先稳定聊天交互→完整工作区→执行验证闭环→插件生命周期一致性→记忆与手机真实任务。尚未完成的真实模型验收保持。

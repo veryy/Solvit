@@ -8,13 +8,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Confined to the ViewModel's Main scope, like Operit's render coordination. */
-internal class ReplyPlayback(scope: CoroutineScope, private val display: (ModelChunk) -> Unit) {
+internal class ReplyPlayback(scope: CoroutineScope, private val charactersPerSecond: () -> Int = { 0 }, private val display: (ModelChunk) -> Unit) {
     private sealed interface Pending
     private class Text(val reasoning: Boolean, val value: StringBuilder, var offset: Int = 0) : Pending
     private class Event(val chunk: ModelChunk) : Pending
     private val pending = ArrayDeque<Pending>()
     private val wake = Channel<Unit>(Channel.CONFLATED)
     private var queuedCharacters = 0
+    private var characterBudget = 0.0
     private val job = scope.launch {
         for (signal in wake) {
             while (pending.isNotEmpty()) {
@@ -24,9 +25,17 @@ internal class ReplyPlayback(scope: CoroutineScope, private val display: (ModelC
                         val text = next.value
                         // Initial content appears immediately. Subsequent frames catch up when
                         // behind. Adjacent transport deltas share the same rendering buffer.
-                        val count = if (next.offset == 0) 1 else (queuedCharacters / 60).coerceIn(4, 64)
+                        val speed=charactersPerSecond()
+                        val count = when {
+                            speed == -1 -> Int.MAX_VALUE
+                            speed == 0 -> if(next.offset==0)1 else (queuedCharacters/60).coerceIn(4,64)
+                            next.offset == 0 -> 1
+                            else -> { characterBudget+=speed.coerceIn(10,400)*.016;characterBudget.toInt().also { characterBudget-=it } }
+                        }
+                        if(count==0) { delay(16);continue }
                         var end = next.offset
                         if (next.reasoning) end = text.length
+                        else if(speed == -1)end=text.length
                         else repeat(count) {
                             if (end < text.length) end += Character.charCount(text.codePointAt(end))
                         }
@@ -35,7 +44,7 @@ internal class ReplyPlayback(scope: CoroutineScope, private val display: (ModelC
                         next.offset = end
                         display(if (next.reasoning) ModelChunk.Reasoning(value) else ModelChunk.Text(value))
                         if (end == text.length) pending.removeFirst()
-                        delay(16)
+                        if(speed != -1)delay(16)
                     }
                 }
             }

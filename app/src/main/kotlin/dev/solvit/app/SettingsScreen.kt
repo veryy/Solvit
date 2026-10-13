@@ -26,6 +26,7 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
     val download by updates.downloadState.collectAsStateWithLifecycle()
     val theme by appearance.theme.collectAsStateWithLifecycle()
     val dynamic by appearance.dynamicColors.collectAsStateWithLifecycle()
+    var chatAppearanceOpen by remember { mutableStateOf(false) }
     var languageOpen by remember { mutableStateOf(false) }
     FullScreenPage(onDismissRequest = onDismiss) {
         Surface(Modifier.fillMaxSize()) {
@@ -39,6 +40,7 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
                         SettingsRow("角色管理与 Skills", "提示词、角色绑定、技能导入和管理", onRoles)
                         SettingsRow("插件管理", "安装、启用、权限与插件配置", onPlugins)
                     } }
+                    item { SettingsGroup("界面配置") { SettingsRow("聊天外观", "字体大小、回复显示速度与聊天样式", { chatAppearanceOpen=true }) } }
                     item { SettingsGroup("外观") {
                         UiText("主题", Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
                         Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -79,6 +81,7 @@ fun SettingsScreen(updates: UpdateViewModel, onDismiss: () -> Unit, onModels: ()
             }
         }
     }
+    if (chatAppearanceOpen) ChatAppearanceScreen(appearance) { chatAppearanceOpen=false }
     if (languageOpen) AlertDialog(onDismissRequest = { languageOpen = false }, title = { UiText("语言") },
         text = { Column {
             uiLanguages.forEach { option ->

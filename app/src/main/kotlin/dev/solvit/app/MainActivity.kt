@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
                             val service = result!!.getOrThrow()
                             val factory = remember(service) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches, app.toolApprovals, app.modelProfiles) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches, app.toolApprovals, app.modelProfiles, displaySpeed={ app.appearance.chat.value.replySpeed }) as T
                             } }
                             val vm: ChatViewModel = viewModel(factory = factory)
                             val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {
@@ -149,6 +149,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
         executionRuns.filter { it.sessionId==selected })
     val activeRole by agents.activeRole.collectAsStateWithLifecycle()
     val roleName = activeRole?.name ?: "Solvit"
+    val chatAppearance by app.appearance.chat.collectAsStateWithLifecycle()
     val queuedMessages by vm.queuedMessages.collectAsStateWithLifecycle()
     val queuePaused by vm.queuePaused.collectAsStateWithLifecycle()
     val switching by vm.switching.collectAsStateWithLifecycle()
@@ -306,6 +307,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                     }
                 }
             } else {
+                CompositionLocalProvider(LocalChatAppearance provides chatAppearance) {
                 ChatTimeline(chatRows, selected, modifier=Modifier.weight(1f), assistantName=roleName,
                     onBranch = if (busy || branching) null else { message, mode ->
                         hideInput(); vm.branchError.value = null; branchTarget = message to mode
@@ -313,6 +315,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                         TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { UiText("新建工作区") }
                     }) else null, loadExecutionEvents=vm::executionEvents,
                     onOpenFileChanges={ run -> hideInput(); fileChangesRun=run })
+                }
 
             }
             }

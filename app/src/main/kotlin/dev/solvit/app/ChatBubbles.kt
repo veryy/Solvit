@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 import com.mikepenz.markdown.m3.Markdown
 import dev.solvit.core.*
 import kotlinx.coroutines.delay
@@ -26,6 +28,12 @@ import kotlinx.coroutines.flow.conflate
 fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = null,
     loadExecutionEvents: (suspend (ExecutionRun) -> List<RecordedExecutionEvent>)? = null,
     onOpenFileChanges: ((ExecutionRun) -> Unit)? = null, assistantName: String = "Solvit") {
+    val appearance=LocalChatAppearance.current
+    val typography=MaterialTheme.typography
+    MaterialTheme(typography=typography.copy(
+        bodyLarge=typography.bodyLarge.copy(fontSize=appearance.fontSize.sp,lineHeight=(appearance.fontSize*1.5f).sp),
+        bodyMedium=typography.bodyMedium.copy(fontSize=(appearance.fontSize*.875f).sp,lineHeight=(appearance.fontSize*1.35f).sp),
+        bodySmall=typography.bodySmall.copy(fontSize=(appearance.fontSize*.75f).sp,lineHeight=(appearance.fontSize*1.2f).sp))) {
     val user = row.user
     val width = LocalConfiguration.current.screenWidthDp.dp * .88f
     Column(Modifier.fillMaxWidth().testTag(if (user != null) "user_message" else "assistant_message"),
@@ -48,11 +56,12 @@ fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = nu
                 }
             }
         }
-        Surface(Modifier.widthIn(max=width), shape = if (user != null)
+        Surface(Modifier.widthIn(max=width), shape = if(appearance.style=="plain")RoundedCornerShape(0.dp)
+            else if(appearance.style=="compact")RoundedCornerShape(4.dp) else if (user != null)
             RoundedCornerShape(topStart=10.dp,topEnd=2.dp,bottomEnd=10.dp,bottomStart=10.dp)
             else RoundedCornerShape(topStart=2.dp,topEnd=10.dp,bottomEnd=10.dp,bottomStart=10.dp),
-            color = if (user != null) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow) {
-            Column(Modifier.padding(14.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            color = if(appearance.style=="plain")Color.Transparent else if (user != null) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow) {
+            Column(Modifier.padding(if(appearance.style=="compact")8.dp else if(appearance.style=="plain")4.dp else 14.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
                 if (user != null) SelectionContainer { Text(user.content, style=MaterialTheme.typography.bodyLarge) }
                 else {
                     AssistantContents(row)
@@ -61,6 +70,8 @@ fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = nu
             }
         }
     }
+}
+
 }
 
 @Composable

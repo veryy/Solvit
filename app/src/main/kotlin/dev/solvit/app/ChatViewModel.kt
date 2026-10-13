@@ -11,7 +11,7 @@ import java.util.UUID
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null,
     private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null, private val approvals: ToolPolicyService? = null, private val profiles: ModelProfilesService? = null,
-    private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 }) : ViewModel() {
+    private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 }, private val displaySpeed: () -> Int = { 0 }) : ViewModel() {
     suspend fun discoverModels(candidate: ModelConfig): List<AvailableModel> =
         (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
@@ -245,7 +245,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                     }
                 }
                 coroutineScope {
-                val playback = ReplyPlayback(this) { chunk -> when (chunk) {
+                val playback = ReplyPlayback(this,displaySpeed) { chunk -> when (chunk) {
                     is ModelChunk.Text -> {
                         draft.value += chunk.value
                         replyTiming.update { it?.copy(firstVisibleMs = it.firstVisibleMs ?: elapsed()) }
