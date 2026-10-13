@@ -321,7 +321,7 @@ class ChatLayoutTest {
         val provider = object : ModelProvider {
             override val id = "fixture"
             override fun stream(request: ModelRequest) = flow {
-                emit(ModelChunk.Text("live-first-token"))
+                emit(ModelChunk.Text("**live-first-token**"))
                 advance.await()
                 emit(ModelChunk.Text("\n" + (1..45).joinToString("\n") { "stream line $it" } + "\nlive-last-token"))
                 finish.await()
@@ -353,6 +353,7 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("发送").performClick()
             rule.waitUntil(8000) { rule.onAllNodesWithText("live-first-token").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("live-first-token").assertIsDisplayed()
+            rule.onNodeWithText("**live-first-token**").assertDoesNotExist()
             assertTrue(vm.busy.value); assertFalse(finish.isCompleted)
             advance.complete(Unit)
             rule.waitUntil(20000) { vm.draft.value.contains("live-last-token") }

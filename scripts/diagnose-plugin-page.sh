@@ -9,6 +9,7 @@ case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   model-settings) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations' ;;
   model-task) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#modelProfilesUiSavesAndAssignsASeparateToolModel' ;;
   skills-documents) solvit_diagnostic_class='dev.solvit.app.SkillsHtmlPageTest' ;;
+  chat-stream) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard' ;;
   workspace-files) solvit_diagnostic_class='dev.solvit.app.WorkspaceHtmlPageTest' ;;
   *) exit 2 ;;
 esac
