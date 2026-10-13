@@ -76,7 +76,7 @@ class ImmutableDiffPageTest {
         }
     }
     @Test fun cachedLongLinePagesAndResourcesStillRejectChangedChatAndGenericManagementCannotOpenExecutionPage()=runBlocking<Unit> {
-        val run=saved("before","🙂".repeat(6000));var active=run.sessionId
+        val run=saved("before","🙂".repeat(10000));var active=run.sessionId
         SqliteChatStore(context).use { reopened ->
             val manager=BuiltinWorkspaceManager(context)
             assertFails { manager.openPage("en",pageId="changes") }

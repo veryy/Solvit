@@ -16,10 +16,12 @@ case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   terminal-ui) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput' ;;
   chat-stream) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard' ;;
   workspace-files) solvit_diagnostic_class='dev.solvit.app.WorkspaceHtmlPageTest' ;;
+  file-diff) solvit_diagnostic_class='dev.solvit.app.HistoricalDiffHtmlTest' ;;
   *) exit 2 ;;
 esac
 solvit_diagnostic_iterations=1
 solvit_diagnostic_expected='OK (1 test)'
+if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = file-diff ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role ]; then solvit_diagnostic_iterations=10; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role-sequence ]; then
   solvit_diagnostic_iterations=10
