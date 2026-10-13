@@ -179,7 +179,7 @@ class BuiltinMcpUpgradeTest {
                 .putStringSet("grants.dev.solvit.web-search", setOf("network")).commit()
             market.restore()
             val installed = market.installed.value.single { it.id == "dev.solvit.web-search" }
-            assertEquals("1.2.1", installed.version); assertTrue(installed.enabled)
+            assertEquals("1.2.2", installed.version); assertTrue(installed.enabled)
             assertEquals("tavily", config.read("dev.solvit.web-search")["provider"])
             assertEquals("fixture-search-upgrade-token", config.read("dev.solvit.web-search")["apiKey"])
         }
