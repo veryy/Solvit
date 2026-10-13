@@ -147,6 +147,11 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val executionRuns by vm.executionRuns.collectAsStateWithLifecycle()
     val chatRows = attachExecutions(presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity,holdSettlement=busy),
         executionRuns.filter { it.sessionId==selected })
+    val activeRole by agents.activeRole.collectAsStateWithLifecycle()
+    val roleName = activeRole?.name ?: "Solvit"
+    val queuedMessages by vm.queuedMessages.collectAsStateWithLifecycle()
+    val queuePaused by vm.queuePaused.collectAsStateWithLifecycle()
+    val switching by vm.switching.collectAsStateWithLifecycle()
     val missingRole by agents.missingRole.collectAsStateWithLifecycle()
     val agentBusy by agents.busy.collectAsStateWithLifecycle()
     var input by rememberSaveable(selected) { mutableStateOf("") }
@@ -220,7 +225,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
             topBar = {
                 TopAppBar(
                     title = { Column {
-                        UiText("Solvit", fontWeight = FontWeight.SemiBold)
+                        Text(roleName, fontWeight = FontWeight.SemiBold, modifier=Modifier.testTag("chat_role_title"))
                         Text(config.model, style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } },
@@ -234,6 +239,12 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
             bottomBar = {
                 Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
                     .padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    toolApproval?.let { pending ->
+                        key(pending.call.id) { ChatToolApprovalCard(pending) { allow, remember -> vm.approveTool(allow,remember) } }
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    ChatQueuePanel(queuedMessages.filter { it.sessionId==selected },queuePaused,switching,
+                        vm::editQueued,vm::removeQueued,vm::sendQueuedNow,vm::resumeQueue)
                     Surface(modifier = Modifier.fillMaxWidth().testTag("chat_composer"), shape = RoundedCornerShape(28.dp), tonalElevation = 4.dp, shadowElevation = 4.dp) {
                     Column(Modifier.padding(8.dp)) {
                         if (error != null) {
@@ -246,7 +257,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                         }
                         Row(verticalAlignment = Alignment.Bottom) {
                             TextField(value = input, onValueChange = { input = it },
-                                placeholder = { UiText("问点什么，或描述你的想法…") },
+                                placeholder = { UiText("和${roleName}聊聊…") },
                                 modifier = Modifier.weight(1f).focusRequester(inputFocus).onGloballyPositioned { inputPlaced = true }, maxLines = 5, enabled = ready,
                                 shape = RoundedCornerShape(24.dp),
                                 colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent,
@@ -254,11 +265,15 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                                     focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent,
                                     disabledIndicatorColor = Color.Transparent))
                             Spacer(Modifier.width(8.dp))
+                            if(busy)IconButton(onClick=vm::stop,enabled=!switching,modifier=Modifier.testTag("chat_stop")) { UiIcon(Icons.Default.Stop,"停止生成") }
                             FilledIconButton(
-                                onClick = { if (busy) vm.stop() else if (vm.send(input)) input = "" },
-                                enabled = busy || (ready && !branching && input.isNotBlank() && !missingRole && !agentBusy), modifier = Modifier.size(52.dp).testTag("chat_send"),
-                            ) { Icon(if (busy) Icons.Default.Stop else Icons.AutoMirrored.Filled.Send, if (busy) "停止生成" else "发送") }
+                                onClick = { if (vm.send(input)) input = "" },
+                                enabled = ready && !branching && input.isNotBlank() && !missingRole && !agentBusy,
+                                modifier = Modifier.size(52.dp).testTag("chat_send"),
+                            ) { UiIcon(Icons.AutoMirrored.Filled.Send,if(busy) "加入等待队列" else "发送") }
                         }
+                        if(busy && input.isNotBlank())TextButton(onClick={if(vm.interruptAndSend(input))input=""},enabled=!switching&&!missingRole&&!agentBusy,
+                            modifier=Modifier.align(Alignment.End).testTag("chat_interrupt_send")) { UiText("立即发送并打断") }
                     }
                     }
                 }
@@ -291,7 +306,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                     }
                 }
             } else {
-                ChatTimeline(chatRows, selected, Modifier.weight(1f),
+                ChatTimeline(chatRows, selected, modifier=Modifier.weight(1f), assistantName=roleName,
                     onBranch = if (busy || branching) null else { message, mode ->
                         hideInput(); vm.branchError.value = null; branchTarget = message to mode
                     }, footer = if (workspaceId == null && !busy) ({
@@ -311,23 +326,6 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     }
     if (showErrorDetails) errorDetails?.let { ModelErrorDialog(it) { showErrorDetails = false } }
     LaunchedEffect(errorDetails) { showErrorDetails = false }
-    toolApproval?.let { pending ->
-        AlertDialog(onDismissRequest = { vm.approveTool(false) }, title = { UiText("允许调用工具？") },
-            text = { LazyColumn(Modifier.heightIn(max = 360.dp)) {
-                item { Text(pending.descriptor.description) }
-                item { Text(pending.descriptor.name, style = MaterialTheme.typography.labelSmall) }
-                pending.descriptor.executionMode?.let { mode -> item {
-                    UiText(if (mode == ExecutionMode.ROOT) "执行身份：Root（设备最高权限）" else "执行身份：普通应用")
-                } }
-                item { SelectionContainer { Text(pending.call.argumentsJson) } }
-                item { UiText("不再询问仅用于此角色和当前版本的此工具，后续不同参数也可执行。可在设置 → 权限与执行方式清除。", style = MaterialTheme.typography.bodySmall) }
-            } },
-            confirmButton = { Column {
-                TextButton(onClick = { vm.approveTool(true) }) { UiText("允许这一次") }
-                TextButton(onClick = { vm.approveTool(true, remember = true) }) { UiText("允许且不再询问") }
-            } },
-            dismissButton = { TextButton(onClick = { vm.approveTool(false) }) { UiText("拒绝") } })
-    }
     if (workspaceOpen) WorkspaceDialog(workspaces, app.systemExecution, createOnOpen=workspaceCreateRequested) { workspaceOpen = false }
     fileChangesRun?.let { run -> key(run.id) {
         PluginPageScreen(uiString("文件变更"), {

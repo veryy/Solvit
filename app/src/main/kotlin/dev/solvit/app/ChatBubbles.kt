@@ -25,13 +25,13 @@ import kotlinx.coroutines.flow.conflate
 @Composable
 fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = null,
     loadExecutionEvents: (suspend (ExecutionRun) -> List<RecordedExecutionEvent>)? = null,
-    onOpenFileChanges: ((ExecutionRun) -> Unit)? = null) {
+    onOpenFileChanges: ((ExecutionRun) -> Unit)? = null, assistantName: String = "Solvit") {
     val user = row.user
     val width = LocalConfiguration.current.screenWidthDp.dp * .88f
     Column(Modifier.fillMaxWidth().testTag(if (user != null) "user_message" else "assistant_message"),
         horizontalAlignment = if (user != null) Alignment.End else Alignment.Start) {
         Row(verticalAlignment=Alignment.CenterVertically) {
-            UiText(if (user != null) "你" else "Solvit", style = MaterialTheme.typography.labelSmall,
+            UiText(if (user != null) "你" else assistantName, style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal=4.dp, vertical=4.dp))
             val anchor = user ?: row.messages.lastOrNull { it.role == Role.ASSISTANT }
             if (onBranch != null && !row.generating && anchor != null) {
