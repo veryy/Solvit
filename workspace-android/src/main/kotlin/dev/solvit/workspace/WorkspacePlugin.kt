@@ -108,6 +108,10 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         save(state.value.copy(shells = state.value.shells + shell)); shell
     } }
     override suspend fun location(workspaceId: String): String = withContext(Dispatchers.IO) { lock.withLock { verifyPage(workspaceId); directory(workspaceId).canonicalPath } }
+    override suspend fun instructionSources(workspaceId: String, authorize: suspend () -> Unit): List<WorkspaceInstructionSource> =
+        withContext(Dispatchers.IO) { lock.withLock {
+            WorkspaceInstructionFiles.capture(directory(workspaceId), authorize)
+        } }
     override suspend fun snapshot(workspaceId: String): WorkspaceSnapshot = withContext(Dispatchers.IO) { lock.withLock {
         WorkspaceSnapshots.capture(workspaceId,directory(workspaceId))
     } }
