@@ -131,6 +131,20 @@ class WorkspaceHtmlPageTest {
             click("file_0");waitDom("document.querySelector('[data-node=directory]')?.textContent==='src/child'")
             click("file_0");waitDom("window.workspaceEditor?.state.doc.toString()==='shell-content'")
             html.screenshot("workspace-html-shell-file-preview")
+            runBlocking { app.workspaces.write(workspace.id,"docs/readme.md","tree-document") }
+            waitDom("!!document.getElementById('tree-toggle') && !document.getElementById('tree-toggle').disabled")
+            html.tapElement("#tree-toggle")
+            waitDom("document.getElementById('file-tree').classList.contains('open')")
+            html.tapElement("#tree-refresh")
+            waitDom("!!document.querySelector('[data-expand=docs]')")
+            html.tapElement("[data-expand=docs]")
+            waitDom("!!document.querySelector('[data-open=\"docs/readme.md\"]')")
+            assertEquals("\"shell-content\"",html.js("window.workspaceEditor.state.doc.toString()"))
+            html.screenshot("workspace-html-expanded-file-tree")
+            html.tapElement("[data-open=\"docs/readme.md\"]")
+            waitDom("window.workspaceEditor?.state.doc.toString()==='tree-document'")
+            waitDom("!document.getElementById('file-tree').classList.contains('open')")
+            html.screenshot("workspace-html-tree-selected-document")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.workspace" }.enabled)
         } catch(error:Throwable) {
             runCatching {

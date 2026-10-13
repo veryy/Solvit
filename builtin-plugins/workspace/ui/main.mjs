@@ -94,7 +94,8 @@ function drawTree(){
  const header=document.createElement('header');
  const title=document.createElement('strong');title.textContent=t[0];header.append(title);
  const refresh=document.createElement('button');refresh.textContent=t[1];refresh.id='tree-refresh';
- refresh.onclick=()=>{folders.clear();expanded.clear();expanded.add('');requestFolder('')};header.append(refresh);tree.append(header);
+ refresh.onclick=()=>{folders.clear();expanded.clear();expanded.add('');requestFolder('')};header.append(refresh);
+ const close=document.createElement('button');close.textContent='×';close.className='tree-close';close.id='tree-close';close.onclick=()=>tree.classList.remove('open');header.append(close);tree.append(header);
  const rows=document.createElement('div');rows.className='tree-rows';rows.setAttribute('role','tree');
  const walk=(path,depth,ancestors=new Set())=>{
   if(ancestors.has(path))return;
