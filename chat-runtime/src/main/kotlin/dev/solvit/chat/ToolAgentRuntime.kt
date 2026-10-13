@@ -39,7 +39,9 @@ class ToolAgentRuntime(
         var modelCompleted = false
         var finished = false
         val commands = Mutex()
-        driver.run(maxRounds, OwnedAgentStepHost(coroutineContext.job, AgentStepHost { operation, index ->
+        var observation = AgentObservation(0, 0, "READY", AgentText.of(userText, 16_384),
+            request.agentRole?.name?.let { AgentText.of(it, 256) }, AgentText.of("", 1), AgentText.of("", 1), emptyList())
+        val stepCommands = AgentStepHost { operation, index ->
             commands.withLock {
             check(!finished) { "Agent command after completion" }
             when (operation) {
@@ -111,6 +113,11 @@ class ToolAgentRuntime(
             check(completed) { "模型响应提前结束" }
             modelCompleted = true
             pendingNative = native
+            observation = observation.copy(step = step, nextModelRound = nextRound, phase = "MODEL_READY",
+                assistantText = AgentText.of(text.toString(), 32_768), reasoning = AgentText.of(reasoning.toString(), 16_384),
+                toolsTruncated = calls.size > minOf(maxCalls, 16),
+                tools = calls.take(minOf(maxCalls, 16)).mapIndexed { i, call -> AgentObservedTool(i, AgentText.of(call.id, 256),
+                    call.name.take(128), AgentText.of(call.argumentsJson, 8_192)) })
             if (calls.isEmpty()) return@withLock 0
             if (round == maxRounds - 1 || executions + calls.size > maxCalls) throw ModelException("已达到工具执行上限，请继续对话")
             if (calls.any { it.name !in allowed || !seen.add(it.id) }) throw ModelException("模型调用了未提供或重复的工具")
@@ -123,11 +130,11 @@ class ToolAgentRuntime(
             nextCall = 0
             calls.size
             }
-            "tool" -> {
+            "tool", "decline" -> {
                 check(modelCompleted && pendingCalls.isNotEmpty() && index == nextCall && index < pendingCalls.size) { "Invalid Agent tool order" }
                 val call = pendingCalls[index]
                 executions++
-                send(ModelChunk.ToolActivity(call, ToolStage.CONFIRMING))
+                if (operation != "decline") send(ModelChunk.ToolActivity(call, ToolStage.CONFIRMING))
                 val gate = object : ToolAuthorization {
                     override suspend fun authorize(descriptor: ToolDescriptor) = false
                     override suspend fun authorizeCallForRole(descriptor: ToolDescriptor, actual: ToolCall, role: AgentRole?): Boolean {
@@ -137,6 +144,7 @@ class ToolAgentRuntime(
                 var authorizedDispatch=false
                 var authorizationDenied=false
                 val outcome = try {
+                    if (operation == "decline") throw ToolDeniedException()
                     val result = tools.executeCall(call, gate, request.agentRole, execution, request.conversation) {
                         request.executionJournal.beforeTool(step,advertised.first { it.name==call.name })
                         request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_STARTED,callId=call.id)))
@@ -147,7 +155,7 @@ class ToolAgentRuntime(
                 } catch (e: ToolDeniedException) {
                     authorizationDenied=true
                     if(authorizedDispatch) ToolStage.FAILED to ToolFailureCode.AUTHORIZATION_REVOKED.userDetails()
-                    else ToolStage.DENIED to "用户拒绝执行此工具。"
+                    else ToolStage.DENIED to if (operation == "decline") "Agent 策略拒绝执行此工具；未产生工具操作。" else "用户拒绝执行此工具。"
                 } catch (e: CancellationException) { throw e }
                 catch (e: ExecutionJournalException) { throw e }
                 catch (e: Exception) {
@@ -163,6 +171,9 @@ class ToolAgentRuntime(
                 request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.TOOL_FINISHED,
                     callId=call.id,stage=outcome.first,result=outcome.second)))
                 if(authorizedDispatch && !authorizationDenied) request.executionJournal.afterTool(step,advertised.first { it.name==call.name })
+                observation = observation.copy(phase = "TOOLS_RUNNING", tools = observation.tools.map { tool ->
+                    if (tool.index == index) tool.copy(stage = outcome.first, result = AgentText.of(outcome.second, 8_192)) else tool
+                })
                 send(ModelChunk.ToolActivity(call, outcome.first, outcome.second))
                 val result = ModelMessage(Role.TOOL, outcome.second, toolCallId = call.id, toolStage = outcome.first)
                 messages += result
@@ -176,6 +187,7 @@ class ToolAgentRuntime(
                 pendingCalls = emptyList()
                 modelCompleted = false
                 nextRound++
+                observation = observation.copy(nextModelRound = nextRound, phase = "TOOLS_SETTLED")
                 0
             }
             "finish" -> {
@@ -184,12 +196,18 @@ class ToolAgentRuntime(
                 pendingNative?.let { send(ModelChunk.NativeTranscript(it)) }
                 send(ModelChunk.Done)
                 finished = true
+                observation = observation.copy(phase = "COMPLETED")
                 0
             }
             else -> error("Unknown Agent command")
             }
             }
-        }))
+        }
+        val host = object : AgentStepHost {
+            override suspend fun command(operation: String, index: Int) = stepCommands.command(operation, index)
+            override suspend fun observe(): AgentObservation = commands.withLock { observation.copy(tools = observation.tools.toList()) }
+        }
+        driver.run(maxRounds, OwnedAgentStepHost(coroutineContext.job, host))
         check(finished) { "Agent returned before completion" }
         } catch (e: Throwable) { execution.cancel(); throw e }
         finally { execution.release() }

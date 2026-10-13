@@ -1,0 +1,9 @@
+{
+ "id":"example.agent-policy",
+ "name":"工具参数审核 Agent",
+ "description":"读取本轮模型和工具结算；遇到被截断的工具参数即拒绝执行并将拒绝事实回传模型。",
+ "version":"1.0.0","apiVersion":15,
+ "permissions":["agent","agent.read"],"dependencies":[],"tools":[],
+ "agentEnabledSetting":"selected",
+ "settings":[{"key":"selected","label":"接管所有会话的 Agent 步骤","kind":"boolean","defaultValue":"false"}]
+}

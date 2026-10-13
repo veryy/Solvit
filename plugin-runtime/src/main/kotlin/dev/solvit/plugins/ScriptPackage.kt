@@ -51,7 +51,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
         fun parseManifest(m: JsonObject): ScriptManifest {
             require(m.toString().toByteArray(Charsets.UTF_8).size <= MAX_BYTES)
             val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..14) { "插件需要其他版本的宿主 API" }
+            require(apiVersion in 1..15) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -60,7 +60,8 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             val version = string("version")
             require(version.matches(Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"))) { "插件版本无效" }
             val permissions = strings("permissions")
-            require(permissions.all { it in setOf("storage", "network") || apiVersion >= 4 && it in setOf("workspace", "shell", "plugins") || apiVersion >= 8 && it == "model" || apiVersion >= 14 && it == "agent" }) { "插件声明了尚未支持的权限" }
+            require(permissions.all { it in setOf("storage", "network") || apiVersion >= 4 && it in setOf("workspace", "shell", "plugins") || apiVersion >= 8 && it == "model" || apiVersion >= 14 && it == "agent" || apiVersion >= 15 && it == "agent.read" }) { "插件声明了尚未支持的权限" }
+            require("agent.read" !in permissions || "agent" in permissions) { "Agent 观察权限需要 agent 权限" }
             val dependencies = strings("dependencies")
             require(id !in dependencies) { "插件不能依赖自身" }
             val nativeServices = m["nativeServices"]?.jsonArray?.map { it.jsonPrimitive.also { p -> require(p.isString) }.content }?.toSet().orEmpty()

@@ -23,3 +23,7 @@ await buildPlugin(join(notes, 'index.ts'), join(notes, 'manifest.json'),
 const agent = resolve('../plugin-examples/agent');
 await buildPlugin(join(agent, 'index.ts'), join(agent, 'manifest.json'),
   resolve('../market-server/packages/example.agent.solvit.json'));
+
+const policy = resolve('../plugin-examples/agent-policy');
+await buildPlugin(join(policy, 'index.ts'), join(policy, 'manifest.json'),
+  resolve('../market-server/packages/example.agent-policy.solvit.json'));

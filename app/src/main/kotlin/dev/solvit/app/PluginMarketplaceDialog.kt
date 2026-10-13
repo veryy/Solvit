@@ -191,6 +191,7 @@ private fun permissionDescription(permissions: Set<String>): String = if (permis
         "shell" -> "以应用身份运行 Shell，可访问本应用文件和网络"
         "plugins" -> "生成和校验插件草稿；安装与启用需单独操作"
         "model" -> "后台模型调用，可能产生模型服务费用"
+        "agent.read" -> "读取当前聊天请求、模型输出和工具结果，供 Agent 策略决策"
         "agent" -> "接管所有会话的 Agent 步骤；需另外打开插件配置开关，可能产生模型费用"
         else -> it
     }) }.joinToString(" · ")

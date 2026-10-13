@@ -51,7 +51,22 @@ export interface PluginContext {
 }
 export type ToolHandler = (arguments_: JsonObject, context: PluginContext) => JsonValue | Promise<JsonValue>;
 /** API14: isolated per-turn strategy instance; all model/tool effects remain host validated. */
+export interface AgentText { readonly text: string; readonly truncated: boolean }
+export interface AgentObservation {
+  readonly step: number; readonly nextModelRound: number;
+  readonly phase: 'READY' | 'MODEL_READY' | 'TOOLS_RUNNING' | 'TOOLS_SETTLED' | 'COMPLETED';
+  readonly userText: AgentText; readonly roleName: AgentText | null;
+  readonly assistantText: AgentText; readonly reasoning: AgentText;
+  readonly toolsTruncated: boolean;
+  readonly tools: readonly {readonly index:number; readonly id:AgentText; readonly name:string;
+    readonly arguments:AgentText; readonly stage:'CONFIRMING'|'RUNNING'|'SUCCEEDED'|'FAILED'|'DENIED'|null;
+    readonly result:AgentText|null}[];
+}
 export interface AgentContext {
+  /** API15 + agent.read grant: detached bounded snapshot, no model connection or protocol signatures. */
+  observe?(): Promise<AgentObservation>;
+  /** API15 + agent.read: settle a proposed call as DENIED without dispatching it. */
+  decline?(index: number): Promise<number>;
   model(round: number): Promise<number>;
   tool(index: number): Promise<number>;
   settle(round: number): Promise<number>;
@@ -76,7 +91,7 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
   nativeServices?: ('terminal.pty'|'web.pages')[];
   pages?: { id: string; title: string; entry?: string }[];
@@ -85,7 +100,7 @@ export interface PluginManifest {
   /** API14 + agent permission: a declared boolean setting, default false, globally selects this strategy. */
   agentEnabledSetting?: string;
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret' | 'boolean'; required?: boolean; defaultValue?: 'true' | 'false'; pageManaged?: boolean }[];
-  permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins' | 'model' | 'agent')[];
+  permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins' | 'model' | 'agent' | 'agent.read')[];
   dependencies: string[];
   tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management' }[];
 }
