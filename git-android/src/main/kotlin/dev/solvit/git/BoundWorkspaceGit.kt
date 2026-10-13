@@ -59,14 +59,39 @@ class BoundWorkspaceGit(
             "对话或工作区已变化，请重新打开Git页面"
         }
     }
+    private suspend fun resolveRoot(): File = withContext(WorkspacePageAuthority { target, session ->
+        verify()
+        check(target == null || target == binding)
+        check(session == null || session == chatId)
+    }) { File(workspaces.location(binding)).canonicalFile }
+
+    /** Explicit host-approved creation only. Reads never initialize a missing repository. */
+    suspend fun initialize(): Revision = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            verifyWrite()
+            val root = resolveRoot()
+            val metadata = File(root, ".git")
+            check(!Files.exists(metadata.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                "工作区已存在Git元数据，不能覆盖初始化"
+            }
+            FileRepositoryBuilder().setWorkTree(root).setGitDir(metadata)
+                .setInitialBranch("main").setFS(WorkspaceGitFileSystem()).build().use { repository ->
+                    verifyWrite()
+                    check(!Files.exists(metadata.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS)) {
+                        "Git元数据在授权期间出现，初始化已取消"
+                    }
+                    repository.create(false)
+                    check(repository.workTree.canonicalFile == root && repository.fullBranch == "refs/heads/main")
+                    verify()
+                    Git(repository).use { revision(it) }
+                }
+        }
+    }
+
     private suspend fun <T> access(block: suspend (Git) -> T): T = withContext(Dispatchers.IO) {
         mutex.withLock {
             verify()
-            val root = withContext(WorkspacePageAuthority { target, session ->
-                verify()
-                check(target == null || target == binding)
-                check(session == null || session == chatId)
-            }) { File(workspaces.location(binding)).canonicalFile }
+            val root = resolveRoot()
             validateRepository(root)
             verify()
             val result = FileRepositoryBuilder().setWorkTree(root).setGitDir(File(root, ".git"))
@@ -289,7 +314,7 @@ class BoundWorkspaceGit(
     suspend fun commit(expected: Revision, message: String, author: String, email: String): Commit = access { git ->
         require(message.isNotBlank() && message.length <= 4096 && '\u0000' !in message)
         require(author.isNotBlank() && author.length <= 80 && author.none(Char::isISOControl))
-        require(email.length <= 254 && email.matches(Regex("[^\\s<>@]+@[^\\s<>@]+")))
+        require(email.length <= 254 && email.none(Char::isISOControl) && email.matches(Regex("[^\\s<>@]+@[^\\s<>@]+")))
         check(git.repository.repositoryState == org.eclipse.jgit.lib.RepositoryState.SAFE) {
             "仓库存在未完成的合并或其他操作，请先处理"
         }

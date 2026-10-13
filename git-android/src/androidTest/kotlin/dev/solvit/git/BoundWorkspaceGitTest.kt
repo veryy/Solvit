@@ -14,6 +14,49 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class BoundWorkspaceGitTest {
+    @Test fun explicitInitializationStagesFirstFilesAndCommitsWithoutReplacingOtherWorktreeContent() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val workspaces = AndroidWorkspaces(context, scope)
+        val chat = "git-init-${UUID.randomUUID()}"
+        val workspace = workspaces.forChat(chat)
+        val root = File(workspaces.location(workspace.id))
+        var writable = false
+        val page = BoundWorkspaceGit(workspaces, chat, { chat }, authorizeWrite = { check(writable) }) { }
+        suspend fun rejected(block: suspend () -> Unit) {
+            try { block(); fail("Expected initialization or review rejection") } catch (_: IllegalStateException) { }
+        }
+        try {
+            File(root, "first.txt").writeText("first 中文 😀\n")
+            File(root, "keep.txt").writeText("keep local\n")
+            rejected { page.initialize() }
+            assertFalse(File(root, ".git").exists())
+            writable = true
+            val initial = page.initialize()
+            assertNull(initial.head)
+            assertEquals("refs/heads/main", initial.branch)
+            assertEquals("first 中文 😀\n", File(root, "first.txt").readText())
+            assertTrue(page.history().isEmpty())
+            rejected { page.initialize() }
+            rejected { page.commit(initial, "Empty initial must fail", "Fixture", "test@example.invalid") }
+            val first = page.diff("first.txt", staged = false)
+            assertTrue(first.patch.contains("+first 中文 😀"))
+            val staged = page.stage(first)
+            assertTrue(page.diff("first.txt", staged = true).patch.contains("+first 中文 😀"))
+            page.unstage("first.txt", staged)
+            assertEquals("untracked", page.status().entries.single { it.path == "first.txt" }.working)
+            assertEquals("first 中文 😀\n", File(root, "first.txt").readText())
+            val reviewed = page.stage(page.diff("first.txt", staged = false))
+            val committed = page.commit(reviewed, "Initial selected file", "Fixture", "test@example.invalid")
+            assertEquals(committed.id, page.status().head)
+            assertEquals("Initial selected file", page.history().single().message)
+            assertEquals("keep local\n", File(root, "keep.txt").readText())
+            assertEquals(listOf("keep.txt"), page.status().entries.map { it.path })
+        } finally {
+            page.close(); workspaces.unbind(chat); scope.cancel(); root.deleteRecursively()
+        }
+    }
+
     @Test fun reviewedStageUnstageAndCommitPreserveOtherFilesRejectStaleAndNeverRunHooks() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
