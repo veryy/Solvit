@@ -56,6 +56,9 @@ interface WorkspaceService {
     }
     suspend fun snapshot(workspaceId: String): WorkspaceSnapshot = WorkspaceSnapshot(workspaceId,emptyMap(),false,System.currentTimeMillis())
     suspend fun list(workspaceId: String, path: String = ""): List<WorkspaceFile> { error("工作区目录服务不可用") }
+    suspend fun makeDirectory(workspaceId: String, path: String) { error("工作区目录创建服务不可用") }
+    suspend fun moveEntry(workspaceId: String, path: String, destination: String) { error("工作区重命名服务不可用") }
+    suspend fun deleteEntry(workspaceId: String, path: String) { error("工作区删除服务不可用") }
     suspend fun read(workspaceId: String, path: String): String
     suspend fun readTextChunk(workspaceId: String, path: String, offset: Int = 0,
         expectedSha256: String? = null): WorkspaceTextChunk { error("工作区文本分段读取服务不可用") }
