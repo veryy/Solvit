@@ -186,6 +186,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                     is ModelChunk.NativeTranscript -> Unit
                     is ModelChunk.Text -> {
                         if (chunk.value.isNotEmpty()) replyTiming.update { it?.copy(firstTextMs = it.firstTextMs ?: elapsed(),
+                            lastTextMs = elapsed(), receivedTextEvents = it.receivedTextEvents + 1,
                             receivedCharacters = it.receivedCharacters + chunk.value.codePointCount(0, chunk.value.length)) }
                         playback.enqueue(chunk)
                     }

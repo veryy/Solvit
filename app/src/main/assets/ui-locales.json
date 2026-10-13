@@ -4718,5 +4718,21 @@
     "es": "Se superó el límite de datos",
     "fr": "Limite de taille des données dépassée",
     "zh": "超过资料大小限制"
+  },
+  "收到的文本片段：{0}": {
+    "zh": "收到的文本片段：{0}",
+    "en": "Received text segments: {0}",
+    "ja": "受信テキスト片数：{0}",
+    "ko": "수신한 텍스트 조각: {0}",
+    "es": "Fragmentos de texto recibidos: {0}",
+    "fr": "Segments de texte reçus : {0}"
+  },
+  "末段文本到达应用：{0} ms": {
+    "zh": "末段文本到达应用：{0} ms",
+    "en": "Last text reached the app: {0} ms",
+    "ja": "最後のテキストの到着：{0} ms",
+    "ko": "마지막 텍스트 도착: {0} ms",
+    "es": "Último texto recibido: {0} ms",
+    "fr": "Dernier texte reçu : {0} ms"
   }
 }

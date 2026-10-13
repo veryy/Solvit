@@ -72,6 +72,8 @@ fun RequestDiagnosticsDialog(inspection: RequestInspectionService, vm: ChatViewM
             val run = timing
             if (run != null && (request == null || (run.sessionId == request.sessionId && request.preparedAtMs >= run.startedAtMs))) {
                 item { UiText("首段文本到达应用：${run.firstTextMs?.toString() ?: "—"} ms") }
+                item { UiText("末段文本到达应用：${run.lastTextMs?.toString() ?: "—"} ms") }
+                item { UiText("收到的文本片段：${run.receivedTextEvents}") }
                 item { UiText("首段思考到达应用：${run.firstReasoningMs?.toString() ?: "—"} ms") }
                 item { UiText("首段文字显示：${run.firstVisibleMs?.toString() ?: "—"} ms") }
                 item { UiText("模型事件结束：${run.receivedEndMs?.toString() ?: "—"} ms") }

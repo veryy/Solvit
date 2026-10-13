@@ -4,4 +4,5 @@ package dev.solvit.app
 data class ReplyTiming(val sessionId: String, val startedAtMs: Long, val firstTextMs: Long? = null,
     val firstReasoningMs: Long? = null, val firstVisibleMs: Long? = null,
     val receivedEndMs: Long? = null, val displayEndMs: Long? = null,
-    val receivedCharacters: Int = 0, val outcome: String = "running")
+    val receivedCharacters: Int = 0, val outcome: String = "running",
+    val receivedTextEvents: Int = 0, val lastTextMs: Long? = null)

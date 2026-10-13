@@ -35,6 +35,7 @@ class ChatViewModelTest {
             assertTrue(providerWaiting.isCompleted, "Rendering must not block subsequent provider events")
             assertEquals(ToolStage.RUNNING, vm.toolActivity.value.single().stage)
             assertTrue(vm.draft.value.length in 1 until 5_000)
+            assertEquals(1, vm.replyTiming.value!!.receivedTextEvents, "Display frames must not be counted as provider text events")
             vm.stop(); runCurrent(); assertFalse(vm.busy.value)
             vm.viewModelScope.cancel()
         } finally { Dispatchers.resetMain() }
