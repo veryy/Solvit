@@ -49,6 +49,12 @@ function render(node) {
   else {element.className=node.kind;(node.children??[]).forEach(child=>element.append(render(child)))}
   return element;
 }
+function fitGraph() {
+  if(!cy || cy.nodes().empty())return;
+  cy.fit(undefined,60);
+  // Fit a large graph down, but do not magnify a small graph's labels.
+  if(cy.zoom()>1)cy.zoom({level:1,renderedPosition:{x:cy.width()/2,y:cy.height()/2}});
+}
 function graph(graphNode,theme) {
   if(!cy){cy=cytoscape({container:$('graph'),elements:[],minZoom:.15,maxZoom:4,layout:{name:'preset'},
     style:[],wheelSensitivity:.25});
@@ -67,14 +73,14 @@ function graph(graphNode,theme) {
     const next=JSON.stringify([graphNode.nodes,graphNode.edges]);
     if(next!==signature){
       const positions=new Map(cy.nodes().map(n=>[n.id(),n.position()]));
-      const pan=cy.pan(),zoom=cy.zoom(),first=!signature;signature=next;
+      const pan=cy.pan(),zoom=cy.zoom(),first=!signature||cy.nodes().empty();signature=next;
       cy.batch(()=>{
         const elements=[...graphNode.nodes.map(n=>({data:{id:n.id,label:n.label},...(positions.has(n.id)?{position:positions.get(n.id)}:{})})),
           ...graphNode.edges.map((e,i)=>({data:{id:`edge-${i}`,source:e.from,target:e.to,label:e.label}}))];
         cy.elements().remove();cy.add(elements);
       });
-      if(first || graphNode.nodes.some(n=>!positions.has(n.id)))cy.layout({name:'cose',animate:false,randomize:first,numIter:250,fit:first,padding:60}).run();
-      if(!first){cy.pan(pan);cy.zoom(zoom)}
+      if(first || graphNode.nodes.some(n=>!positions.has(n.id)))cy.layout({name:'cose',animate:false,randomize:first,numIter:250,fit:false,padding:60}).run();
+      if(first)fitGraph();else{cy.pan(pan);cy.zoom(zoom)}
     }
   }
   cy.resize();
@@ -122,7 +128,7 @@ window.solvitPageUpdate = next => {
 $('search').onsubmit=event=>{event.preventDefault();fields.query=$('query').value;send('filter')};
 $('query').oninput=()=>{fields.query=$('query').value};
 $('options').onclick=()=>{$('menu').hidden=!$('menu').hidden};
-$('fit').onclick=()=>cy?.fit(undefined,60);$('new').onclick=()=>send('new');
+$('fit').onclick=fitGraph;$('new').onclick=()=>send('new');
 solvitHost.onmessage=event=>{
   const message=JSON.parse(event.data);
   if(message.type==='confirmation'&&message.token!==pendingToken)return;
