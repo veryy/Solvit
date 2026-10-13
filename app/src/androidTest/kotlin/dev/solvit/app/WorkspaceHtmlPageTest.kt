@@ -14,6 +14,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
+import androidx.test.platform.app.InstrumentationRegistry
 
 class WorkspaceHtmlPageTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
@@ -26,7 +27,8 @@ class WorkspaceHtmlPageTest {
         }
         val manager = BuiltinWorkspaceManager(app)
         val html = HtmlPageProbe(rule.activity)
-        val initialText = "<script>window.executed=true</script>\n第一版\n" + "line\n".repeat(700)
+        val initialText = "<script>window.executed=true</script>\n第一版🙂\n" + "const value = 1; // 中文\n".repeat(3000)
+        val marker = "IME_EDIT"
         var visible by mutableStateOf(true)
         fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
         fun click(id: String) {
@@ -34,6 +36,10 @@ class WorkspaceHtmlPageTest {
             html.js("document.querySelector('[data-node=$id]').click()")
         }
         fun field(id: String, text: String) { html.js("(()=>{const input=document.getElementById('field-$id');input.value=${JsonPrimitive(text)};input.dispatchEvent(new Event('input'))})()") }
+        fun document(text: String) {
+            waitDom("!!window.workspaceEditor")
+            html.js("(()=>{const editor=window.workspaceEditor;editor.dispatch({changes:{from:0,to:editor.state.doc.length,insert:${JsonPrimitive(text)}},selection:{anchor:${text.length}},scrollIntoView:true})})()")
+        }
         fun native(confirm: Boolean) {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_page_confirm").assertIsDisplayed()
@@ -57,8 +63,14 @@ class WorkspaceHtmlPageTest {
             assertEquals("HTML 工作目录", workspace.name)
             assertEquals(1, app.workspaces.state.value.shells.count { it.workspaceId == workspace.id })
             click("directory"); waitDom("!!document.querySelector('[data-node=new]')")
-            click("new"); waitDom("!!document.getElementById('field-content')")
-            field("path", "src/note.txt"); field("content", initialText)
+            click("new"); waitDom("!!window.workspaceEditor && !!document.querySelector('.cm-content[contenteditable=true]')")
+            field("path", "src/note.ts");document(initialText)
+            html.js("window.workspaceEditor.focus()")
+            rule.waitUntil(10_000) { html.keyboardVisible() }
+            InstrumentationRegistry.getInstrumentation().sendStringSync(marker)
+            waitDom("window.workspaceEditor.state.doc.toString().endsWith('$marker')")
+            html.hideKeyboard()
+            rule.waitUntil(10_000) { !html.keyboardVisible() }
             click("prepareSave"); waitDom("!!document.querySelector('[data-node=confirm]')")
             assertEquals("\"undefined\"", html.js("typeof window.executed"))
             assertTrue(runBlocking { app.workspaces.list(workspace.id) }.isEmpty())
@@ -66,16 +78,22 @@ class WorkspaceHtmlPageTest {
             assertTrue(runBlocking { app.workspaces.list(workspace.id) }.isEmpty())
             click("confirm"); native(true)
             waitDom("!!document.querySelector('[data-node=file_0]')")
-            assertEquals(initialText, runBlocking { app.workspaces.read(workspace.id, "src/note.txt") })
+            assertEquals(initialText+marker, runBlocking { app.workspaces.read(workspace.id, "src/note.ts") })
             click("file_0"); waitDom("document.querySelector('[data-node=directory]')?.textContent==='src'")
-            click("file_0"); waitDom("!!document.getElementById('field-content')")
-            field("content", "页面修改")
-            runBlocking { app.workspaces.write(workspace.id, "src/note.txt", "外部修改") }
+            click("file_0");waitDom("!!window.workspaceEditor && !!document.querySelector('.cm-content[contenteditable=false]')")
+            assertEquals(JsonPrimitive(initialText+marker).toString(),html.js("window.workspaceEditor.state.doc.toString()"))
+            assertEquals("true",html.js("document.querySelectorAll('.cm-lineNumbers .cm-gutterElement').length>1"))
+            html.screenshot("workspace-html-code-preview")
+            html.js("document.getElementById('toggle-edit').click()")
+            waitDom("!!document.querySelector('.cm-content[contenteditable=true]')")
+            document("页面修改")
+            html.hideKeyboard()
             click("prepareSave"); waitDom("!!document.querySelector('[data-node=confirm]')")
+            runBlocking { app.workspaces.write(workspace.id, "src/note.ts", "外部修改") }
             click("confirm"); native(true)
             waitDom("document.querySelector('[data-node=message]')?.textContent.includes('文件已变化')===true")
-            assertEquals("外部修改", runBlocking { app.workspaces.read(workspace.id, "src/note.txt") })
-            click("cancel"); click("backToList")
+            assertEquals("外部修改", runBlocking { app.workspaces.read(workspace.id, "src/note.ts") })
+            click("cancel");click("backToList");click("backToList")
             waitDom("!!document.querySelector('[data-node=file_0]')")
             waitDom("innerHeight>300 && document.getElementById('content').getBoundingClientRect().height>innerHeight*.5 && document.getElementById('actions').getBoundingClientRect().top>innerHeight*.7")
             html.screenshot("workspace-html-directory")
@@ -84,7 +102,7 @@ class WorkspaceHtmlPageTest {
             rule.runOnUiThread { visible = true }
             waitDom("window.pluginPageReady===true && !!document.querySelector('[data-node=directory]')")
             click("directory"); click("file_0"); click("file_0")
-            waitDom("document.getElementById('field-content')?.value==='外部修改'")
+            waitDom("window.workspaceEditor?.state.doc.toString()==='外部修改'")
             html.screenshot("workspace-html-editor")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.workspace" }.enabled)
         } finally {
