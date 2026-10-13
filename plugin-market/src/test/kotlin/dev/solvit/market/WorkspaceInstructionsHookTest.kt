@@ -55,6 +55,25 @@ class WorkspaceInstructionsHookTest {
         market.installLocal(buildJsonObject { put("manifest", Json.parseToJsonElement(manifest)); put("source", source) }.toString().toByteArray())
         market.enable(id, setOf("workspace"))
     }
+    @Test fun remotelyBuiltTsWorkspacePackageProjectsRulesAndHonorsItsSavedSwitch() = runBlocking<Unit> {
+        fixture { market, ws, hooks, _ ->
+            val plugin = "dev.solvit.workspace"
+            market.enable(plugin, setOf("workspace", "shell"))
+            assertEquals("1.2.0", market.installed.value.single { it.id == plugin }.version)
+            val a = ws.forChat("ts-chat"); ws.write(a.id, "AGENTS.md", "TS_RULE_ACTUAL")
+            val input = ContextInput(AgentRole("ts-role", "TS role", pluginIds = setOf(plugin)), "work", ConversationContext("ts-chat", a.id))
+            val first = hooks.prepareReport(input)
+            assertTrue(first.problems.isEmpty(), first.problems.toString())
+            assertTrue(first.context.single().contains("TS_RULE_ACTUAL"))
+            ws.write(a.id, "AGENTS.md", "TS_RULE_CHANGED")
+            val changed = hooks.prepare(input).single()
+            assertTrue(changed.contains("TS_RULE_CHANGED")); assertFalse(changed.contains("TS_RULE_ACTUAL"))
+            market.disable(plugin); market.configure(plugin, mapOf("projectRules" to "false"))
+            market.enable(plugin, setOf("workspace", "shell"))
+            assertTrue(hooks.prepare(input).isEmpty())
+        }
+    }
+
     @Test fun actualQuickJsReadsOnlyCapturedConversationAndRefreshesEditedDeletedRules() = runBlocking<Unit> {
         fixture { market, ws, hooks, _ ->
             install(market)

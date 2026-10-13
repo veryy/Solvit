@@ -69,7 +69,7 @@ class WorkspaceExecutionDeviceTest {
         val ws=AndroidWorkspaces(context,scope)
         lateinit var session: ChatSession
         try {
-            manager.load(ToolsPlugin(enforceSystem=true))
+            manager.load(ToolsPlugin(enforceSystem=true)); manager.load(ContextHooksPlugin())
             manager.load(object : SolvitPlugin {
                 override val id="fixture.native-workspace"
                 override val provides=setOf(WorkspaceServiceKey,SystemExecutionServiceKey)

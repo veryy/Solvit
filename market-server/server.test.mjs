@@ -62,6 +62,12 @@ test('catalog downloads match their declared integrity and expose no write API',
     const api12 = await (await fetch(base + '/api/v1/plugins?hostApi=12')).json();
     const htmlWorkspace = api12.plugins.find(plugin => plugin.id === 'dev.solvit.workspace');
     assert.equal(htmlWorkspace.version, '1.1.0'); assert.equal(htmlWorkspace.apiVersion, 12);
+    const api16 = await (await fetch(base + '/api/v1/plugins?hostApi=16')).json();
+    const projectRules = api16.plugins.find(plugin => plugin.id === 'dev.solvit.workspace');
+    assert.equal(projectRules.version, '1.2.0'); assert.equal(projectRules.apiVersion, 16);
+    assert.deepEqual(projectRules.hooks, ['beforeModel']);
+    const workspacePrevious = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.workspace/1.1.0')).arrayBuffer());
+    assert.deepEqual(workspacePrevious, await readFile(new URL('./packages/legacy/dev.solvit.workspace-1.1.0.solvit.json', import.meta.url)));
     const api13 = await (await fetch(base + '/api/v1/plugins?hostApi=13')).json();
     const htmlTerminal = api13.plugins.find(plugin => plugin.id === 'dev.solvit.terminal');
     assert.equal(htmlTerminal.version, '1.1.3'); assert.equal(htmlTerminal.apiVersion, 13);
@@ -101,7 +107,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.deepEqual(previousSearch, await readFile(new URL('./packages/legacy/dev.solvit.web-search-1.2.0.solvit.json', import.meta.url)));
     assert.equal(api5.plugins.find(plugin => plugin.id === 'dev.solvit.web-search').version, '1.1.0');
     assert.ok(api4.plugins.every(plugin => plugin.apiVersion <= 4));
-    for (const plugin of [...api5.plugins, ...api7.plugins, ...api8.plugins, ...api9.plugins, ...api10.plugins, ...api11.plugins, ...api12.plugins, ...api13.plugins]) {
+    for (const plugin of [...api5.plugins, ...api7.plugins, ...api8.plugins, ...api9.plugins, ...api10.plugins, ...api11.plugins, ...api12.plugins, ...api13.plugins, ...api16.plugins]) {
       const response = await fetch(base + plugin.downloadPath);
       assert.equal(response.status, 200);
       const bytes = Buffer.from(await response.arrayBuffer());
