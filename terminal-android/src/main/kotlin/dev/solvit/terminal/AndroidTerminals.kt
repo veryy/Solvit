@@ -75,6 +75,7 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
                 entry.state
             } }
         }
+        verify(context, workspaceId, "open", shellId, claim = false)
         own(context, result.id)
         context.ensureActive()
         return result
@@ -107,9 +108,15 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
             val decoder = Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE)
             val reader = InputStreamReader(input, decoder)
             val buffer = CharArray(4096)
+            var pendingHigh = ""
             while (currentCoroutineContext().isActive) {
                 val count = reader.read(buffer); if (count < 0) break
-                val text = String(buffer, 0, count)
+                var text = pendingHigh + String(buffer, 0, count)
+                pendingHigh = ""
+                if (text.lastOrNull()?.isHighSurrogate() == true) {
+                    pendingHigh = text.takeLast(1); text = text.dropLast(1)
+                }
+                if (text.isEmpty()) continue
                 update(entry) { old -> val output = old.output + text
                     var drop = (output.length - 65_536).coerceAtLeast(0)
                     if (drop > 0 && drop < output.length && output[drop].isLowSurrogate() && output[drop - 1].isHighSurrogate()) drop++

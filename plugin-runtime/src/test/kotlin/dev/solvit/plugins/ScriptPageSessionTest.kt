@@ -5,6 +5,7 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 import dev.solvit.core.PostTurnTaskControl
 import dev.solvit.core.PageDocumentAccess
+import dev.solvit.core.PageTerminalAccess
 import dev.solvit.core.PageDocumentControl
 import dev.solvit.core.PageTextDocument
 
@@ -212,4 +213,29 @@ class ScriptPageSessionTest {
             withTimeout(5000) { blocked.close(); cancelled.await(); assertTrue(opening.await().isFailure) }
         } finally { blocked.close(); other.close() }
     }
+    @Test fun liveTerminalCapabilityRechecksPageLeaseAndCannotSurviveClose() = runBlocking<Unit> {
+        val original = pkg("globalThis.solvitPlugin={tools:{},pages:{manage:()=>({title:'terminal',nodes:[]})}};",13)
+        val raw = buildJsonObject {
+            put("manifest", buildJsonObject {
+                original.manifest.let { put("id",it.id);put("name",it.name);put("description",it.description);put("version",it.version) }
+                put("apiVersion",13);put("permissions",JsonArray(listOf(JsonPrimitive("workspace"),JsonPrimitive("shell"))))
+                put("nativeServices",JsonArray(listOf(JsonPrimitive("terminal.pty"))))
+                put("dependencies",JsonArray(emptyList()));put("tools",JsonArray(emptyList()))
+                put("pages",Json.parseToJsonElement("""[{"id":"manage","title":"Terminal"}]"""))
+            });put("source",original.source)
+        }.toString().toByteArray()
+        var allowed=true;var requests=0
+        val page=ScriptPageSession(ScriptPackage.parse(raw),"manage","zh",ScriptHost { _,_,_->error("Unexpected QuickJS capability") }) { check(allowed) }
+        page.attachTerminal(object : PageTerminalAccess {
+            override suspend fun request(operation:String,argumentsJson:String,confirmed:Boolean,authorize:suspend ()->Unit):String {
+                authorize();requests++;return "{}"
+            }
+        })
+        page.open();val capability=checkNotNull(page.terminalAccess())
+        capability.request("snapshot","{}",authorize={})
+        allowed=false;assertFails { capability.request("input","{}",authorize={}) }
+        allowed=true;page.close();assertFails { capability.request("input","{}",authorize={}) }
+        assertEquals(1,requests)
+    }
+
 }

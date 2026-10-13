@@ -29,7 +29,6 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     val executionModes by system.modes.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
     val jobs by vm.jobs.collectAsStateWithLifecycle()
-    val terminals by vm.terminalSessions.collectAsStateWithLifecycle()
     val id by vm.workspaceId.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
@@ -40,13 +39,8 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     var shellId by rememberSaveable(id) { mutableStateOf<String?>(null) }
     var command by rememberSaveable(id, shellId) { mutableStateOf("") }
     var interactive by rememberSaveable(id) { mutableStateOf(false) }
-    var selectedTerminal by rememberSaveable(id, shellId) { mutableStateOf<String?>(null) }
     val shells = state.shells.filter { it.workspaceId == id }
     val activeShell = shellId ?: shells.firstOrNull()?.id
-    val shellTerminals = terminals.filter { it.workspaceId == id && it.shellId == activeShell }
-    val activeTerminal = shellTerminals.firstOrNull { it.id == selectedTerminal }
-        ?: shellTerminals.lastOrNull { it.owner == TERMINAL_OWNER && it.active }
-        ?: shellTerminals.lastOrNull { it.owner == TERMINAL_OWNER }
     FullScreenPage(onDismissRequest = onDismiss) {
         val keyboard = LocalSoftwareKeyboardController.current
         val focus = LocalFocusManager.current

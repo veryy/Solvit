@@ -61,6 +61,7 @@
     for (const [shellId,entry] of sessions) entry.container.hidden=shellId!==selected;
     for (const button of $('shells').children) button.classList.toggle('selected',button.dataset.id===selected);
     const entry=sessions.get(id);$('welcome').hidden=!!entry;$('terminals').hidden=!entry;
+    if (!entry) $('status').textContent='';
     $('command').disabled=!entry?.active;$('send').disabled=!entry?.active;$('close').disabled=!entry?.active;
     if (entry) { fit(entry);update(entry,{id:entry.id,outputOffset:entry.position,output:'',active:entry.active,exitCode:null}); }
   }

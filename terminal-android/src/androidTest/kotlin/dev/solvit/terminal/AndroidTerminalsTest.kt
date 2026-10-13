@@ -126,4 +126,24 @@ class AndroidTerminalsTest {
         }
     }
 
+    @Test fun truncatedUnicodeOutputKeepsMonotonicPositionsAndWholeSurrogates() = runBlocking {
+        fixture { _, service, workspace, shell ->
+            val session=service.open(workspace.id,shell.id)
+            service.input(workspace.id,session.id,"stty -echo; i=0; while [ \$i -lt 34000 ]; do printf '😀'; i=\$((i+1)); done; printf '__RING_%s__\\n' END\n")
+            val output=waitOutput(service,session.id,"__RING_END__")
+            assertTrue(output.truncated);assertTrue(output.outputOffset>0);assertTrue(output.output.length<=65_536)
+            assertFalse(output.output.first().isLowSurrogate())
+            assertFalse(output.output.last().isHighSurrogate())
+            output.output.forEachIndexed { index, char ->
+                if(char.isHighSurrogate())assertTrue(index+1<output.output.length && output.output[index+1].isLowSurrogate())
+                if(char.isLowSurrogate())assertTrue(index>0 && output.output[index-1].isHighSurrogate())
+            }
+            val end=output.outputOffset+output.output.length
+            service.input(workspace.id,session.id,"printf '__AFTER_%s__\\n' RING\n")
+            val after=waitOutput(service,session.id,"__AFTER_RING__")
+            assertTrue(after.outputOffset>=output.outputOffset)
+            assertTrue(after.outputOffset+after.output.length>end)
+        }
+    }
+
 }
