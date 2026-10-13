@@ -10,7 +10,15 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.diff.DiffFormatter
+import org.eclipse.jgit.dircache.DirCacheEntry
 import org.eclipse.jgit.dircache.DirCacheIterator
+import org.eclipse.jgit.lib.CommitBuilder
+import org.eclipse.jgit.lib.FileMode
+import org.eclipse.jgit.lib.ObjectId
+import org.eclipse.jgit.lib.PersonIdent
+import org.eclipse.jgit.lib.RefUpdate
+import org.eclipse.jgit.revwalk.RevWalk
+import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.treewalk.CanonicalTreeParser
 import org.eclipse.jgit.treewalk.EmptyTreeIterator
 import org.eclipse.jgit.treewalk.FileTreeIterator
@@ -204,7 +212,47 @@ class BoundWorkspaceGit(
         check(revision(git) == review.revision && digest(file) == review.workingSha256) {
             "文件或暂存区在授权期间变化，请刷新"
         }
-        git.add().addFilepattern(review.path).call()
+        val content = if (file.exists()) file.inputStream().use { input ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(8192)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                check(count <= 8 * 1024 * 1024 - output.size()) { "Git文件超过暂存上限" }
+                output.write(buffer, 0, count)
+            }
+            output.toByteArray()
+        } else null
+        val capturedSha = content?.let { bytes -> MessageDigest.getInstance("SHA-256").digest(bytes)
+            .joinToString("") { "%02x".format(it) } }
+        check(capturedSha == review.workingSha256) { "文件在准备暂存时变化，请重新审阅" }
+        val status = git.status().call()
+        check(review.path in (status.untracked + status.modified + status.missing + status.conflicting)) {
+            "所选文件没有可暂存的变化，或已被忽略"
+        }
+        val cache = git.repository.lockDirCache()
+        try {
+            check(revision(git) == review.revision) { "HEAD或暂存区在获取索引锁时变化" }
+            verifyWrite()
+            check(revision(git) == review.revision) { "HEAD或暂存区在授权时变化" }
+            val builder = cache.builder()
+            for (index in 0 until cache.entryCount) {
+                val entry = cache.getEntry(index)
+                if (entry.pathString != review.path) builder.add(entry)
+            }
+            if (content != null) {
+                git.repository.newObjectInserter().use { inserter ->
+                    val blob = inserter.insert(Constants.OBJ_BLOB, content)
+                    inserter.flush()
+                    val entry = DirCacheEntry(review.path)
+                    entry.fileMode = if (file.canExecute()) FileMode.EXECUTABLE_FILE else FileMode.REGULAR_FILE
+                    entry.setObjectId(blob)
+                    builder.add(entry)
+                }
+            }
+            // Frozen reviewed bytes are staged; later worktree changes remain unstaged.
+            check(builder.commit()) { "无法提交Git索引，请刷新" }
+        } finally { cache.unlock() }
         revision(git)
     }
     /** Reset just the selected index entry to HEAD, preserving the current working file. */
@@ -212,8 +260,26 @@ class BoundWorkspaceGit(
         checkedPath(git.repository.workTree.canonicalFile, path)
         check(revision(git) == expected) { "暂存区已变化，请重新审阅" }
         verifyWrite()
-        check(revision(git) == expected) { "暂存区在授权期间变化，请刷新" }
-        git.reset().addPath(path).call()
+        val cache = git.repository.lockDirCache()
+        try {
+            check(revision(git) == expected) { "暂存区在获取索引锁时变化，请刷新" }
+            verifyWrite()
+            check(revision(git) == expected) { "暂存区在授权时变化，请刷新" }
+            val builder = cache.builder()
+            for (index in 0 until cache.entryCount) {
+                val entry = cache.getEntry(index)
+                if (entry.pathString != path) builder.add(entry)
+            }
+            val tree = git.repository.resolve("HEAD^{tree}")
+            if (tree != null) TreeWalk.forPath(git.repository, path, tree)?.use { walk ->
+                check(walk.getFileMode(0) != FileMode.TREE) { "只能取消暂存单个文件" }
+                val entry = DirCacheEntry(path)
+                entry.fileMode = walk.getFileMode(0)
+                entry.setObjectId(walk.getObjectId(0))
+                builder.add(entry)
+            }
+            check(builder.commit()) { "无法提交Git索引，请刷新" }
+        } finally { cache.unlock() }
         revision(git)
     }
     /** Commit only the reviewed index; never implicitly stage or amend worktree files. */
@@ -226,10 +292,36 @@ class BoundWorkspaceGit(
         }
         check(revision(git) == expected) { "HEAD或暂存区已变化，请重新审阅" }
         verifyWrite()
-        check(revision(git) == expected) { "HEAD或暂存区在授权期间变化，请刷新" }
-        val result = git.commit().setMessage(message).setAuthor(author, email).setCommitter(author, email)
-            .setSign(false).setNoVerify(true).setAllowEmpty(false).call()
-        Commit(result.name, result.fullMessage, result.authorIdent.name, result.commitTime)
+        val cache = git.repository.lockDirCache()
+        try {
+            check(revision(git) == expected) { "HEAD或暂存区在获取索引锁时变化" }
+            git.repository.newObjectInserter().use { inserter ->
+                val tree = cache.writeTree(inserter)
+                check(tree != git.repository.resolve("HEAD^{tree}")) { "暂存区没有需要提交的变化" }
+                val identity = PersonIdent(author, email)
+                val commit = CommitBuilder().apply {
+                    setTreeId(tree)
+                    expected.head?.let { setParentId(ObjectId.fromString(it)) }
+                    setAuthor(identity); setCommitter(identity); setMessage(message)
+                }
+                val id = inserter.insert(commit)
+                inserter.flush()
+                verifyWrite()
+                check(revision(git) == expected) { "HEAD或暂存区在提交前变化，请刷新" }
+                val update = git.repository.updateRef(Constants.HEAD)
+                update.setExpectedOldObjectId(expected.head?.let(ObjectId::fromString) ?: ObjectId.zeroId())
+                update.setNewObjectId(id)
+                update.setRefLogIdent(identity)
+                update.setRefLogMessage("commit: " + message.lineSequence().first(), false)
+                check(update.update() in setOf(RefUpdate.Result.NEW, RefUpdate.Result.FAST_FORWARD)) {
+                    "Git提交未写入：HEAD已变化或无法获得引用锁，请刷新"
+                }
+                RevWalk(git.repository).use { walk ->
+                    val result = walk.parseCommit(id)
+                    Commit(result.name, result.fullMessage, result.authorIdent.name, result.commitTime)
+                }
+            }
+        } finally { cache.unlock() }
     }
     suspend fun close() = mutex.withLock { closed = true }
 }
