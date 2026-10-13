@@ -505,6 +505,17 @@ class ChatLayoutTest {
         }
         var tapBounds = ""
         fun tapRoleSend() {
+            // Android marks IME visible before Compose has moved the composer. A physical
+            // tap during that interval hits its old position and never invokes send().
+            // Keep the real tap and all request/context assertions; wait for the real layout.
+            rule.waitUntil(10_000) {
+                val decor = rule.activity.window.decorView
+                val insets = decor.rootWindowInsets
+                val ime = insets?.getInsets(WindowInsets.Type.ime())?.bottom ?: 0
+                val composer = rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
+                insets?.isVisible(WindowInsets.Type.ime()) == true && ime > 0 && composer.bottom <= decor.height - ime + 1
+            }
+            rule.waitForIdle()
             val button = rule.onNodeWithTag("chat_send").assertIsEnabled()
             val before = button.fetchSemanticsNode().boundsInRoot
             button.performClick()

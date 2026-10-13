@@ -23,3 +23,5 @@ Solvit FileObservations只保留最多6KiB文字片段；WorkspaceSnapshots每�
 4338ae3的[契约38428189815](https://github.com/veryy/Solvit/actions/runs/38428189815)已走过原生与SQLite，失败仅在新运行时immutableFullCopiesCannotBypassJournalCredentialFiltering：既有preview过滤未覆盖新captureText。修正将敏感全文副本及引用一起省略，保留原观察hash/分类与已脱敏片段；普通正文及SHA保持，不把脱敏文本伪装成原文件。原assertNull/普通副本/源对象不变断言保留，继续远程复测。
 
 beb49dd的[契约38428975426](https://github.com/veryy/Solvit/actions/runs/38428975426)成功。下载artifact11829493645（ZIP67956bytes）并核对CRC及实际XML：285测试、0失败/错误/跳过，原生全文2、SQLite全文7、新凭据过滤回归均通过。准备0.25.1/build53存储阶段APK，完整HTML差异页继续实现；正式门禁结果以发布后的实际报告补录。
+
+0.25.1正式38430642922的build实际368单元0失败/错误/跳过，插件、搜索成功；模拟器门禁失败，release被跳过，未发布。安全探针捕获首次角色发送attempts=0、请求=0，chat_send点击前bounds y1615..1752，点击后y840..977，键盘展开使按钮上移775px；没有执行到发送或Provider。修正测试先等真实IME可见且chat_composer.bottom <= decor.height - IME.bottom，再保持真实物理点击和原8秒回复/角色/新会话断言；不改生产角色请求、不换成语义触发、不增加回复等待来掩盖失败。保留探针，0.25.2独立标签验证修正，不覆盖失败标签。
