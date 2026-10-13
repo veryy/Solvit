@@ -254,9 +254,13 @@ class ChatViewModelTest {
             assertTrue(vm.send("queued"));val queued=vm.queuedMessages.value.single();vm.stop();runCurrent()
             assertFalse(vm.busy.value);assertTrue(vm.queuePaused.value);assertEquals(1,received.size)
             vm.select("other");assertFalse(vm.sendQueuedNow(queued.id));assertFalse(vm.editQueued(queued.id,"wrong"))
-            vm.resumeQueue();runCurrent();assertEquals(1,received.size)
-            vm.select("session");vm.resumeQueue();advanceUntilIdle()
-            assertEquals(listOf("session" to "first","session" to "queued"),received)
+            assertTrue(vm.send("other-turn"));advanceUntilIdle()
+            vm.resumeQueue();runCurrent();assertEquals(2,received.size)
+            vm.select("session")
+            assertTrue(vm.queuePaused.value,"The original stopped queue must still expose its resume action after another chat finishes")
+            assertEquals(2,received.size)
+            vm.resumeQueue();advanceUntilIdle()
+            assertEquals(listOf("session" to "first","other" to "other-turn","session" to "queued"),received)
             vm.viewModelScope.cancel()
         }finally { Dispatchers.resetMain() }
     }

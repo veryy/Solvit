@@ -71,7 +71,16 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     }
     data class QueuedMessage(val id: String, val sessionId: String, val text: String)
     val queuedMessages = MutableStateFlow<List<QueuedMessage>>(emptyList())
+    private val pausedChats = mutableSetOf<String>()
     val queuePaused = MutableStateFlow(false)
+    private fun chooseSession(id: String?) {
+        selected.value=id
+        queuePaused.value=id!=null && id in pausedChats
+    }
+    private fun pauseQueue(id: String?, paused: Boolean) {
+        if(id!=null) { if(paused)pausedChats.add(id) else pausedChats.remove(id) }
+        queuePaused.value=selected.value?.let(pausedChats::contains)==true
+    }
     val switching = MutableStateFlow(false)
     private var generation: Job? = null
     private suspend fun createRoleSession(source: String?): ChatSession {
@@ -93,18 +102,18 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             catch (e: Exception) { error.value = "模型配置无法解密，请在设置中重新保存 API Key" }
             if (profiles == null) modelConfigured.value = settings.isConfigured()
             try {
-                selected.value = chat.sessions().first().firstOrNull()?.id ?: createRoleSession(null).id
+                chooseSession(chat.sessions().first().firstOrNull()?.id ?: createRoleSession(null).id)
                 ready.value = true
             } catch (e: Exception) { error.value = "无法打开聊天存储，请重启应用" }
         }
     }
-    fun select(id: String) { if (!busy.value && !switching.value && !branching.value) { selected.value = id; draft.value = ""; dismissError() } }
+    fun select(id: String) { if (!busy.value && !switching.value && !branching.value) { chooseSession(id); draft.value = ""; dismissError() } }
     fun newChat() {
         if (busy.value || switching.value || branching.value) return
         viewModelScope.launch {
             try {
                 val session = createRoleSession(selected.value)
-                selected.value = session.id; error.value = null
+                chooseSession(session.id); error.value = null
             }
             catch (e: Exception) { error.value = "创建对话失败" }
         }
@@ -118,7 +127,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             try {
                 val branch = service.fork(source, point)
                 branchInput.value = branch.id to editedText
-                selected.value = branch.id
+                chooseSession(branch.id)
                 draft.value = ""; reasoning.value = ""; liveTranscript.value = emptyList(); toolActivity.value = emptyList()
                 dismissError()
                 onForked()
@@ -133,7 +142,8 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             try {
                 chat.deleteSession(id)
                 queuedMessages.value = queuedMessages.value.filterNot { it.sessionId == id }
-                if (selected.value == id) selected.value = chat.sessions().first().firstOrNull()?.id ?: createRoleSession(null).id
+                pausedChats.remove(id)
+                if (selected.value == id) chooseSession(chat.sessions().first().firstOrNull()?.id ?: createRoleSession(null).id)
             } catch (e: Exception) { error.value = "删除对话失败" }
         }
     }
@@ -171,7 +181,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             if (!busy.value && !switching.value && !queuePaused.value) drainQueue()
             return true
         }
-        queuePaused.value = false
+        pauseQueue(id,false)
         return startTurn(id, text.trim())
     }
     fun removeQueued(itemId: String) { if (!switching.value) queuedMessages.value = queuedMessages.value.filterNot { it.id == itemId } }
@@ -181,12 +191,12 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         queuedMessages.value = queuedMessages.value.map { if (it.id == item.id) it.copy(text = text.trim()) else it }
         return true
     }
-    fun resumeQueue() { if (!switching.value) { queuePaused.value = false; drainQueue() } }
+    fun resumeQueue() { if (!switching.value) { pauseQueue(selected.value,false); drainQueue() } }
     private fun drainQueue() {
         if (busy.value || switching.value || queuePaused.value) return
         val item = queuedMessages.value.firstOrNull { it.sessionId == selected.value } ?: return
         if (startTurn(item.sessionId, item.text)) queuedMessages.value = queuedMessages.value.filterNot { it.id == item.id }
-        else queuePaused.value = true
+        else pauseQueue(item.sessionId,true)
     }
     fun sendQueuedNow(itemId: String): Boolean {
         if (switching.value || branching.value) return false
@@ -199,7 +209,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                 if (selected.value != item.sessionId) return@launch
                 if (startTurn(item.sessionId, item.text)) {
                     queuedMessages.value = queuedMessages.value.filterNot { it.id == item.id }
-                    queuePaused.value = false
+                    pauseQueue(item.sessionId,false)
                 }
             } finally { switching.value = false }
         }
@@ -282,7 +292,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             catch (e: Exception) { replyTiming.update { it?.copy(outcome = "failed") }; error.value = "发送失败，请检查模型配置或缩短对话后重试" }
             finally {
                 busy.value = false; draft.value = ""; reasoning.value = ""; liveTranscript.value = emptyList(); toolApproval.value = null
-                if (!completed) queuePaused.value = true
+                if (!completed) pauseQueue(id,true)
                 if (completed && !switching.value && !queuePaused.value) {
                     val finished = currentCoroutineContext()[Job]
                     viewModelScope.launch { finished?.join(); drainQueue() }
@@ -291,5 +301,5 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         }
         return true
     }
-    fun stop() { queuePaused.value = true; generation?.cancel() }
+    fun stop() { pauseQueue(selected.value,true); generation?.cancel() }
 }
