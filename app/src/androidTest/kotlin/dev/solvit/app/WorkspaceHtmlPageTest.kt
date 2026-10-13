@@ -65,7 +65,8 @@ class WorkspaceHtmlPageTest {
             click("directory"); waitDom("!!document.querySelector('[data-node=new]')")
             click("new"); waitDom("!!window.workspaceEditor && !!document.querySelector('.cm-content[contenteditable=true]')")
             field("path", "src/note.ts");document(initialText)
-            html.js("window.workspaceEditor.focus()")
+            waitDom("(()=>{const line=document.querySelector('.cm-line:last-child');if(!line)return false;const r=line.getBoundingClientRect();return r.top>=0 && r.bottom<document.getElementById('actions').getBoundingClientRect().top})()")
+            html.tapElement(".cm-line:last-child")
             rule.waitUntil(10_000) { html.keyboardVisible() }
             InstrumentationRegistry.getInstrumentation().sendStringSync(marker)
             waitDom("window.workspaceEditor.state.doc.toString().endsWith('$marker')")
@@ -105,6 +106,12 @@ class WorkspaceHtmlPageTest {
             waitDom("window.workspaceEditor?.state.doc.toString()==='外部修改'")
             html.screenshot("workspace-html-editor")
             assertFalse(app.marketplace.installed.value.first { it.id == "dev.solvit.workspace" }.enabled)
+        } catch(error:Throwable) {
+            runCatching {
+                println("WORKSPACE_EDITOR_STATE="+html.js("JSON.stringify({editor:!!window.workspaceEditor,tail:window.workspaceEditor?.state.doc.toString().slice(-30),status:document.getElementById('editor-status')?.textContent,contentEditable:document.querySelector('.cm-content')?.contentEditable,active:document.activeElement?.className,height:innerHeight})"))
+                html.screenshot("workspace-html-editor-failure")
+            }
+            throw error
         } finally {
             rule.runOnUiThread { visible = false }
             runBlocking { app.workspaces.unbind(chat) }
