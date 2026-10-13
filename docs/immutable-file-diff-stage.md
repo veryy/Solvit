@@ -55,3 +55,5 @@ Actual Android HTML diagnostic run 38439268360 passed `OK (2 tests)`; artifact 1
 API17市场已同步服务器及1.3.0包，备份`/opt/solvit-market/.backup-workspace-1.3.0-1791913675286`。服务端逐份比较API1–16完整目录保持一致；公网核对API1–17选择正确，API16仍为1.2.0、API17为1.3.0，两个下载包与仓库原始字节一致（1.3.0：66826bytes，SHA256 95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b）。其余包没有替换。
 
 追加页面诊断38441201474第一次在准备NDK时因远程ZipFile unknown archive失败，尚未编译/执行页面测试；已重试该失败作业，不能算页面回归失败或通过。英文页面测试现同时设置真实LocalUiLanguage，额外检查副本详情为Saved copies，并滚动到长行尾部后截图；不是生产语言行为修复。0.26.0/build55候选ee713fa完整远程门禁待结果。
+
+候选38441459467：build成功，完整UI门禁唯一失败为actualAndroidTsProjectRulesRefreshWithoutChangingRoleOrCreatingUnboundWorkspace保留旧版本1.2.0断言，实际内置1.3.0；不修改角色/项目规则/无绑定工作区断言。修正版本夹具后重跑全门禁。追加HTML诊断38441201474重试已成功，待下载新语言/尾部截图核对。
