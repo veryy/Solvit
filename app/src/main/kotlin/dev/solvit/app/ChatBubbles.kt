@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.mikepenz.markdown.m3.Markdown
 import dev.solvit.core.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.conflate
 
 @Composable
 fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = null,
@@ -93,9 +95,25 @@ private fun AssistantContents(row: ChatRow) {
 
 @Composable
 fun MarkdownBody(content: String, streaming: Boolean = false) {
+    val latestContent by rememberUpdatedState(content)
+    var rendered by remember { mutableStateOf(content) }
+    LaunchedEffect(streaming) {
+        if (streaming) snapshotFlow { latestContent }.conflate().collect {
+            rendered = it
+            // Parsing the complete prefix on every playback frame stalls long replies.
+            // Conflate changes during this interval, including the last mutation.
+            delay(80)
+        }
+    }
+    // Completion and cancellation must show the exact settled prefix immediately.
+    RichReplyBody(if (streaming) rendered else content, streaming)
+}
+
+@Composable
+private fun RichReplyBody(content: String, streaming: Boolean) {
     SelectionContainer {
-        if (streaming) Text(content, modifier=Modifier.fillMaxWidth().testTag("streaming_body"), style=MaterialTheme.typography.bodyLarge)
-        else Markdown(content=content, modifier=Modifier.fillMaxWidth().testTag("markdown_body"))
+        Markdown(content=content, modifier=Modifier.fillMaxWidth()
+            .testTag(if (streaming) "streaming_body" else "markdown_body"))
     }
 }
 
