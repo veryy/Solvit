@@ -19,3 +19,5 @@ Solvit FileObservations只保留最多6KiB文字片段；WorkspaceSnapshots每�
 58a8c19增加新接口和6个行为回归，未实现底层。[契约38425271122](https://github.com/veryy/Solvit/actions/runs/38425271122)编译成功，两个WholeFileCaptureTest均在captureText缺失处失败。该执行在原生失败后停止，SQLite四个新用例尚未执行，不能记作全部复现。补入原生严格UTF-8全文及同SHA引用和共享256KiB单文件/2MiB快照验证，继续远程测试原生和SQLite默认未支持读取的链路。
 
 原生补入全文后38425960838下载XML原生2项0失败，SQLite默认读取四项均失败，编译成功。4f5ba0d补入schema9：全文BLOB与复合事件引用分表、SHA去重/回收、分块读取及读锁内前后授权、256KiB单副本/32MiB单run/128MiB全局内容预算；预算不足保留观察元数据但不伪造全文引用。38427087997编译成功，SQLite新7项有6项通过，唯一失败在夹具text.take(40)切断emoji代理对损坏元数据JSON；全文读取断言先已通过，修正夹具按codepoint截取，原完整内容/隔离断言保持。补验运行时原有凭据过滤不能被新全文绕过，尚未将完整diff/UI称为交付。
+
+4338ae3的[契约38428189815](https://github.com/veryy/Solvit/actions/runs/38428189815)已走过原生与SQLite，失败仅在新运行时immutableFullCopiesCannotBypassJournalCredentialFiltering：既有preview过滤未覆盖新captureText。修正将敏感全文副本及引用一起省略，保留原观察hash/分类与已脱敏片段；普通正文及SHA保持，不把脱敏文本伪装成原文件。原assertNull/普通副本/源对象不变断言保留，继续远程复测。

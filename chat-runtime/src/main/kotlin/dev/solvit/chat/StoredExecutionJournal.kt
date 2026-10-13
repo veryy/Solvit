@@ -50,7 +50,14 @@ internal class StoredExecutionJournal(private val store: ChatStore, private val 
                 // Paths themselves can contain configured secrets; omit them and mark coverage incomplete.
                 val retained=source.files.filterKeys { path -> secrets.none(path::contains) }.mapValues { (_,value) ->
                     val excerpt=value.excerpt?.let { bounded(it,512) }
-                    value.copy(excerpt=excerpt?.first,excerptTruncated=value.excerptTruncated || excerpt?.second==true)
+                    // A changed/redacted body cannot remain a copy of the original digest.
+                    // Withhold its full reference rather than fabricate a sanitized historical file.
+                    val capture=value.captureText?.takeIf { text ->
+                        val safe=bounded(text,MAX_FILE_CAPTURE_BYTES)
+                        safe.first==text && !safe.second
+                    }
+                    value.copy(excerpt=excerpt?.first,excerptTruncated=value.excerptTruncated || excerpt?.second==true,
+                        captureText=capture,captureSha256=if(capture!=null) value.captureSha256 else null)
                 }
                 source.copy(files=retained,complete=source.complete && retained.size==source.files.size)
             }
