@@ -68,3 +68,5 @@ API16线上部署已完成，备份`/opt/solvit-market/.backup-workspace-1.2.0-1
 工作区API16人工页面入口修正acebf13。[定向文件页38415161660](https://github.com/veryy/Solvit/actions/runs/38415161660)成功，下载CRC和result-1实际OK (1 test)，保存/原生确认/过时文件断言保留。完整38415492571实际XML49项中，仅原角色应用→首次发送失败，两个工作区页面和新增规则场景通过；角色fixture记录ready=true、busy=false、hasError=false、saved=0、outcome=null，截图文字保留且按钮可用。不能把此失败归因于项目规则或认为延长超时可解决。
 
 新增临时[DEBUG-role-send]回调次数及触摸前后bounds探针，不记录文本/凭据，并给发送/停止同一按钮稳定testTag。原8秒与角色、请求、入库条件保留。56883ff的[同前置顺序十轮38418610354](https://github.com/veryy/Solvit/actions/runs/38418610354)成功，下载ZIP实际10个独立result-N均OK (3 tests)，总30项。原始失败仍未稳定复现；保留失败记录，不声称已修复角色症状。完整38418609997待验收。
+
+[干净代码候选38418609997](https://github.com/veryy/Solvit/actions/runs/38418609997)全成功。下载产物CRC及实际XML核对358单元、49模拟器，0失败/错误/跳过；包括实际APK TS规则、两个工作区页面原回归、角色应用两请求、签名和覆盖升级。临时计数探针保留以捕获仍未定位的角色自动化偶发丢失，未宣称此问题修复或真实模型/真机通过。准备合入main并执行正式0.25.0标签全部门禁。
