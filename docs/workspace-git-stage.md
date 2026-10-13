@@ -107,3 +107,10 @@ API19市场已实际部署：服务器Node提供执行环境，首次用python3�
 布局红/首次修复结果已取回：e767a62/38478914473，11856322553（ZIP4,494,313字节）CRC及实际result，两项运行10.379秒，一项准确在GitHtmlPageTest.kt:110可见高度断言失败。0ba8804/38479133821，11856782780（ZIP4,890,547字节）CRC、result/logcat与两张实际截图已核对：高度与末尾滚动断言通过，差异首屏完整高度、末屏LAST_PATCH_LINE可见；之后在119行原暂存结果断言读到null，一项失败，不能将其宣称完整专项成功。检查PluginPageContent确认按钮先关闭dialog，再PluginPageScreen scope.launch异步dispatch写入；旧用例只等dialog消失就立即读取索引，存在读早于完成的接缝。补充等待操作成功回到Changes且git_files启用，再保留原added索引断言；若写入拒绝/旧审阅失效不会进入成功页面，原断言及取消、文件、提交、预览/Shell检查保留。此同步修正仍须原专项与完整门禁验证，不以截图通过替代全流程。
 
 干净2fd92e6 SDK38479342143首次110 SDK/2市场及源码/包一致性成功，但公网搜索明确无结果，整项失败，日志已保留。原条件失败任务复核115578350692成功，实际110/2零失败和三来源cn.bing.com/www.bing.com查询通过；该复核不是搜索间歇不可用的根因修复，保留此质量风险。
+
+
+a7ef7b3/38480156649专项成功：取回11856193819（ZIP815,060字节），CRC及实际result核对GitHtmlPageTest两项、18.179秒、OK (2 tests)。取回并实际查看三张截图，首屏差异占可用高度，末屏LAST_PATCH_LINE可见，文件CodeMirror预览正确。完整保留全部初始化/取消/暂存/索引提交/工作文件与未跟踪保留/Files物理点击/同目录Shell/树隐藏及真实QuickJS工具授权检查；等待Changes成功完成后再核对索引的同步修正已通过，同一反馈环无临时DEBUG日志。
+
+Git1.1.1已实际部署，Node每步成功标记及远程SHA守卫、原1.1.0备份和失败回滚；备份/opt/solvit-market/.backup-git111-fc83c726cf12。server摘要df284c02bed71fe85bb12d5adffa0520ac7f3467b22839143cd146cc462bb4a7保持。部署前后Node localhost与正常TLS公网分别核对API1–18逐字节相同、API19除Git外条目相同；正常公网下载/api/v1/packages/dev.solvit.git/1.1.1为715,915字节/SHA256 7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd，与市场源文件和APK资产完全一致。暂存已清理，旧客户端及旧公开APK不变。
+
+最新完整Android a7ef7b3/38480134382的build成功；取回11855664389（ZIP319,880字节），CRC及102个实际JUnit XML套件核对406项、0失败/错误/跳过。实际job115580821208日志确认Lint/APK BUILD SUCCESSFUL、固定证书SHA256 f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3。verify-ui 115582793202仍进行中，不能提前宣称完整55项通过；尚未正式发布0.29或创建标签。真实模型/真机、远程GitHub与AI写操作继续保留为未完成。
