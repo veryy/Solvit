@@ -25,3 +25,5 @@ Solvit FileObservations只保留最多6KiB文字片段；WorkspaceSnapshots每�
 beb49dd的[契约38428975426](https://github.com/veryy/Solvit/actions/runs/38428975426)成功。下载artifact11829493645（ZIP67956bytes）并核对CRC及实际XML：285测试、0失败/错误/跳过，原生全文2、SQLite全文7、新凭据过滤回归均通过。准备0.25.1/build53存储阶段APK，完整HTML差异页继续实现；正式门禁结果以发布后的实际报告补录。
 
 0.25.1正式38430642922的build实际368单元0失败/错误/跳过，插件、搜索成功；模拟器门禁失败，release被跳过，未发布。安全探针捕获首次角色发送attempts=0、请求=0，chat_send点击前bounds y1615..1752，点击后y840..977，键盘展开使按钮上移775px；没有执行到发送或Provider。修正测试先等真实IME可见且chat_composer.bottom <= decor.height - IME.bottom，再保持真实物理点击和原8秒回复/角色/新会话断言；不改生产角色请求、不换成语义触发、不增加回复等待来掩盖失败。保留探针，0.25.2独立标签验证修正，不覆盖失败标签。
+
+0.25.2正式38432874699源码62870a5bfef29d8c8ae174b665dc7bc85489b0a9已发布，五作业全成功。实际下载报告368单元/49模拟器、均0失败/错误/跳过，固定签名和覆盖更新通过。APK artifact11831099268、ZIP20584024bytes，公开asset637670128，23,558,161bytes，SHA256 f198ceec6c284a1d749664871dc1cdc9fce2c72abc6e473b78b19c2598c920dc；公开8段下载与Actions逐字节相同。完整插件HTML差异及启动线程额外回归继续在feat/immutable-file-diff分支，不宣称存储阶段完成整项产品验收。
