@@ -48,3 +48,7 @@ DSH为MIT，当前仅阅读，没有复制实现。Operit锁定版本终端的�
 实现专用workspace.instructions，API16和beforeModel限定、空参数、workspace声明及实时grant、包/启用状态、角色快照允许与当前绑定双重核验；原生ScriptHookInvocation捕获ContextInput，JS输入不含会话/工作区ID。读取前后与返回前验证，未绑定普通聊天返回available=false且不创建目录。一般文件/Shell桥仍要求原有工具确认。
 
 TS模块负责固定根/同目录local排序、去重、来源及12KiB UTF-8渲染预算、失败/截断标记。其6项测试与SDK契约在38404477632、市场38404477572远程通过。尚未改内置工作区包或线上服务器，不能声称已发布规则功能；下一步同组native复测及实际TS包→Android→请求与原生协议组合。
+
+[桥接复测38405522249](https://github.com/veryy/Solvit/actions/runs/38405522249)成功，下载实际XML四项0失败/错误/跳过。新增API15拒绝/API16仅Hook/无参数边界，随后38406370524成功；TS增加小预算及local优先后38406147308通过。实际包由38406778903远程生成，仅工作区变动，1.2.0/API16，31604 bytes，SHA `545abc7b667f31468777e378d4c7620709f9e2e03fca6f4c1b490e24bd4b0bbe`，8个其他包比较保持字节一致（包含可安装示例，不等于APK内置数量）。旧1.1.0完整字节27700，SHA `4afcd1206d15bb0f1fba79a93f0e623b0a6e29ff3172b54cadb833b9ea8471e4`保存为legacy，Android加入精确SHA升级路径。
+
+提交远程包及API16目录之后38407531954 SDK/包一致性及38407531929市场测试成功。新实际TS包→Android规则开关/更新、读完后撤权、旧包升级及修改/卸载保留测试在f070090；Android38407723311与契约38407865703正在验收，不声称已通过或发布。服务器尚未部署API16；真实模型、真机、嵌套作用域、完整diff和任务验收继续保留。

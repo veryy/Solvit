@@ -89,3 +89,13 @@ globalThis.solvitPlugin = {
 页面按钮声明 `hostAction: {kind:"workspace.perform", operation, arguments}`，可预览创建、绑定、解除绑定、创建Shell、写文件或安装草稿。宿主显示操作及参数，用户确认后，页面通过无参数 `await ctx.workspacePage.perform()` 消费一次该确认。写入带 `expectedSha256`，新文件用 null；草稿安装带已审阅摘要并保持停用。切换聊天、外部重新绑定、关闭页面或撤权会拒绝旧能力。模型工具、Hook及生命周期回调不能调用此人工页面接口，AI仍通过独立工具授权执行。下载插件需声明并获得对应权限，安装草稿还需 `plugins` 权限。
 
 API12 将权限与服务依赖分开：有限Shell作业不再自动依赖PTY；普通HTTP也不自动依赖浏览器。调用 `ctx.terminal` 的插件显式声明 `nativeServices:["terminal.pty"]` 和 `shell` 权限；调用 `ctx.web.visit` 的插件声明 `nativeServices:["web.pages"]` 和 `network` 权限。API5–11的隐式依赖保留兼容。新版市场查询 `hostApi=12`，旧宿主仍选择旧包。示例及实际验证范围见[工作区页面阶段](plugin-workspace-stage.md)。
+
+## API16 项目规则只读 Hook（候选，未发布）
+
+声明apiVersion:16、workspace权限与beforeModel，使用`ctx.workspace.instructions()`。只返回当前对话已绑定目录根的AGENTS.md、CLAUDE.md、AGENTS.local.md和CLAUDE.local.md来源，不接受任何路径、会话或工作区参数。未绑定时available=false、sources=[]，不会替普通聊天创建工作区。
+
+sources包含path、TEXT/ABSENT/BINARY/OVERSIZED/UNAVAILABLE状态；TEXT有完整严格UTF-8正文及SHA-256，单源最多16KiB。它是文件原语，不承诺完整项目规则加载：嵌套目录触达仍待实现。JS/TS负责选择、去重、作用域、来源与预算，宿主检查角色快照、workspace声明/授权、插件启用及当前绑定，读取前后和返回前都复核。
+
+此接口仅供beforeModel，不可从工具、页面或activate/deactivate调用；不会开放普通workspace.read/write或Shell。内置工作区1.2.0默认自动读取（用户启用并授予workspace/shell后），配置projectRules=false可关闭。每个模型步骤重新读取，修改/删除后旧Hook投影不会写入持久聊天历史或继续使用。包内TS按12KiB UTF-8预算渲染并优先保留local来源，省略/截断明确标记，资料不提升为角色/系统指令。受控Provider测试不代表真实模型遵守规则。
+
+当前最新可安装APK仍是0.24.1，候选包及桥接在feat/workspace-instructions完整验收中。实际证据与边界见[阶段记录](workspace-instructions-stage.md)。
