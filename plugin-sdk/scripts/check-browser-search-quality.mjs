@@ -2,21 +2,24 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import vm from 'node:vm';
 const require = createRequire(process.env.SOLVIT_BROWSER_PACKAGE + '/package.json');
-const { chromium } = require('playwright');
+const { chromium, devices } = require('playwright');
 const pkg = JSON.parse(await readFile(new URL('../../market-server/packages/dev.solvit.web-search.solvit.json', import.meta.url), 'utf8'));
 const kotlin = await readFile(new URL('../../web-android/src/main/kotlin/dev/solvit/web/PageObservation.kt', import.meta.url), 'utf8');
 const script = /val script = """([\s\S]*?)"""\.trimIndent\(\)/.exec(kotlin)?.[1];
 if (!script || pkg.manifest.apiVersion !== 6) throw new Error('Expected API 6 search and actual Android DOM observer');
 const sandbox = vm.createContext({}); vm.runInContext(pkg.source, sandbox, {timeout:1000});
 const browser = await chromium.launch({headless:true});
-const context = await browser.newContext({locale:'zh-CN'});
 const observations = [], checks = [];
 const ctx = {settings:{get:async()=>null},http:{request:async options=>{
   const response=await fetch(options.url,{headers:options.headers,signal:AbortSignal.timeout(options.timeoutMs??6000)});
   return {status:response.status,headers:Object.fromEntries(response.headers),body:await response.text()};
 }},web:{visit:async url=>{
+  const context=await browser.newContext({...devices['Pixel 7'],locale:'zh-CN'});
   const page=await context.newPage();
-  await page.route('**/*',route=>route.request().url().startsWith('https://') ? route.continue() : route.abort());
+  await page.route('**/*',route=>{
+    const headers={...route.request().headers()};delete headers.cookie;
+    return route.request().url().startsWith('https://') ? route.continue({headers}) : route.abort();
+  });
   try {
     await page.goto(url,{waitUntil:'load',timeout:7000});
     await page.waitForTimeout(500);
@@ -26,7 +29,7 @@ const ctx = {settings:{get:async()=>null},http:{request:async options=>{
   } catch (error) {
     observations.push({url,finalUrl:page.url(),observationFailed:true,failureType:error?.name??'Error'});
     throw error;
-  } finally {await page.close();}
+  } finally {await context.close();}
 }}};
 try {
   let latestVersion,releaseFailure;
@@ -65,5 +68,5 @@ try {
   console.log('Public search quality: bilingual/release queries return relevant official sources and readable bodies. Model answer attribution remains unverified.');
 } finally {
   await writeFile('browser-search-evidence.json',JSON.stringify({checks,observations},null,2));
-  await context.close(); await browser.close();
+  await browser.close();
 }
