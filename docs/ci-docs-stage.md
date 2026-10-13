@@ -4,4 +4,4 @@
 
 依据[GitHub官方工作流规则](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushpull_requestpull_request_targetpathspaths-ignore)，标签推送不评估路径过滤，因此正式标签继续执行完整发布门禁。本次工作流配置变更本身会触发远程Android；之后用实际文档提交检查该门禁不会被取消。不在本地构建Android或TS，不删减任何验收作业。
 
-远程执行与文档提交触发结果待核对。
+工作流变更 `7ef8b39` 已实际触发 [Android 38394289986](https://github.com/veryy/Solvit/actions/runs/38394289986)。本次仅文档提交用于核对不会取消该门禁；完成状态后续补录。
