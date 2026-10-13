@@ -4,7 +4,7 @@
 
 ## 插件包
 
-UTF-8 `.solvit.json` 包含 `manifest` 与 `source`。市场示例：[当前时间插件](../market-server/packages/dev.solvit.clock.solvit.json)。
+UTF-8 `.solvit.json` 包含 `manifest` 与 `source`，HTML页面包另含离线 `resources`。市场示例：[当前时间插件](../market-server/packages/dev.solvit.clock.solvit.json)。
 
 - `id`：稳定 ID，最长 40 字符，使用小写域名形式。
 - `version`：三段数字版本。
@@ -13,6 +13,8 @@ UTF-8 `.solvit.json` 包含 `manifest` 与 `source`。市场示例：[当前时�
 - `dependencies`：先启用的插件 ID 集合。
 - `tools`：工具名、描述、JSON 对象输入 schema；工具名最长 20 字符。
 - `source`：打包后的 JS，导出 `globalThis.solvitPlugin`。
+- `pages`：页面 ID、标题与本包 HTML `entry`；资源放入 `resources`，业务页面由插件的HTML/CSS/JS绘制。
+- `nativeServices`：API12可选原生服务依赖，见下方说明。
 
 ```js
 globalThis.solvitPlugin = {
@@ -78,7 +80,7 @@ globalThis.solvitPlugin = {
 
 ## API10：插件自己绘制 HTML/JS 页面
 
-页面清单可声明本包HTML入口，资源随包离线分发。宿主负责通用WebView、权限/确认与关闭清理；业务布局和图谱由插件JS绘制。开发与桥接示例见[HTML页面指南](plugin-html-pages.md)。API9旧页面继续兼容；新版宿主查询 `hostApi=10`，旧宿主保留对应版本包。实际交付状态见阶段记录，不能把资源支持当作全部插件/聊天功能已经迁移。
+页面清单可声明本包HTML入口，资源随包离线分发。宿主负责通用WebView、权限/确认与关闭清理；业务布局和图谱由插件JS绘制。开发与桥接示例见[HTML页面指南](plugin-html-pages.md)。API9旧页面继续兼容；API10宿主查询 `hostApi=10`，当前API12宿主查询 `hostApi=12`，旧宿主保留对应版本包。实际交付状态见阶段记录，不能把资源支持当作全部插件/聊天功能已经迁移。
 
 ## API12：工作区页面与独立原生服务依赖
 

@@ -17,7 +17,7 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。0.22.2 候选（build36）使用插件携带的离线 HTML/JS 记忆图谱、任务、多 MCP 和 Skills 页面，修复内容区塌缩；[Android 验证](https://github.com/veryy/Solvit/actions/runs/38317347510)通过297个单元、45个模拟器测试和Lint/固定签名APK，包括真实系统文件选择器的导入预览、保存、重开、导出后再导入预览和删除确认。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38317347510/artifacts/11777697054)需要登录GitHub下载；公开搜索门禁尚未通过，未发布正式Release，顶部最新下载仍为0.21.3。工作区页面仍待迁移，真实模型角色回答、流式/搜索质量及完整未完成范围见 [产品进度](docs/product-roadmap.md)。
+[0.21.3](https://github.com/veryy/Solvit/releases/tag/v0.21.3) 修正记忆页面键盘打开时搜索操作的可见性，原失败操作连续20次通过；正式发布的271个单元及42个模拟器测试全部通过。验证范围见 [版本说明](docs/release-0.21.3.md)。0.22.2 候选（build37/API12）使用插件自带的离线 HTML/JS 记忆图谱、任务、多 MCP、Skills 和工作目录页面。[Android 验证](https://github.com/veryy/Solvit/actions/runs/38325315067)通过302个单元、46个模拟器测试和Lint/固定签名APK，包括真实文件编辑、约3550字节保存确认、外部修改冲突拒绝及覆盖升级后配置/聊天保留。[候选APK产物](https://github.com/veryy/Solvit/actions/runs/38325315067/artifacts/11780996811)需要登录GitHub下载；公开搜索门禁尚未通过，未发布正式Release，顶部最新下载仍为0.21.3。交互PTY界面仍是原生；真实模型角色回答、流式/工具选择及完整未完成范围见[产品进度](docs/product-roadmap.md)和[本阶段证据](docs/plugin-workspace-stage.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
@@ -51,7 +51,7 @@
 
 ## 工作区、Shell 与 AI 插件开发
 
-当前源码已接入每个对话一个工作区、多 Shell 命令会话、工作区文本文件编辑，以及 API 4 的两个独立 JS/TS 插件。使用方式见 [工作区与 Shell](docs/workspaces.md)。
+当前源码已接入每个对话一个工作区、多 Shell 命令会话、工作区文本文件编辑，以及独立的 JS/TS 工作区与插件草稿工具。API12工作目录管理由插件HTML/JS绘制，PTY终端界面仍保留原生实现。使用方式见 [工作区与 Shell](docs/workspaces.md)。
 
 启用“插件开发”后，AI 可生成普通 JS 插件草稿，做清单及启动校验。你在“工作区 → 工作目录 → 插件草稿”查看代码和权限后安装，安装后保持停用，需单独启用。应用内尚无 TS 编译器，完整流程与边界见 [AI 插件开发](docs/plugin-authoring.md)。
 

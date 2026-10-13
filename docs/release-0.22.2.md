@@ -1,6 +1,6 @@
 # Solvit 0.22.2候选：插件HTML界面、记忆图谱与多MCP
 
-记忆1.4.0/API10、MCP1.1.1/API10与Skills1.1.1/API11携带离线HTML/CSS/JS业务页面。Android提供通用WebView、主题/语言、权限、确认、加密和资源清理；页面布局由插件绘制。旧API9控件树保持兼容。Skills已迁入HTML；工作区旧页面尚未转换。
+记忆1.4.0/API10、MCP1.1.1/API10、Skills1.1.1/API11与工作区1.1.0/API12携带离线HTML/CSS/JS业务页面。Android提供通用WebView、主题/语言、权限、确认、加密和资源清理；页面布局由插件绘制。旧API9控件树保持兼容。工作目录浏览、文本编辑和草稿审阅已迁入HTML；未绑定工作区的原生入口与Shell/PTY兼容界面仍保留。
 
 - 记忆首页采用离线Cytoscape.js关系图，节点与连线来自实际记忆关系。支持拖动/缩放、搜索/筛选，点击节点查看来源、编辑与确认删除；后台任务和其他管理按需打开。
 - MCP支持最多8个具名HTTPS Streamable HTTP服务器，各自配置、会话、启停及错误；插件HTML管理添加/编辑/测试/删除及标准HTTP mcpServers导入。凭据用Keystore加密保存，不回显已有令牌；页面禁截图，清除凭据需确认。
@@ -22,7 +22,15 @@
 
 ## 当前候选验证与下载
 
-当前源码2d4ce42的[Android运行38317347510](https://github.com/veryy/Solvit/actions/runs/38317347510)全部main门禁成功：实际297个单元、45个模拟器测试，无失败、错误或跳过；Lint、固定证书、旧版覆盖更新后加密配置/聊天保留通过。真实系统选择器验证ZIP导入→预览→确认持久化→重开→导出JSON→再次选择导入预览→同名默认保留，以及取消/确认删除。Skills/MCP有真实内容/操作区高度及卡片可见位置断言；之前仅检查DOM漏掉的内容高度塌缩已修复。测试使用生成文件和确定性Provider，未代替真机及真实模型验收。
+源码 `60abb44` 的[完整Android运行38325315067](https://github.com/veryy/Solvit/actions/runs/38325315067)成功。实际XML核对302个单元、46个模拟器测试均无失败、错误或跳过；Lint、固定证书、旧版覆盖更新后的加密配置及聊天保留通过。工作区HTML用例实际创建/绑定、取消不写入、确认写入约3550字节文本、外部修改后的旧摘要拒绝、关闭重开后读取持久文件；模型任务选择保留保存、分配与重开检查，全量用例6.469秒通过。工作区修改操作均通过原生确认，不自动启用AI插件。
+
+[build37候选APK](https://github.com/veryy/Solvit/actions/runs/38325315067/artifacts/11780996811)为23,378,892字节，SHA-256 `350c607675ca79df0b5a8c1749b3ff579ed6c3cf42e7baa40185bf9ca492aa23`。固定证书SHA-256 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。APK内工作区1.1.0/API12包与仓库及线上包字节一致；正常SDK38321717691通过82 SDK/2市场及源码包一致性。实际[目录截图](screenshots/0.22.2/workspace-html-directory.png)与[编辑截图](screenshots/0.22.2/workspace-html-editor.png)取自最终全量模拟器产物11780673525。
+
+API12市场已部署并保留备份，API1–12目录和18种选中包实际长度/SHA核对；API4–11仍选原工作区1.0.0。有限Shell与PTY、普通HTTP与浏览器依赖已分开声明。编辑器限制4KB UTF-8文本，文件锁不覆盖独立Shell进程的所有写入竞争。失败运行、取消原因及权限/生命周期边界见[阶段记录](plugin-workspace-stage.md)。main通过不等于标签专属发布/搜索门禁通过；没有创建v0.22.2正式Release，真实模型角色/流式/工具质量和真机仍待验收。
+
+### 此前build36的验证记录
+
+此前源码2d4ce42的[Android运行38317347510](https://github.com/veryy/Solvit/actions/runs/38317347510)全部main门禁成功：实际297个单元、45个模拟器测试，无失败、错误或跳过；Lint、固定证书、旧版覆盖更新后加密配置/聊天保留通过。真实系统选择器验证ZIP导入→预览→确认持久化→重开→导出JSON→再次选择导入预览→同名默认保留，以及取消/确认删除。Skills/MCP有真实内容/操作区高度及卡片可见位置断言；之前仅检查DOM漏掉的内容高度塌缩已修复。测试使用生成文件和确定性Provider，未代替真机及真实模型验收。
 
 [build36候选APK](https://github.com/veryy/Solvit/actions/runs/38317347510/artifacts/11777697054)为23,370,940字节，SHA-256 `30dd14d6409de8488cdaacd813dd2bd76067bf2981b1b3fe27c47281a6c689fb`；已下载核对内置Skills1.1.1、MCP1.1.1、记忆1.4.0、搜索1.2.1及固定证书。正常SDK38316833290通过79 SDK/2市场测试与源码/提交包一致性。Skills的[列表截图](screenshots/0.22.2/skills-html-library.png)和[导入预览](screenshots/0.22.2/skills-html-import-preview.png)来自真实模拟器，不是设计稿。
 
