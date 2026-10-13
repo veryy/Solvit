@@ -43,23 +43,36 @@ class AndroidRoleService(context: Context) : RoleService {
         // silently switch its conversations to the unrestricted default.
         mutex.withLock { write(read().filterNot { it.id == id }) }
     }
+    private fun resolve(roleId: String?): AgentRole? = roleId?.let { id ->
+        read().firstOrNull { it.id == id } ?: error("已选择的角色已删除，请重新选择角色")
+    }
     override suspend fun selected(sessionId: String): AgentRole? = withContext(Dispatchers.IO) {
+        mutex.withLock { resolve(prefs.getString("session.$sessionId", null)) }
+    }
+    override suspend fun forNewChat(sourceSessionId: String?): AgentRole? = withContext(Dispatchers.IO) {
         mutex.withLock {
-            val id = prefs.getString("session.$sessionId", null) ?: return@withLock null
-            read().firstOrNull { it.id == id } ?: error("此对话的角色已删除，请重新选择角色")
+            resolve(if (prefs.getBoolean("new_chat_default_set", false)) prefs.getString("new_chat_default", null)
+                else sourceSessionId?.let { prefs.getString("session.$it", null) })
         }
     }
-    override suspend fun select(sessionId: String, roleId: String?): Unit = withContext(Dispatchers.IO) {
+    override suspend fun select(sessionId: String, roleId: String?) = choose(sessionId, roleId, false)
+    override suspend fun selectForNewChats(sessionId: String, roleId: String?) = choose(sessionId, roleId, true)
+    private suspend fun choose(sessionId: String, roleId: String?, saveDefault: Boolean): Unit = withContext(Dispatchers.IO) {
         require(sessionId.isNotBlank() && sessionId.length <= 128)
         mutex.withLock {
             require(roleId == null || read().any { it.id == roleId }) { "角色不存在" }
             check(prefs.edit().apply {
                 if (roleId == null) remove("session.$sessionId") else putString("session.$sessionId", roleId)
+                if (saveDefault) {
+                    putBoolean("new_chat_default_set", true)
+                    if (roleId == null) remove("new_chat_default") else putString("new_chat_default", roleId)
+                }
             }.commit()) { "角色选择保存失败" }
             revision.value++
             Unit
         }
     }
+
 }
 
 class RolesPlugin(private val androidContext: Context) : SolvitPlugin {

@@ -201,4 +201,64 @@ class ChatViewModelTest {
         }finally { Dispatchers.resetMain() }
     }
 
+    @Test fun interruptWaitsForSettlementAndQueueEditsTargetExactOccurrences() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val received=mutableListOf<String>();var settled=false;var running=0;var maximum=0
+            val chat=object:ChatService {
+                override fun sessions()=flowOf(listOf(ChatSession("session","Test",0)))
+                override fun messages(sessionId:String)=flowOf(emptyList<ChatMessage>())
+                override suspend fun createSession()=ChatSession("new","New",0)
+                override suspend fun deleteSession(sessionId:String)=Unit
+                override fun send(sessionId:String,text:String,config:ModelConfig,authorization:ToolAuthorization)=flow {
+                    received+=text;maximum=maxOf(maximum,++running)
+                    try { if(text=="first")awaitCancellation() else { assertTrue(settled);emit(ModelChunk.Text(text));emit(ModelChunk.Done) } }
+                    finally { if(text=="first")withContext(NonCancellable){delay(100);settled=true};running-- }
+                }
+            }
+            val settings=object:SettingsStore {
+                override suspend fun load()=ModelConfig(apiKey="fixture")
+                override suspend fun save(value:ModelConfig)=Unit
+            }
+            val vm=ChatViewModel(chat,settings);runCurrent();assertTrue(vm.send("first"));runCurrent()
+            assertTrue(vm.send("same"));assertTrue(vm.send("same"))
+            val ids=vm.queuedMessages.value.map { it.id };assertEquals(2,ids.toSet().size)
+            assertTrue(vm.editQueued(ids[0],"edited"));vm.removeQueued(ids[1])
+            assertTrue(vm.interruptAndSend("urgent"));runCurrent()
+            assertTrue(vm.switching.value);assertFalse(settled);assertEquals(listOf("first"),received)
+            assertTrue(vm.send("later"));advanceUntilIdle()
+            assertEquals(listOf("first","urgent","edited","later"),received);assertEquals(1,maximum)
+            assertTrue(vm.queuedMessages.value.isEmpty());assertFalse(vm.busy.value)
+            vm.viewModelScope.cancel()
+        }finally { Dispatchers.resetMain() }
+    }
+    @Test fun stopPreservesQueueAndChangingChatsCannotDispatchAnotherChatsPendingMessage() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val received=mutableListOf<Pair<String,String>>()
+            val chat=object:ChatService {
+                override fun sessions()=flowOf(listOf(ChatSession("session","Test",0),ChatSession("other","Other",0)))
+                override fun messages(sessionId:String)=flowOf(emptyList<ChatMessage>())
+                override suspend fun createSession()=ChatSession("new","New",0)
+                override suspend fun deleteSession(sessionId:String)=Unit
+                override fun send(sessionId:String,text:String,config:ModelConfig,authorization:ToolAuthorization)=flow {
+                    received+=sessionId to text
+                    if(text=="first")awaitCancellation() else emit(ModelChunk.Done)
+                }
+            }
+            val settings=object:SettingsStore {
+                override suspend fun load()=ModelConfig(apiKey="fixture")
+                override suspend fun save(value:ModelConfig)=Unit
+            }
+            val vm=ChatViewModel(chat,settings);runCurrent();assertTrue(vm.send("first"));runCurrent()
+            assertTrue(vm.send("queued"));val queued=vm.queuedMessages.value.single();vm.stop();runCurrent()
+            assertFalse(vm.busy.value);assertTrue(vm.queuePaused.value);assertEquals(1,received.size)
+            vm.select("other");assertFalse(vm.sendQueuedNow(queued.id));assertFalse(vm.editQueued(queued.id,"wrong"))
+            vm.resumeQueue();runCurrent();assertEquals(1,received.size)
+            vm.select("session");vm.resumeQueue();advanceUntilIdle()
+            assertEquals(listOf("session" to "first","session" to "queued"),received)
+            vm.viewModelScope.cancel()
+        }finally { Dispatchers.resetMain() }
+    }
+
 }
