@@ -17,13 +17,13 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.27.0](https://github.com/veryy/Solvit/releases/tag/v0.27.0) 已正式发布：所选角色作为新聊天默认并显示在聊天标题和输入区；工具授权放在对话内，回复期间可排队、编辑、移除或立即发送并打断。默认打开离线 xterm.js/Android PTY 终端；设置中的聊天外观支持字体大小、显示速度和气泡样式。范围及队列生命周期见[版本说明](docs/release-0.27.0.md)。
+[0.28.0](https://github.com/veryy/Solvit/releases/tag/v0.28.0) 已正式发布：工作区增加插件自带 HTML/JS 文件树与离线 CodeMirror 文本/代码预览和编辑；支持新建目录、重命名/移动、删除前确认，以及与当前对话 Shell 共用目录。最多256KiB完整UTF-8编辑，保存前复核原文件版本，外部修改会拒绝覆盖。范围见[版本说明](docs/release-0.28.0.md)。
 
-当前 [0.27.0](docs/release-0.27.0.md)（build56/API17）保留可安装JS/TS Agent步骤策略和插件HTML/JS记忆图谱、后台任务、多MCP、Skills、工作目录与终端。角色、Provider、存储、权限与资源核验仍由宿主服务承担。新的文件工作台和Git/GitHub插件尚未交付。
+当前 [0.28.0](docs/release-0.28.0.md)（build57/API18）保留角色默认、对话内授权、等待队列与打断、聊天外观设置、真实xterm.js/Android PTY，以及JS/TS Agent步骤策略、记忆图谱、多MCP和Skills。API1–17市场目录保持兼容。Git/GitHub插件仍在开发，当前“文件变更”页是历史执行快照，尚不是Git Changes。
 
-[完整Android验证](https://github.com/veryy/Solvit/actions/runs/38454843988)成功，实际385单元、53模拟器测试，均0失败/错误/跳过，Lint、固定签名、覆盖升级、102 SDK/2市场、公开搜索与正式发布门禁通过。[APK构建产物](https://github.com/veryy/Solvit/actions/runs/38454843988/artifacts/11842225539)需登录GitHub下载，也可直接使用上方公开Release入口。
+[完整Android验证](https://github.com/veryy/Solvit/actions/runs/38467791618)五项任务全部成功，实际399单元、53模拟器测试，均0失败/错误/跳过，Lint、固定签名、覆盖升级、106 SDK/2市场、公开搜索与正式发布门禁通过。[APK构建产物](https://github.com/veryy/Solvit/actions/runs/38467791618/artifacts/11850885700)需登录GitHub下载，也可[直接下载0.28.0 APK](https://github.com/veryy/Solvit/releases/download/v0.28.0/solvit-debug.apk)。
 
-公开 APK 已实际下载并与构建产物逐字节核对（23,637,361 字节，SHA-256 `885cd7378780b53eb4e438468aaa52d2e7d241779f60b18989cf7c729bea2fbf`）。真实模型角色/流式/工具选择、实际任务、真机、按会话选择驱动、JS消息投影/Provider/存储替换和完整JS内核仍待验收或实现，见[真实模型验收](docs/real-model-acceptance.md)与[完整产品进度](docs/product-roadmap.md)。
+公开 APK 已实际下载并与构建产物逐字节核对（23,911,485 字节，SHA-256 `f289c13808521d271b8345a13e2f6681fdd311429e652846bbf665fe2220fae3`）。真实模型角色/流式/工具选择、实际任务、真机、按会话选择驱动、JS消息投影/Provider/存储替换和完整JS内核仍待验收或实现；文件工作台宽屏布局、图片/PDF预览和超限文件编辑尚未验收或实现。见[真实模型验收](docs/real-model-acceptance.md)与[完整产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
