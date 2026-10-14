@@ -110,9 +110,9 @@ sources包含path、TEXT/ABSENT/BINARY/OVERSIZED/UNAVAILABLE状态；TEXT有完�
 
 安装环境不会把 QuickJS 变成 Node，也不会为 MCP 自动启动本地进程。AI 使用已创建的 Ubuntu Shell，通过现有工作区工具和对话内授权执行命令。安装本身属于人类环境管理页面，不向模型添加一个可随意安装系统环境的工具。
 
-## API22 候选：工作区文件导入与预览
+## API22：工作区文件导入与预览
 
-**尚未正式发布。** 当前源码和远程候选提供以下接口，公开0.33.1宿主仍是API21。最终APK、市场兼容和设备结果见[导入阶段记录](workspace-import-stage.md)。不要让旧宿主安装需要API22的包。
+**已在0.34.0正式发布。** 当前宿主提供以下接口，0.33.1及更早宿主不支持API22。APK、市场兼容和设备结果见[导入阶段记录](workspace-import-stage.md)。市场为旧宿主保留兼容包。
 
 人工HTML页面须声明 `apiVersion: 22`、`permissions: ["workspace"]`、`nativeServices: ["workspace.files"]`。聊天、工作区及文件来源由宿主捕获；脚本不能指定聊天ID、文件URI、宿主目录或替换为下载URL。普通对话没有工作区时先由用户创建/绑定；文件导入不会自动创建工作区。工具、Hook与生命周期不能使用此页面能力。
 

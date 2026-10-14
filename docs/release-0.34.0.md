@@ -37,3 +37,17 @@ Linux环境保留PRoot/Ubuntu、Python3.12.3、Node24.21.0/npm11.19.0、Java17�
 
 
 正式build、plugins、search、Linux任务已成功，UI尚在运行。完整下载正式unit artifact11916569717（370479字节），ZIP CRC/XML核对485单元零失败/错误/跳过。正式Linux完整任务日志下载并核对原3个Android用例及严格生产版本门禁：Python3.12.3、Node24.21.0/npm11.19.0、Java17；完整Linux探针35MB归档未下载，不声称其CRC/XML。正式源码artifact11916414052完整下载，外层与内部ZIP CRC通过，内部1072569字节/SHA256 `c50c3f2837b56a29f4d11c0a3ec56941ade9686f5f5c266fff4b61ddf33e6d27`。公开APK及源码下载尚待发布后比较。
+
+
+## 正式发布与实际下载核对
+
+[下载APK](https://github.com/veryy/Solvit/releases/download/v0.34.0/solvit-debug.apk) · [Release](https://github.com/veryy/Solvit/releases/tag/v0.34.0) · [成功Actions38609672475](https://github.com/veryy/Solvit/actions/runs/38609672475) · [Linux源码与许可](https://github.com/veryy/Solvit/releases/download/v0.34.0/solvit-linux-sources.zip)
+
+不可变标签v0.34.0固定源 `8d4a40e65e319ce79582f69f4488229f5365a544`，应用0.34.0/build68/API22。build、plugins、search、Linux、verify-ui和release六项全部成功；同源main的build/verify-ui也成功。正式unit11916569717与UI11918656668完整下载并通过ZIP CRC/XML：485单元、69设备，零失败/错误/跳过；实际查看正式workspace-import-image截图，插件HTML缩略图及底部确认按钮完整可见。117 SDK/5市场任务日志已下载核对全通过；Linux完整日志核对原3个Android用例和生产Python3.12.3、Node24.21.0/npm11.19.0、Java17严格门禁，未下载完整探针ZIP，不声称其CRC。稳定签名SHA256 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`及旧版本覆盖保留数据门禁通过。
+
+公开APK及源码已实际下载，与正式artifact11916969501/11916414052中的文件逐字节一致；外层、APK及源码ZIP CRC通过。APK58095162字节，SHA256 `f6cfa315574e25adb1f561e7b302d2f3a6cfe4cb7f6f84bd4cb2066dc38ccb02`；源码1072569字节，SHA256 `c50c3f2837b56a29f4d11c0a3ec56941ade9686f5f5c266fff4b61ddf33e6d27`。
+
+当前正式状态以本节为准，以上各检查点保留当时状态。此交付完成系统文件新增导入及文本/图片预览阶段，继续完整文件联动范围。工作区PDF预览、聊天附件导入、版本确认覆盖、进度取消/异常暂存回收，真实模型及ARM64真机仍未完成；没有宣称整个Agent项目完成。
+
+
+![正式0.34.0 API35设备截图：HTML图片缩略图及确认按钮可见](screenshots/0.34.0/workspace-import-image-formal.png)
