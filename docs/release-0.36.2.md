@@ -29,3 +29,12 @@ Linux环境保留无需root的Ubuntu、Python/venv、Node24/npm和Java17；新�
 Linux正式0.36.1同源运行实际执行Python3.12.3、Node24.21.0/npm11.19.0与Java17，3个Android用例及严格版本门禁通过；完整35MB探针归档未下载，不声称其CRC。
 
 当前为0.36.2发布准备；同源标签的完整门禁、截图及公开APK/源码实际下载比较仍待完成。所有编译/测试均由GitHub Actions远程执行。[完整附件阶段](chat-attachment-workspace-stage.md) · [网页正文诊断](search-release-diagnosis.md)。
+
+
+## 正式运行
+
+不可变v0.36.2指向fd66fc14dc2209c5260e78a0ef6e75689b86aa08，[正式Actions38643634909](https://github.com/veryy/Solvit/actions/runs/38643634909)正在执行。正式插件与搜索已成功；11931741138完整ZIP CRC/JSON确认原三查询及区域来源正文通过。正式源码11930783822已下载，外层/内层ZIP CRC通过，内部1072569字节、SHA256 f1fe3412825eedd538bf4d75d653f1ca143c651c9518969771b6fc7f1362a633。Android/Linux设备及公开APK下载比较仍待完成，尚未发布。
+
+正式build116125032359成功；11930759518（375784字节）完整ZIP CRC/XML为499单元、零失败/错误/跳过；Lint/APK与固定签名f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3实际日志通过。正式插件121 SDK/5市场及公开搜索/MCP/Skills通过；Linux116125032758成功，详细版本日志继续核对。页面116127699807仍运行，正式release未执行。
+
+正式Linux完整日志确认原3个Android用例及严格版本门禁，生产Python3.12.3、Node24.21.0/npm11.19.0与Java17成功。完整探针归档未下载，不声称其CRC。APK11930509799已完整下载并核对外层/内层ZIP CRC，内部58122130字节、SHA256 86316d09921953023aa5a75c4941fa96843c6db4e5cb5a78818a6b8eef949031。设备页面与公开下载比较仍待完成。
