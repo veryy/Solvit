@@ -105,6 +105,9 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
 
     private suspend fun begin(stage: String, rootInstallation: Boolean = false, action: suspend () -> Unit): Unit = mutex.withLock {
         check(supported) { "当前架构尚未提供 Linux 运行环境" }
+        // A terminal Flow state can wake the next caller before the previous Job's finally returns.
+        // Join that completed operation's cleanup; never reject a user who already sees READY.
+        if (mutableState.value.stage in setOf("READY", "FAILED", "CANCELLED")) operation?.join()
         check(operation?.isActive != true) { "已有环境安装任务正在进行" }
         installingRootfs = rootInstallation
         mutableState.update { it.copy(stage = stage, output = "", failure = null) }
