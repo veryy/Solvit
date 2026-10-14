@@ -8,9 +8,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import dev.solvit.market.BuiltinWorkspaceManager
 import dev.solvit.market.WorkspacePageBridge
 import dev.solvit.core.ShellStage
-import dev.solvit.core.ExtensionPageSession
-import dev.solvit.core.ExtensionPageSnapshot
-import dev.solvit.core.PageWorkspaceAccess
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -32,69 +29,13 @@ class WorkspaceHtmlPageTest {
             app.marketplace.disable("dev.solvit.workspace")
         }
         val manager = BuiltinWorkspaceManager(app)
-        fun observedSession(): ExtensionPageSession {
-            val bridge=WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat)
-            val observed=object : PageWorkspaceAccess by bridge {
-                override suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit): String {
-                    try { return bridge.query(operation,argumentsJson,authorize) }
-                    catch (failure: Throwable) {
-                        android.util.Log.i("WORKSPACE_PAGE_DIAG", "query=$operation type=${failure.javaClass.name} at=${failure.stackTrace.take(8).joinToString()}")
-                        throw failure
-                    }
-                }
-            }
-            val actual = manager.openPage("zh", observed)
-            return object : ExtensionPageSession by actual {
-                override suspend fun dispatch(revision: Long, nodeId: String, value: String?, fields: Map<String, String>, confirmed: Boolean): ExtensionPageSnapshot {
-                    try { return actual.dispatch(revision, nodeId, value, fields, confirmed) }
-                    catch (failure: Throwable) {
-                        // Types and code locations only; never echo arbitrary host/script messages or field values.
-                        var cause: Throwable? = failure
-                        repeat(4) {
-                            cause?.let { current ->
-                                android.util.Log.i("WORKSPACE_PAGE_DIAG", "dispatch=$nodeId revision=$revision type=${current.javaClass.name} at=${current.stackTrace.take(8).joinToString()}")
-                                cause=current.cause
-                            }
-                        }
-                        throw failure
-                    }
-                }
-            }
-        }
         val html = HtmlPageProbe(rule.activity)
         val initialText = "<script>window.executed=true</script>\n第一版🙂\n" + "const value = 1; // 中文\n".repeat(3000)
         val marker = "IME_EDIT"
         var visible by mutableStateOf(true)
-        // This fixture contains no real chat or configuration data.
-        fun imeState(phase: String) {
-            val snapshot = html.js("""(()=>{const e=window.workspaceEditor,s=e?.state,d=s?.doc.toString()??'';
-                const line=document.querySelector('.cm-line:last-child'),r=line?.getBoundingClientRect();
-                return {phase:${JsonPrimitive(phase)},length:d.length,marker:d.indexOf('$marker'),tail:d.slice(-100),
-                  selection:s?.selection.main.toJSON(),focused:e?.hasFocus,composing:e?.composing,
-                  viewport:e?.viewport,active:document.activeElement?.className,
-                  lastLine:line?.textContent,lineTop:r?.top,lineBottom:r?.bottom,height:innerHeight}})()""")
-            android.util.Log.i("WORKSPACE_IME_DIAG", snapshot)
-        }
-        fun pageState(phase: String) {
-            android.util.Log.i("WORKSPACE_PAGE_DIAG", html.js("""(()=>{const s=window.workspaceDiagnosticState;
-                return {phase:${JsonPrimitive(phase)},token:s?.token,busy:s?.busy,
-                  directory:document.querySelector('[data-node=directory]')?.textContent,
-                  first:document.querySelector('[data-node=file_name_0]')?.textContent,
-                  buttons:Array.from(document.querySelectorAll('button')).map(b=>[b.dataset.node,b.disabled]),
-                  alerts:Array.from(document.querySelectorAll('[role=alert]')).map(n=>n.textContent),
-                  message:document.querySelector('[data-node=message]')?.textContent,
-                  reply:window.workspaceDiagnosticReply}})()"""))
-        }
-        fun waitDom(expression: String) {
-            try { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
-            catch (failure: Throwable) {
-                runCatching { pageState(expression);html.screenshot("workspace-editor-page-failed").recycle() }
-                throw failure
-            }
-        }
+        fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
         fun click(id: String) {
             waitDom("!!document.querySelector('[data-node=$id]') && !document.querySelector('[data-node=$id]').disabled")
-            if(id=="file_0")pageState("before-file-open")
             html.js("document.querySelector('[data-node=$id]').click()")
         }
         fun field(id: String, text: String) { html.js("(()=>{const input=document.getElementById('field-$id');input.value=${JsonPrimitive(text)};input.dispatchEvent(new Event('input'))})()") }
@@ -110,12 +51,9 @@ class WorkspaceHtmlPageTest {
         }
         try {
             rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
-                if (visible) PluginPageScreen("工作区", { observedSession() }) { visible = false }
+                if (visible) PluginPageScreen("工作区", { manager.openPage("zh", WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat)) }) { visible = false }
             } } }
             waitDom("window.pluginPageReady===true && !!document.querySelector('[data-node=create]')")
-            html.js("""(()=>{const update=window.solvitPageUpdate,onmessage=solvitHost.onmessage;
-                window.solvitPageUpdate=s=>{window.workspaceDiagnosticState=s;update(s)};
-                solvitHost.onmessage=e=>{window.workspaceDiagnosticReply=e.data;onmessage(e)}})()""")
             assertNull(runBlocking { app.workspaces.bound(chat) })
             click("create"); waitDom("!!document.getElementById('field-name')")
             field("name", "HTML 工作目录"); click("prepareCreate")
@@ -131,18 +69,10 @@ class WorkspaceHtmlPageTest {
             click("new"); waitDom("!!window.workspaceEditor && !!document.querySelector('.cm-content[contenteditable=true]')")
             field("path", "src/note.ts");document(initialText)
             waitDom("(()=>{const line=document.querySelector('.cm-line:last-child');if(!line)return false;const r=line.getBoundingClientRect();return r.top>=0 && r.bottom<document.getElementById('actions').getBoundingClientRect().top})()")
-            imeState("before-tap")
             html.tapElement(".cm-line:last-child")
             rule.waitUntil(10_000) { html.keyboardVisible() }
-            imeState("keyboard-visible")
             InstrumentationRegistry.getInstrumentation().sendStringSync(marker)
-            try {
-                waitDom("window.workspaceEditor.state.doc.toString().endsWith('$marker')")
-            } catch (failure: Throwable) {
-                runCatching { imeState("input-failed"); html.screenshot("workspace-editor-ime-failed").recycle() }
-                throw failure
-            }
-            imeState("input-complete")
+            waitDom("window.workspaceEditor.state.doc.toString().endsWith('$marker')")
             html.hideKeyboard()
             rule.waitUntil(10_000) { !html.keyboardVisible() }
             click("prepareSave"); waitDom("!!document.querySelector('[data-node=confirm]')")

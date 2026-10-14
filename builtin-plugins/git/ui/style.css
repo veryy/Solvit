@@ -7,3 +7,5 @@ main.editing{display:flex;flex-direction:column;gap:8px;overflow:hidden;padding:
 .tree-close{display:none}#file-tree header strong{flex:1}#file-tree header button{padding:6px 10px}@media(max-width:839px){.tree-close{display:block}}
 
 main.git-diff{display:flex;flex-direction:column;overflow:hidden;gap:12px}main.git-diff>p{flex-shrink:0}#git-patch{flex:1;min-height:160px;min-width:0;margin:0;white-space:pre;overflow:auto;overscroll-behavior:contain;font:13px/1.6 monospace;border:1px solid var(--outline);border-radius:10px;padding:12px}.git-protocol{display:none}
+
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}

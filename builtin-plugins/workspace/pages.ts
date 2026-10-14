@@ -248,10 +248,12 @@ export function workspacePage(importsEnabled=true){
    names=snapshot.workspaces.slice(workspaceOffset,workspaceOffset+40);names.forEach((w,i)=>nodes.push(button(`bind_${i}`,w.name,'prepareBind')));
    footer.push(button('home',t[8]));if(workspaceOffset>0)footer.push(button('choosePrev',t[17]));if(workspaceOffset+40<snapshot.workspaces.length)footer.push(button('chooseNext',t[18]));
   }else if(mode==='list'){
-   nodes.push(text('directory',directory||'/','title'));if(!files.length)nodes.push(text('empty',t[19]));
+   nodes.push(text('directory',directory||'/','title'),{id:'directory_actions',kind:'row',children:[
+    ...(importsEnabled?[selectImport(),fromChat()]:[]),button('new',t[10]),button('mkdir',f[0])]});
+   if(!files.length)nodes.push(text('empty',t[19]));
    files.forEach((entry,i)=>nodes.push({id:`entry_${i}`,kind:'card',children:[text(`file_name_${i}`,(entry.directory?'▸ ':'')+entry.name),text(`file_size_${i}`,entry.directory?t[7]:`${entry.bytes} B`,'caption'),button(`file_${i}`,t[24],'file'),
     button(`rename_${i}`,f[1],'renameEntry'),button(`delete_${i}`,f[2],'deleteEntry')]}));
-   footer.push(button('home',t[8]),...(importsEnabled?[selectImport(),fromChat()]:[]),button('new',t[10]),button('mkdir',f[0]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
+   footer.push(button('home',t[8]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
   }else if(mode==='chatFiles'){
    nodes.push(text('chat_files_title',cf[1],'title'));if(!chatFiles.length)nodes.push(text('chat_files_empty',cf[2]));
    chatFiles.forEach((entry,i)=>nodes.push({id:`chat_file_${i}`,kind:'card',children:[text(`chat_file_name_${i}`,entry.name),text(`chat_file_info_${i}`,`${entry.mimeType} · ${entry.bytes} B`,'caption'),text(`chat_file_source_${i}`,`${cf[4]} ${entry.messageNumber} · ${entry.messageId}`,'caption'),{...button(`chat_file_select_${i}`,cf[3],'selectChatAttachment'),hostAction:{kind:'workspace.perform',operation:'selectChatAttachment',arguments:{messageId:entry.messageId,attachmentId:entry.attachmentId,sha256:entry.sha256}}}]}));

@@ -39,3 +39,12 @@ UI候选c5d9b4b的38624928283整轮失败。实际UI11924566682完整ZIP CRC/XML
 第二次隔离诊断38629699357源e72166e再次首轮复现，11925553028完整ZIP CRC核对。WORKSPACE_PAGE_DIAG在点击前记录directory=/、首项▸ src、busy=false且file_0启用，排除首项不是src；失败时仍为相同token/目录、所有按钮禁用。实际查看workspace-navigation-failed.png，原生外层明确显示“插件页面操作失败，请重新打开后重试。”，不是仅DOM断言或IME失效。下一步用仅测试包装的ExtensionPageSession.dispatch/PageWorkspaceAccess.query记录异常类型及代码位置（不输出消息/表单值）定位当前会话分发异常。源cc33bea的第三次独立诊断38631097327已实际启动；复用同一c5生产APK，不改变生产实现或授权判断。完整499单元及新附件HTML任务证据保持，但整版仍不能发布，API24仍未上线。
 
 ![目录打开失败时的真实页面](screenshots/0.36.0/workspace-navigation-failed.png)
+
+
+## 目录导航根因与修复
+
+第三次隔离诊断38631097327（源cc33bea）首轮仍失败；11925259683完整ZIP CRC核对。测试包装捕获java.lang.IllegalArgumentException，栈顶ScriptPageView.parse第141行，正是footer最多6个且必须为button的宿主契约；PageWorkspaceAccess.query未抛异常。新聊天附件入口使列表根目录已有6个底部按钮，子目录增加parent后变为7个，分页还会继续增加。并非IME、文件保存或目录查询失败。
+
+先提交SDK回归9bcb67f，远程TypeScript38632760735实际失败，复现生成包超过Android footer限制。新增工作区与Git Files的85项嵌套目录场景，覆盖中间页同时存在上一页、下一页、上级目录、刷新、返回；各页都检查宿主6按钮契约，Git还保留Changes。修复把导入/聊天附件/新文件/新目录移至列表上方的可换行操作栏，底部只留导航（工作区最多5个、Git加Changes最多6个），不放宽宿主限制、不删除操作或缩短分页。工作区与Git的HTML样式同步支持row换行。
+
+移除临时WORKSPACE_IME_DIAG/WORKSPACE_PAGE_DIAG测试包装和截图探针，恢复c5原WorkspaceHtmlPageTest全部断言、真实输入/大文件保存/冲突/目录/Shell流程及10秒限制；新增聊天附件HTML链保留。沿用已研究DSH workspace-files作用域和原字节契约，复读其read-bytes.spec.ts；本次仅修Solvit自有页面组合，不复制upstream UI或新增依赖。修复后的生成包、真实Android页面与正式发布仍待远程验证，API24市场尚未上线。
