@@ -38,3 +38,12 @@ Operit为LGPL-3.0；只读取行为，没有复制源码。Solvit沿用自己的
 ## 完整候选页面通过
 
 38518699341的115704447657已成功，取回11873357023核对ZIP CRC及实际XML：App46/Web1/PTY10，共57项零失败、错误和跳过。原附件用例实际完成新增HTTP500→原气泡重试→成功，并断言完整请求正文相等、原用户列表不变、旧失败记录保留与折叠按钮出现。没有提高超时或删除原检查。正式0.30.1标签及公开资产核对继续进行。
+
+
+## 正式0.30.1未发布：旧键盘验收的跨线程竞争
+
+880ce26的38520588469 build/SDK/市场/搜索成功，但正式UI失败，release跳过。取回11873834440并核对CRC/XML：57项/1失败，原附件HTTP重试用例通过。唯一失败为startupFocusesInputAndFloatingComposerStaysAboveRealKeyboard，异常是SnapshotStateObserver多线程访问；堆栈显示fetchOneOrThrow在测试线程printToString→getChildren→observeSemanticsReads，并非键盘遮挡断言失败。
+
+读取[AndroidX SemanticsNodeInteraction官方实现](https://raw.githubusercontent.com/androidx/androidx/androidx-main/compose/ui/ui-test/src/commonMain/kotlin/androidx/compose/ui/test/SemanticsNodeInteraction.kt)，当前上游已使用SemanticsNodeSnapshot，而项目所用版本的日志仍为printToString。采用集合查询规避单节点缓存诊断树遍历，再在UI线程原子读取bounds、原生IME/屏幕尺寸。相同读取模式用于已有角色发送、流式尾部和侧栏几何检查，检查条件和10秒超时保留；不调整依赖版本。
+
+增加chat-keyboard诊断入口，用原真实键盘用例连续三次验证，再跑完整门禁。不可移动v0.30.1标签；修复后候选改为0.30.2/build62，当前公开仍0.30.0。尚未验证修复通过。

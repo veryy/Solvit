@@ -27,6 +27,20 @@ import org.json.JSONObject
 
 /** Runs against the actual app and OS keyboard, not a mock inset value. */
 class ChatLayoutTest {
+    private data class Geometry(val bounds: androidx.compose.ui.geometry.Rect, val width: Int,
+        val height: Int, val ime: Int, val keyboardVisible: Boolean)
+    private fun geometry(tag: String): Geometry {
+        // Collection lookup avoids fetchOneOrThrow's diagnostic tree dump on the test thread.
+        val node = rule.onAllNodesWithTag(tag).fetchSemanticsNodes().single()
+        return rule.runOnUiThread {
+            val decor = rule.activity.window.decorView
+            val insets = decor.rootWindowInsets
+            Geometry(node.boundsInRoot, decor.width, decor.height,
+                insets?.getInsets(WindowInsets.Type.ime())?.bottom ?: 0,
+                insets?.isVisible(WindowInsets.Type.ime()) == true)
+        }
+    }
+
     @Test fun actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat() {
         ready()
         val app = rule.activity.application as SolvitApplication
@@ -430,8 +444,8 @@ class ChatLayoutTest {
             rule.waitUntil(20000) { vm.draft.value.contains("live-last-token") }
             rule.waitUntil(8000) { rule.onNodeWithTag("chat_tail").isDisplayed() }
             rule.onNodeWithTag("chat_tail").assertIsDisplayed()
-            val composer = rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
-            val tail = rule.onNodeWithTag("chat_tail").fetchSemanticsNode().boundsInRoot
+            val composer = geometry("chat_composer").bounds
+            val tail = geometry("chat_tail").bounds
             assertTrue(tail.bottom <= composer.top)
             assertTrue(vm.busy.value); assertFalse(finish.isCompleted)
             screenshot("chat-live-stream-before-done")
@@ -516,17 +530,14 @@ class ChatLayoutTest {
             // tap during that interval hits its old position and never invokes send().
             // Keep the real tap and all request/context assertions; wait for the real layout.
             rule.waitUntil(10_000) {
-                val decor = rule.activity.window.decorView
-                val insets = decor.rootWindowInsets
-                val ime = insets?.getInsets(WindowInsets.Type.ime())?.bottom ?: 0
-                val composer = rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
-                insets?.isVisible(WindowInsets.Type.ime()) == true && ime > 0 && composer.bottom <= decor.height - ime + 1
+                val sample = geometry("chat_composer")
+                sample.keyboardVisible && sample.ime > 0 && sample.bounds.bottom <= sample.height - sample.ime + 1
             }
             rule.waitForIdle()
             val button = rule.onNodeWithTag("chat_send").assertIsEnabled()
-            val before = button.fetchSemanticsNode().boundsInRoot
+            val before = geometry("chat_send").bounds
             button.performClick()
-            tapBounds = "before=$before after=${button.fetchSemanticsNode().boundsInRoot}"
+            tapBounds = "before=$before after=${geometry("chat_send").bounds}"
         }
         fun awaitRoleRequest(expected: Int) {
             try {
@@ -725,19 +736,15 @@ class ChatLayoutTest {
     @Test fun startupFocusesInputAndFloatingComposerStaysAboveRealKeyboard() {
         ready()
         rule.onNode(hasSetTextAction()).assertIsFocused()
-        rule.waitUntil(10_000) { rule.activity.window.decorView.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == true }
+        rule.waitUntil(10_000) { geometry("chat_composer").keyboardVisible }
         // isVisible flips before the IME animation and Compose inset layout finish.
         rule.waitUntil(10_000) {
-            val decor = rule.activity.window.decorView
-            val inset = decor.rootWindowInsets.getInsets(WindowInsets.Type.ime()).bottom
-            val composer = rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
-            inset > 0 && composer.bottom <= decor.height - inset + 1
+            val sample = geometry("chat_composer")
+            sample.ime > 0 && sample.bounds.bottom <= sample.height - sample.ime + 1
         }
-        val bounds = rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
-        val decor = rule.activity.window.decorView
-        val ime = decor.rootWindowInsets.getInsets(WindowInsets.Type.ime()).bottom
-        assertTrue("Composer must float with margins", bounds.left > 0 && bounds.right < decor.width)
-        assertTrue("Composer overlaps keyboard: $bounds, IME=$ime", bounds.bottom <= decor.height - ime + 1)
+        val sample = geometry("chat_composer")
+        assertTrue("Composer must float with margins", sample.bounds.left > 0 && sample.bounds.right < sample.width)
+        assertTrue("Composer overlaps keyboard: ${sample.bounds}, IME=${sample.ime}", sample.bounds.bottom <= sample.height - sample.ime + 1)
         rule.onNodeWithContentDescription("发送").assertIsDisplayed()
         rule.onNode(hasText("管理角色与 Skills", substring = true)).assertDoesNotExist()
         screenshot("chat-keyboard-floating")
@@ -746,7 +753,7 @@ class ChatLayoutTest {
         ready()
         rule.onNodeWithContentDescription("对话历史").performClick()
         rule.waitForIdle()
-        val bounds = rule.onNodeWithTag("chat_drawer").fetchSemanticsNode().boundsInRoot
+        val bounds = geometry("chat_drawer").bounds
         assertEquals(rule.activity.window.decorView.width * 0.75f, bounds.width, 3f)
         rule.onNodeWithText("设置", useUnmergedTree = true).performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("settings_list").fetchSemanticsNodes().isNotEmpty() }
