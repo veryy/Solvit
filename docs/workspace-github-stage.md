@@ -88,3 +88,18 @@ AndroidInputStreams.transferTo，读取短块/零字节、写错误及不关闭�
 冲突双父提交、认证/重定向与TLS取消。API26产物11862098565为14项/2失败：
 仅checkout缺transferTo，认证与TLS取消均通过。修复源c358e95的38492680947正在
 复验原HTTP场景与新增流语义回归，不以API35通过代替Android26兼容验收。
+
+
+## HTTP与Android兼容检查结果
+
+修复源c358e95的[38492680947](https://github.com/veryy/Solvit/actions/runs/38492680947)
+两个API任务均成功。实际下载API26产物11862084663与API35产物11862775629，
+检查ZIP CRC/XML：各15项、零失败/错误/跳过；四项实际HTTP场景及transferTo流回归均执行。
+真正Git后端已验证下载、对象写入、推送后重新读取、非快进拒绝、冲突双父提交、
+认证/重定向失败和等待TLS响应时取消；这仍是原生传输层，不是完整插件页面或真实GitHub账号验证。
+
+接下来继续BoundWorkspaceGit对话/目录绑定、原生审阅与取消、加密凭据接入，
+再接插件HTML页面和AI工具。克隆须保留工作目录及并发Shell写入；已阅读固定
+CloneCommand.java:867–899，默认失败cleanup会deleteChildren已有目录，不能直接
+把此流程用于聊天共享目录。下载/安装阶段需明确资源归属、复核目标及失败保留行为。
+完整GitHub真实账号推送、克隆、pull/冲突恢复、页面及AI写入仍按原范围验证。
