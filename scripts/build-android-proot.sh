@@ -53,7 +53,7 @@ ANSWERS
     make -C "$abi_dir/proot/src" -j2 CC="$CC" STRIP="$ndk/bin/llvm-strip" \
         OBJCOPY="$ndk/bin/llvm-objcopy" OBJDUMP="$ndk/bin/llvm-objdump" \
         HAS_LOADER_32BIT= PROOT_UNBUNDLE_LOADER=/not-used \
-        CPPFLAGS="-DARG_MAX=131072 -I$abi_dir/talloc-2.5.0" \
+        CPPFLAGS="-D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -DARG_MAX=131072 -I. -I$abi_dir/proot/src -I$abi_dir/talloc-2.5.0" \
         LDFLAGS="$abi_dir/libtalloc.a -Wl,-z,noexecstack -Wl,-z,max-page-size=16384"
     destination="linux-probe/src/main/jniLibs/$abi"
     mkdir -p "$destination"

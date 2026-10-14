@@ -1,6 +1,12 @@
 name: Linux environment compatibility
 on:
   workflow_dispatch:
+  push:
+    branches: [feat/linux-environment]
+    paths:
+      - 'linux-probe/**'
+      - 'scripts/build-android-proot.sh'
+      - '.github/workflows/linux-environment.yml'
 permissions:
   contents: read
 concurrency:
