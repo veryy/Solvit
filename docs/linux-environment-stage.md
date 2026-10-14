@@ -116,3 +116,5 @@ Node v24.21.0 官方BUILDING.md对Linux ARM64/x64的支持基线为kernel>=4.18�
 ## 0.33.0正式门禁发现任务交接竞态
 
 38586931701的verify-linux/115931304832失败，已下载完整任务日志：生产Ubuntu安装READY后，原设备用例立即installSoftware(JAVA)报“已有环境安装任务正在进行”。源begin在Job内部更新READY，finally才清installingRootfs，Job尚未inactive；StateFlow调用方能在这个窗口重入。排序假设：READY通知早于Job收尾（源码与栈吻合）、取消清理仍占用、旧rootfs进度回放（后两者无本轮证据）。最小修复仅在终态后join旧操作再校验重复启动，保留运行中拒绝、mutex和取消回收，不添加延时/重试或放宽断言。原完整生产下载安装、Java17、共享工作区和PTY设备用例就是正确回归入口；无需浅层镜像实现测试。新候选0.33.1/build67，保留v0.33.0不可变标签；修复待远程复验，尚未发布。
+
+修复源74b36ae的[Linux38589013597](https://github.com/veryy/Solvit/actions/runs/38589013597)已成功；完整任务日志已下载，原生产环境完整回归3/3设备通过。严格设备报告版本门禁输出生产Python3.12.3、Node v24.21.0、npm11.19.0与Java17检查成功；原先READY后立即安装Java路径未改变，现可成功。该轮完整35MB探针归档尚未下载，不宣称其ZIP CRC/XML已核对。Android38588850320的build成功，verify-ui仍运行；正式0.33.1尚待发布。修复仅join终态旧Job，不依赖增加睡眠、重试或放宽原断言。
