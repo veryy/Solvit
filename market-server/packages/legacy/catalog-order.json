@@ -34,5 +34,13 @@
   {
     "file": "dev.solvit.git-1.2.3.solvit.json",
     "after": "dev.solvit.git.solvit.json"
+  },
+  {
+    "file": "dev.solvit.workspace-1.8.0.solvit.json",
+    "after": "dev.solvit.workspace.solvit.json"
+  },
+  {
+    "file": "dev.solvit.git-1.2.4.solvit.json",
+    "after": "dev.solvit.git.solvit.json"
   }
 ]

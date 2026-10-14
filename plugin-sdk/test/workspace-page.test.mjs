@@ -9,7 +9,7 @@ function harness(bound=true,directories=null){
  const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
  let view,approved,created=0,writes=0,draft=null,document='old',importSelection=null,nextSelection=null,importConflict=false;
  const imports=[];
- let importReview=null,reviewTarget=null,reviewSequence=0;
+ let importReview=null,reviewTarget=null,reviewSequence=0,operation=null,pauseImport=false;
  const savedFiles=Array.from({length:25},(_,i)=>({messageId:`message-${25-i}`,messageNumber:25-i,attachmentId:`attachment-${i}`,name:`saved-${i}.txt`,mimeType:'text/plain',bytes:2048,sha256:'f'.repeat(64)}));
  const snapshot={workspaceId:bound?'ws':null,workspaces:bound?[{id:'ws',name:'Project'}]:[],shells:bound?[{id:'s',name:'Shell 1'}]:[],draftInstallAllowed:false};
  const files=Array.from({length:45},(_,i)=>({name:`file-${i}.txt`,path:`file-${i}.txt`,directory:false,bytes:3}));
@@ -17,7 +17,15 @@ function harness(bound=true,directories=null){
  const entryActions=[];
  const ctx={workspacePage:{query:async(op,args={})=>{
   queries.push([op,clone(args)]);
-  if(op==='snapshot')return clone(snapshot);
+  if(op==='snapshot'){
+   assert.ok(!operation||!['RUNNING','CANCELLING'].includes(operation.status),'snapshot must not block behind an active import');
+   return clone(snapshot);
+  }
+  if(op==='importOperation'){
+   assert.equal(args.operationId,operation.operationId);
+   if(operation.status==='CANCELLING')operation.status='CANCELLED';
+   return clone(operation);
+  }
   if(op==='importSelection')return clone(importSelection);
   if(op==='reviewImport'){
    assert.equal(args.id,importSelection.id);assert.equal(args.sha256,importSelection.sha256);
@@ -69,14 +77,19 @@ function harness(bound=true,directories=null){
   }
   if(approved.operation==='selectImport'){if(nextSelection)importSelection=clone(nextSelection);return clone(nextSelection)}
   if(approved.operation==='dropImport'){assert.equal(approved.arguments.id,importSelection.id);importSelection=null;return clone(snapshot)}
-  if(approved.operation==='importReviewed'){
+  if(approved.operation==='cancelImport'){
+   assert.equal(approved.arguments.operationId,operation.operationId);operation.status='CANCELLING';return clone(operation);
+  }
+  if(approved.operation==='startImport'){
+   operation={operationId:'native-operation',status:pauseImport?'RUNNING':importConflict?'FAILED':'SUCCEEDED',progress:{stage:'WRITING',completed:65536,total:importSelection.bytes}};
+   if(pauseImport)return {operationId:operation.operationId};
    assert.equal(approved.arguments.id,importSelection.id);assert.equal(approved.arguments.sha256,importSelection.sha256);
    assert.equal(approved.arguments.reviewId,importReview.reviewId);assert.equal(approved.arguments.path,importReview.path);
-   if(importConflict)throw Error('File already exists');
+   if(importConflict){operation.error='File already exists';return {operationId:operation.operationId}}
    const {reviewId,...args}=approved.arguments;
    imports.push(clone(args));importSelection=null;
    if(importReview.target)snapshot.lastImport={path:args.path,sha256:args.sha256,backupPath:'solvit-backup-original'};
-   importReview=null;
+   importReview=null;operation.result=clone(snapshot);return {operationId:operation.operationId};
   }
   if(approved.operation==='create'){created++;snapshot.workspaceId='created';snapshot.workspaces.push({id:'created',name:approved.arguments.name})}
   if(approved.operation==='write')writes++;
@@ -94,7 +107,7 @@ function harness(bound=true,directories=null){
   return view;
  };
  const event=async(id,fields={})=>{const node=nodes().find(n=>n.id===id);assert.ok(node,`missing ${id}`);assert.notEqual(node.enabled,false);approved=node.hostAction;return render({nodeId:id,action:node.action,fields:{...Object.fromEntries(nodes().filter(n=>n.kind==='field').map(n=>[n.id,n.value])),...fields}})};
- return {render,event,nodes,queries,entryActions,snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set reviewTarget(value){reviewTarget=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
+ return {render,event,nodes,queries,entryActions,set pauseImport(value){pauseImport=value},snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set reviewTarget(value){reviewTarget=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
 }
 test('file imports preserve metadata and require a separate reviewed create; conflicts stay renameable',async()=>{
  const h=harness();await h.render();
@@ -173,7 +186,7 @@ test('image preview remains separate from original import and preserves its dest
  assert.ok(!h.nodes().some(n=>n.id==='import_picture'));
 });
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
- assert.equal(pkg.manifest.apiVersion,25);assert.equal(pkg.manifest.version,'1.8.0');assert.ok(pkg.resources['ui/main.js']);
+ assert.equal(pkg.manifest.apiVersion,26);assert.equal(pkg.manifest.version,'1.9.0');assert.ok(pkg.resources['ui/main.js']);
  assert.ok(pkg.resources['ui/editor-NOTICE.txt'].includes('Permission is hereby granted'));
  const api17=await readFile('../market-server/packages/legacy/dev.solvit.workspace-1.3.0.solvit.json');
  assert.equal(createHash('sha256').update(api17).digest('hex'),'95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b');
@@ -290,4 +303,19 @@ test('saved chat attachments paginate, show provenance and need a separate origi
  }
  const empty=harness();empty.savedFiles.splice(0);await empty.render();await empty.event('chatFiles');assert.ok(empty.nodes().some(n=>n.id==='chat_files_empty'));
  const noWorkspace=harness(false);await noWorkspace.render();assert.ok(!noWorkspace.nodes().some(n=>n.id==='chatFiles'));
+});
+
+test('import task progress stays responsive without ordinary queries and cancellation retains selection for fresh review',async()=>{
+ const h=harness();await h.render();h.pauseImport=true;
+ h.nextSelection={id:'large',name:'data.bin',mimeType:'application/octet-stream',bytes:300000,sha256:'c'.repeat(64)};
+ await h.event('selectImport');await h.event('prepareImport');await h.event('confirm');
+ assert.equal(h.imports.length,0);
+ assert.equal(h.nodes().find(n=>n.id==='transfer_bytes').text,'65536 / 300000 B');
+ assert.equal(h.nodes().find(n=>n.id==='cancelImport').hostAction.operation,'cancelImport');
+ const queries=h.queries.length;await h.event('import_poll');
+ assert.deepEqual(h.queries.slice(queries).map(q=>q[0]),['importOperation']);
+ await h.event('cancelImport');
+ assert.ok(h.nodes().find(n=>n.id==='message').text.includes('Cancelled'));
+ assert.ok(h.nodes().some(n=>n.id==='importPath'));assert.ok(!h.nodes().some(n=>n.id==='confirm'));
+ h.pauseImport=false;await h.event('prepareImport');await h.event('confirm');assert.equal(h.imports.length,1);
 });
