@@ -79,6 +79,14 @@ test('catalog downloads match their declared integrity and expose no write API',
     const editorPackage=await (await fetch(base+editor.downloadPath)).json();
     assert.ok(editorPackage.resources['ui/main.js'].includes('cm-editor'));
     assert.ok(editorPackage.resources['ui/editor-NOTICE.txt'].includes('Permission is hereby granted'));
+    const api22=await(await fetch(base+'/api/v1/plugins?hostApi=22')).json();
+    const importer=api22.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
+    assert.equal(importer.version,'1.5.0');assert.equal(importer.apiVersion,22);
+    assert.deepEqual(importer.nativeServices,['workspace.files']);
+    const api21=await(await fetch(base+'/api/v1/plugins?hostApi=21')).json();
+    assert.equal(api21.plugins.find(plugin=>plugin.id==='dev.solvit.workspace').version,'1.4.0');
+    const preserved=Buffer.from(await(await fetch(base+'/api/v1/packages/dev.solvit.workspace/1.4.0')).arrayBuffer());
+    assert.deepEqual(preserved,await readFile(new URL('./packages/legacy/dev.solvit.workspace-1.4.0.solvit.json',import.meta.url)));
     const rulesPrevious = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.workspace/1.2.0')).arrayBuffer());
     assert.deepEqual(rulesPrevious, await readFile(new URL('./packages/legacy/dev.solvit.workspace-1.2.0.solvit.json', import.meta.url)));
     const workspacePrevious = Buffer.from(await (await fetch(base + '/api/v1/packages/dev.solvit.workspace/1.1.0')).arrayBuffer());

@@ -7,7 +7,8 @@ const pkg=JSON.parse(await readFile('../market-server/packages/dev.solvit.worksp
 const clone=value=>JSON.parse(JSON.stringify(value));
 function harness(bound=true,directories=null){
  const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
- let view,approved,created=0,writes=0,draft=null,document='old';
+ let view,approved,created=0,writes=0,draft=null,document='old',importSelection=null,nextSelection=null,importConflict=false;
+ const imports=[];
  const snapshot={workspaceId:bound?'ws':null,workspaces:bound?[{id:'ws',name:'Project'}]:[],shells:bound?[{id:'s',name:'Shell 1'}]:[],draftInstallAllowed:false};
  const files=Array.from({length:45},(_,i)=>({name:`file-${i}.txt`,path:`file-${i}.txt`,directory:false,bytes:3}));
  const queries=[];
@@ -15,6 +16,7 @@ function harness(bound=true,directories=null){
  const ctx={workspacePage:{query:async(op,args={})=>{
   queries.push([op,clone(args)]);
   if(op==='snapshot')return clone(snapshot);
+  if(op==='importSelection')return clone(importSelection);
   if(op==='list'){const entries=directories?.[args.path]??files;return {files:entries.slice(args.offset,args.offset+40),total:entries.length}}
   if(op==='read')return {text:'old',sha256:'a'.repeat(64)};
   if(op==='readChunk'){
@@ -38,6 +40,13 @@ function harness(bound=true,directories=null){
   throw Error('unsupported');
  },perform:async()=>{
   assert.ok(approved);
+  if(approved.operation==='selectImport'){if(nextSelection)importSelection=clone(nextSelection);return clone(nextSelection)}
+  if(approved.operation==='dropImport'){assert.equal(approved.arguments.id,importSelection.id);importSelection=null;return clone(snapshot)}
+  if(approved.operation==='importFile'){
+   assert.equal(approved.arguments.id,importSelection.id);assert.equal(approved.arguments.sha256,importSelection.sha256);
+   if(importConflict)throw Error('File already exists');
+   imports.push(clone(approved.arguments));importSelection=null;
+  }
   if(approved.operation==='create'){created++;snapshot.workspaceId='created';snapshot.workspaces.push({id:'created',name:approved.arguments.name})}
   if(approved.operation==='write')writes++;
   if(approved.operation==='writeDraft'){
@@ -49,10 +58,31 @@ function harness(bound=true,directories=null){
  const nodes=()=>{const result=[];const visit=n=>{result.push(n);(n.children??[]).forEach(visit)};[...view.nodes,...view.footer??[]].forEach(visit);return result};
  const render=async(event=null)=>view=clone(await sandbox.solvitPlugin.pages.main({locale:'en',event},ctx));
  const event=async(id,fields={})=>{const node=nodes().find(n=>n.id===id);assert.ok(node,`missing ${id}`);assert.notEqual(node.enabled,false);approved=node.hostAction;return render({nodeId:id,action:node.action,fields:{...Object.fromEntries(nodes().filter(n=>n.kind==='field').map(n=>[n.id,n.value])),...fields}})};
- return {render,event,nodes,queries,entryActions,snapshot,set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
+ return {render,event,nodes,queries,entryActions,snapshot,imports,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
 }
+test('file imports preserve metadata and require a separate reviewed create; conflicts stay renameable',async()=>{
+ const h=harness();await h.render();
+ h.nextSelection={id:'chosen',name:'scan.pdf',mimeType:'application/pdf',bytes:300000,sha256:'c'.repeat(64)};
+ await h.event('selectImport');assert.equal(h.imports.length,0);
+ assert.equal(h.nodes().find(n=>n.id==='import_type').text,'application/pdf · 300000 B');
+ assert.ok(h.nodes().some(n=>n.id==='import_sha'&&n.text==='c'.repeat(64)));
+ await h.event('prepareImport',{importPath:'../escape.pdf'});assert.equal(h.imports.length,0);assert.ok(h.nodes().some(n=>n.id==='importPath'));
+ await h.event('prepareImport',{importPath:'src/scan.pdf'});assert.equal(h.imports.length,0);
+ await h.event('cancel');assert.equal(h.nodes().find(n=>n.id==='importPath').value,'src/scan.pdf');
+ h.nextSelection=null;await h.event('selectImport');assert.equal(h.nodes().find(n=>n.id==='import_name').text,'scan.pdf');
+ await h.event('prepareImport',{importPath:'existing.pdf'});h.importConflict=true;await h.event('confirm');
+ assert.equal(h.imports.length,0);assert.ok(h.nodes().some(n=>n.id==='message'&&n.text.includes('File already exists')));
+ await h.event('cancel');h.importConflict=false;await h.event('prepareImport',{importPath:'renamed.pdf'});await h.event('confirm');
+ assert.deepEqual(h.imports,[{id:'chosen',path:'renamed.pdf',sha256:'c'.repeat(64)}]);
+ assert.ok(h.nodes().some(n=>n.id==='directory'));
+ const unbound=harness(false);await unbound.render();assert.ok(!unbound.nodes().some(n=>n.id==='selectImport'));
+});
+test('discarding an import selection never submits a write',async()=>{
+ const h=harness();await h.render();h.nextSelection={id:'chosen',name:'file.bin',mimeType:'application/octet-stream',bytes:0,sha256:'d'.repeat(64)};
+ await h.event('selectImport');await h.event('dropImport');assert.equal(h.imports.length,0);assert.ok(h.nodes().some(n=>n.id==='directory'));
+});
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
- assert.equal(pkg.manifest.apiVersion,18);assert.equal(pkg.manifest.version,'1.4.0');assert.ok(pkg.resources['ui/main.js']);
+ assert.equal(pkg.manifest.apiVersion,22);assert.equal(pkg.manifest.version,'1.5.0');assert.ok(pkg.resources['ui/main.js']);
  assert.ok(pkg.resources['ui/editor-NOTICE.txt'].includes('Permission is hereby granted'));
  const api17=await readFile('../market-server/packages/legacy/dev.solvit.workspace-1.3.0.solvit.json');
  assert.equal(createHash('sha256').update(api17).digest('hex'),'95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b');

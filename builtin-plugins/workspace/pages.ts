@@ -4,6 +4,15 @@ type FileEntry={name:string;path:string;directory:boolean;bytes:number};
 type Draft={id:string;name:string;pluginId:string;version:string;sha256:string;permissions:string[]};
 type Button=Extract<PageNode,{kind:'button'}>;
 type TextChunk={text:string;offset:number;nextOffset:number;total:number;sha256:string};
+type ImportSelection={id:string;name:string;mimeType:string;bytes:number;sha256:string};
+const importLabels={
+ zh:['导入文件','目标路径','确认导入','放弃选择','最多20MiB，保留原始文件；同名文件不会被覆盖。','重新选择','来源：系统文件选择器'],
+ en:['Import file','Destination path','Confirm import','Discard selection','Up to 20MiB, original bytes. Existing files are never overwritten.','Choose another','Source: system file picker'],
+ ja:['ファイルをインポート','保存先パス','インポートを確認','選択を破棄','最大20MiB、元のバイトを保持。同名ファイルは上書きしません。','再選択','ソース：システムファイル選択'],
+ ko:['파일 가져오기','대상 경로','가져오기 확인','선택 취소','최대20MiB, 원본 유지. 기존 파일을 덮어쓰지 않습니다.','다시 선택','출처: 시스템 파일 선택'],
+ es:['Importar archivo','Ruta de destino','Confirmar importación','Descartar selección','Hasta20MiB, bytes originales. No se sobrescriben archivos.','Elegir otro','Origen: selector de archivos'],
+ fr:['Importer un fichier','Chemin cible','Confirmer l’import','Abandonner la sélection','20MiB maximum, octets originaux. Aucun fichier existant ne sera écrasé.','Choisir un autre','Source : sélecteur système']
+};
 const fileLabels={
  zh:['新建目录','重命名 / 移动','删除','目标路径','目录及其中内容将被删除，无法撤销。'],
  en:['New folder','Rename / move','Delete','Destination path','The folder and its contents will be deleted permanently.'],
@@ -25,11 +34,13 @@ export function workspacePage(){
  let pending:Extract<PageHostAction,{kind:'workspace.perform'}>|null=null,returnMode='home',drafts:Draft[]=[],selected:Draft|null=null,draftOffset=0,draftTotal=0,draftText='';
  let editorId=0,chunk:TextChunk|null=null,phase='ready',uploadId='',uploadOffset=0;
  let managementPath='';
+ let importSelection:ImportSelection|null=null,importPath='';
  let treeWorkspace:string|null=null,treeResult:JsonObject|null=null,treeRevision=0;
  const treeEntries=new Map<string,FileEntry>();
  return async({locale,event}:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
   const t=labels[locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en;
   const f=fileLabels[locale.split(/[-_]/)[0] as keyof typeof fileLabels]??fileLabels.en;
+  const im=importLabels[locale.split(/[-_]/)[0] as keyof typeof importLabels]??importLabels.en;
   const api=ctx.workspacePage;if(!api)throw Error('Workspace page needs API12');
   let snapshot=await api.query('snapshot') as unknown as Snapshot;
   if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear()}
@@ -61,7 +72,19 @@ export function workspacePage(){
   if(event){
    message='';try{
     const action=event.action;
-    if(action==='treeLoad'){
+    if(action==='selectImport'){
+     const chosen=await api.perform() as unknown as ImportSelection|null;
+     // Cancellation keeps the previous selection; only the host can supply metadata.
+     if(chosen){importSelection=chosen;importPath=(directory?directory+'/':'')+chosen.name;mode='import'}
+    }
+    else if(action==='showImport'){importSelection=await api.query('importSelection') as unknown as ImportSelection|null;if(importSelection)mode='import'}
+    else if(action==='prepareImport'&&importSelection){
+     importPath=(event.fields.importPath??importPath).trim();
+     if(!importPath||importPath.length>1024||importPath.startsWith('/')||importPath.includes('\\')||/[\u0000-\u001f\u007f]/.test(importPath)||importPath.split('/').some(p=>!p||p==='.'||p==='..'||p==='.git'))throw Error('Invalid relative path');
+     prepare('importFile',{id:importSelection.id,path:importPath,sha256:importSelection.sha256});
+    }
+    else if(action==='dropImport'&&importSelection){await api.perform();importSelection=null;mode='list';await list()}
+    else if(action==='treeLoad'){
      const target=event.fields.treePath??'',start=Number(event.fields.treeOffset??0);
      if(!Number.isInteger(start)||start<0||start>1000)throw Error('Invalid directory offset');
      const result=await api.query('list',{path:target,offset:start}) as unknown as {files:FileEntry[];total:number};
@@ -123,8 +146,9 @@ export function workspacePage(){
      prepare('writeDraft',{draftId:draft.draftId,path:draft.path,sha256:draft.sha256});phase='review';
     }else if(action==='confirm'&&mode==='preview'&&pending){
      snapshot=await api.perform() as unknown as Snapshot;const operation=pending.operation;pending=null;message=t[28];
-     if(['write','writeDraft','makeDirectory','moveEntry','deleteEntry'].includes(operation)){treeRevision++;treeResult=null;treeEntries.clear()}
-     mode=['write','writeDraft','makeDirectory','moveEntry','deleteEntry'].includes(operation)?'list':operation==='installDraft'?'drafts':'home';
+     if(operation==='importFile')importSelection=null;
+     if(['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importFile'].includes(operation)){treeRevision++;treeResult=null;treeEntries.clear()}
+     mode=['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importFile'].includes(operation)?'list':operation==='installDraft'?'drafts':'home';
      if(mode==='list')await list();if(mode==='drafts')await loadDrafts();
     }else if(action==='cancel'){
      if(pending?.operation==='writeDraft'){await api.query('editDiscard',{draftId:uploadId});uploadId='';phase='ready'}
@@ -149,6 +173,7 @@ export function workspacePage(){
   const nodes:PageNode[]=[];const footer:Button[]=[];
   const text=(id:string,value:string,tone:'body'|'title'|'caption'='body'):PageNode=>({id,kind:'text',text:value,tone});
   const button=(id:string,label:string,action=id):Button=>({id,kind:'button',text:label,action});
+  const selectImport=():Button=>({...button('selectImport',importSelection?im[5]:im[0]),hostAction:{kind:'workspace.perform',operation:'selectImport',arguments:{}}});
   if(message)nodes.push(text('message',Array.from(message).slice(0,1000).join('')));
   const current=snapshot.workspaces.find(w=>w.id===snapshot.workspaceId);
   nodes.push(text('tree_meta',JSON.stringify({workspaceId:snapshot.workspaceId,revision:treeRevision,result:treeResult}),'caption'),
@@ -159,7 +184,7 @@ export function workspacePage(){
   if(mode==='home'){
    nodes.push(text('name',current?.name??t[20],'title'));
    nodes.push(button('create',t[1]),button('choose',t[2]));
-   if(current){nodes.push(button('directory',t[7]),button('shell',t[31]),text('shells',snapshot.shells.map(s=>s.name).join(' · ')),button('drafts',t[23]),button('prepareUnbind',t[6]));}
+   if(current){nodes.push(button('directory',t[7]),selectImport(),button('shell',t[31]),text('shells',snapshot.shells.map(s=>s.name).join(' · ')),button('drafts',t[23]),button('prepareUnbind',t[6]));if(importSelection)nodes.push(button('showImport',im[2]))}
   }else if(mode==='create'||mode==='shell'){
    nodes.push({id:'name',kind:'field',label:mode==='create'?t[3]:t[30],value:mode==='create'?'':`Shell ${snapshot.shells.length+1}`});
    footer.push(button('home',t[8]),button(mode==='create'?'prepareCreate':'prepareShell',t[4]));
@@ -170,7 +195,12 @@ export function workspacePage(){
    nodes.push(text('directory',directory||'/','title'));if(!files.length)nodes.push(text('empty',t[19]));
    files.forEach((entry,i)=>nodes.push({id:`entry_${i}`,kind:'card',children:[text(`file_name_${i}`,(entry.directory?'▸ ':'')+entry.name),text(`file_size_${i}`,entry.directory?t[7]:`${entry.bytes} B`,'caption'),button(`file_${i}`,t[24],'file'),
     button(`rename_${i}`,f[1],'renameEntry'),button(`delete_${i}`,f[2],'deleteEntry')]}));
-   footer.push(button('home',t[8]),button('new',t[10]),button('mkdir',f[0]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
+   footer.push(button('home',t[8]),selectImport(),button('new',t[10]),button('mkdir',f[0]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
+  }else if(mode==='import'&&importSelection){
+   nodes.push(text('import_name',importSelection.name,'title'),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),
+    text('import_source',im[6],'caption'),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]),
+    {id:'importPath',kind:'field',label:im[1],value:importPath});
+   footer.push(selectImport(),{...button('dropImport',im[3]),hostAction:{kind:'workspace.perform',operation:'dropImport',arguments:{id:importSelection.id}}},button('prepareImport',im[2]));
   }else if(mode==='mkdir'||mode==='rename'){
    nodes.push({id:'destination',kind:'field',label:f[3],value:managementPath});
    footer.push(button('backToList',t[8]),button(mode==='mkdir'?'prepareDirectory':'prepareMove',t[14]));
@@ -192,6 +222,7 @@ export function workspacePage(){
    nodes.push(text('preview',t[14],'title'));
    if(pending.operation==='write'){nodes.push(text('target',String(pending.arguments.path)),text('contents',String(pending.arguments.text)))}
    else if(pending.operation==='writeDraft')nodes.push(text('target',String(pending.arguments.path)),text('save_sha',String(pending.arguments.sha256),'caption'));
+   else if(pending.operation==='importFile'&&importSelection)nodes.push(text('import_name',importSelection.name),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),text('target',String(pending.arguments.path)),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]));
    else nodes.push(text('operation',JSON.stringify(pending.arguments,null,2)));
    if(pending.operation==='installDraft')nodes.push(text('warning',t[26]));
    if(pending.operation==='deleteEntry')nodes.push(text('warning',f[4]));
