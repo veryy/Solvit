@@ -6,6 +6,35 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class GitPageSessionTest {
+    @Test fun remoteGitControlsRequireNewApiNetworkPermissionAndConsumeOnlyConfirmedAction() = runBlocking<Unit> {
+        var writes = 0
+        var reads = 0
+        val access = object : PageGitAccess {
+            override suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit): String {
+                authorize(); reads++; return "null"
+            }
+            override suspend fun perform(control: PageWorkspaceControl, authorize: suspend () -> Unit): String {
+                authorize(); assertEquals("reviewPush", control.operation); writes++; return "{}"
+            }
+        }
+        val action = Json.parseToJsonElement("""{"kind":"git.perform","operation":"reviewPush","arguments":{"url":"https://github.com/veryy/Solvit.git","branch":"main"}}""").jsonObject
+        fun invocation() = ScriptPageExecutionContext("test.git.page", {}, action, git = access)
+        assertFails { invocation().performGit(19, true) }
+        assertFails { invocation().performGit(20, false) }
+        assertEquals(0, writes)
+        val approved = invocation()
+        approved.performGit(20, true)
+        assertFails { approved.performGit(20, true) }
+        assertEquals(1, writes)
+        assertFails { invocation().queryGit("transferProgress", buildJsonObject {}, 19, true) }
+        assertFails { invocation().queryGit("transferProgress", buildJsonObject {}, 20, false) }
+        assertEquals(0, reads)
+        invocation().queryGit("transferProgress", buildJsonObject {}, 20, true)
+        assertEquals(1, reads)
+        assertFails { ScriptPageHostAction.git(Json.parseToJsonElement("""{"kind":"git.perform","operation":"fetch","arguments":{"url":"https://secret@github.com/veryy/Solvit.git","branch":"main"}}""").jsonObject) }
+        assertFails { ScriptPageHostAction.git(Json.parseToJsonElement("""{"kind":"git.perform","operation":"push","arguments":{"reviewId":"id","remoteHead":"forged"}}""").jsonObject) }
+    }
+
     private fun pkg(api: Int = 19, permissions: String = "\"workspace\",\"git\"",
         services: String = "\"workspace.git\"", action: String = "await ctx.gitPage.perform()") = ScriptPackage.parse("""
         {"manifest":{"id":"test.git.page","name":"Git","description":"Fixture","version":"1.0.0",

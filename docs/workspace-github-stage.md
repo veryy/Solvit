@@ -144,3 +144,20 @@ Android26/35任务均成功。实际下载产物11862597585（35027字节）及1
 （38223字节）检查ZIP CRC/XML：各17项，零失败/错误/跳过；新增绑定授权、凭据、
 陈旧索引、真实推送重新读取与关闭阻塞传输两项均实际执行。此证据仅对应ff445de，
 后续5c86b28的拉取/合并和新增双父提交场景尚待运行，不能继承本次通过结论。
+
+## 远程Git页面桥候选
+
+复核固定DSH的preset/agent-preset/skills/cordis-plugin-development/references/ui-plugin.md：
+插件保留业务布局，宿主主题/资源生命周期不由页面替换。沿用本项目已验证的
+ScriptPageView显示控件→ScriptPageHostAction结构校验→单次消费→GitPageBridge
+宿主审阅机制，新增fetch/reviewPush/reviewPull/push/merge/cancelTransfer控件；
+URL只接受无凭据HTTPS端点，推送/合并只接受随机审阅ID，HEAD/索引/远端版本不由JS传入。
+读查询不发起网络；控件调用中明确网络授权上下文，取消与进度读取绕过桥操作锁，
+关闭先标记关闭并终止原生会话，再清理页面审阅。新增桥单次推送/伪造版本拒绝与
+运行时API20/network显式声明回归，旧API19只能继续本地Git操作。
+
+API20解析与TS类型为候选协议；当前市场仍请求API19、内置Git仍1.1.1/API19，
+没有更新市场或替换发布APK。HTML远程按钮、宿主原生安全凭据输入尚未连接。
+当前ScriptPageSession的dispatch仍串行，长操作的页面进度/取消还需独立生命周期任务
+或宿主控制通道，不能仅凭桥锁之外的查询宣称实际页面取消已经可用。原生绑定服务
+进度/关闭已有远程证据，新页面桥与运行时检查尚待远程构建。

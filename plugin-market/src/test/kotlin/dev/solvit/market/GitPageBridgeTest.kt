@@ -6,6 +6,69 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class GitPageBridgeTest {
+    @Test fun remoteControlsRetainNativeReviewsRejectForgedFactsAndConsumePushOnce() = runBlocking<Unit> {
+        val local = Fixture()
+        var fetches = 0
+        var pushes = 0
+        var received: WorkspaceRemoteGitSession.PushReview? = null
+        lateinit var retained: WorkspaceRemoteGitSession.PushReview
+        val service = object : WorkspaceRemoteGitService {
+            override fun bind(chatId: String, activeChat: () -> String?, authorizeRead: suspend () -> Unit,
+                authorizeWrite: suspend () -> Unit) = local.bind(chatId, activeChat, authorizeRead, authorizeWrite)
+            override suspend fun close() = local.close()
+            override fun bindRemote(chatId: String, activeChat: () -> String?, authorizeRead: suspend () -> Unit,
+                authorizeWrite: suspend () -> Unit, authorizeNetwork: suspend (GitRemoteEndpoint) -> Unit): WorkspaceRemoteGitSession {
+                val base = bind(chatId, activeChat, authorizeRead, authorizeWrite)
+                return object : WorkspaceRemoteGitSession, WorkspaceGitSession by base {
+                    override val progress = kotlinx.coroutines.flow.MutableStateFlow<WorkspaceRemoteGitSession.Progress?>(null)
+                    override suspend fun transferProgress(): WorkspaceRemoteGitSession.Progress? { authorizeRead(); return progress.value }
+                    override suspend fun fetch(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.Fetch {
+                        authorizeRead(); authorizeWrite(); authorizeNetwork(endpoint); fetches++
+                        return WorkspaceRemoteGitSession.Fetch(branch, "remote", emptyMap())
+                    }
+                    override suspend fun reviewPush(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.PushReview {
+                        fetch(endpoint, branch)
+                        retained = WorkspaceRemoteGitSession.PushReview(endpoint, branch, local.revision, "remote")
+                        return retained
+                    }
+                    override suspend fun push(review: WorkspaceRemoteGitSession.PushReview): WorkspaceRemoteGitSession.Push {
+                        authorizeRead(); authorizeWrite(); authorizeNetwork(review.endpoint)
+                        received = review; pushes++
+                        return WorkspaceRemoteGitSession.Push(review.branch, "head", "OK")
+                    }
+                    override suspend fun reviewPull(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.PullReview {
+                        fetch(endpoint, branch)
+                        return WorkspaceRemoteGitSession.PullReview(local.revision, "remote", "files")
+                    }
+                    override suspend fun merge(review: WorkspaceRemoteGitSession.PullReview): WorkspaceRemoteGitSession.Merge {
+                        authorizeRead(); authorizeWrite()
+                        return WorkspaceRemoteGitSession.Merge("CONFLICTING", "head", listOf("file.txt"))
+                    }
+                    override suspend fun cancelTransfer() { authorizeRead() }
+                }
+            }
+        }
+        val page = GitPageBridge(service, "chat", { "chat" })
+        val address = """{"url":"https://github.com/veryy/Solvit.git","branch":"main"}"""
+        assertFails { page.query("fetch", address) {} }
+        assertEquals(0, fetches)
+        assertFails { page.perform(PageWorkspaceControl("reviewPush", address)) { error("revoked") } }
+        assertEquals(0, fetches)
+        val reviewed = Json.parseToJsonElement(page.perform(PageWorkspaceControl("reviewPush", address)) {}).jsonObject
+        val id = reviewed.getValue("reviewId").jsonPrimitive.content
+        assertFails { page.perform(PageWorkspaceControl("push", """{"reviewId":"forged"}""")) {} }
+        assertFails { page.perform(PageWorkspaceControl("push", """{"reviewId":"$id","remoteHead":"forged"}""")) {} }
+        assertEquals(0, pushes)
+        val result = page.perform(PageWorkspaceControl("push", """{"reviewId":"$id"}""")) {}
+        assertEquals("OK", Json.parseToJsonElement(result).jsonObject["status"]!!.jsonPrimitive.content)
+        assertSame(retained, received)
+        assertFails { page.perform(PageWorkspaceControl("push", """{"reviewId":"$id"}""")) {} }
+        assertEquals(1, pushes)
+        page.close()
+        assertTrue(local.closed)
+        assertFails { page.query("transferProgress", "{}") {} }
+    }
+
     private class Fixture : WorkspaceGitService {
         val revision = WorkspaceGitSession.Revision("head", "index", "refs/heads/main")
         var writes = 0

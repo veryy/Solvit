@@ -121,11 +121,12 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             check(page.pluginId == pkg.manifest.id)
                             if (operation == "gitPage.perform") {
                                 require(arguments.isEmpty()) { "Git原生操作只能来自已确认的页面控件" }
-                                page.performGit()
+                                page.performGit(pkg.manifest.apiVersion, "network" in pkg.manifest.permissions)
                             } else {
                                 require(arguments.keys == setOf("operation", "arguments"))
                                 val query = arguments.getValue("operation").jsonPrimitive.also { require(it.isString) }.content
-                                page.queryGit(query, arguments.getValue("arguments").jsonObject)
+                                page.queryGit(query, arguments.getValue("arguments").jsonObject,
+                                    pkg.manifest.apiVersion, "network" in pkg.manifest.permissions)
                             }
                         } else if (operation == "clock.now") {
                             clockSnapshot().toString()

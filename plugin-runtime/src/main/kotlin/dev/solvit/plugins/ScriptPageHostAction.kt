@@ -21,6 +21,12 @@ object ScriptPageHostAction {
         val keys = when (operation) {
             "initialize" -> emptySet()
             "stage", "unstage" -> { text("reviewId", 128); setOf("reviewId") }
+            "fetch", "reviewPush", "reviewPull" -> {
+                GitRemoteEndpoint.parse(text("url", 2048)); text("branch", 256)
+                setOf("url", "branch")
+            }
+            "push", "merge" -> { text("reviewId", 128); setOf("reviewId") }
+            "cancelTransfer" -> emptySet()
             "commit" -> {
                 text("revisionId", 128); text("message", 4096); text("author", 80); text("email", 254)
                 setOf("revisionId", "message", "author", "email")

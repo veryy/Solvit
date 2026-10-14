@@ -15,14 +15,20 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     private val consumed = AtomicBoolean(false)
     val documentInvocation: Boolean get() = approvedAction?.get("kind")?.toString()?.trim('"')?.startsWith("document.") == true
     suspend fun ensureAuthorized() = verify()
-    suspend fun queryGit(operation: String, args: JsonObject): String {
+    private fun verifyRemoteGit(operation: String, apiVersion: Int, networkDeclared: Boolean) {
+        if (operation in setOf("fetch", "reviewPush", "push", "reviewPull", "merge", "cancelTransfer", "transferProgress"))
+            check(apiVersion >= 20 && networkDeclared) { "远程Git页面需要API20及network权限" }
+    }
+    suspend fun queryGit(operation: String, args: JsonObject, apiVersion: Int = 19, networkDeclared: Boolean = false): String {
         ensureAuthorized()
+        verifyRemoteGit(operation, apiVersion, networkDeclared)
         return checkNotNull(git) { "此页面没有Git授权" }.query(operation, args.toString(), ::ensureAuthorized)
             .also { ensureAuthorized() }
     }
-    suspend fun performGit(): String {
+    suspend fun performGit(apiVersion: Int = 19, networkDeclared: Boolean = false): String {
         ensureAuthorized()
         val control = ScriptPageHostAction.git(checkNotNull(approvedAction))
+        verifyRemoteGit(control.operation, apiVersion, networkDeclared)
         check(consumed.compareAndSet(false, true)) { "Native page control already consumed" }
         return checkNotNull(git) { "此页面没有Git授权" }.perform(control, ::ensureAuthorized)
             .also { ensureAuthorized() }

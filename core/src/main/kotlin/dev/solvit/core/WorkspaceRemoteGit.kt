@@ -21,6 +21,7 @@ interface WorkspaceRemoteGitSession : WorkspaceGitSession {
     data class Merge(val status: String, val head: String?, val conflicts: List<String>)
 
     val progress: StateFlow<Progress?>
+    suspend fun transferProgress(): Progress?
     /** Downloads objects and a tracking ref; does not change HEAD, index or workspace files. */
     suspend fun fetch(endpoint: GitRemoteEndpoint, branch: String): Fetch
     /** Fetches the actual remote head and captures the local revision for user review. */

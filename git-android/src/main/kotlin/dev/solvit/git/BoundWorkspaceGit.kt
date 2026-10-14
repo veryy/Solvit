@@ -63,6 +63,10 @@ class BoundWorkspaceGit(
     private var activeTransfer: Job? = null
     private val transferProgress = MutableStateFlow<WorkspaceRemoteGitSession.Progress?>(null)
     override val progress = transferProgress.asStateFlow()
+    override suspend fun transferProgress(): WorkspaceRemoteGitSession.Progress? {
+        verify()
+        return progress.value
+    }
     internal var remoteTransport = RepositoryRemoteTransport()
     internal var borrowCredentials: (GitRemoteEndpoint) -> RepositoryCredentials? = { null }
 
