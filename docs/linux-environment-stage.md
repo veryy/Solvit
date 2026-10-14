@@ -100,3 +100,5 @@ ARM64官方归档已下载并做静态内容核对：25,545,644字节，SHA256 8
 Node v24.21.0 官方BUILDING.md对Linux ARM64/x64的支持基线为kernel>=4.18、glibc>=2.28（旧内核可能可运行但不受其保证）。Ubuntu提供guest glibc，Android内核仍取决于手机；Android8可安装Solvit不等于所有旧手机均能运行这套开发环境。当前只验证API35模拟器，明确保留旧内核/OEM/ARM64真机边界，不使用降低targetSDK或系统root。
 
 9d5069e 的 [38546632425](https://github.com/veryy/Solvit/actions/runs/38546632425) 全通过。实际下载任务日志：3/3 API35 Android用例、零失败/跳过，原归档边界/事务单元门禁亦成功；严格设备版本解析得到生产Python3.12.3、Node v24.21.0、npm11.19.0，Java17日志门禁成功。包括生产HTTPS下载及哈希、Ubuntu安装、Node执行/写文件、Java17安装、Ubuntu PTY、已授权AI native工作区命令与重建管理器恢复Shell运行环境。旧apt探针仍单独记录Node18.19.1，不能与生产24混淆。该轮设备完整归档artifact11884868270尚未下载，结论来自已下载完整任务日志和其严格设备报告门禁；ARM64运行仍未验收。
+
+候选 [Android38546632484](https://github.com/veryy/Solvit/actions/runs/38546632484) 已全通过，源9d5069e：build和verify-ui成功；实际下载unit artifact11885465917并完整ZIP CRC/XML核对447个单元，零失败/错误/跳过；Lint、APK和固定签名门禁成功。完整应用界面任务亦通过，包括新增真实environment HTML页面、拒绝安装不写入和旧签名覆盖升级。应用设备报告精确计数待正式版本归档核对，不用生产探针3个测试代替应用UI测试。代码以保留历史的fast-forward合入main。0.31.0正式标签还必须通过build/UI/plugins/search/Linux后才能公开APK。
