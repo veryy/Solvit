@@ -17,13 +17,13 @@
 
 完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
 
-[0.28.0](https://github.com/veryy/Solvit/releases/tag/v0.28.0) 已正式发布：工作区增加插件自带 HTML/JS 文件树与离线 CodeMirror 文本/代码预览和编辑；支持新建目录、重命名/移动、删除前确认，以及与当前对话 Shell 共用目录。最多256KiB完整UTF-8编辑，保存前复核原文件版本，外部修改会拒绝覆盖。范围见[版本说明](docs/release-0.28.0.md)。
+[0.29.1](https://github.com/veryy/Solvit/releases/tag/v0.29.1) 已正式发布：工作区提供同目录文件树、CodeMirror预览/编辑、Shell及真实本地Git Changes、暂存、提交和历史。Git插件业务页由HTML/JS绘制，AI可用经过授权的只读状态、差异及历史工具。修复HTTP请求取消时主线程关闭响应导致的崩溃，OpenAI/Anthropic流式与模型列表共用IO资源清理。范围见[版本说明](docs/release-0.29.1.md)。
 
-当前 [0.28.0](docs/release-0.28.0.md)（build57/API18）保留角色默认、对话内授权、等待队列与打断、聊天外观设置、真实xterm.js/Android PTY，以及JS/TS Agent步骤策略、记忆图谱、多MCP和Skills。API1–17市场目录保持兼容。Git/GitHub插件仍在开发，当前“文件变更”页是历史执行快照，尚不是Git Changes。
+当前版本build59/API19，保留角色默认、对话内授权、等待队列与打断、聊天外观、真实xterm.js/Android PTY、JS/TS Agent步骤策略、记忆图谱、多MCP和Skills。文件编辑上限256KiB UTF-8，保存检查外部修改；文件、终端和Git共用当前对话绑定目录。GitHub克隆/拉取/推送、加密凭据管理、冲突处理与AI Git写操作仍在开发。API1–18市场目录保持兼容。
 
-[完整Android验证](https://github.com/veryy/Solvit/actions/runs/38467791618)五项任务全部成功，实际399单元、53模拟器测试，均0失败/错误/跳过，Lint、固定签名、覆盖升级、106 SDK/2市场、公开搜索与正式发布门禁通过。[APK构建产物](https://github.com/veryy/Solvit/actions/runs/38467791618/artifacts/11850885700)需登录GitHub下载，也可[直接下载0.28.0 APK](https://github.com/veryy/Solvit/releases/download/v0.28.0/solvit-debug.apk)。
+[正式Actions](https://github.com/veryy/Solvit/actions/runs/38488640678)五项任务全部成功，实际409单元、55模拟器均无失败/错误/跳过；Lint、固定签名、覆盖升级、110 SDK/2市场、公开搜索与线上MCP/Skills检查通过。[APK构建产物](https://github.com/veryy/Solvit/actions/runs/38488640678/artifacts/11860967509)需登录GitHub，也可[直接下载0.29.1 APK](https://github.com/veryy/Solvit/releases/download/v0.29.1/solvit-debug.apk)。
 
-公开 APK 已实际下载并与构建产物逐字节核对（23,911,485 字节，SHA-256 `f289c13808521d271b8345a13e2f6681fdd311429e652846bbf665fe2220fae3`）。真实模型角色/流式/工具选择、实际任务、真机、按会话选择驱动、JS消息投影/Provider/存储替换和完整JS内核仍待验收或实现；文件工作台宽屏布局、图片/PDF预览和超限文件编辑尚未验收或实现。见[真实模型验收](docs/real-model-acceptance.md)与[完整产品进度](docs/product-roadmap.md)。
+公开APK已下载并与Actions产物逐字节核对：26,032,689字节，SHA-256 `f6c7b3f5b82e609ce56fb7bb5c5f2370bb21093a740dc3038e97e7809c346cc3`。真实模型角色/流式/工具选择、自主项目任务和真机尚未验收；完整JS内核、Provider/存储替换、图片/PDF预览及超限编辑仍待实现或验收。见[真实模型验收](docs/real-model-acceptance.md)与[完整产品进度](docs/product-roadmap.md)。
 
 后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
 
