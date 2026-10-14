@@ -16,6 +16,35 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28])
 class WorkspaceImportPageBridgeTest {
+    @Test fun reviewTokenBindsSelectionAndPathAndRejectsStaleTargetBeforeReReviewingAndReplacing()=fixture { service ->
+        val workspace=service.forChat("review-import")
+        val root=File(service.location(workspace.id));val destination=File(root,"file.bin").apply { writeText("old") }
+        val bridge=WorkspacePageBridge(service,null,"review-import")
+        try {
+            val bytes=byteArrayOf(0,-1,2,3)
+            val document=PageBinaryDocument("file.bin","application/octet-stream",bytes)
+            val selected=Json.parseToJsonElement(bridge.stageImport(document) {}).jsonObject
+            val args=buildJsonObject { put("id",selected.getValue("id"));put("path","file.bin");put("sha256",document.sha256) }
+            suspend fun review()=Json.parseToJsonElement(bridge.query("reviewImport",args.toString()) {}).jsonObject
+            fun approved(review:JsonObject,path:String="file.bin")=PageWorkspaceControl("importReviewed",buildJsonObject {
+                args.forEach { (key,value)->put(key,value) };put("path",path);put("reviewId",review.getValue("reviewId"))
+            }.toString())
+            val first=review()
+            assertEquals(JsonPrimitive(3),first.getValue("target").jsonObject["bytes"])
+            assertFails { bridge.perform(approved(first,"other.bin")) {} }
+            assertEquals("old",destination.readText());assertEquals(1,root.listFiles()!!.size)
+            destination.writeText("Shell changed")
+            assertFails { bridge.perform(approved(first)) {} }
+            assertFails { bridge.perform(approved(first)) {} }
+            assertEquals("Shell changed",destination.readText())
+            val second=review();assertNotEquals(first["reviewId"],second["reviewId"])
+            val result=Json.parseToJsonElement(bridge.perform(approved(second)) {}).jsonObject
+            assertContentEquals(bytes,destination.readBytes())
+            val backup=result.getValue("lastImport").jsonObject.getValue("backupPath").jsonPrimitive.content
+            assertEquals("Shell changed",File(root,backup).readText())
+            assertFails { document.readBytes() };assertEquals(2,root.listFiles()!!.size)
+        } finally { bridge.close() }
+    }
     @Test fun savedChatSelectionPreviewsAndImportsExactBytesWithItsMessageProvenance()=fixture { service ->
         val app=RuntimeEnvironment.getApplication()
         app.deleteDatabase("solvit.db")
@@ -125,7 +154,7 @@ class WorkspaceImportPageBridgeTest {
     private fun fixture(block:suspend(AndroidWorkspaces)->Unit)=runBlocking<Unit> {
         val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
         val service=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope,
-            importPublisher=WorkspaceImportPublisher { from,to -> Files.createLink(to.toPath(),from.toPath()) })
+            importPublisher=WorkspaceImportPublisher { from,to -> Files.move(from.toPath(),to.toPath());Unit })
         try { block(service) } finally { service.close();scope.cancel() }
     }
     private fun control(metadata:JsonObject,path:String)=PageWorkspaceControl("importFile",buildJsonObject {

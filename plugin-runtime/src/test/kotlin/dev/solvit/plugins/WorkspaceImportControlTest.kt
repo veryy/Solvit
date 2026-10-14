@@ -7,6 +7,34 @@ import kotlin.test.*
 
 /** Exercise the host boundary before the API22 package/catalog rollout. */
 class WorkspaceImportControlTest {
+    @Test fun reviewedImportRequiresApi25ServiceDeclarationAndOneDisplayedApproval():Unit=runBlocking {
+        var reads=0;var writes=0
+        val workspace=object:PageWorkspaceAccess {
+            override suspend fun query(operation:String,argumentsJson:String,authorize:suspend()->Unit):String {
+                authorize();assertEquals("reviewImport",operation);reads++;return "{}"
+            }
+            override suspend fun perform(control:PageWorkspaceControl,authorize:suspend()->Unit):String {
+                authorize();assertEquals("importReviewed",control.operation);writes++;return "{}"
+            }
+        }
+        val args=buildJsonObject { put("id","selection");put("path","file.bin");put("sha256","a".repeat(64));put("reviewId","review") }
+        val approved=control("importReviewed",args)
+        for((api,declared)in listOf(23 to true,24 to true,25 to false)) {
+            val context=ScriptPageExecutionContext("test.review",{},approved,workspace=workspace)
+            assertFails { context.queryWorkspace("reviewImport",buildJsonObject {},api,declared) }
+            assertFails { context.performWorkspace(api,filesDeclared=declared) }
+        }
+        assertEquals(0,reads);assertEquals(0,writes)
+        val context=ScriptPageExecutionContext("test.review",{},approved,workspace=workspace)
+        context.queryWorkspace("reviewImport",buildJsonObject {},25,true)
+        context.performWorkspace(25,filesDeclared=true)
+        assertFails { context.performWorkspace(25,filesDeclared=true) }
+        assertEquals(1,reads);assertEquals(1,writes)
+        assertFails { ScriptPageExecutionContext("test.review",{},workspace=workspace).performWorkspace(25,filesDeclared=true) }
+        assertFails { ScriptPageHostAction.workspace(control("importReviewed",buildJsonObject {
+            args.filterKeys { it!="reviewId" }.forEach { (key,value)->put(key,value) }
+        })) }
+    }
     @Test fun chatAttachmentsRequireApi24AndDeclaredFilesBeforeListingOrConsumingTheDisplayedSelection():Unit=runBlocking {
         var reads=0;var selections=0
         val workspace=object:PageWorkspaceAccess {

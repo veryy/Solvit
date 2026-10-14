@@ -1,10 +1,19 @@
 import type {PluginContext,PluginPageInput,PluginPageView,PageNode,JsonObject,PageHostAction} from '../../plugin-sdk/src/index';
-type W={id:string;name:string};type Snapshot={workspaceId:string|null;workspaces:W[];shells:W[];draftInstallAllowed:boolean};
+type W={id:string;name:string};type Snapshot={workspaceId:string|null;workspaces:W[];shells:W[];draftInstallAllowed:boolean;lastImport?:{path:string;sha256:string;backupPath:string|null}};
 type FileEntry={name:string;path:string;directory:boolean;bytes:number};
 type Draft={id:string;name:string;pluginId:string;version:string;sha256:string;permissions:string[]};
 type Button=Extract<PageNode,{kind:'button'}>;
 type TextChunk={text:string;offset:number;nextOffset:number;total:number;sha256:string};
 type ImportSelection={id:string;name:string;mimeType:string;bytes:number;sha256:string;source?:{kind:string;messageId:string;attachmentId:string}};
+type ImportReview={reviewId:string;path:string;target:{bytes:number;sha256:string}|null};
+const replacementLabels={
+ zh:['目标文件已存在','确认替换并保留原文件','保存时会再次核对版本；原文件将保留为同目录的 solvit-backup-* 文件。','原文件备份','目标尚不存在，将新建文件。'],
+ en:['Destination exists','Replace and keep original','The version is checked again on save. The original stays beside it as solvit-backup-*.','Original backup','Destination is absent. A new file will be created.'],
+ ja:['保存先にファイルがあります','元ファイルを残して置換','保存時に再度バージョンを確認。元ファイルは同じフォルダに solvit-backup-* として保持します。','元ファイルのバックアップ','保存先は未作成です。新規ファイルを作成します。'],
+ ko:['대상 파일이 있습니다','원본을 보관하고 교체','저장할 때 버전을 다시 확인합니다. 원본은 같은 폴더의 solvit-backup-*에 보관됩니다.','원본 백업','대상이 없습니다. 새 파일을 만듭니다.'],
+ es:['El destino existe','Reemplazar y conservar original','Se vuelve a comprobar la versión al guardar. El original queda al lado como solvit-backup-*.','Copia del original','El destino no existe. Se creará un archivo.'],
+ fr:['Le fichier cible existe','Remplacer et garder l’original','La version est revérifiée à l’enregistrement. L’original reste à côté sous solvit-backup-*.','Copie de l’original','La cible est absente. Un fichier sera créé.']
+};
 type ChatFile={messageId:string;messageNumber:number;attachmentId:string;name:string;mimeType:string;bytes:number;sha256:string};
 const chatFileLabels={
  zh:['从聊天附件导入','已保存的聊天附件','此对话还没有已保存附件','选择','来源消息'],
@@ -33,12 +42,12 @@ const pdfLabels={
  fr:['Aperçu PDF','Numéro de page','Afficher la page','Page précédente','Page suivante','Aucun texte extractible. Consultez la page originale ; les pièces jointes du chat prennent en charge l’OCR.','Seul le début du texte de cette page est affiché. Le PDF complet est conservé.','Page PDF originale']
 };
 const importLabels={
- zh:['导入文件','目标路径','确认导入','放弃选择','最多20MiB，保留原始文件；同名文件不会被覆盖。','重新选择','来源：系统文件选择器'],
- en:['Import file','Destination path','Confirm import','Discard selection','Up to 20MiB, original bytes. Existing files are never overwritten.','Choose another','Source: system file picker'],
- ja:['ファイルをインポート','保存先パス','インポートを確認','選択を破棄','最大20MiB、元のバイトを保持。同名ファイルは上書きしません。','再選択','ソース：システムファイル選択'],
- ko:['파일 가져오기','대상 경로','가져오기 확인','선택 취소','최대20MiB, 원본 유지. 기존 파일을 덮어쓰지 않습니다.','다시 선택','출처: 시스템 파일 선택'],
- es:['Importar archivo','Ruta de destino','Confirmar importación','Descartar selección','Hasta20MiB, bytes originales. No se sobrescriben archivos.','Elegir otro','Origen: selector de archivos'],
- fr:['Importer un fichier','Chemin cible','Confirmer l’import','Abandonner la sélection','20MiB maximum, octets originaux. Aucun fichier existant ne sera écrasé.','Choisir un autre','Source : sélecteur système']
+ zh:['导入文件','目标路径','确认导入','放弃选择','最多20MiB，保留原始文件；同名文件需先审阅再确认替换。','重新选择','来源：系统文件选择器'],
+ en:['Import file','Destination path','Confirm import','Discard selection','Up to 20MiB, original bytes. Review an existing file before confirming replacement.','Choose another','Source: system file picker'],
+ ja:['ファイルをインポート','保存先パス','インポートを確認','選択を破棄','最大20MiB、元のバイトを保持。同名ファイルは確認後に置換します。','再選択','ソース：システムファイル選択'],
+ ko:['파일 가져오기','대상 경로','가져오기 확인','선택 취소','최대20MiB, 원본 유지. 기존 파일은 확인 후 교체합니다.','다시 선택','출처: 시스템 파일 선택'],
+ es:['Importar archivo','Ruta de destino','Confirmar importación','Descartar selección','Hasta20MiB, bytes originales. Revisa el destino antes de reemplazarlo.','Elegir otro','Origen: selector de archivos'],
+ fr:['Importer un fichier','Chemin cible','Confirmer l’import','Abandonner la sélection','20MiB maximum, octets originaux. Vérifiez la cible avant de la remplacer.','Choisir un autre','Source : sélecteur système']
 };
 const fileLabels={
  zh:['新建目录','重命名 / 移动','删除','目标路径','目录及其中内容将被删除，无法撤销。'],
@@ -62,6 +71,7 @@ export function workspacePage(importsEnabled=true){
  let editorId=0,chunk:TextChunk|null=null,phase='ready',uploadId='',uploadOffset=0;
  let managementPath='';
  let importSelection:ImportSelection|null=null,importPath='';
+ let importReview:ImportReview|null=null;
  let importPreview:{kind:string;text:string|null;truncated:boolean}|null=null;
  let importPicture:{width:number;height:number;source:string}|null=null;
  let importPdf:PdfPreview|null=null;
@@ -72,6 +82,7 @@ export function workspacePage(importsEnabled=true){
   const t=labels[locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en;
   const f=fileLabels[locale.split(/[-_]/)[0] as keyof typeof fileLabels]??fileLabels.en;
   const im=importLabels[locale.split(/[-_]/)[0] as keyof typeof importLabels]??importLabels.en;
+  const ir=replacementLabels[locale.split(/[-_]/)[0] as keyof typeof replacementLabels]??replacementLabels.en;
   const ip=previewLabels[locale.split(/[-_]/)[0] as keyof typeof previewLabels]??previewLabels.en;
   const pic=pictureLabels[locale.split(/[-_]/)[0] as keyof typeof pictureLabels]??pictureLabels.en;
   const pdf=pdfLabels[locale.split(/[-_]/)[0] as keyof typeof pdfLabels]??pdfLabels.en;
@@ -136,7 +147,9 @@ export function workspacePage(importsEnabled=true){
     else if(action==='prepareImport'&&importSelection){
      importPath=(event.fields.importPath??importPath).trim();
      if(!importPath||importPath.length>1024||importPath.startsWith('/')||importPath.includes('\\')||/[\u0000-\u001f\u007f]/.test(importPath)||importPath.split('/').some(p=>!p||p==='.'||p==='..'||p==='.git'))throw Error('Invalid relative path');
-     prepare('importFile',{id:importSelection.id,path:importPath,sha256:importSelection.sha256});
+     importReview=await api.query('reviewImport',{id:importSelection.id,path:importPath,sha256:importSelection.sha256}) as unknown as ImportReview;
+     if(importReview.path!==importPath||!importReview.reviewId)throw Error('Import review changed');
+     prepare('importReviewed',{id:importSelection.id,path:importPath,sha256:importSelection.sha256,reviewId:importReview.reviewId});
     }
     else if(action==='dropImport'&&importSelection){await api.perform();importSelection=null;importPreview=null;importPicture=null;importPdf=null;mode='list';await list()}
     else if(action==='treeLoad'){
@@ -201,9 +214,9 @@ export function workspacePage(importsEnabled=true){
      prepare('writeDraft',{draftId:draft.draftId,path:draft.path,sha256:draft.sha256});phase='review';
     }else if(action==='confirm'&&mode==='preview'&&pending){
      snapshot=await api.perform() as unknown as Snapshot;const operation=pending.operation;pending=null;message=t[28];
-     if(operation==='importFile'){importSelection=null;importPreview=null;importPicture=null;importPdf=null}
-     if(['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importFile'].includes(operation)){treeRevision++;treeResult=null;treeEntries.clear()}
-     mode=['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importFile'].includes(operation)?'list':operation==='installDraft'?'drafts':'home';
+     if(operation==='importReviewed'){importSelection=null;importPreview=null;importPicture=null;importPdf=null;importReview=null;if(snapshot.lastImport?.backupPath)message+=` · ${ir[3]}: ${snapshot.lastImport.backupPath}`}
+     if(['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importReviewed'].includes(operation)){treeRevision++;treeResult=null;treeEntries.clear()}
+     mode=['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importReviewed'].includes(operation)?'list':operation==='installDraft'?'drafts':'home';
      if(mode==='list')await list();if(mode==='drafts')await loadDrafts();
     }else if(action==='cancel'){
      if(pending?.operation==='writeDraft'){await api.query('editDiscard',{draftId:uploadId});uploadId='';phase='ready'}
@@ -220,6 +233,7 @@ export function workspacePage(importsEnabled=true){
     else if(action==='prepareInstall'&&selected)prepare('installDraft',{id:selected.id,sha256:selected.sha256});
     await refresh();
    }catch(error){
+    if(pending?.operation==='importReviewed'){pending=null;importReview=null;mode='import'}
     if(mode==='editor'&&phase==='reading')phase='readFailed';
     else if(mode==='editor'&&phase==='uploading')phase='uploadFailed';
     message=t[22]+(error instanceof Error?error.message:String(error));
@@ -302,11 +316,15 @@ export function workspacePage(importsEnabled=true){
    nodes.push(text('preview',t[14],'title'));
    if(pending.operation==='write'){nodes.push(text('target',String(pending.arguments.path)),text('contents',String(pending.arguments.text)))}
    else if(pending.operation==='writeDraft')nodes.push(text('target',String(pending.arguments.path)),text('save_sha',String(pending.arguments.sha256),'caption'));
-   else if(pending.operation==='importFile'&&importSelection)nodes.push(text('import_name',importSelection.name),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),text('target',String(pending.arguments.path)),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]));
+   else if(pending.operation==='importReviewed'&&importSelection){
+    nodes.push(text('import_name',importSelection.name),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),text('target',String(pending.arguments.path)),text('import_sha',importSelection.sha256,'caption'));
+    if(importReview?.target)nodes.push(text('replace_title',ir[0],'title'),text('replace_size',`${importReview.target.bytes} B`),text('replace_sha',importReview.target.sha256,'caption'),text('replace_warning',ir[2]));
+    else nodes.push(text('replace_absent',ir[4]));
+   }
    else nodes.push(text('operation',JSON.stringify(pending.arguments,null,2)));
    if(pending.operation==='installDraft')nodes.push(text('warning',t[26]));
    if(pending.operation==='deleteEntry')nodes.push(text('warning',f[4]));
-   footer.push(button('cancel',t[15]),{...button('confirm',t[14]),hostAction:pending});
+   footer.push(button('cancel',t[15]),{...button('confirm',pending.operation==='importReviewed'&&importReview?.target?ir[1]:t[14]),hostAction:pending});
   }else if(mode==='drafts'){
    drafts.forEach((d,i)=>nodes.push({id:`draft_entry_${i}`,kind:'card',children:[text(`draft_name_${i}`,d.name,'title'),text(`draft_id_${i}`,`${d.pluginId} · ${d.version}`,'caption'),button(`draft_${i}`,t[24],'draft')]}));
    footer.push(button('home',t[8]),button('refresh',t[9]));

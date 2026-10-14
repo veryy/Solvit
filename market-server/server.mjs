@@ -38,7 +38,7 @@ export async function readCatalog(directory) {
     const bytes = await readFile(join(directory, file));
     if (bytes.length > MAX_PACKAGE_BYTES) throw new Error(`Oversized package: ${file}`);
     const { manifest, source } = JSON.parse(bytes.toString('utf8'));
-    if (!manifest || !pluginId.test(manifest.id) || !version.test(manifest.version) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].includes(manifest.apiVersion) ||
+    if (!manifest || !pluginId.test(manifest.id) || !version.test(manifest.version) || ![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25].includes(manifest.apiVersion) ||
         typeof manifest.name !== 'string' || !manifest.name.trim() || typeof manifest.description !== 'string' ||
         typeof source !== 'string' || !source.trim() || !Array.isArray(manifest.permissions) ||
         !Array.isArray(manifest.dependencies) || !Array.isArray(manifest.tools)) throw new Error(`Invalid package: ${file}`);
@@ -74,7 +74,7 @@ export function createMarketServer({ directory = join(root, 'packages') } = {}) 
       if (path === '/api/v1/plugins') {
         const { entries } = await readCatalog(directory);
         const requested = Number(url.searchParams.get('hostApi'));
-        const supported = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].includes(requested) ? requested : 1;
+        const supported = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25].includes(requested) ? requested : 1;
         const versions = entries.filter(entry => entry.apiVersion <= supported).sort((a, b) => {
           const aa = a.version.split('.').map(Number), bb = b.version.split('.').map(Number);
           for (let i = 0; i < 3; i++) if (aa[i] !== bb[i]) return bb[i] - aa[i];

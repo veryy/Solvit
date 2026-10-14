@@ -32,7 +32,7 @@ const val MAX_WORKSPACE_CAPTURE_BYTES = 2 * 1024 * 1024
 /** Per-write observations, not a whole-project diff or a promise that Shell did not change other files. */
 data class WorkspaceWriteEvidence(val workspaceId: String, val path: String,
     val before: FileObservation, val after: FileObservation, val changed: Boolean?, val verified: Boolean)
-/** Exact bytes copied into a newly created workspace file, never a host path or file body. */
+/** Exact imported bytes and optional retained original; never a host path or file body. */
 data class WorkspaceImportedFile(val workspaceId: String, val path: String, val bytes: Long, val sha256: String,
     val backupPath: String? = null)
 /** A complete content observation, separate from the selected source file's digest. */

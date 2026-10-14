@@ -9,6 +9,7 @@ function harness(bound=true,directories=null){
  const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
  let view,approved,created=0,writes=0,draft=null,document='old',importSelection=null,nextSelection=null,importConflict=false;
  const imports=[];
+ let importReview=null,reviewTarget=null,reviewSequence=0;
  const savedFiles=Array.from({length:25},(_,i)=>({messageId:`message-${25-i}`,messageNumber:25-i,attachmentId:`attachment-${i}`,name:`saved-${i}.txt`,mimeType:'text/plain',bytes:2048,sha256:'f'.repeat(64)}));
  const snapshot={workspaceId:bound?'ws':null,workspaces:bound?[{id:'ws',name:'Project'}]:[],shells:bound?[{id:'s',name:'Shell 1'}]:[],draftInstallAllowed:false};
  const files=Array.from({length:45},(_,i)=>({name:`file-${i}.txt`,path:`file-${i}.txt`,directory:false,bytes:3}));
@@ -18,6 +19,11 @@ function harness(bound=true,directories=null){
   queries.push([op,clone(args)]);
   if(op==='snapshot')return clone(snapshot);
   if(op==='importSelection')return clone(importSelection);
+  if(op==='reviewImport'){
+   assert.equal(args.id,importSelection.id);assert.equal(args.sha256,importSelection.sha256);
+   importReview={reviewId:`review-${++reviewSequence}`,path:args.path,target:clone(reviewTarget)};
+   return clone(importReview);
+  }
   if(op==='chatAttachments')return {attachments:clone(savedFiles.slice(args.offset,args.offset+20)),total:savedFiles.length};
   if(op==='importText'){
    assert.equal(args.id,importSelection.id);assert.equal(args.sha256,importSelection.sha256);
@@ -63,10 +69,14 @@ function harness(bound=true,directories=null){
   }
   if(approved.operation==='selectImport'){if(nextSelection)importSelection=clone(nextSelection);return clone(nextSelection)}
   if(approved.operation==='dropImport'){assert.equal(approved.arguments.id,importSelection.id);importSelection=null;return clone(snapshot)}
-  if(approved.operation==='importFile'){
+  if(approved.operation==='importReviewed'){
    assert.equal(approved.arguments.id,importSelection.id);assert.equal(approved.arguments.sha256,importSelection.sha256);
+   assert.equal(approved.arguments.reviewId,importReview.reviewId);assert.equal(approved.arguments.path,importReview.path);
    if(importConflict)throw Error('File already exists');
-   imports.push(clone(approved.arguments));importSelection=null;
+   const {reviewId,...args}=approved.arguments;
+   imports.push(clone(args));importSelection=null;
+   if(importReview.target)snapshot.lastImport={path:args.path,sha256:args.sha256,backupPath:'solvit-backup-original'};
+   importReview=null;
   }
   if(approved.operation==='create'){created++;snapshot.workspaceId='created';snapshot.workspaces.push({id:'created',name:approved.arguments.name})}
   if(approved.operation==='write')writes++;
@@ -84,7 +94,7 @@ function harness(bound=true,directories=null){
   return view;
  };
  const event=async(id,fields={})=>{const node=nodes().find(n=>n.id===id);assert.ok(node,`missing ${id}`);assert.notEqual(node.enabled,false);approved=node.hostAction;return render({nodeId:id,action:node.action,fields:{...Object.fromEntries(nodes().filter(n=>n.kind==='field').map(n=>[n.id,n.value])),...fields}})};
- return {render,event,nodes,queries,entryActions,snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
+ return {render,event,nodes,queries,entryActions,snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set reviewTarget(value){reviewTarget=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
 }
 test('file imports preserve metadata and require a separate reviewed create; conflicts stay renameable',async()=>{
  const h=harness();await h.render();
@@ -102,10 +112,29 @@ test('file imports preserve metadata and require a separate reviewed create; con
  h.nextSelection=null;await h.event('selectImport');assert.equal(h.nodes().find(n=>n.id==='import_name').text,'source.js');
  await h.event('prepareImport',{importPath:'existing.pdf'});h.importConflict=true;await h.event('confirm');
  assert.equal(h.imports.length,0);assert.ok(h.nodes().some(n=>n.id==='message'&&n.text.includes('File already exists')));
- await h.event('cancel');h.importConflict=false;await h.event('prepareImport',{importPath:'renamed.pdf'});await h.event('confirm');
+ assert.ok(h.nodes().some(n=>n.id==='importPath'));h.importConflict=false;await h.event('prepareImport',{importPath:'renamed.pdf'});await h.event('confirm');
  assert.deepEqual(h.imports,[{id:'chosen',path:'renamed.pdf',sha256:'c'.repeat(64)}]);
  assert.ok(h.nodes().some(n=>n.id==='directory'));
  const unbound=harness(false);await unbound.render();assert.ok(!unbound.nodes().some(n=>n.id==='selectImport'));
+});
+test('existing destination shows its reviewed version; cancel does not write and stale approval requires fresh review',async()=>{
+ const h=harness();await h.render();
+ h.nextSelection={id:'replacement',name:'data.bin',mimeType:'application/octet-stream',bytes:32,sha256:'c'.repeat(64)};
+ h.reviewTarget={bytes:51,sha256:'a'.repeat(64)};
+ await h.event('selectImport');await h.event('prepareImport');
+ assert.equal(h.nodes().find(n=>n.id==='replace_sha').text,'a'.repeat(64));
+ assert.equal(h.nodes().find(n=>n.id==='replace_size').text,'51 B');
+ assert.equal(h.nodes().find(n=>n.id==='confirm').text,'Replace and keep original');
+ assert.ok(h.nodes().find(n=>n.id==='replace_warning').text.includes('solvit-backup-'));
+ const first=h.nodes().find(n=>n.id==='confirm').hostAction.arguments.reviewId;
+ await h.event('cancel');assert.equal(h.imports.length,0);
+ await h.event('prepareImport');assert.notEqual(h.nodes().find(n=>n.id==='confirm').hostAction.arguments.reviewId,first);
+ h.importConflict=true;await h.event('confirm');assert.equal(h.imports.length,0);
+ assert.ok(!h.nodes().some(n=>n.id==='confirm'));assert.ok(h.nodes().some(n=>n.id==='importPath'));
+ h.importConflict=false;h.reviewTarget={bytes:70,sha256:'b'.repeat(64)};
+ await h.event('prepareImport');assert.equal(h.nodes().find(n=>n.id==='replace_sha').text,'b'.repeat(64));
+ await h.event('confirm');assert.equal(h.imports.length,1);
+ assert.ok(h.nodes().find(n=>n.id==='message').text.includes('solvit-backup-original'));
 });
 test('discarding an import selection never submits a write',async()=>{
  const h=harness();await h.render();h.nextSelection={id:'chosen',name:'file.bin',mimeType:'application/octet-stream',bytes:0,sha256:'d'.repeat(64)};
@@ -140,7 +169,7 @@ test('image preview remains separate from original import and preserves its dest
  assert.ok(!h.nodes().some(n=>n.id==='import_picture'));
 });
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
- assert.equal(pkg.manifest.apiVersion,24);assert.equal(pkg.manifest.version,'1.7.0');assert.ok(pkg.resources['ui/main.js']);
+ assert.equal(pkg.manifest.apiVersion,25);assert.equal(pkg.manifest.version,'1.8.0');assert.ok(pkg.resources['ui/main.js']);
  assert.ok(pkg.resources['ui/editor-NOTICE.txt'].includes('Permission is hereby granted'));
  const api17=await readFile('../market-server/packages/legacy/dev.solvit.workspace-1.3.0.solvit.json');
  assert.equal(createHash('sha256').update(api17).digest('hex'),'95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b');

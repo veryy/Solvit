@@ -38,7 +38,7 @@ async function webResources(manifest, manifestFile) {
 
 export async function buildPlugin(entry, manifestFile, output) {
   const manifest = JSON.parse(await readFile(manifestFile, 'utf8'));
-  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
+  if (![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25].includes(manifest.apiVersion) || !Array.isArray(manifest.tools)) throw new Error('Invalid manifest');
   if (manifest.nativeServices !== undefined && (manifest.apiVersion < 12 || !Array.isArray(manifest.nativeServices) ||
       manifest.nativeServices.some(service => !(manifest.apiVersion>=22 && service==='workspace.files' && manifest.permissions?.includes('workspace') || service==='terminal.pty' && manifest.permissions?.includes('shell') || service==='web.pages' && manifest.permissions?.includes('network') || manifest.apiVersion>=19 && service==='workspace.git' && manifest.permissions?.includes('git') && manifest.permissions?.includes('workspace') || manifest.apiVersion>=21 && service==='environment.linux' && ['workspace','shell','network'].every(permission=>manifest.permissions?.includes(permission)))))) throw new Error('Invalid native services');
   if (manifest.permissions?.includes('agent.read') && (manifest.apiVersion < 15 || !manifest.permissions.includes('agent')))

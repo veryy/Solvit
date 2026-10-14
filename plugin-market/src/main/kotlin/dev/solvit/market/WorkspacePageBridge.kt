@@ -25,6 +25,10 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     private var importDraft:Pair<String,PageBinaryDocument>?=null
     private data class AttachmentOrigin(val messageId:String,val attachmentId:String,val sha256:String)
     private var importOrigin:AttachmentOrigin?=null
+    private data class ImportReview(val id:String,val selectionId:String,val path:String,val sourceSha256:String,
+        val target:WorkspaceImportTarget?)
+    private var importReview:ImportReview?=null
+    private var lastImport:WorkspaceImportedFile?=null
     private fun importMetadata():JsonElement = importDraft?.let { (id,document) -> buildJsonObject {
         put("id",id);put("name",document.name);put("mimeType",document.mimeType);put("bytes",document.sizeBytes);put("sha256",document.sha256)
         importOrigin?.let { origin -> put("source",buildJsonObject {
@@ -37,7 +41,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
             return mutex.withLock {
                 verify(authorize);workspace()
                 val next=java.util.UUID.randomUUID().toString() to document
-                importDraft?.second?.close();importDraft=next;importOrigin=null;adopted=true
+                importDraft?.second?.close();importDraft=next;importOrigin=null;importReview=null;adopted=true
                 importMetadata().toString()
             }
         } finally { if(!adopted) document.close() }
@@ -51,6 +55,10 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     private fun snapshot(): JsonObject = buildJsonObject {
         put("workspaceId", binding?.let(::JsonPrimitive) ?: JsonNull)
         put("draftInstallAllowed", canInstallDrafts)
+        lastImport?.let { result -> put("lastImport",buildJsonObject {
+            put("path",result.path);put("sha256",result.sha256)
+            put("backupPath",result.backupPath?.let(::JsonPrimitive)?:JsonNull)
+        }) }
         put("workspaces", buildJsonArray { service.state.value.workspaces.forEach { w -> add(buildJsonObject { put("id", w.id); put("name", w.name) }) } })
         put("shells", buildJsonArray { service.state.value.shells.filter { it.workspaceId == binding }.forEach { s -> add(buildJsonObject { put("id", s.id); put("name", s.name); put("runtime", s.runtime.name) }) } })
     }
@@ -78,6 +86,20 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                 }
                 "snapshot" -> { require(args.isEmpty()); snapshot() }
                 "importSelection" -> { require(args.isEmpty());importMetadata() }
+                "reviewImport" -> {
+                    require(args.keys==setOf("id","path","sha256"))
+                    val selected=checkNotNull(importDraft) { "请先选择要导入的文件" }
+                    check(selected.first==text("id") && selected.second.sha256==text("sha256")) { "选择的文件已改变" }
+                    importReview=null
+                    val target=service.reviewImportTarget(workspace(),text("path"))
+                    verify(authorize)
+                    val review=ImportReview(java.util.UUID.randomUUID().toString(),selected.first,text("path"),selected.second.sha256,target)
+                    importReview=review
+                    buildJsonObject {
+                        put("reviewId",review.id);put("path",review.path)
+                        put("target",target?.let { buildJsonObject { put("bytes",it.bytes);put("sha256",it.sha256) } }?:JsonNull)
+                    }
+                }
                 "chatAttachments" -> {
                     workspace();require(args.keys==setOf("offset"))
                     val offset=args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int
@@ -251,24 +273,33 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                     try {
                         verify(authorize)
                         val next=java.util.UUID.randomUUID().toString() to document
-                        importDraft?.second?.close();importDraft=next;importOrigin=origin;adopted=true
+                        importDraft?.second?.close();importDraft=next;importOrigin=origin;importReview=null;adopted=true
                     } finally { if(!adopted)document.close() }
                 }
-                "importFile" -> {
+                "importFile", "importReviewed" -> {
                     val selected=checkNotNull(importDraft) { "请先选择要导入的文件" }
                     check(selected.first==text("id") && selected.second.sha256==text("sha256")) { "选择的文件已改变，请重新确认" }
+                    val review=if(control.operation=="importReviewed") checkNotNull(importReview) { "请重新审阅目标文件" }.also {
+                        check(it.id==text("reviewId") && it.selectionId==selected.first && it.path==text("path") && it.sourceSha256==selected.second.sha256) {
+                            "导入审阅已失效，请重新确认"
+                        }
+                    } else null
+                    importReview=null
                     importOrigin?.let { origin -> checkNotNull(chatAttachments).validate(
                         origin.messageId,origin.attachmentId,origin.sha256) { verify(authorize) } }
                     val bytes=selected.second.readBytes()
-                    try { service.importFile(workspace(),text("path"),bytes,selected.second.sha256) }
+                    try {
+                        lastImport=if(review?.target!=null) service.replaceImportedFile(workspace(),review.path,bytes,selected.second.sha256,review.target.sha256)
+                        else service.importFile(workspace(),text("path"),bytes,selected.second.sha256)
+                    }
                     finally { bytes.fill(0) }
                     verify(authorize)
-                    selected.second.close();importDraft=null;importOrigin=null
+                    selected.second.close();importDraft=null;importOrigin=null;importReview=null
                 }
                 "dropImport" -> {
                     val selected=checkNotNull(importDraft) { "选择的文件已失效" }
                     check(selected.first==text("id")) { "选择的文件已改变" }
-                    selected.second.close();importDraft=null;importOrigin=null
+                    selected.second.close();importDraft=null;importOrigin=null;importReview=null
                 }
 
                 "create" -> {
@@ -306,5 +337,5 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         verify(authorize)
         snapshot().toString()
     }
-    override suspend fun close() = mutex.withLock { closed=true;textDraft=null;importDraft?.second?.close();importDraft=null;importOrigin=null }
+    override suspend fun close() = mutex.withLock { closed=true;textDraft=null;importDraft?.second?.close();importDraft=null;importOrigin=null;importReview=null;lastImport=null }
 }

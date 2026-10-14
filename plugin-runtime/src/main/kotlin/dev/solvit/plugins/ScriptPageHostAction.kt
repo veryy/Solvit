@@ -60,9 +60,10 @@ object ScriptPageHostAction {
             "installEnvironment", "cancelEnvironment" -> emptySet()
             "installSoftware" -> { LinuxSoftware.valueOf(text("software", 16)); setOf("software") }
             "bind" -> { text("id", 128); setOf("id") }
-            "importFile" -> {
+            "importFile", "importReviewed" -> {
                 text("id",128);text("path",1024);require(text("sha256",64).matches(Regex("[a-f0-9]{64}")))
-                setOf("id","path","sha256")
+                if(operation=="importReviewed") { text("reviewId",128);setOf("id","path","sha256","reviewId") }
+                else setOf("id","path","sha256")
             }
             "dropImport" -> { text("id",128);setOf("id") }
             "selectImport" -> emptySet()

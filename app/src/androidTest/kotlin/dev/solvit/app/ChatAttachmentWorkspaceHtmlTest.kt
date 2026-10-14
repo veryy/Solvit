@@ -94,6 +94,38 @@ class ChatAttachmentWorkspaceHtmlTest {
                 withTimeout(15_000) { app.workspaces.jobs.first { jobs->jobs.any { it.id==job.id&&it.stage==ShellStage.COMPLETED } }.first { it.id==job.id } }
             }
             assertEquals(0,result.exitCode);assertTrue(result.output.joinToString("") { it.text }.contains(attachment.sha256))
+
+            // Same persisted source, now with an existing destination: inspect, cancel, then
+            // let the real Shell change it after review. A stale confirmation must not write.
+            click("home");click("chatFiles");click("chat_file_select_0");confirm()
+            click("prepareImport")
+            waitDom("document.querySelector('[data-node=replace_sha]')?.textContent==='${attachment.sha256}'")
+            click("cancel")
+            val root=File(runBlocking { app.workspaces.location(workspace.id) })
+            assertArrayEquals(bytes,File(root,"saved.pdf").readBytes())
+            assertTrue(root.listFiles()!!.none { it.name.startsWith("solvit-backup-") })
+            click("prepareImport")
+            val external=runBlocking {
+                val job=app.workspaces.run(workspace.id,shell.id,"printf 'Shell modified after review' > saved.pdf",10_000)
+                withTimeout(15_000) { app.workspaces.jobs.first { jobs->jobs.any { it.id==job.id&&it.stage==ShellStage.COMPLETED } }.first { it.id==job.id } }
+            }
+            assertEquals(0,external.exitCode)
+            click("confirm");confirm()
+            waitDom("!!document.querySelector('[data-node=importPath]') && document.querySelector('[data-node=message]')?.textContent.includes('重新审阅')===true")
+            assertEquals("Shell modified after review",File(root,"saved.pdf").readText())
+            assertTrue(root.listFiles()!!.none { it.name.startsWith("solvit-backup-") })
+            click("prepareImport")
+            waitDom("!!document.querySelector('[data-node=replace_warning]') && document.querySelector('[data-node=confirm]')?.textContent.includes('保留原文件')===true")
+            html.screenshot("workspace-import-replacement-review").recycle()
+            click("confirm");confirm()
+            waitDom("document.querySelector('[data-node=message]')?.textContent.includes('solvit-backup-')===true")
+            assertArrayEquals(bytes,File(root,"saved.pdf").readBytes())
+            val backup=root.listFiles()!!.single { it.name.startsWith("solvit-backup-") }
+            assertEquals("Shell modified after review",backup.readText())
+            val status=runBlocking { git.status() }
+            assertEquals("untracked",status.entries.single { it.path=="saved.pdf" }.working)
+            assertEquals("untracked",status.entries.single { it.path==backup.name }.working)
+            assertArrayEquals(bytes,runBlocking { app.attachments.read(session.id,attachment) })
         }finally{rule.runOnUiThread { visible=false }}
     }
 }
