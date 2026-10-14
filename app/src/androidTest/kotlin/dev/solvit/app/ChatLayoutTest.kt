@@ -775,8 +775,12 @@ class ChatLayoutTest {
         ready()
         openWorkspace()
         rule.onNodeWithTag("shell_command").performClick().performTextInput("printf hello-solvit")
-        rule.onNodeWithText("运行").performClick()
-        rule.waitUntil(10_000) { rule.onAllNodesWithText("hello-solvit").fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithText("运行").assertIsEnabled().performClick()
+        try { rule.waitUntil(10_000) { rule.onAllNodesWithText("hello-solvit").fetchSemanticsNodes().isNotEmpty() } }
+        catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+            val app = rule.activity.application as SolvitApplication
+            throw AssertionError("Shell fixture job states: ${app.workspaces.jobs.value.map { Triple(it.stage, it.exitCode, it.failure) }}", timeout)
+        }
         rule.onNodeWithText("hello-solvit").performScrollTo().assertIsDisplayed()
         rule.onNodeWithText("＋ Shell").performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithText("Shell 2").fetchSemanticsNodes().isNotEmpty() }

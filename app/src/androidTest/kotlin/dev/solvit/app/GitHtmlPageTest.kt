@@ -31,7 +31,13 @@ class GitHtmlPageTest {
         val html = HtmlPageProbe(rule.activity)
         val manager = BuiltinWorkspaceManager(app, "dev.solvit.git")
         var visible by mutableStateOf(true)
-        fun waitDom(expression: String) { rule.waitUntil(15_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+        fun waitDom(expression: String) {
+            try { rule.waitUntil(15_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+            catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+                val nodes = runCatching { html.js("Array.from(document.querySelectorAll('[data-node]')).map(e=>({id:e.dataset.node,disabled:e.disabled})).slice(0,30)") }.getOrDefault("unavailable")
+                throw AssertionError("Git page condition: $expression; public node states: $nodes", timeout)
+            }
+        }
         fun click(id: String) {
             waitDom("!!document.querySelector('[data-node=$id]') && !document.querySelector('[data-node=$id]').disabled")
             html.js("document.querySelector('[data-node=$id]').click()")
@@ -101,7 +107,7 @@ class GitHtmlPageTest {
                 File(root, "read.txt").writeText("actual Git tool 中文 😀\n")
                 native.commit(native.stage(native.diff("read.txt", false)), "Tool history", "Fixture", "test@example.invalid")
                 File(root, "read.txt").writeText("modified tool result 😀\n")
-                if (!wasEnabled) app.marketplace.enable(plugin, setOf("workspace", "git"))
+                if (!wasEnabled) app.marketplace.enable(plugin, setOf("workspace", "git", "network"))
                 val descriptor = app.marketplace.installed.value.single { it.id == plugin }.tools.single { it.name.endsWith("_status") }
                 assertTrue(descriptor.chatVisible)
                 val allow = object : dev.solvit.core.ToolAuthorization {

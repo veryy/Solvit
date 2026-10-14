@@ -127,7 +127,11 @@ class ChatAttachmentsDeviceTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("attachment_image_${image.id}").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("attachment_preview_close").performClick()
             rule.onNodeWithTag("chat_send").assertIsEnabled().performClick()
-            rule.waitUntil(15_000) { !vm.busy.value && vm.messages.value.any { it.role == Role.ASSISTANT && it.content == "attachment answer" } }
+            try {
+                rule.waitUntil(15_000) { !vm.busy.value && vm.messages.value.any { it.role == Role.ASSISTANT && it.content == "attachment answer" } }
+            } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+                throw AssertionError("Attachment fixture: busy=${vm.busy.value}, error=${vm.error.value}, HTTP requests=${server.requestCount}, stored states=${vm.messages.value.map { it.role to it.status }}", timeout)
+            }
             val http = server.takeRequest(5, TimeUnit.SECONDS) ?: error("missing HTTP request")
             val sent = JSONObject(http.body.readUtf8()).getJSONArray("messages")
             val user = (0 until sent.length()).map { sent.getJSONObject(it) }.single { it.getString("role") == "user" }
