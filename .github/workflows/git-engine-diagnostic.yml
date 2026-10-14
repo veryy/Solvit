@@ -1,7 +1,7 @@
 name: Android Git engine compatibility
 on:
   push:
-    branches: [feat/workspace-git]
+    branches: [feat/workspace-git, feat/workspace-github]
     paths: ['core/**', 'git-android/**', 'buildSrc/**', 'settings.gradle.kts', '.github/workflows/git-engine-diagnostic.yml']
   workflow_dispatch:
 permissions:
@@ -31,7 +31,7 @@ jobs:
       - name: Prepare actual Android Git test APKs
         run: |
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
-          ./gradlew :git-android:assembleDebug :git-android:assembleDebugAndroidTest --stacktrace
+          ./gradlew :core:test :git-android:assembleDebug :git-android:assembleDebugAndroidTest --stacktrace
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

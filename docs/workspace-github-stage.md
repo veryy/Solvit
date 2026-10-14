@@ -10,6 +10,15 @@
 
 ## 实施顺序
 
+首个实现检查点：`GitRemoteEndpoint` 对外地址不含密钥，严格匹配仓库、HTTPS和端口；
+`RepositoryCredentials` 是单次传输宿主持有的 JGit CredentialsProvider，拒绝其他仓库、
+重定向目标、URL内凭据和关闭TLS的交互，close清除内部及已交出的密码副本。
+这部分尚未连接克隆/拉取/推送，不能算GitHub功能已交付。纯JVM URL输入/诊断回归及
+实际Android JGit认证类型回归将由GitHub Actions运行，当前未验证通过。
+参考固定JGit CredentialItem.java 的setValue复制/clear语义、CredentialsProvider.java、
+TransportHttp.java和HttpConfig.java；沿用已有依赖，不复制上游实现。完整传输、加密
+存储、页面、进度取消、冲突恢复与AI写入仍按下列范围继续。
+
 1. 共享远程Git服务：归属当前对话/目录，明确仓库URL、远程名和分支；页面、AI调用同一服务，停用/关闭收回会话与网络任务。
 2. GitHub认证：宿主加密保存凭据，插件页面可配置并查看已配置状态；JS/模型拿凭据引用和遮蔽状态，传输时由宿主注入，错误/日志/URL不包含密钥。默认不继承系统全局凭据或任意仓库helper。
 3. 真实克隆、fetch、pull、push：操作前展示准确目录/仓库/分支/当前HEAD；保留已有本地文件和提交，不自动强制推送或覆盖脏工作树。网络进度、取消、认证失败和非快进结果在插件页面可见。
