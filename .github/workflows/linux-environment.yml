@@ -72,7 +72,12 @@ jobs:
           assert match, 'Actual Python/Node/npm versions were not captured'
           versions = '\n'.join(match.groups()) + '\n'
           Path('linux-probe/build/ubuntu-probe-versions.txt').write_text(versions)
-          print(versions)
+          print('Ubuntu apt fixture:', versions)
+          production = re.search(r'PRODUCTION_RUNTIME_VERSIONS\|(Python 3\.[0-9]+\.[0-9]+[^|\r\n]*)\|(v24\.21\.0)\|([0-9]+\.[0-9]+\.[0-9]+)', text)
+          assert production, 'Production Node 24/Python/npm versions missing'
+          assert 'JAVA_RUNTIME_VERIFIED|openjdk version "17.' in text, 'Production Java 17 execution missing'
+          Path('linux-probe/build/ubuntu-probe-production-versions.txt').write_text('\n'.join(production.groups()) + '\n')
+          print('Production:', production.groups())
           PY_REPORT
       - uses: actions/upload-artifact@v4
         if: always()

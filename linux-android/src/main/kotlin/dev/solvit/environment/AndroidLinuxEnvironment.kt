@@ -55,20 +55,20 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         try {
             withContext(Dispatchers.IO) {
                 call.execute().use { response ->
-                    check(response.isSuccessful) { "Ubuntu 下载失败：HTTP ${response.code}" }
-                    check(response.request.url.isHttps) { "Ubuntu 下载必须使用 HTTPS" }
+                    check(response.isSuccessful) { "运行环境下载失败：HTTP ${response.code}" }
+                    check(response.request.url.isHttps) { "运行环境下载必须使用 HTTPS" }
                     val body = checkNotNull(response.body)
                     val total = body.contentLength().takeIf { it > 0 }
                     val limit = 128L * 1024 * 1024
-                    check(total == null || total <= limit) { "Ubuntu 归档超过下载容量限制" }
+                    check(total == null || total <= limit) { "运行环境归档超过下载容量限制" }
                     body.byteStream().use { input -> target.outputStream().use { output ->
                         val buffer = ByteArray(64 * 1024); var written = 0L
                         while (true) {
                             ensureActive(); val count = input.read(buffer); if (count < 0) break
-                            check(count <= limit - written) { "Ubuntu 归档超过下载容量限制" }
+                            check(count <= limit - written) { "运行环境归档超过下载容量限制" }
                             output.write(buffer, 0, count); written += count; progress(written, total)
                         }
-                        check(total == null || written == total) { "Ubuntu 下载不完整" }
+                        check(total == null || written == total) { "运行环境下载不完整" }
                     } }
                 }
             }
@@ -123,20 +123,62 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         task.start()
         Unit
     }
+    private suspend fun installNode(root: File) {
+        val catalog = checkNotNull(Build.SUPPORTED_ABIS.firstNotNullOfOrNull(NodeCatalog::forAbi))
+        // A host-owned download is checksum-verified before extraction inside the guest.
+        val archive = File(workspace, ".solvit-node-${java.util.UUID.randomUUID()}.tar.xz")
+        try {
+            download(catalog, archive) { bytes, total -> mutableState.update { it.copy(bytes = bytes, total = total) } }
+            withContext(Dispatchers.IO) {
+                val digest = java.security.MessageDigest.getInstance("SHA-256")
+                archive.inputStream().buffered().use { input ->
+                    val buffer = ByteArray(64 * 1024)
+                    while (true) {
+                        ensureActive(); val count = input.read(buffer); if (count < 0) break
+                        digest.update(buffer, 0, count)
+                    }
+                }
+                check(digest.digest().joinToString("") { "%02x".format(it) } == catalog.sha256) { "Node.js 归档校验失败" }
+            }
+            // Publish bin links only after the versioned installation executes successfully.
+            run(root, """
+                set -eu
+                mkdir -p /opt /usr/local/bin
+                if [ ! -f /opt/${catalog.archivePrefix}/.solvit-ready ]; then
+                    rm -rf /opt/${catalog.archivePrefix}
+                    tar -xJf /workspace/${archive.name} -C /opt --no-same-owner
+                    test "$(/opt/${catalog.archivePrefix}/bin/node --version)" = "v${NodeCatalog.VERSION}"
+                    /opt/${catalog.archivePrefix}/bin/node /opt/${catalog.archivePrefix}/lib/node_modules/npm/bin/npm-cli.js --version
+                    touch /opt/${catalog.archivePrefix}/.solvit-ready
+                fi
+                for executable in node npm npx corepack; do
+                    if [ -e /opt/${catalog.archivePrefix}/bin/${'$'}executable ]; then
+                        ln -sfn /opt/${catalog.archivePrefix}/bin/${'$'}executable /usr/local/bin/${'$'}executable
+                    fi
+                done
+                node --version && npm --version
+            """.trimIndent())
+        } finally { withContext(NonCancellable + Dispatchers.IO) { archive.delete() } }
+    }
     override suspend fun install() = begin("DOWNLOADING", rootInstallation = true) {
-        checkNotNull(installer).install { root -> run(root,
-            "apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends python3 python3-venv nodejs npm ca-certificates && python3 --version && node --version && npm --version") }
+        checkNotNull(installer).install { root ->
+            run(root, "apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends python3 python3-venv ca-certificates xz-utils libstdc++6 && python3 --version")
+            installNode(root)
+        }
     }
     override suspend fun installSoftware(software: LinuxSoftware) = begin("INSTALLING_SOFTWARE") {
         val root = checkNotNull(installer?.activeRoot()) { "请先安装 Ubuntu 环境" }
         val packages = when (software) {
             LinuxSoftware.PYTHON -> "python3 python3-venv python3-pip"
-            LinuxSoftware.NODE -> "nodejs npm"
+            LinuxSoftware.NODE -> "ca-certificates xz-utils libstdc++6"
             LinuxSoftware.JAVA -> "openjdk-17-jdk-headless"
         }
-        val version = when (software) { LinuxSoftware.PYTHON -> "python3 --version && python3 -m pip --version"
-            LinuxSoftware.NODE -> "node --version && npm --version"; LinuxSoftware.JAVA -> "java -version" }
-        run(root, "dpkg --configure -a && apt-get -f install -y --no-install-recommends && apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends $packages && $version")
+        run(root, "dpkg --configure -a && apt-get -f install -y --no-install-recommends && apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends $packages")
+        when (software) {
+            LinuxSoftware.PYTHON -> run(root, "python3 --version && python3 -m pip --version")
+            LinuxSoftware.NODE -> installNode(root)
+            LinuxSoftware.JAVA -> run(root, "java -version")
+        }
     }
     override suspend fun cancel() = mutex.withLock { operation?.cancelAndJoin(); Unit }
     private fun root() = checkNotNull(installer?.activeRoot()) { "请先在环境插件中完成 Ubuntu 安装" }

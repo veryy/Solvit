@@ -41,7 +41,7 @@ class UbuntuProbeTest {
             android.util.Log.i("SolvitLinuxProbe", "JAVA_RUNTIME_VERIFIED|" + javaResult.output.lines().first { it.contains("openjdk version") })
             val workspace = File(context.filesDir, "production shared workspace").apply { mkdirs() }
             val plan = service.command(workspace.absolutePath,
-                "python3 -c \"from pathlib import Path; Path('production-python.txt').write_text('python-ok')\" && node -e \"require('fs').writeFileSync('production-node.txt','node-ok')\"")
+                "python3 -c \"from pathlib import Path; Path('production-python.txt').write_text('python-ok')\" && node -e \"require('fs').writeFileSync('production-node.txt','node-ok')\" && python3 --version && node --version && npm --version")
             val log = File(context.cacheDir, "production-check.log")
             val child = ProcessBuilder(plan.arguments).apply {
                 plan.environment.forEach { (key, value) -> if (value == null) environment().remove(key) else environment()[key] = value }
@@ -52,6 +52,9 @@ class UbuntuProbeTest {
                 assertEquals(log.readText(), 0, child.exitValue())
                 assertEquals("python-ok", File(workspace, "production-python.txt").readText())
                 assertEquals("node-ok", File(workspace, "production-node.txt").readText())
+                val versions = log.readText().trim()
+                assertTrue(versions, versions.lines().contains("v${dev.solvit.linux.NodeCatalog.VERSION}"))
+                android.util.Log.i("SolvitLinuxProbe", "PRODUCTION_RUNTIME_VERSIONS|" + versions.replace("\n", "|"))
             } finally { child.destroyForcibly() }
             val terminal = service.terminal(workspace.absolutePath)
             dev.solvit.terminal.PtyConnection.open(workspace, command = terminal.arguments, environment = terminal.environment).use { pty ->
@@ -70,7 +73,7 @@ class UbuntuProbeTest {
                 readUntil("__UBUNTU_READY__")
                 pty.write("[ -t 0 ] && [ -t 1 ] && python3 -c \"from pathlib import Path; Path('pty-python.txt').write_text('pty-ok')\" && node --version && printf '__UBUNTU_%s__\\n' DONE\n".toByteArray())
                 val output = readUntil("__UBUNTU_DONE__")
-                assertTrue(output, output.contains("v18."))
+                assertTrue(output, output.contains("v${dev.solvit.linux.NodeCatalog.VERSION}"))
                 assertEquals("pty-ok", File(workspace, "pty-python.txt").readText())
             }
             // Exercise the same post-authorization native path used by AI Shell tools.

@@ -49,7 +49,7 @@ fun interface RootfsDownload {
  * Activation replaces only a small pointer, after trusted host initialization succeeds.
  */
 class RootfsInstallation(private val directory: File, private val source: RootfsSource,
-    private val download: RootfsDownload, private val minimumFreeBytes: Long = 384L * 1024 * 1024) {
+    private val download: RootfsDownload, private val minimumFreeBytes: Long = 768L * 1024 * 1024) {
     private val mutex = Mutex()
     private val status = MutableStateFlow(InstallationStatus(InstallationStage.IDLE))
     val state = status.asStateFlow()

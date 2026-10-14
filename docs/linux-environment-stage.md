@@ -88,3 +88,5 @@
 ARM64官方归档已下载并做静态内容核对：25,545,644字节，SHA256 81ac0fb0d16ded12ab11cede62f67b875ff56f9fa1aa9eb786415c3ec5c477d2，5180条目、126,240,490文件字节，单一ubuntu-noble-aarch64前缀，未发现硬链接。本机只读取归档元数据，没有运行Linux程序；ARM64运行仍未验收。
 
 候选APK实际检查发现Commons Compress引入的Maven Codec 1.19.0与JGit转换配置中的文件依赖Codec 1.22.1重复；6feeec5仅将已有1.22.1放回正常依赖解析图，保留JGit原引擎及Android字节码适配。另显式声明环境操作Unit返回类型，避免Job.start的Boolean影响接口。远程Java扩展探针还发现测试局部变量java遮蔽java.io包，改名javaResult，不删除Java安装/版本断言。最终以原完整门禁为准。
+
+8d9154c 的生产下载/Java17/PTY/已授权 AI 工作区路径由 [38543491385](https://github.com/veryy/Solvit/actions/runs/38543491385) 实际通过。该轮生产 Node 仍是 apt 的18，不据此宣称现代 Node 工具兼容。Operit 锁定 SetupScreen 明确用 NodeSource setup_24.x；Solvit 改用 Node 官方 v24.21.0 LTS 的 ARM64/x64 固定归档和 SHASUMS256 哈希，宿主先 HTTPS 下载/校验，再由 guest 解包到版本目录并实际执行，成功后公开 node/npm/npx 链接。无需执行可变第三方安装脚本。Node 文件及 LICENSE 保留在 guest 目录，不进入 APK。参考 Node v24.21.0 BUILDING.md（Linux glibc/libstdc++ 支持）和官方发布说明；生产精确版本增加独立设备日志门禁，旧 apt 兼容探针继续保留。新版尚待远程执行，不提前声称通过。
