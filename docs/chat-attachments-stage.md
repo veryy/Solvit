@@ -81,3 +81,7 @@ SQLite存储与插件注册共用同一个AttachmentFiles实例。创建分支�
 ## 图像测试环境失败修复
 
 f21af79的38504186035失败在ChatAttachmentValidationTest有效PNG，实际产物11867876290取回检查CRC/XML：失败为“图片内容与文件类型不匹配”，core62/chat-runtime60/provider-openai20/provider-anthropic16/storage-sqlite31全部无失败，App39项仅此项失败。核对Robolectric4.16.1实际ShadowBitmapFactory.java:183–206，legacy decodeByteArray没有给outMimeType赋值；不能把它作为Android原生解码器的MIME证据。测试改用GraphicsMode.NATIVE运行同一PNG/伪装MIME/坏图断言，生产校验不放宽。参考上游原生ShadowNativeBitmapFactory，未复制源码。远程验证仍待完成。
+
+## 历史附件加载前预算
+
+检查完整请求发现每条消息20MiB限制不能限制多轮历史累计的加载内存。增加全保留历史20MiB附件资料门禁，在读取/编码任何文件前检查；超限保留用户消息/文件和失败状态，明确请求新建对话，不静默丢弃资料。新增回归断言超限时文件读取次数和模型执行均为零，两个用户消息的原附件引用仍在。该门禁是当前资源限制，后续需结合摘要/附件按需读取改善长会话；不宣称全局磁盘配额或完整多模态摘要已完成。

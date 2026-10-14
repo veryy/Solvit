@@ -24,6 +24,31 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun oversizedHistoryAttachmentBudgetFailsBeforeReadingAnyBlobAndPreservesMessages() = runTest {
+        val store = MemoryStore()
+        val first = ChatAttachment(java.util.UUID.randomUUID().toString(), "one.png", "image/png", 12L * 1024 * 1024, "a".repeat(64))
+        val second = first.copy(id = java.util.UUID.randomUUID().toString(), name = "two.png")
+        store.append(ChatMessage("old", "session", Role.USER, "first", attachments = listOf(first)))
+        var reads = 0
+        val files = object : ChatAttachmentStore {
+            override suspend fun import(sessionId: String, name: String, mimeType: String, input: java.io.InputStream,
+                authorize: suspend () -> Unit): ChatAttachment = error("unused")
+            override suspend fun read(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit): ByteArray {
+                reads++; error("must not allocate over-budget media")
+            }
+            override suspend fun remove(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit) = error("unused")
+        }
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest): Flow<ModelChunk> = error("over-budget input must not reach model")
+        }
+        val chat = DefaultChatService(store, agent, EventBus(), attachmentStore = files)
+        assertFailsWith<ModelException> { chat.sendAttachments("session", "second", listOf(second), ModelConfig()).toList() }
+        assertEquals(0, reads)
+        assertEquals(listOf(first), store.saved[0].attachments)
+        assertEquals(listOf(second), store.saved[1].attachments)
+        assertEquals(MessageStatus.FAILED, store.saved.last().status)
+    }
+
     @Test fun attachmentOnlySendPersistsReferencesAndReopensImagesForFollowingTurns() = runTest {
         val store = MemoryStore()
         val image = ChatAttachment(java.util.UUID.randomUUID().toString(), "image.png", "image/png", 4, "a".repeat(64))

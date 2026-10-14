@@ -110,6 +110,11 @@ class DefaultChatService(
                 val instructions = ChatContextComposer.render(sections)
                 if (instructions.isNotBlank()) add(ModelMessage(Role.SYSTEM, instructions))
                 val projected = completeContext(history, trackSources = true)
+                // Bound the retained bytes before loading/encoding any history media.
+                // Never allocate one full 20MiB buffer per historical message first.
+                val attachmentBytes = projected.sumOf { message -> message.attachments.sumOf { it.sizeBytes } }
+                if (attachmentBytes > ChatAttachment.MAX_ATTACHMENT_BYTES)
+                    throw ModelException("本次会话附件资料超过20MiB请求限制，请新建对话；原消息和附件已保留")
                 val resolver = attachmentStore?.let(::AttachmentContentResolver)
                 projected.forEach { message ->
                     if (message.attachments.isEmpty()) add(message)
