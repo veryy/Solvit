@@ -6,6 +6,15 @@ type Button=Extract<PageNode,{kind:'button'}>;
 type TextChunk={text:string;offset:number;nextOffset:number;total:number;sha256:string};
 type ImportSelection={id:string;name:string;mimeType:string;bytes:number;sha256:string;source?:{kind:string;messageId:string;attachmentId:string}};
 type ImportReview={reviewId:string;path:string;target:{bytes:number;sha256:string}|null};
+type ImportOperation={operationId:string;status:string;progress?:{stage:string;completed:number;total:number};result?:Snapshot;error?:string};
+const transferLabels={
+ zh:['正在写入工作区','取消导入','正在取消，请等待清理','已取消，所选文件仍可重试','准备','写入','同步','校验','发布','已完成'],
+ en:['Importing into workspace','Cancel import','Cancelling; waiting for cleanup','Cancelled. The selected file is available for retry.','Preparing','Writing','Syncing','Verifying','Publishing','Completed'],
+ ja:['ワークスペースに書き込み中','インポートを中止','中止処理と後片付け中','中止しました。選択したファイルで再試行できます。','準備','書き込み','同期','検証','公開','完了'],
+ ko:['작업 공간에 쓰는 중','가져오기 취소','취소 및 정리 중','취소했습니다. 선택한 파일로 다시 시도할 수 있습니다.','준비','쓰기','동기화','검증','게시','완료'],
+ es:['Importando al espacio','Cancelar importación','Cancelando y limpiando','Cancelado. El archivo sigue disponible para reintentar.','Preparando','Escribiendo','Sincronizando','Verificando','Publicando','Completado'],
+ fr:['Import dans l’espace','Annuler l’import','Annulation et nettoyage','Annulé. Le fichier sélectionné reste disponible.','Préparation','Écriture','Synchronisation','Vérification','Publication','Terminé']
+};
 const replacementLabels={
  zh:['目标文件已存在','确认替换并保留原文件','保存时会再次核对版本；原文件将保留为同目录的 solvit-backup-* 文件。','原文件备份','目标尚不存在，将新建文件。'],
  en:['Destination exists','Replace and keep original','The version is checked again on save. The original stays beside it as solvit-backup-*.','Original backup','Destination is absent. A new file will be created.'],
@@ -72,6 +81,8 @@ export function workspacePage(importsEnabled=true){
  let managementPath='';
  let importSelection:ImportSelection|null=null,importPath='';
  let importReview:ImportReview|null=null;
+ let importOperation:ImportOperation|null=null;
+ let snapshot:Snapshot={workspaceId:null,workspaces:[],shells:[],draftInstallAllowed:false};
  let importPreview:{kind:string;text:string|null;truncated:boolean}|null=null;
  let importPicture:{width:number;height:number;source:string}|null=null;
  let importPdf:PdfPreview|null=null;
@@ -82,13 +93,14 @@ export function workspacePage(importsEnabled=true){
   const t=labels[locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en;
   const f=fileLabels[locale.split(/[-_]/)[0] as keyof typeof fileLabels]??fileLabels.en;
   const im=importLabels[locale.split(/[-_]/)[0] as keyof typeof importLabels]??importLabels.en;
+  const tr=transferLabels[locale.split(/[-_]/)[0] as keyof typeof transferLabels]??transferLabels.en;
   const ir=replacementLabels[locale.split(/[-_]/)[0] as keyof typeof replacementLabels]??replacementLabels.en;
   const ip=previewLabels[locale.split(/[-_]/)[0] as keyof typeof previewLabels]??previewLabels.en;
   const pic=pictureLabels[locale.split(/[-_]/)[0] as keyof typeof pictureLabels]??pictureLabels.en;
   const pdf=pdfLabels[locale.split(/[-_]/)[0] as keyof typeof pdfLabels]??pdfLabels.en;
   const cf=chatFileLabels[locale.split(/[-_]/)[0] as keyof typeof chatFileLabels]??chatFileLabels.en;
   const api=ctx.workspacePage;if(!api)throw Error('Workspace page needs API12');
-  let snapshot=await api.query('snapshot') as unknown as Snapshot;
+  if(mode!=='importTransfer')snapshot=await api.query('snapshot') as unknown as Snapshot;
   if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear()}
   const refresh=async()=>{snapshot=await api.query('snapshot') as unknown as Snapshot};
   const list=async()=>{const result=await api.query('list',{path:directory,offset}) as unknown as {files:FileEntry[];total:number};files=result.files;total=result.total};
@@ -116,11 +128,27 @@ export function workspacePage(importsEnabled=true){
    }
    returnMode=mode;pending={kind:'workspace.perform',operation,arguments:args};mode='preview';
   };
+  const pollImport=async()=>{
+   if(!importOperation)return;
+   importOperation=await api.query('importOperation',{operationId:importOperation.operationId}) as unknown as ImportOperation;
+   if(importOperation.status==='SUCCEEDED'){
+    if(!importOperation.result)throw Error('Missing native import result');
+    snapshot=importOperation.result;message=t[28];
+    if(snapshot.lastImport?.backupPath)message+=` · ${ir[3]}: ${snapshot.lastImport.backupPath}`;
+    importSelection=null;importPreview=null;importPicture=null;importPdf=null;importReview=null;
+    treeRevision++;treeResult=null;treeEntries.clear();mode='list';await list();importOperation=null;
+   }else if(importOperation.status==='FAILED'||importOperation.status==='CANCELLED'){
+    message=importOperation.status==='CANCELLED'?tr[3]:t[22]+(importOperation.error??'Import failed');
+    importReview=null;mode='import';importOperation=null;
+   }
+  };
   if(event){
    // Passive tree fetches follow writes automatically; keep their result/backup visible.
    if(event.action!=='treeLoad')message='';try{
     const action=event.action;
-    if(action==='chatFiles'){chatReturnMode=mode;chatFileOffset=0;await loadChatFiles();mode='chatFiles'}
+    if(action==='importPoll'){await pollImport()}
+    else if(action==='cancelImport'&&importOperation){await api.perform();await pollImport()}
+    else if(action==='chatFiles'){chatReturnMode=mode;chatFileOffset=0;await loadChatFiles();mode='chatFiles'}
     else if(action==='chatFilesPrev'||action==='chatFilesNext'||action==='chatFilesRefresh'){chatFileOffset=action==='chatFilesRefresh'?0:action==='chatFilesPrev'?Math.max(0,chatFileOffset-20):chatFileOffset+20;await loadChatFiles()}
     else if(action==='chatFilesBack'){mode=chatReturnMode}
     else if(action==='selectChatAttachment'){
@@ -150,7 +178,7 @@ export function workspacePage(importsEnabled=true){
      if(!importPath||importPath.length>1024||importPath.startsWith('/')||importPath.includes('\\')||/[\u0000-\u001f\u007f]/.test(importPath)||importPath.split('/').some(p=>!p||p==='.'||p==='..'||p==='.git'))throw Error('Invalid relative path');
      importReview=await api.query('reviewImport',{id:importSelection.id,path:importPath,sha256:importSelection.sha256}) as unknown as ImportReview;
      if(importReview.path!==importPath||!importReview.reviewId)throw Error('Import review changed');
-     prepare('importReviewed',{id:importSelection.id,path:importPath,sha256:importSelection.sha256,reviewId:importReview.reviewId});
+     prepare('startImport',{id:importSelection.id,path:importPath,sha256:importSelection.sha256,reviewId:importReview.reviewId});
     }
     else if(action==='dropImport'&&importSelection){await api.perform();importSelection=null;importPreview=null;importPicture=null;importPdf=null;mode='list';await list()}
     else if(action==='treeLoad'){
@@ -214,11 +242,16 @@ export function workspacePage(importsEnabled=true){
      const draft=await api.query('editFinish',{draftId:uploadId}) as unknown as {draftId:string;path:string;sha256:string};
      prepare('writeDraft',{draftId:draft.draftId,path:draft.path,sha256:draft.sha256});phase='review';
     }else if(action==='confirm'&&mode==='preview'&&pending){
+     if(pending.operation==='startImport'){
+      const started=await api.perform() as unknown as {operationId:string};
+      importOperation={operationId:started.operationId,status:'RUNNING'};pending=null;mode='importTransfer';await pollImport();
+     }else{
      snapshot=await api.perform() as unknown as Snapshot;const operation=pending.operation;pending=null;message=t[28];
      if(operation==='importReviewed'){importSelection=null;importPreview=null;importPicture=null;importPdf=null;importReview=null;if(snapshot.lastImport?.backupPath)message+=` · ${ir[3]}: ${snapshot.lastImport.backupPath}`}
      if(['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importReviewed'].includes(operation)){treeRevision++;treeResult=null;treeEntries.clear()}
      mode=['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importReviewed'].includes(operation)?'list':operation==='installDraft'?'drafts':'home';
      if(mode==='list')await list();if(mode==='drafts')await loadDrafts();
+     }
     }else if(action==='cancel'){
      if(pending?.operation==='writeDraft'){await api.query('editDiscard',{draftId:uploadId});uploadId='';phase='ready'}
      mode=returnMode;pending=null;
@@ -232,9 +265,9 @@ export function workspacePage(importsEnabled=true){
     else if(action==='draftPrev'){draftOffset=Math.max(0,draftOffset-16000);await loadDraft()}
     else if(action==='draftNext'){draftOffset+=16000;await loadDraft()}
     else if(action==='prepareInstall'&&selected)prepare('installDraft',{id:selected.id,sha256:selected.sha256});
-    await refresh();
+    if(mode!=='importTransfer')await refresh();
    }catch(error){
-    if(pending?.operation==='importReviewed'){pending=null;importReview=null;mode='import'}
+    if(pending?.operation==='startImport'){pending=null;importReview=null;mode='import'}
     if(mode==='editor'&&phase==='reading')phase='readFailed';
     else if(mode==='editor'&&phase==='uploading')phase='uploadFailed';
     message=t[22]+(error instanceof Error?error.message:String(error));
@@ -252,7 +285,15 @@ export function workspacePage(importsEnabled=true){
    {id:'treeOffset',kind:'field',label:'Offset',value:'0'},
    {id:'treeTarget',kind:'field',label:'File',value:''},
    button('tree_load','Load directory','treeLoad'),button('tree_open','Open file','treeOpen'));
-  if(mode==='home'){
+  if(mode==='importTransfer'&&importOperation){
+   const progress=importOperation.progress??{stage:'PREPARING',completed:0,total:importSelection?.bytes??0};
+   const stage=['PREPARING','WRITING','SYNCING','VERIFYING','PUBLISHING','COMMITTED'].indexOf(progress.stage);
+   nodes.push(text('transfer_title',tr[0],'title'),text('transfer_stage',tr[Math.max(0,stage)+4]),
+    text('transfer_bytes',`${progress.completed} / ${progress.total} B`),
+    text('import_progress',JSON.stringify(progress),'caption'),button('import_poll',tr[0],'importPoll'));
+   if(importOperation.status==='CANCELLING')nodes.push(text('transfer_cancel_wait',tr[2]));
+   else footer.push({...button('cancelImport',tr[1]),hostAction:{kind:'workspace.perform',operation:'cancelImport',arguments:{operationId:importOperation.operationId}}});
+  }else if(mode==='home'){
    nodes.push(text('name',current?.name??t[20],'title'));
    nodes.push(button('create',t[1]),button('choose',t[2]));
    if(current){nodes.push(button('directory',t[7]),...(importsEnabled?[selectImport(),fromChat()]:[]),button('shell',t[31]),text('shells',snapshot.shells.map(s=>s.name).join(' · ')),button('drafts',t[23]),button('prepareUnbind',t[6]));if(importSelection)nodes.push(button('showImport',im[2]))}
@@ -317,7 +358,7 @@ export function workspacePage(importsEnabled=true){
    nodes.push(text('preview',t[14],'title'));
    if(pending.operation==='write'){nodes.push(text('target',String(pending.arguments.path)),text('contents',String(pending.arguments.text)))}
    else if(pending.operation==='writeDraft')nodes.push(text('target',String(pending.arguments.path)),text('save_sha',String(pending.arguments.sha256),'caption'));
-   else if(pending.operation==='importReviewed'&&importSelection){
+   else if(pending.operation==='startImport'&&importSelection){
     nodes.push(text('import_name',importSelection.name),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),text('target',String(pending.arguments.path)),text('import_sha',importSelection.sha256,'caption'));
     if(importReview?.target)nodes.push(text('replace_title',ir[0],'title'),text('replace_size',`${importReview.target.bytes} B`),text('replace_sha',importReview.target.sha256,'caption'),text('replace_warning',ir[2]));
     else nodes.push(text('replace_absent',ir[4]));
@@ -325,7 +366,7 @@ export function workspacePage(importsEnabled=true){
    else nodes.push(text('operation',JSON.stringify(pending.arguments,null,2)));
    if(pending.operation==='installDraft')nodes.push(text('warning',t[26]));
    if(pending.operation==='deleteEntry')nodes.push(text('warning',f[4]));
-   footer.push(button('cancel',t[15]),{...button('confirm',pending.operation==='importReviewed'&&importReview?.target?ir[1]:t[14]),hostAction:pending});
+   footer.push(button('cancel',t[15]),{...button('confirm',pending.operation==='startImport'&&importReview?.target?ir[1]:t[14]),hostAction:pending});
   }else if(mode==='drafts'){
    drafts.forEach((d,i)=>nodes.push({id:`draft_entry_${i}`,kind:'card',children:[text(`draft_name_${i}`,d.name,'title'),text(`draft_id_${i}`,`${d.pluginId} · ${d.version}`,'caption'),button(`draft_${i}`,t[24],'draft')]}));
    footer.push(button('home',t[8]),button('refresh',t[9]));

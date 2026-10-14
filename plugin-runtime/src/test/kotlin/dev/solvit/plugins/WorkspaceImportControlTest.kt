@@ -7,6 +7,33 @@ import kotlin.test.*
 
 /** Exercise the host boundary before the API22 package/catalog rollout. */
 class WorkspaceImportControlTest {
+    @Test fun transferControlsRequireApi26DeclaredFilesAndOneDisplayedApproval():Unit=runBlocking {
+        var reads=0;var writes=0
+        val access=object:PageWorkspaceAccess {
+            override suspend fun query(operation:String,argumentsJson:String,authorize:suspend()->Unit):String { authorize();reads++;return "{}" }
+            override suspend fun perform(control:PageWorkspaceControl,authorize:suspend()->Unit):String { authorize();writes++;return "{}" }
+        }
+        val imports=buildJsonObject { put("id","selection");put("path","file.bin");put("sha256","a".repeat(64));put("reviewId","review") }
+        for(operation in listOf("startImport","cancelImport")) {
+            val args=if(operation=="startImport")imports else buildJsonObject { put("operationId","operation") }
+            val approved=control(operation,args)
+            for((api,declared)in listOf(24 to true,25 to true,26 to false)) {
+                val context=ScriptPageExecutionContext("test.transfer",{},approved,workspace=access)
+                assertFails { context.queryWorkspace("importOperation",args,api,declared) }
+                assertFails { context.performWorkspace(api,filesDeclared=declared) }
+            }
+            val context=ScriptPageExecutionContext("test.transfer",{},approved,workspace=access)
+            context.queryWorkspace("importOperation",buildJsonObject { put("operationId","operation") },26,true)
+            context.performWorkspace(26,filesDeclared=true)
+            assertFails { context.performWorkspace(26,filesDeclared=true) }
+        }
+        assertEquals(2,reads);assertEquals(2,writes)
+        assertFails { ScriptPageExecutionContext("test.transfer",{},workspace=access).performWorkspace(26,filesDeclared=true) }
+        assertFails { ScriptPageHostAction.workspace(control("cancelImport",buildJsonObject {})) }
+        assertFails { ScriptPageHostAction.workspace(control("startImport",buildJsonObject {
+            imports.filterKeys { it!="reviewId" }.forEach { (key,value)->put(key,value) }
+        })) }
+    }
     @Test fun reviewedImportRequiresApi25ServiceDeclarationAndOneDisplayedApproval():Unit=runBlocking {
         var reads=0;var writes=0
         val workspace=object:PageWorkspaceAccess {

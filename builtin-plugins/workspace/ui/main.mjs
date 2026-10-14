@@ -12,7 +12,7 @@ const root=document.getElementById('content'),footer=document.getElementById('ac
 mountPage(root,footer);
 const baseUpdate=window.solvitPageUpdate,baseMessage=solvitHost.onmessage;
 let state,meta,editor,key=null,source='',readOffset=0,pending=null,pendingBusy=false,editable=false,renderedToken=null;
-let upload='',dirty=false,leaveArmed=false;
+let upload='',dirty=false,leaveArmed=false,importTimer=null;
 const tree=document.getElementById('file-tree'),folders=new Map(),expanded=new Set(['']);
 let treeWorkspace=null,treeRevision=null,treeRequest=null,openRequest=null,discardTarget=null,lastTreeResult=null;
 const treeText={zh:['文件','刷新','更多','再次点击目标将放弃修改'],en:['Files','Refresh','More','Click the target again to discard changes'],ja:['ファイル','更新','さらに表示','もう一度クリックすると変更を破棄します'],ko:['파일','새로 고침','더 보기','다시 누르면 변경 삭제'],es:['Archivos','Actualizar','Más','Pulsa de nuevo para descartar'],fr:['Fichiers','Actualiser','Plus','Cliquez à nouveau pour abandonner']};
@@ -72,6 +72,11 @@ function status() {
 }
 function nextTransfer() {
  if(busy())return;
+ if(nodes().some(n=>n.id==='import_poll')){
+  if(importTimer===null)importTimer=setTimeout(()=>{importTimer=null;if(!busy())send('import_poll');else nextTransfer()},150);
+  return;
+ }
+ if(importTimer!==null){clearTimeout(importTimer);importTimer=null}
  if(openRequest!==null){const target=openRequest;openRequest=null;send('tree_open',{treeTarget:target});return}
  if(treeRequest!==null){const request=treeRequest;treeRequest=null;send('tree_load',{treePath:request.path,treeOffset:String(request.offset)});return}
  if(!meta)return;
@@ -152,7 +157,15 @@ window.solvitPageUpdate=next=>{
   image.width=node.width;image.height=node.height;image.style.maxWidth='100%';image.style.height='auto';
   image.style.maxHeight='320px';image.style.objectFit='contain';image.src=node.source;holder.replaceWith(image);
  }
- updateTree(items);
+ const transfer=items.find(n=>n.id==='import_progress');
+ if(transfer){
+  tree.hidden=true;treeRequest=null;openRequest=null;
+  for(const id of ['tree_meta','tree_load','tree_open','import_poll'])root.querySelector(`[data-node="${id}"]`)?.remove();
+  for(const id of ['treePath','treeOffset','treeTarget'])document.getElementById(`field-${id}`)?.closest('label')?.remove();
+  const value=JSON.parse(transfer.text),bar=document.createElement('progress');bar.id='workspace-import-progress';
+  bar.max=Math.max(1,value.total);bar.value=value.completed;bar.style.width='100%';
+  root.querySelector('[data-node="import_progress"]')?.replaceWith(bar);
+ }else updateTree(items);
  if(!info){
   if(!items.some(n=>n.id==='save_sha')){editor?.destroy();editor=null;key=null;window.workspaceEditor=null;dirty=false}
   meta=null;root.classList.remove('editing');if(!next.busy&&pending===null)queueMicrotask(nextTransfer);return;
@@ -196,3 +209,5 @@ solvitHost.onmessage=event=>{
  const message=JSON.parse(event.data);
  if(message.type==='error'){const line=document.getElementById('editor-status');if(line)line.textContent=labels()[8]}
 };
+
+window.addEventListener('pagehide',()=>{if(importTimer!==null)clearTimeout(importTimer)},{once:true});

@@ -2,7 +2,7 @@ package dev.solvit.market
 
 import dev.solvit.core.*
 import dev.solvit.plugins.ScriptPageHostAction
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
@@ -18,7 +18,30 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     init { require(chatId.isNotBlank() && chatId.length <= 128) }
     private val mutex = Mutex()
     private var binding = service.state.value.bindings[chatId]
-    private var closed = false
+    @Volatile private var closed = false
+    private val importScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
+    private val operationLock=Any()
+    private data class ImportOperation(val id:String,val status:String="RUNNING",
+        val progress:WorkspaceImportProgress?=null,val result:JsonElement?=null,val error:String?=null)
+    private var importOperation:ImportOperation?=null
+    private var importJob:Job?=null
+    private var cancelImportRequested=false
+    private fun operationSnapshot(id:String):String=synchronized(operationLock) {
+        val value=checkNotNull(importOperation) { "没有导入任务" }
+        check(value.id==id) { "导入任务已改变" }
+        buildJsonObject {
+            put("operationId",value.id);put("status",value.status)
+            value.progress?.let { put("progress",buildJsonObject {
+                put("stage",it.stage);put("completed",it.completed);put("total",it.total)
+            }) }
+            value.result?.let { put("result",it) };value.error?.let { put("error",it) }
+        }.toString()
+    }
+    private fun operationId(argumentsJson:String):String {
+        val args=Json.parseToJsonElement(argumentsJson).jsonObject
+        require(args.keys==setOf("operationId"))
+        return args.getValue("operationId").jsonPrimitive.also { require(it.isString && it.content.length in 1..128) }.content
+    }
     private data class TextDraft(val id:String,val path:String,val expectedSha256:String?,val total:Int,
         val text:StringBuilder=StringBuilder(),var bytes:Int=0,var sha256:String?=null)
     private var textDraft:TextDraft?=null
@@ -69,7 +92,14 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
             check(target == null || target == binding || target == allowedNewWorkspace()) { "不能操作其他工作区" }
         }) { block() }
 
-    override suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit): String = mutex.withLock {
+    override suspend fun query(operation:String,argumentsJson:String,authorize:suspend ()->Unit):String {
+        // Import owns the ordinary page mutex while writing. Progress must never queue behind it.
+        if(operation=="importOperation") {
+            verify(authorize);workspace()
+            val result=operationSnapshot(operationId(argumentsJson))
+            verify(authorize);return result
+        }
+        return mutex.withLock {
         verify(authorize)
         val args = Json.parseToJsonElement(argumentsJson).jsonObject
         fun text(key: String) = args.getValue(key).jsonPrimitive.also { require(it.isString && it.content.length <= 1024) }.content
@@ -252,9 +282,54 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         }
         verify(authorize)
         result.toString()
+        }
     }
 
-    override suspend fun perform(control: PageWorkspaceControl, authorize: suspend () -> Unit): String = mutex.withLock {
+    override suspend fun perform(control:PageWorkspaceControl,authorize:suspend ()->Unit):String {
+        if(control.operation in setOf("startImport","cancelImport")) {
+            verify(authorize);workspace()
+            val args=Json.parseToJsonElement(control.argumentsJson).jsonObject
+            ScriptPageHostAction.workspace(buildJsonObject { put("kind","workspace.perform");put("operation",control.operation);put("arguments",args) })
+            if(control.operation=="cancelImport") {
+                val id=operationId(control.argumentsJson)
+                synchronized(operationLock) {
+                    val value=checkNotNull(importOperation)
+                    check(value.id==id) { "导入任务已改变" }
+                    if(value.status=="RUNNING") { cancelImportRequested=true;importOperation=value.copy(status="CANCELLING") }
+                }
+                verify(authorize);return operationSnapshot(id)
+            }
+            val id=java.util.UUID.randomUUID().toString()
+            val native=PageWorkspaceControl("importReviewed",control.argumentsJson)
+            val job=importScope.launch(start=CoroutineStart.LAZY) {
+                try {
+                    val result=withContext(WorkspaceImportMonitor { progress ->
+                        verify(authorize)
+                        synchronized(operationLock) {
+                            // User cancellation is cooperative at pre-publication checkpoints.
+                            // After COMMITTED it reports success, including a late cancel click.
+                            if(progress.stage!="COMMITTED" && cancelImportRequested)throw CancellationException("用户取消导入")
+                            importOperation=checkNotNull(importOperation).copy(progress=progress)
+                        }
+                    }) {
+                        verify(authorize)
+                        synchronized(operationLock) { if(cancelImportRequested)throw CancellationException("用户取消导入") }
+                        Json.parseToJsonElement(perform(native,authorize))
+                    }
+                    synchronized(operationLock) { importOperation=checkNotNull(importOperation).copy(status="SUCCEEDED",result=result) }
+                } catch(_:CancellationException) {
+                    synchronized(operationLock) { importOperation=checkNotNull(importOperation).copy(status="CANCELLED") }
+                } catch(error:Exception) {
+                    synchronized(operationLock) { importOperation=checkNotNull(importOperation).copy(status="FAILED",error=error.message?.take(1000)?:"导入失败") }
+                }
+            }
+            try { synchronized(operationLock) {
+                check(!closed && importJob?.isCompleted!=false) { "导入任务仍在进行" }
+                cancelImportRequested=false;importOperation=ImportOperation(id);importJob=job;job.start()
+            } }catch(error:Exception){job.cancel();throw error}
+            return buildJsonObject { put("operationId",id) }.toString()
+        }
+        return mutex.withLock {
         verify(authorize)
         // Revalidate even when an implementation other than QuickJS invokes this capability.
         val args = Json.parseToJsonElement(control.argumentsJson).jsonObject
@@ -336,6 +411,14 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         binding = nextBinding
         verify(authorize)
         snapshot().toString()
+        }
     }
-    override suspend fun close() = mutex.withLock { closed=true;textDraft=null;importDraft?.second?.close();importDraft=null;importOrigin=null;importReview=null;lastImport=null }
+    override suspend fun close() {
+        closed=true
+        withContext(NonCancellable) {
+            synchronized(operationLock) { importJob?.cancel() }
+            importJob?.join();importScope.cancel()
+            mutex.withLock { textDraft=null;importDraft?.second?.close();importDraft=null;importOrigin=null;importReview=null;lastImport=null }
+        }
+    }
 }

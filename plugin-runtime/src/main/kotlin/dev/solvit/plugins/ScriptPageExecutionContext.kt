@@ -46,6 +46,7 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     }
     suspend fun queryWorkspace(operation: String, args: JsonObject, apiVersion: Int = 12, filesDeclared: Boolean = false): String {
         ensureAuthorized()
+        if(operation=="importOperation") check(apiVersion>=26 && filesDeclared) { "导入任务进度需要API26及workspace.files服务声明" }
         if (operation == "reviewImport") check(apiVersion >= 25 && filesDeclared) {
             "文件替换审阅需要 API25 及 workspace.files 服务声明"
         }
@@ -65,6 +66,7 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     suspend fun performWorkspace(apiVersion: Int, linuxDeclared: Boolean = false, filesDeclared: Boolean = false): String {
         ensureAuthorized()
         val control = ScriptPageHostAction.workspace(checkNotNull(approvedAction))
+        if(control.operation in setOf("startImport","cancelImport")) check(apiVersion>=26 && filesDeclared) { "导入任务需要API26及workspace.files服务声明" }
         if (control.operation == "importReviewed") check(apiVersion >= 25 && filesDeclared) {
             "审阅后导入需要 API25 及 workspace.files 服务声明"
         }

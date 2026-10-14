@@ -60,11 +60,12 @@ object ScriptPageHostAction {
             "installEnvironment", "cancelEnvironment" -> emptySet()
             "installSoftware" -> { LinuxSoftware.valueOf(text("software", 16)); setOf("software") }
             "bind" -> { text("id", 128); setOf("id") }
-            "importFile", "importReviewed" -> {
+            "importFile", "importReviewed", "startImport" -> {
                 text("id",128);text("path",1024);require(text("sha256",64).matches(Regex("[a-f0-9]{64}")))
-                if(operation=="importReviewed") { text("reviewId",128);setOf("id","path","sha256","reviewId") }
+                if(operation in setOf("importReviewed","startImport")) { text("reviewId",128);setOf("id","path","sha256","reviewId") }
                 else setOf("id","path","sha256")
             }
+            "cancelImport" -> { text("operationId",128);setOf("operationId") }
             "dropImport" -> { text("id",128);setOf("id") }
             "selectImport" -> emptySet()
             "selectChatAttachment" -> {
