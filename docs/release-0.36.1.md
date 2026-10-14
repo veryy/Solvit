@@ -30,3 +30,7 @@ Linux环境保留无需root的Ubuntu、Python/venv、Node24/npm和Java17；新�
 ## 正式运行
 
 不可变v0.36.1指向c05d96b51a47b5c5e6b129f7ee2c6e9234211018，[正式Actions38639262884](https://github.com/veryy/Solvit/actions/runs/38639262884)正在执行。正式插件与搜索任务已成功；实际搜索归档11930130279完整ZIP CRC/JSON确认原三查询和受控区域回退正文通过。Linux源码产物11928863717已下载并核对外层/内层ZIP CRC，内部1072569字节、SHA256 70cc54d47be0aa4d9fadd98f825459e9f2b361cd7e80e76c8de49d9dba2a68e2。Android/Linux设备与公开APK下载比较仍待完成，不提前宣称发布。
+
+正式build116110310763成功；unit11930200875（375640字节）完整ZIP CRC/XML为499/0/0/0，Lint/APK和固定证书f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3实际日志通过。正式插件121 SDK/5市场、公网搜索/MCP/Skills已核对通过；Linux设备任务116110311369成功，详细版本日志待核对。页面任务116113570739仍运行，release未执行。
+
+正式Linux完整日志已核对原3个Android用例及生产版本门禁：Python3.12.3、Node24.21.0/npm11.19.0、Java17成功；完整35MB探针归档未下载，不声称其CRC。APK11930320598已完整下载、外层/内层ZIP CRC通过，内部58122130字节、SHA256 12e2c03f5b99be53251f8f914d205a7f44e2cf60cb0dbfe5fc1a0ef0dfbd835c。页面仍执行，以上为正式产物证据，尚非公开下载核对。
