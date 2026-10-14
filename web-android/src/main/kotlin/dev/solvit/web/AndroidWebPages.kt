@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.net.http.SslError
+import android.os.SystemClock
 import android.webkit.*
 import dev.solvit.core.*
 import kotlinx.coroutines.*
@@ -77,17 +78,26 @@ class AndroidWebPages(context: Context, private val timeoutMs: Long = 7_000) : W
                                 if (runCatching { PageObservation.validateUrl(target) }.isFailure) { fail("网页最终地址无效"); return }
                                 extracting = true
                                 launch {
-                                delay(500) // Permit a bounded initial DOM update after load.
-                                if (!continuation.isActive) return@launch
-                                v.evaluateJavascript(PageObservation.script) { encoded ->
-                                    if (continuation.isActive) {
+                                    delay(500)
+                                    val deadline = SystemClock.elapsedRealtime() + 3_000
+                                    while (continuation.isActive) {
+                                        val encoded = suspendCancellableCoroutine<String?> { extraction ->
+                                            v.evaluateJavascript(PageObservation.script) { value ->
+                                                if (extraction.isActive) extraction.resume(value)
+                                            }
+                                        }
+                                        if (!continuation.isActive) return@launch
                                         val result = runCatching {
                                             val payload = JSONTokener(encoded).nextValue() as? String ?: error("网页观察未返回结果")
                                             PageObservation.parse(payload)
                                         }
-                                        result.fold({ continuation.resume(it) }, { fail("网页正文提取失败") })
+                                        val page = result.getOrElse { fail("网页正文提取失败"); return@launch }
+                                        if (page.text.isNotBlank()) { continuation.resume(page); return@launch }
+                                        if (SystemClock.elapsedRealtime() >= deadline) {
+                                            fail("网页尚未提供可读取正文，请稍后重试"); return@launch
+                                        }
+                                        delay(250)
                                     }
-                                }
                                 }
                             }
                         }

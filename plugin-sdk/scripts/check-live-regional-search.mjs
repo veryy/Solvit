@@ -21,10 +21,17 @@ const ctx={settings:{get:async()=>null},http:{request:async()=>{throw new Error(
     return route.request().url().startsWith('https://')?route.continue({headers}):route.abort();
   });
   try{
+    const visitStarted=Date.now();
     await page.goto(url,{waitUntil:'load',timeout:7000});await page.waitForTimeout(500);
-    const snapshot=JSON.parse(await page.evaluate(script));
-    observations.push({requested:url,final:snapshot.url,title:snapshot.title,searchResults:snapshot.searchResults,links:snapshot.links.length,characters:snapshot.text.length,
+    let snapshot=JSON.parse(await page.evaluate(script));
+    let bodyObservations=1;
+    const bodyDeadline=Math.min(visitStarted+7000,Date.now()+3000);
+    while(!snapshot.text.trim()&&Date.now()<bodyDeadline){
+      await page.waitForTimeout(250);snapshot=JSON.parse(await page.evaluate(script));bodyObservations++;
+    }
+    observations.push({requested:url,final:snapshot.url,title:snapshot.title,bodyObservations,searchResults:snapshot.searchResults,links:snapshot.links.length,characters:snapshot.text.length,
       dom:await page.evaluate(()=>({readyState:document.readyState,bodyText:document.body.innerText.slice(0,2000),bodyResults:document.querySelectorAll('li.b_algo h2 a[href],a.result__a[href]').length,main:document.querySelector('main,article,[role="main"]')?.outerHTML.slice(0,2000)}))});
+    if(!snapshot.text.trim())throw new Error('Page has no readable body after bounded observation');
     return snapshot;
   }catch(error){
     observations.push({requested:url,final:page.url(),observationFailed:true,failureType:error?.name??'Error'});
