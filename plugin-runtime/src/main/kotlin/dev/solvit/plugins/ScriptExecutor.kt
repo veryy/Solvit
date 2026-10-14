@@ -222,7 +222,11 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
         require(pkg.manifest.pages.any { it.id == pageId }) { "Plugin page not declared" }
         require(locale.matches(Regex("[a-zA-Z0-9_-]{1,20}")))
         val input = buildJsonObject { put("locale", locale); put("event", event ?: JsonNull) }
-        return ScriptPageView.parse(invoke("solvitPlugin.pages[${JsonPrimitive(pageId)}](JSON.parse(${JsonPrimitive(input.toString())}), ctx)", false))
+        return ScriptPageView.parse(invoke("solvitPlugin.pages[${JsonPrimitive(pageId)}](JSON.parse(${JsonPrimitive(input.toString())}), ctx)", false)).also {
+            check(!it.hasImages || pkg.manifest.apiVersion >= 22 && pkg.manifest.pages.single { page -> page.id == pageId }.entry != null) {
+                "缩略图节点需要API22 HTML页面"
+            }
+        }
     }
 
     suspend fun beforeModel(input: ContextInput): String {

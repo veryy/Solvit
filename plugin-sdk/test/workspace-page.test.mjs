@@ -21,6 +21,10 @@ function harness(bound=true,directories=null){
    assert.equal(args.id,importSelection.id);assert.equal(args.sha256,importSelection.sha256);
    return {kind:'TEXT',text:'<script>window.executed=true</script>\n代码🙂',truncated:true};
   }
+  if(op==='importPicture'){
+   assert.equal(args.id,importSelection.id);assert.equal(args.sha256,importSelection.sha256);
+   return {width:12,height:8,source:'data:image/jpeg;base64,/9gq/9k='};
+  }
   if(op==='list'){const entries=directories?.[args.path]??files;return {files:entries.slice(args.offset,args.offset+40),total:entries.length}}
   if(op==='read')return {text:'old',sha256:'a'.repeat(64)};
   if(op==='readChunk'){
@@ -88,6 +92,16 @@ test('file imports preserve metadata and require a separate reviewed create; con
 test('discarding an import selection never submits a write',async()=>{
  const h=harness();await h.render();h.nextSelection={id:'chosen',name:'file.bin',mimeType:'application/octet-stream',bytes:0,sha256:'d'.repeat(64)};
  await h.event('selectImport');await h.event('dropImport');assert.equal(h.imports.length,0);assert.ok(h.nodes().some(n=>n.id==='directory'));
+});
+test('image preview remains separate from original import and preserves its destination',async()=>{
+ const h=harness();await h.render();h.nextSelection={id:'picture',name:'photo.png',mimeType:'image/png',bytes:300000,sha256:'e'.repeat(64)};
+ await h.event('selectImport');assert.ok(!h.nodes().some(n=>n.id==='importPreview'));
+ await h.event('importPicture',{importPath:'images/photo.png'});
+ assert.equal(h.nodes().find(n=>n.id==='importPath').value,'images/photo.png');
+ assert.deepEqual(h.nodes().find(n=>n.id==='import_picture'),{id:'import_picture',kind:'image',source:'data:image/jpeg;base64,/9gq/9k=',alt:'photo.png',width:12,height:8});
+ assert.equal(h.imports.length,0);await h.event('prepareImport');await h.event('confirm');
+ assert.deepEqual(h.imports,[{id:'picture',path:'images/photo.png',sha256:'e'.repeat(64)}]);
+ assert.ok(!h.nodes().some(n=>n.id==='import_picture'));
 });
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
  assert.equal(pkg.manifest.apiVersion,22);assert.equal(pkg.manifest.version,'1.5.0');assert.ok(pkg.resources['ui/main.js']);

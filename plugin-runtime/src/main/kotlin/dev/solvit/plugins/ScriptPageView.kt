@@ -15,6 +15,7 @@ class ScriptPageView private constructor(
     }.toString()
     fun hostAction(nodeId: String): JsonObject? = byId[nodeId]?.get("hostAction")?.jsonObject
     fun node(nodeId: String): JsonObject? = byId[nodeId]
+    val hasImages: Boolean get() = byId.values.any { it["kind"] == JsonPrimitive("image") }
     /** Resolve the action from the displayed page, never from caller-supplied action text. */
     fun event(nodeId: String, value: String? = null, fields: Map<String, String> = emptyMap(), confirmed: Boolean = false): JsonObject {
         val node = byId[nodeId] ?: error("Page node no longer exists")
@@ -69,6 +70,7 @@ class ScriptPageView private constructor(
                 val allowed = when (kind) {
                     "column", "row", "card" -> setOf("id", "kind", "children")
                     "text" -> setOf("id", "kind", "text", "tone")
+                    "image" -> setOf("id", "kind", "source", "alt", "width", "height")
                     "button" -> setOf("id", "kind", "text", "action", "confirm", "enabled", "hostAction")
                     "field" -> setOf("id", "kind", "label", "value", "action", "multiline")
                     "choice" -> setOf("id", "kind", "label", "value", "action", "options")
@@ -82,6 +84,19 @@ class ScriptPageView private constructor(
                     "text" -> {
                         node.text("text", 16384)
                         if ("tone" in node) require(node.text("tone", 16) in setOf("body", "title", "caption"))
+                    }
+                    "image" -> {
+                        node.text("alt", 256)
+                        fun dimension(key: String) = node.getValue(key).jsonPrimitive.also { require(!it.isString) }.int
+                        val source = node.text("source", 90_000, true)
+                        val prefix = "data:image/jpeg;base64,"
+                        require(source.startsWith(prefix)) { "页面图片只接受有界JPEG缩略图" }
+                        val payload = source.removePrefix(prefix)
+                        val jpeg = java.util.Base64.getDecoder().decode(payload)
+                        try {
+                            require(java.util.Base64.getEncoder().encodeToString(jpeg) == payload)
+                            dev.solvit.core.PageFilePicture(dimension("width"), dimension("height"), jpeg).close()
+                        } finally { jpeg.fill(0) }
                     }
                     "button" -> {
                         node.text("text", 128, true); node.text("action", 80, true)

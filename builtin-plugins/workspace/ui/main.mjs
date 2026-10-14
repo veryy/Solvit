@@ -146,6 +146,12 @@ window.solvitPageUpdate=next=>{
  }
  renderedToken=next.token;
  const items=nodes(),info=items.find(n=>n.id==='document_meta');
+ for(const node of items.filter(n=>n.kind==='image')){
+  const holder=root.querySelector(`[data-node="${node.id}"]`);if(!holder)continue;
+  const image=document.createElement('img');image.dataset.node=node.id;image.alt=node.alt;
+  image.width=node.width;image.height=node.height;image.style.maxWidth='100%';image.style.height='auto';
+  image.style.maxHeight='320px';image.style.objectFit='contain';image.src=node.source;holder.replaceWith(image);
+ }
  updateTree(items);
  if(!info){
   if(!items.some(n=>n.id==='save_sha')){editor?.destroy();editor=null;key=null;window.workspaceEditor=null;dirty=false}

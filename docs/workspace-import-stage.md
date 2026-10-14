@@ -77,3 +77,5 @@ f0d121f/38599238571 build实际失败在WorkspaceInstructionsHookTest四个旧�
 PageFilePictureRenderer只接受当前页持有的PageBinaryDocument，原生先尺寸探测、最大100,000,000像素/每边32768，再采样至640边；读取平台EXIF方向并在预览中旋转/翻转，透明图白底缩略JPEG最多64KiB。编码超过上限降质量/尺寸，失败明确拒绝，不截断图像字节；原文件始终不改动。解码/编码前后重验授权与取消，Bitmap与输入副本正常清理；同步native调用不能承诺即时打断。PNG/JPEG/WebP/GIF图像范围，动图仅首帧；其他格式仍待支持。
 
 新增核心副本/容量/关闭测试及三个实际Android用例：大PNG缩略后像素/尺寸与原文件一致、JPEG EXIF旋转保持原字节、坏数据/撤权无预览。当前只有可信宿主组件，尚未接到API22桥或HTML图片节点，不能宣称产品图片预览完成。完整范围仍包括PDF/原图界面、聊天附件导入、覆盖版本/进度/崩溃回收、Shell/Git完整设备链与正式APK。远程编译和这些设备用例尚待运行。
+
+图片桥/页面候选新增importPicture只读查询：API22声明、选择id/SHA及当前对话在渲染前后检查，返回有界缩略图，不返回原图字节、URI或EXIF。WorkspaceViewModel注入可信原生renderer；JS选择图片后显式请求，在自己HTML中绘制img。新增image节点只允许≤64KiB的规范Base64内联JPEG、≤640尺寸、无action/远程URL，执行器要求API22及HTML入口。它只是表示格式约束，不能把JPEG标记检查叫完整图像解码；生产缩略图来自实际原生解码/编码。HTML已有img-src data策略无需放宽；绘制发生在工作区自己的JS，避免修改通用browser-page helper重写所有已发布插件包。图片及文本预览互相独立，确认只带原文件SHA，绝不把缩略JPEG写成原PNG。新增节点边界与TS查看图片不写入/确认保持原摘要用例，实际AndroidHTML图像显示仍须新增并验收。

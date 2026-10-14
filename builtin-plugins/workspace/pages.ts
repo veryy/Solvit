@@ -13,6 +13,7 @@ const previewLabels={
  es:['Vista previa de texto / código','Solo se muestra el principio. Se importa el archivo completo.','No es texto UTF-8 válido. Usa una vista previa para su formato.','Vista previa hasta256KiB. Puedes importar el original.'],
  fr:['Aperçu du texte / code','Seul le début est affiché. Le fichier entier sera importé.','Ce fichier n’est pas un texte UTF-8 valide. Utilisez un aperçu de son format.','Aperçu limité à256KiB. L’import du fichier original reste possible.']
 };
+const pictureLabels={zh:['预览图片','缩略图；透明区域显示白底，动图仅显示首帧。导入保留原文件。'],en:['Preview image','Thumbnail; transparency is white and animation shows its first frame. Import keeps the original.'],ja:['画像を確認','縮小表示。透明部分は白、動画画像は最初のフレーム。元ファイルを保持します。'],ko:['이미지 미리 보기','축소 이미지. 투명 영역은 흰색, 애니메이션은 첫 프레임입니다. 원본을 유지합니다.'],es:['Vista previa de imagen','Miniatura; transparencia blanca y primer fotograma. Se conserva el original.'],fr:['Aperçu de l’image','Miniature ; transparence blanche et première image de l’animation. L’original est conservé.']};
 const importLabels={
  zh:['导入文件','目标路径','确认导入','放弃选择','最多20MiB，保留原始文件；同名文件不会被覆盖。','重新选择','来源：系统文件选择器'],
  en:['Import file','Destination path','Confirm import','Discard selection','Up to 20MiB, original bytes. Existing files are never overwritten.','Choose another','Source: system file picker'],
@@ -44,6 +45,7 @@ export function workspacePage(importsEnabled=true){
  let managementPath='';
  let importSelection:ImportSelection|null=null,importPath='';
  let importPreview:{kind:string;text:string|null;truncated:boolean}|null=null;
+ let importPicture:{width:number;height:number;source:string}|null=null;
  let treeWorkspace:string|null=null,treeResult:JsonObject|null=null,treeRevision=0;
  const treeEntries=new Map<string,FileEntry>();
  return async({locale,event}:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
@@ -51,6 +53,7 @@ export function workspacePage(importsEnabled=true){
   const f=fileLabels[locale.split(/[-_]/)[0] as keyof typeof fileLabels]??fileLabels.en;
   const im=importLabels[locale.split(/[-_]/)[0] as keyof typeof importLabels]??importLabels.en;
   const ip=previewLabels[locale.split(/[-_]/)[0] as keyof typeof previewLabels]??previewLabels.en;
+  const pic=pictureLabels[locale.split(/[-_]/)[0] as keyof typeof pictureLabels]??pictureLabels.en;
   const api=ctx.workspacePage;if(!api)throw Error('Workspace page needs API12');
   let snapshot=await api.query('snapshot') as unknown as Snapshot;
   if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear()}
@@ -85,16 +88,17 @@ export function workspacePage(importsEnabled=true){
     if(action==='selectImport'){
      const chosen=await api.perform() as unknown as ImportSelection|null;
      // Cancellation keeps the previous selection; only the host can supply metadata.
-     if(chosen){importSelection=chosen;importPreview=null;importPath=(directory?directory+'/':'')+chosen.name;mode='import'}
+     if(chosen){importSelection=chosen;importPreview=null;importPicture=null;importPath=(directory?directory+'/':'')+chosen.name;mode='import'}
     }
     else if(action==='importPreview'&&importSelection){importPath=event.fields.importPath??importPath;importPreview=await api.query('importText',{id:importSelection.id,sha256:importSelection.sha256}) as unknown as {kind:string;text:string|null;truncated:boolean}}
+    else if(action==='importPicture'&&importSelection){importPath=event.fields.importPath??importPath;importPicture=await api.query('importPicture',{id:importSelection.id,sha256:importSelection.sha256}) as unknown as {width:number;height:number;source:string}}
     else if(action==='showImport'){importSelection=await api.query('importSelection') as unknown as ImportSelection|null;if(importSelection)mode='import'}
     else if(action==='prepareImport'&&importSelection){
      importPath=(event.fields.importPath??importPath).trim();
      if(!importPath||importPath.length>1024||importPath.startsWith('/')||importPath.includes('\\')||/[\u0000-\u001f\u007f]/.test(importPath)||importPath.split('/').some(p=>!p||p==='.'||p==='..'||p==='.git'))throw Error('Invalid relative path');
      prepare('importFile',{id:importSelection.id,path:importPath,sha256:importSelection.sha256});
     }
-    else if(action==='dropImport'&&importSelection){await api.perform();importSelection=null;importPreview=null;mode='list';await list()}
+    else if(action==='dropImport'&&importSelection){await api.perform();importSelection=null;importPreview=null;importPicture=null;mode='list';await list()}
     else if(action==='treeLoad'){
      const target=event.fields.treePath??'',start=Number(event.fields.treeOffset??0);
      if(!Number.isInteger(start)||start<0||start>1000)throw Error('Invalid directory offset');
@@ -157,7 +161,7 @@ export function workspacePage(importsEnabled=true){
      prepare('writeDraft',{draftId:draft.draftId,path:draft.path,sha256:draft.sha256});phase='review';
     }else if(action==='confirm'&&mode==='preview'&&pending){
      snapshot=await api.perform() as unknown as Snapshot;const operation=pending.operation;pending=null;message=t[28];
-     if(operation==='importFile')importSelection=null;
+     if(operation==='importFile'){importSelection=null;importPreview=null;importPicture=null}
      if(['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importFile'].includes(operation)){treeRevision++;treeResult=null;treeEntries.clear()}
      mode=['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importFile'].includes(operation)?'list':operation==='installDraft'?'drafts':'home';
      if(mode==='list')await list();if(mode==='drafts')await loadDrafts();
@@ -211,7 +215,9 @@ export function workspacePage(importsEnabled=true){
    nodes.push(text('import_name',importSelection.name,'title'),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),
     text('import_source',im[6],'caption'),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]),
     {id:'importPath',kind:'field',label:im[1],value:importPath});
-   nodes.push(button('importPreview',ip[0]));
+   if(importSelection.mimeType.startsWith('image/'))nodes.push(button('importPicture',pic[0]));
+   else nodes.push(button('importPreview',ip[0]));
+   if(importPicture)nodes.push({id:'import_picture',kind:'image',source:importPicture.source,alt:importSelection.name,width:importPicture.width,height:importPicture.height},text('import_picture_note',pic[1],'caption'));
    if(importPreview){
     if(importPreview.kind==='TEXT'){
      nodes.push(text('import_content',importPreview.text??''));

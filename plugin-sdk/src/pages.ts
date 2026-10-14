@@ -10,6 +10,7 @@ export type PageHostAction =
   | { kind:'postTurn.stop'; jobId:string; attempt:number }
   | { kind:'postTurn.cleanup' };
 export type PageNode =
+  | { id: string; kind: 'image'; source: string; alt: string; width: number; height: number }
   | { id: string; kind: 'text'; text: string; tone?: 'body' | 'title' | 'caption' }
   | { id: string; kind: 'column' | 'row' | 'card'; children: PageNode[] }
   | { id: string; kind: 'button'; text: string; action: string; confirm?: string; enabled?: boolean; hostAction?:PageHostAction }

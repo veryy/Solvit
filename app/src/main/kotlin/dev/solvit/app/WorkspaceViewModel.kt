@@ -25,7 +25,8 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
     fun directoryPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
         manager.openPage(locale, pageAccess(canInstallDrafts = true))
     fun pageAccess(canInstallDrafts: Boolean = false): PageWorkspaceAccess =
-        dev.solvit.market.WorkspacePageBridge(service, plugins, checkNotNull(chatId), canInstallDrafts, linux) { chatId }
+        dev.solvit.market.WorkspacePageBridge(service, plugins, checkNotNull(chatId), canInstallDrafts, linux,
+            pictureRenderer = dev.solvit.documents.AndroidFilePictureRenderer()) { chatId }
     fun environmentPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
         manager.openPage(locale, access = pageAccess())
     fun gitPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =

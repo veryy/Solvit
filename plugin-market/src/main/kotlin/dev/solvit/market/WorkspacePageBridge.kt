@@ -11,6 +11,7 @@ import kotlinx.serialization.json.*
 class WorkspacePageBridge(private val service: WorkspaceService, private val drafts: PluginDraftService?,
     private val chatId: String, private val canInstallDrafts: Boolean = false,
     private val linux: LinuxEnvironmentService? = null,
+    private val pictureRenderer: PageFilePictureRenderer? = null,
     private val activeChat: () -> String? = { chatId }) : PageWorkspaceAccess {
     init { require(chatId.isNotBlank() && chatId.length <= 128) }
     private val mutex = Mutex()
@@ -78,6 +79,21 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                     buildJsonObject {
                         put("kind", preview.kind); put("text", preview.text?.let(::JsonPrimitive) ?: JsonNull)
                         put("truncated", preview.truncated)
+                    }
+                }
+                "importPicture" -> {
+                    require(args.keys == setOf("id", "sha256"))
+                    val selected = checkNotNull(importDraft) { "请先选择要导入的文件" }
+                    check(selected.first == text("id") && selected.second.sha256 == text("sha256")) { "选择的文件已改变" }
+                    checkNotNull(pictureRenderer) { "此页面没有图片预览服务" }.render(selected.second) { verify(authorize) }.use { picture ->
+                        verify(authorize)
+                        val jpeg = picture.jpegBytes()
+                        try {
+                            buildJsonObject {
+                                put("width", picture.width); put("height", picture.height)
+                                put("source", "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(jpeg))
+                            }
+                        } finally { jpeg.fill(0) }
                     }
                 }
                 "list" -> {
