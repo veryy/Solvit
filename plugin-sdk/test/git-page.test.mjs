@@ -24,7 +24,12 @@ async function harness(){
  },perform:async(...args)=>{assert.equal(args.length,0);writes++;return {id:'new-commit'}}},workspacePage:{query:async(op)=>{
   assert.equal(op,'snapshot');return {workspaceId:'bound',workspaces:[{id:'bound',name:'Shared directory'}],shells:[],draftInstallAllowed:false};
  },perform:async()=>{throw Error('No file writes expected')}}};
- const page=sandbox.solvitPlugin.pages.main;
+ const page=async(...args)=>{
+  const view=await sandbox.solvitPlugin.pages.main(...args);
+  assert.ok((view.footer??[]).length<=6,'Git page exceeds the Android host footer limit');
+  assert.ok((view.footer??[]).every(node=>node.kind==='button'));
+  return view;
+ };
  const input=(event=null)=>({locale:'zh',event});
  const event=(nodeId,action,fields={})=>({nodeId,action,fields});
  return {pkg,ctx,page,input,event,calls,writes:()=>writes,close:()=>rm(dir,{recursive:true})};
@@ -68,6 +73,29 @@ test('Git commit uses the captured index handle and Files reuses the bound direc
  }finally{await h.close()}
 });
 
+
+test('Git Files preserves Changes and all navigation in nested paginated directories',async()=>{
+ const h=await harness();try{
+  const query=h.ctx.workspacePage.query;
+  const entries=Array.from({length:85},(_,i)=>({name:`file-${i}.txt`,path:`src/file-${i}.txt`,directory:false,bytes:3}));
+  h.ctx.workspacePage.query=async(op,args)=>{
+   if(op!=='list')return query(op,args);
+   const files=args.path==='src'?entries:[{name:'src',path:'src',directory:true,bytes:0}];
+   return {files:files.slice(args.offset,args.offset+40),total:files.length};
+  };
+  let view=await h.page(h.input(),h.ctx);
+  const nodes=()=>{const result=[];const visit=node=>{result.push(node);(node.children??[]).forEach(visit)};[...view.nodes,...view.footer??[]].forEach(visit);return result};
+  const click=async(id)=>{const node=nodes().find(node=>node.id===id);assert.ok(node,`missing ${id}`);view=await h.page(h.input(h.event(id,node.action)),h.ctx)};
+  await click('git_files');await click('directory');await click('file_0');await click('next');
+  assert.equal(nodes().find(node=>node.id==='directory').text,'src');
+  for(const id of ['git_changes','home','refresh','parent','prev','next','new','mkdir'])
+   assert.ok(nodes().some(node=>node.id===id),`missing Git Files action ${id}`);
+  assert.ok(!nodes().some(node=>['selectImport','chatFiles'].includes(node.id)));
+  await click('next');assert.equal(nodes().filter(node=>node.kind==='card').length,5);
+  await click('prev');await click('parent');assert.equal(nodes().find(node=>node.id==='directory').text,'/');
+  await click('git_changes');assert.ok(nodes().some(node=>node.id==='git_file_0'));assert.equal(h.writes(),0);
+ }finally{await h.close()}
+});
 
 test('Git AI tools forward the exact approved JSON to the shared host query capability',async()=>{
  const h=await harness();try{

@@ -77,7 +77,12 @@ function harness(bound=true,directories=null){
   return clone(snapshot);
  }} };
  const nodes=()=>{const result=[];const visit=n=>{result.push(n);(n.children??[]).forEach(visit)};[...view.nodes,...view.footer??[]].forEach(visit);return result};
- const render=async(event=null)=>view=clone(await sandbox.solvitPlugin.pages.main({locale:'en',event},ctx));
+ const render=async(event=null)=>{
+  view=clone(await sandbox.solvitPlugin.pages.main({locale:'en',event},ctx));
+  assert.ok((view.footer??[]).length<=6,'page exceeds the Android host footer limit');
+  assert.ok((view.footer??[]).every(node=>node.kind==='button'));
+  return view;
+ };
  const event=async(id,fields={})=>{const node=nodes().find(n=>n.id===id);assert.ok(node,`missing ${id}`);assert.notEqual(node.enabled,false);approved=node.hostAction;return render({nodeId:id,action:node.action,fields:{...Object.fromEntries(nodes().filter(n=>n.kind==='field').map(n=>[n.id,n.value])),...fields}})};
  return {render,event,nodes,queries,entryActions,snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
 }
@@ -147,6 +152,20 @@ test('workspace HTML preserves immutable API4 package and previews create before
  const h=harness(false);await h.render();assert.equal(h.created,0);await h.event('create');await h.event('prepareCreate',{name:'New Project'});
  assert.equal(h.created,0);await h.event('cancel');assert.equal(h.created,0);
  await h.event('prepareCreate',{name:'New Project'});await h.event('confirm');assert.equal(h.created,1);assert.equal(h.approved.arguments.name,'New Project');
+});
+test('nested paginated directories keep every action within the Android footer contract',async()=>{
+ const entries=Array.from({length:85},(_,i)=>({name:`file-${i}.txt`,path:`src/file-${i}.txt`,directory:false,bytes:3}));
+ const h=harness(true,{'':[{name:'src',path:'src',directory:true,bytes:0}],src:entries});
+ await h.render();await h.event('directory');await h.event('file_0');
+ assert.equal(h.nodes().find(n=>n.id==='directory').text,'src');
+ await h.event('next');
+ for(const id of ['home','refresh','parent','prev','next','new','mkdir','selectImport','chatFiles'])
+  assert.ok(h.nodes().some(node=>node.id===id),`missing directory action ${id}`);
+ assert.equal(h.nodes().filter(node=>node.kind==='card').length,40);
+ await h.event('next');assert.equal(h.nodes().filter(node=>node.kind==='card').length,5);
+ await h.event('prev');await h.event('parent');
+ assert.equal(h.nodes().find(n=>n.id==='directory').text,'/');
+ assert.equal(h.writes,0);
 });
 test('directory pagination and staged editor carry exact full content and opened version',async()=>{
  const h=harness();await h.render();await h.event('directory');assert.equal(h.nodes().filter(n=>n.kind==='card').length,40);
