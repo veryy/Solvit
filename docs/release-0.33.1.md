@@ -1,6 +1,6 @@
 # Solvit 0.33.1：把 PDF 读进聊天
 
-候选版：包含PDF读取与原页预览，并修复Linux安装完成后立即追加软件时的任务交接。尚未正式发布。
+包含PDF读取与原页预览，并修复Linux安装完成后立即追加软件时的任务交接。正式发布以标签工作流与实际公开产物为准。
 
 - 聊天附件支持 PDF。文字页直接提取，扫描页用手机上的 OCR 识别；混合文档逐页处理，不把短文字页误当扫描页。
 - 点击附件查看读取结果，可选择起止页和识别语言：中文、日文、韩文或拉丁字母。识别模型随 APK 提供，使用时无需额外服务 Key 或首次下载模型；APK 体积会增加，最终大小待正式产物核对。
@@ -24,3 +24,5 @@
 ## Linux 安装收尾修复
 
 0.33.0正式38586931701的Linux设备任务失败于安装READY后立即安装Java：旧Job仍处在finally，begin将其当成仍在安装。保留原标签且不公开该版本。0.33.1在READY/FAILED/CANCELLED后接收下一操作时先join旧Job的收尾，正在下载或安装时仍拒绝重复启动；不修改原完整Ubuntu/Python/Node/Java/PTY回归断言或超时。该修复仍待远程执行，以新正式门禁为准。
+
+修复候选74b36ae的[Android38588850320](https://github.com/veryy/Solvit/actions/runs/38588850320) build与verify-ui成功。完整下载unit artifact11907405980和UI artifact11906834325，ZIP CRC/XML核对465单元与63设备零失败/错误/跳过；实际查看原始扫描页截图，正文和关闭按钮正常。独立[Linux38589013597](https://github.com/veryy/Solvit/actions/runs/38589013597)完整3/3 API35设备用例成功，下载日志核对生产Python3.12.3、Node24.21.0/npm11.19.0及Java17，READY后立即安装Java路径通过。Linux完整探针归档未下载，不宣称其ZIP CRC。正式标签六项门禁和公开APK/源码核对仍待完成。
