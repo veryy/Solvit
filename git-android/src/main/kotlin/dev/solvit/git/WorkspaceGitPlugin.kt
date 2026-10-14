@@ -8,6 +8,7 @@ import kotlinx.coroutines.withContext
 /** Owns bound native sessions, including adapters retained after plugin disable. */
 class AndroidWorkspaceGit(private val workspaces: WorkspaceService, context: Context? = null) : WorkspaceRemoteGitService {
     private val credentials = context?.let { GitCredentialVault(it.applicationContext) }
+    private val stagingDirectory = context?.let { java.io.File(it.applicationContext.cacheDir, "git-clones") }
     private val lock = Any()
     private var closed = false
     private val sessions = mutableSetOf<BoundWorkspaceGit>()
@@ -34,6 +35,7 @@ class AndroidWorkspaceGit(private val workspaces: WorkspaceService, context: Con
             verifyOpen()
             credentials?.let { if (it.configured(endpoint)) it.borrow(endpoint) else null }
         }
+        session.cloneStagingDirectory = stagingDirectory
         sessions += session
         session
     }

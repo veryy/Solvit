@@ -24,6 +24,8 @@ interface WorkspaceRemoteGitSession : WorkspaceGitSession {
     suspend fun transferProgress(): Progress?
     /** Downloads objects and a tracking ref; does not change HEAD, index or workspace files. */
     suspend fun fetch(endpoint: GitRemoteEndpoint, branch: String): Fetch
+    /** Stages privately before installing into an empty bound directory, without replacing it. */
+    suspend fun clone(endpoint: GitRemoteEndpoint, branch: String): Fetch
     /** Fetches the actual remote head and captures the local revision for user review. */
     suspend fun reviewPush(endpoint: GitRemoteEndpoint, branch: String): PushReview
     /** Pushes only the reviewed commit, without force, using the reviewed remote head as a lease. */

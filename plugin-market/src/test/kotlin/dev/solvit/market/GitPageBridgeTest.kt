@@ -30,6 +30,7 @@ class GitPageBridgeTest {
                         if (blockFetch) { entered.complete(Unit); release.await() }
                         return WorkspaceRemoteGitSession.Fetch(branch, "remote", emptyMap())
                     }
+                    override suspend fun clone(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.Fetch = fetch(endpoint, branch)
                     override suspend fun reviewPush(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.PushReview {
                         fetch(endpoint, branch)
                         retained = WorkspaceRemoteGitSession.PushReview(endpoint, branch, local.revision, "remote")

@@ -152,7 +152,7 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
             val args = arguments(control.argumentsJson)
             require(args.keys == setOf("operation", "arguments"))
             val target = args.text("operation", 32)
-            require(target in setOf("fetch", "reviewPush", "reviewPull", "push", "merge"))
+            require(target in setOf("clone", "fetch", "reviewPush", "reviewPull", "push", "merge"))
             val metadata = buildJsonObject {
                 put("kind", "git.perform"); put("operation", target); put("arguments", args.getValue("arguments").jsonObject)
             }
@@ -187,15 +187,18 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
             buildJsonObject { put("cancelRequested", true) }.toString()
         }
         return mutex.withLock { withContext(Authority(authorize, true,
-            control.operation in setOf("fetch", "reviewPush", "push", "reviewPull"))) {
+            control.operation in setOf("clone", "fetch", "reviewPush", "push", "reviewPull"))) {
             verify(true)
             val args = arguments(control.argumentsJson)
             val result = when (control.operation) {
-                "fetch", "reviewPush", "reviewPull" -> {
+                "clone", "fetch", "reviewPush", "reviewPull" -> {
                     require(args.keys == setOf("url", "branch"))
                     val endpoint = GitRemoteEndpoint.parse(args.text("url", 2048))
                     val branch = args.text("branch", 256)
                     when (control.operation) {
+                        "clone" -> remote().clone(endpoint, branch).let { fetched -> buildJsonObject {
+                            put("branch", fetched.branch); put("remoteHead", fetched.head)
+                        } }
                         "fetch" -> remote().fetch(endpoint, branch).let { fetched -> buildJsonObject {
                             put("branch", fetched.branch); put("remoteHead", fetched.head)
                         } }

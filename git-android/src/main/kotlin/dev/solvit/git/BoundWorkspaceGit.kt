@@ -16,6 +16,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.job
@@ -69,6 +70,7 @@ class BoundWorkspaceGit(
     }
     internal var remoteTransport = RepositoryRemoteTransport()
     internal var borrowCredentials: (GitRemoteEndpoint) -> RepositoryCredentials? = { null }
+    internal var cloneStagingDirectory: File? = null
 
     private suspend fun verifyRemote(endpoint: GitRemoteEndpoint) {
         verifyWrite()
@@ -76,8 +78,8 @@ class BoundWorkspaceGit(
         verify()
     }
 
-    private suspend fun <T> transfer(endpoint: GitRemoteEndpoint, operation: String,
-        block: suspend (Git) -> T): T = coroutineScope {
+    private suspend fun <T> ownTransfer(endpoint: GitRemoteEndpoint, operation: String,
+        block: suspend () -> T): T = coroutineScope {
         val ownedJob = currentCoroutineContext().job
         synchronized(transferLock) {
             check(!closed) { "Git页面已关闭" }
@@ -87,7 +89,7 @@ class BoundWorkspaceGit(
         }
         try {
             verifyRemote(endpoint)
-            access { git -> verifyRemote(endpoint); block(git) }
+            block()
         } finally {
             synchronized(transferLock) {
                 if (activeTransfer === ownedJob) {
@@ -97,6 +99,96 @@ class BoundWorkspaceGit(
             }
         }
     }
+
+    private suspend fun <T> transfer(endpoint: GitRemoteEndpoint, operation: String,
+        block: suspend (Git) -> T): T = ownTransfer(endpoint, operation) {
+        access { git -> verifyRemote(endpoint); block(git) }
+    }
+
+    override suspend fun clone(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.Fetch =
+        ownTransfer(endpoint, "clone") { withContext(Dispatchers.IO) { mutex.withLock {
+            require(branch.length in 1..256 && !branch.startsWith('-') && org.eclipse.jgit.lib.Repository.isValidRefName("refs/heads/$branch"))
+            verifyRemote(endpoint)
+            val root = resolveRoot()
+            val initialRoot = android.system.Os.lstat(root.path).let { it.st_dev to it.st_ino }
+            fun sameRoot() {
+                check(root.canonicalFile == root.absoluteFile &&
+                    android.system.Os.lstat(root.path).let { it.st_dev to it.st_ino } == initialRoot) {
+                    "克隆期间工作目录已被替换"
+                }
+            }
+            fun emptyTarget() {
+                sameRoot()
+                check(root.isDirectory && root.canonicalFile == root.absoluteFile && root.listFiles()?.isEmpty() == true) {
+                    "克隆需要空工作目录，已有文件不会被覆盖"
+                }
+            }
+            emptyTarget()
+            val base = checkNotNull(cloneStagingDirectory) { "Git克隆暂存目录尚未配置" }.canonicalFile
+            check(base.mkdirs() || base.isDirectory) { "无法创建私有克隆暂存目录" }
+            check(!root.toPath().startsWith(base.toPath()) && !base.toPath().startsWith(root.toPath()))
+            val staged = Files.createTempDirectory(base.toPath(), "clone-").toFile()
+            try {
+                val fetched = Git.init().setDirectory(staged).setInitialBranch(branch).setFs(WorkspaceGitFileSystem()).call().use { git ->
+                    val result = remoteTransport.fetch(git.repository, endpoint, branch, borrowCredentials(endpoint),
+                        { verifyRemote(endpoint) }, { report("clone", it) })
+                    // Bound inflated worktree size before checkout; never materialize remote symlinks or submodules.
+                    var files = 0; var bytes = 0L
+                    TreeWalk(git.repository).use { walk ->
+                        walk.addTree(git.repository.resolve("${result.head}^{tree}")); walk.isRecursive = true
+                        while (walk.next()) {
+                            currentCoroutineContext().ensureActive()
+                            checkedPath(staged, walk.pathString)
+                            check(walk.getFileMode(0) in setOf(FileMode.REGULAR_FILE, FileMode.EXECUTABLE_FILE)) {
+                                "克隆暂不支持符号链接或子模块"
+                            }
+                            val size = git.repository.newObjectReader().use { it.getObjectSize(walk.getObjectId(0), Constants.OBJ_BLOB) }
+                            bytes += size
+                            check(++files <= 100_000 && size <= 32L * 1024 * 1024 && bytes <= 256L * 1024 * 1024) {
+                                "克隆工作树超过当前文件或大小上限"
+                            }
+                        }
+                    }
+                    verifyRemote(endpoint)
+                    git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD).setRef(result.head).call()
+                    git.repository.config.apply {
+                        setString("remote", "origin", "url", endpoint.url)
+                        setString("remote", "origin", "fetch", "+refs/heads/$branch:refs/remotes/origin/$branch")
+                        setString("branch", branch, "remote", "origin")
+                        setString("branch", branch, "merge", "refs/heads/$branch")
+                        save()
+                    }
+                    result
+                }
+                verifyRemote(endpoint)
+                check(resolveRoot() == root) { "克隆期间工作目录已变化" }
+                emptyTarget() // A Shell may have created files while HTTPS was blocked.
+                // Preserve the root inode used by existing Shell working directories. Never use recursive cleanup on it.
+                val metadata = File(staged, ".git")
+                Files.walk(staged.toPath()).use { paths ->
+                    val iterator = paths.filter { it != staged.toPath() && !it.startsWith(metadata.toPath()) }.sorted().iterator()
+                    while (iterator.hasNext()) {
+                        verifyRemote(endpoint)
+                        sameRoot()
+                        val source = iterator.next()
+                        val target = root.toPath().resolve(staged.toPath().relativize(source))
+                        check(target.toFile().canonicalFile == target.toFile().absoluteFile) { "克隆目标路径已变化" }
+                        if (Files.isDirectory(source)) Files.createDirectory(target)
+                        else Files.copy(source, target, java.nio.file.StandardCopyOption.COPY_ATTRIBUTES)
+                    }
+                }
+                verifyRemote(endpoint)
+                sameRoot()
+                // No REPLACE_EXISTING or ATOMIC_MOVE: an existing destination must cause failure.
+                Files.move(metadata.toPath(), File(root, ".git").toPath())
+                validateRepository(root)
+                verifyRemote(endpoint)
+                WorkspaceRemoteGitSession.Fetch(fetched.branch, fetched.head, fetched.updates)
+            } finally {
+                // Only this operation's private temporary directory is owned for deletion.
+                withContext(NonCancellable + Dispatchers.IO) { staged.deleteRecursively() }
+            }
+        } } }
 
     private fun report(operation: String, value: GitTransferProgress) {
         transferProgress.value = WorkspaceRemoteGitSession.Progress(operation, value.task, value.completed, value.total)

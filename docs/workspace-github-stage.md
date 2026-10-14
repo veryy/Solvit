@@ -208,3 +208,26 @@ Git1.2.0/API20、network声明与轮询资源已核对。生成原字节723797�
 与APK内资产。API19原Git1.1.1保持SHA `7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd`。
 生成模式允许更新包，不替代正常源/包一致性门禁；完整Android与页面模拟器尚待核对。
 远程市场未部署，APK未发布，原生凭据输入及克隆仍未完成。
+
+## 私有暂存克隆候选
+
+复核固定JGit CloneCommand.java:867–905失败cleanup会删除原目录的孩子，
+CloneCommandTest.java:testCloneRepository核对实际工作树/config结果。因此不直接
+将上游CloneCommand用于聊天共享目录：ownTransfer允许尚未有.git的绑定目录，
+先在应用cache的独立随机目录初始化/下载/检查对象树/checkout，随后复核绑定、
+目标为空及目录dev/inode，复制时不使用REPLACE_EXISTING，最后移动.git元数据。
+工作目录本身不重命名，Shell既有cwd继续指向同一目录。显式配置只保存无密钥HTTPS
+origin，认证仍从每次借出的Keystore Provider读取。
+
+checkout前拒绝符号链接、子模块、特殊路径，工作树最多100000文件/256MiB，单文件
+32MiB；下载沿用128MiB传输限制。取消/失败只递归清理本操作的私有暂存目录，
+不递归删除工作区。若安装开始后取消或碰撞，已复制工作区文件保留，尚未实现自动
+恢复/回滚；后续应补实际页面提示和恢复路径，不能宣称原子安装。该限制不允许
+通过删除并发Shell文件来简化。HTML增加“克隆到空工作目录”的确认任务入口。
+
+新增实际TLS后端回归：已有文件拒绝；克隆成功后HEAD/config/工作树与原目录inode、
+预先启动Shell读取一致；后端明确阻塞时真实Shell写入使安装拒绝且字节保留；
+明确阻塞时取消保护并发文件且私有对象清理。测试使用独立clone/clone-gated/
+clone-cancel仓库和观测/释放接口，未用固定延迟断言进入网络。许可证沿用JGit通知，
+克隆适配为本项目代码。本阶段尚未远程验证，包须远程重新生成；原生凭据输入、
+真实GitHub验证和APK发布仍未完成。

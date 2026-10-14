@@ -21,13 +21,13 @@ object ScriptPageHostAction {
         val keys = when (operation) {
             "startRemote" -> {
                 val target = text("operation", 32)
-                require(target in setOf("fetch", "reviewPush", "reviewPull", "push", "merge"))
+                require(target in setOf("clone", "fetch", "reviewPush", "reviewPull", "push", "merge"))
                 git(buildJsonObject { put("kind", "git.perform"); put("operation", target); put("arguments", args.getValue("arguments").jsonObject) })
                 setOf("operation", "arguments")
             }
             "initialize" -> emptySet()
             "stage", "unstage" -> { text("reviewId", 128); setOf("reviewId") }
-            "fetch", "reviewPush", "reviewPull" -> {
+            "clone", "fetch", "reviewPush", "reviewPull" -> {
                 GitRemoteEndpoint.parse(text("url", 2048)); text("branch", 256)
                 setOf("url", "branch")
             }

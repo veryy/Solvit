@@ -55,6 +55,91 @@ class RepositoryRemoteTransportTest {
             .setCommitter("Solvit test", "test@example.invalid").call().name
     }
 
+    @Test fun cloneKeepsRootAndExistingShellWorkingDirectoryAndRefusesExistingFiles() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val workspaces = AndroidWorkspaces(context, scope)
+        val chat = "git-clone-${UUID.randomUUID()}"
+        val root = File(workspaces.location(workspaces.forChat(chat).id))
+        val staging = File(context.cacheDir, "git-clone-test-${UUID.randomUUID()}")
+        val remote = endpoint("clone")
+        val page = BoundWorkspaceGit(workspaces, chat, { chat }, authorizeWrite = {}, authorizeNetwork = {}) { }
+        page.remoteTransport = RepositoryRemoteTransport(tls)
+        page.borrowCredentials = { credentials(it) }
+        page.cloneStagingDirectory = staging
+        val originalRoot = android.system.Os.lstat(root.path).st_ino
+        val shell = ProcessBuilder("/system/bin/sh").directory(root).start()
+        try {
+            val keep = File(root, "keep.txt").apply { writeText("existing workspace\n") }
+            try { page.clone(remote, "main"); fail("Existing directory must not be overwritten") }
+            catch (_: IllegalStateException) { }
+            assertEquals("existing workspace\n", keep.readText())
+            assertFalse(File(root, ".git").exists())
+            assertTrue(keep.delete())
+            val cloned = page.clone(remote, "main")
+            assertEquals(originalRoot, android.system.Os.lstat(root.path).st_ino)
+            assertEquals(cloned.head, page.status().head)
+            assertEquals("refs/heads/main", page.status().branch)
+            assertTrue(page.status().entries.isEmpty())
+            assertEquals("original 中文 😀\n", File(root, "content.txt").readText())
+            shell.outputStream.bufferedWriter().use { it.write("cat content.txt\nexit\n"); it.flush() }
+            assertTrue(shell.waitFor(5, java.util.concurrent.TimeUnit.SECONDS))
+            assertEquals(0, shell.exitValue())
+            assertEquals("original 中文 😀\n", shell.inputStream.bufferedReader().use { it.readText() })
+            assertTrue(staging.listFiles()!!.isEmpty())
+            Git.open(root).use { git -> assertEquals(remote.url, git.repository.config.getString("remote", "origin", "url")) }
+        } finally {
+            shell.destroy(); page.close(); workspaces.unbind(chat); scope.cancel()
+            root.deleteRecursively(); staging.deleteRecursively()
+        }
+    }
+
+    @Test fun cloneRejectsFilesWrittenByShellDuringDownloadAndDeletesOnlyPrivateStaging() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val workspaces = AndroidWorkspaces(context, scope)
+        val chat = "git-clone-concurrent-${UUID.randomUUID()}"
+        val root = File(workspaces.location(workspaces.forChat(chat).id))
+        val staging = File(context.cacheDir, "git-clone-concurrent-${UUID.randomUUID()}")
+        val page = BoundWorkspaceGit(workspaces, chat, { chat }, authorizeWrite = {}, authorizeNetwork = {}) { }
+        page.remoteTransport = RepositoryRemoteTransport(tls)
+        page.borrowCredentials = { credentials(it) }; page.cloneStagingDirectory = staging
+        try {
+            val pending = async(Dispatchers.IO) {
+                try { page.clone(endpoint("clone-gated"), "main"); false } catch (_: IllegalStateException) { true }
+            }
+            withTimeout(5_000) { while (control("/control/clone-started") != "true") delay(25) }
+            val shell = ProcessBuilder("/system/bin/sh", "-c", "printf 'Shell wrote during download\\n' > from-shell.txt")
+                .directory(root).start()
+            assertTrue(shell.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)); assertEquals(0, shell.exitValue())
+            assertEquals("OK", control("/control/clone-release"))
+            assertTrue(withTimeout(10_000) { pending.await() })
+            assertEquals("Shell wrote during download\n", File(root, "from-shell.txt").readText())
+            assertEquals(listOf("from-shell.txt"), root.listFiles()!!.map { it.name })
+            assertTrue(staging.listFiles()!!.isEmpty())
+            assertNull(page.progress.value)
+        } finally { page.close(); workspaces.unbind(chat); scope.cancel(); root.deleteRecursively(); staging.deleteRecursively() }
+    }
+
+    @Test fun cancelledCloneDownloadPreservesConcurrentFilesAndCleansPrivateObjects() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val workspaces = AndroidWorkspaces(context, scope)
+        val chat = "git-clone-cancel-${UUID.randomUUID()}"
+        val root = File(workspaces.location(workspaces.forChat(chat).id))
+        val staging = File(context.cacheDir, "git-clone-cancel-${UUID.randomUUID()}")
+        val page = BoundWorkspaceGit(workspaces, chat, { chat }, authorizeWrite = {}, authorizeNetwork = {}) { }
+        page.remoteTransport = RepositoryRemoteTransport(tls)
+        page.borrowCredentials = { credentials(it) }; page.cloneStagingDirectory = staging
+        try {
+            val pending = async(Dispatchers.IO) { page.clone(endpoint("clone-cancel"), "main") }
+            withTimeout(5_000) { while (control("/control/clone-cancel-started") != "true") delay(25) }
+            File(root, "keep.txt").writeText("retain while cancelling\n")
+            withTimeout(2_000) { page.cancelTransfer(); pending.join() }
+            assertTrue(pending.isCancelled)
+            assertEquals("retain while cancelling\n", File(root, "keep.txt").readText())
+            assertFalse(File(root, ".git").exists())
+            assertTrue(staging.listFiles()!!.isEmpty())
+        } finally { page.close(); workspaces.unbind(chat); scope.cancel(); root.deleteRecursively(); staging.deleteRecursively() }
+    }
+
     @Test fun boundSessionRequiresNetworkPreservesFilesAndPushesOnlyReviewedRevision() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val workspaces = AndroidWorkspaces(context, scope)
