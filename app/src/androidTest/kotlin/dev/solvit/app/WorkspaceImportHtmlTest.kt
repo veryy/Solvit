@@ -100,7 +100,7 @@ class WorkspaceImportHtmlTest {
                 val job=app.workspaces.run(workspace.id,shell.id,"/system/bin/toybox sha256sum imported.bin",10_000)
                 withTimeout(15_000) { app.workspaces.jobs.first { jobs->jobs.any { j->j.id==job.id&&j.stage==ShellStage.COMPLETED } }.first { it.id==job.id } }
             }
-            assertEquals(0,result.exitCode);assertTrue(result.output.contains(sha))
+            assertEquals(0,result.exitCode);assertTrue(result.output.joinToString("") { it.text }.contains(sha))
             html.screenshot("workspace-import-directory")
             rule.onNodeWithTag("plugin_page_close").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_web_page").fetchSemanticsNodes().isEmpty() }
