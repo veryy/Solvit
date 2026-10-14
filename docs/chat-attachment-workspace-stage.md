@@ -29,3 +29,5 @@ UI源1432382的远程TypeScript38624452027全部通过，实际完整任务日�
 原生源63404c0的Android38623041850 build已成功，device仍运行；桥源e71547d的38623768561实际失败于跨模块测试读取SqliteChatStore内部attachmentFiles字段，生产编译未报错。修复测试使用公开AttachmentFiles组件并指向同一chat-attachments目录，保留真实SQLite/删除/二进制断言，不扩大生产字段可见性。新增真实app HTML设备用例走已保存PDF来源→原页文字/蓝色像素→取消选择/确认→完整原PDF导入→Git untracked→Shell sha256→原聊天附件保留；未启动系统文件选择器，PDF聊天选页不影响完整原文件。修复和完整设备链待远程执行，尚未发布。
 
 已实际下载原生源63404c0的unit11923985486并核对完整ZIP CRC/XML：494单元零失败/错误/跳过，其中SavedChatAttachmentSourceTest四项全部通过（读后取消/撤权擦除、重开PDF全原字节、跨对话/旧SHA读前拒绝、来源删除后拒绝）。其设备任务116058561050仍在运行。候选UI源c5d9b4b的Android38624928283已开始整包验证，包括修复的跨模块真实存储桥、分页/API24/1.6升级和新增HTML→Git/Shell设备用例。当前市场仍hostApi23且未部署API24，公开APK仍0.35.0；不能提前宣称新功能交付。
+
+原生源63404c0的38623041850设备任务116058561050已实际成功；本次只查询任务状态，尚未下载该设备归档核对XML。完整UI候选c5d9b4b的TS38624928274与市场38624928388均成功，Android build仍在执行。API24市场在私有before/next快照完成实际Node兼容验证：API1..19目录完全一致，API20..23仅采用兼容Git1.2.3，工作区分别继续选择原1.4/1.5/1.6，42个历史版本的HTTP原字节完全保留。新workspace1.7/API24和Git1.2.3的下载哈希与生成包一致；脚本为scripts/verify-market-api24.mjs，验证运行在服务器私有监听端口，未切换公网或客户端hostApi。
