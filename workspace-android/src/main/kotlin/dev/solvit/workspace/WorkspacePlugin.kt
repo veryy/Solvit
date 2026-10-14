@@ -27,6 +27,14 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     private val engine = ShellJobEngine(scope, launcher, root)
     val execution = AndroidExecution(context, engine, rootAccess)
     override val jobs = engine.jobs
+    init {
+        // Cleanup is serialized with imports; it never blocks construction or follows Shell symlinks.
+        scope.launch(Dispatchers.IO) { lock.withLock {
+            state.value.workspaces.forEach { workspace ->
+                runCatching { WorkspaceFileImports.cleanup(File(root,workspace.id)) }
+            }
+        } }
+    }
     private fun load(): WorkspaceState {
         val raw = prefs.getString("state", null) ?: return WorkspaceState()
         val value = JSONObject(raw)

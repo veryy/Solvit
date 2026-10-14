@@ -2,6 +2,9 @@ package dev.solvit.workspace
 
 import dev.solvit.core.MAX_WORKSPACE_IMPORT_BYTES
 import dev.solvit.core.WorkspaceImportTarget
+import dev.solvit.core.WorkspaceImportMonitor
+import dev.solvit.core.WorkspaceImportProgress
+import kotlinx.coroutines.yield
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
@@ -17,6 +20,39 @@ import java.security.MessageDigest
 
 /** Complete-file staging with platform-specific atomic, create-only publication. */
 internal object WorkspaceFileImports {
+    private val stagingLock=Any()
+    private val activeStaging=mutableSetOf<String>()
+    private suspend fun progress(stage:String,completed:Long,total:Long) {
+        yield()
+        currentCoroutineContext()[WorkspaceImportMonitor]?.update?.invoke(WorkspaceImportProgress(stage,completed,total))
+        currentCoroutineContext().ensureActive()
+    }
+    /** Reserved host staging only. No links, .git, original backups or published files are removed.
+     * A process-wide registry protects staging belonging to another live service instance.
+     * Bounded walks may leave deeper/large trees for a later pass; failures do not delete user data.
+     */
+    fun cleanup(root:File):Int {
+        if(root.absoluteFile!=root.canonicalFile || !Files.isDirectory(root.toPath(),NOFOLLOW_LINKS)) return 0
+        var visited=0;var removed=0
+        fun visit(directory:File,depth:Int) {
+            if(depth>32 || visited>=20_000 || directory.absoluteFile!=directory.canonicalFile ||
+                !Files.isDirectory(directory.toPath(),NOFOLLOW_LINKS))return
+            Files.newDirectoryStream(directory.toPath()).use { entries ->
+                for(entry in entries) {
+                    if(++visited>20_000)break
+                    val file=entry.toFile()
+                    if(Files.isDirectory(entry,NOFOLLOW_LINKS)) {
+                        if(file.name!=".git")visit(file,depth+1)
+                    } else if(file.name.matches(Regex("\\.solvit-import-[a-zA-Z0-9-]+\\.partial")) &&
+                        Files.isRegularFile(entry,NOFOLLOW_LINKS)) synchronized(stagingLock) {
+                        if(file.absolutePath !in activeStaging && runCatching { Files.deleteIfExists(entry) }.getOrDefault(false))removed++
+                    }
+                }
+            }
+        }
+        visit(root,0);return removed
+    }
+
     private fun target(root: File, path: String): File {
         require(path.length in 1..1024 && '\u0000' !in path && !File(path).isAbsolute) { "导入路径无效" }
         val pieces=path.split('/')
@@ -97,13 +133,16 @@ internal object WorkspaceFileImports {
     suspend fun create(root: File, path: String, bytes: ByteArray, expected: String, publisher: WorkspaceImportPublisher,
         authorize: suspend () -> Unit): Pair<Long,String> {
         require(bytes.size <= MAX_WORKSPACE_IMPORT_BYTES && expected.matches(Regex("[a-f0-9]{64}"))) { "导入文件超过20MiB或版本无效" }
+        progress("PREPARING",0,bytes.size.toLong())
         val content=bytes.copyOf()
         try {
             require(sha(content)==expected) { "导入文件内容校验失败" }
             authorize();currentCoroutineContext().ensureActive()
             val destination=target(root,path)
             check(!Files.exists(destination.toPath(),NOFOLLOW_LINKS)) { "目标文件已存在，请选择其他名称" }
-            val staged=File.createTempFile(".solvit-import-",".partial",destination.parentFile)
+            val staged=synchronized(stagingLock) {
+                File.createTempFile(".solvit-import-",".partial",destination.parentFile).also { activeStaging.add(it.absolutePath) }
+            }
             try {
                 FileOutputStream(staged).use { output ->
                     var position=0
@@ -111,18 +150,32 @@ internal object WorkspaceFileImports {
                         currentCoroutineContext().ensureActive()
                         val count=minOf(64*1024,content.size-position)
                         output.write(content,position,count);position+=count
+                        progress("WRITING",position.toLong(),content.size.toLong())
                     }
+                    progress("SYNCING",content.size.toLong(),content.size.toLong())
                     output.fd.sync()
                 }
                 authorize();currentCoroutineContext().ensureActive()
                 check(target(root,path)==destination && staged.canonicalFile==staged.absoluteFile &&
                     Files.isRegularFile(staged.toPath(),NOFOLLOW_LINKS)) { "导入目标目录已改变" }
+                progress("VERIFYING",content.size.toLong(),content.size.toLong())
                 check(fileDigest(staged)==expected) { "导入暂存文件已改变" }
                 // No replace option: do not turn a create conflict into an overwrite.
+                progress("PUBLISHING",content.size.toLong(),content.size.toLong())
                 publisher.publish(staged,destination)
+                withContext(NonCancellable) {
                 check(target(root,path)==destination && Files.isRegularFile(destination.toPath(),NOFOLLOW_LINKS) && destination.length()==content.size.toLong() && fileDigest(destination)==expected) { "文件导入结果已改变，请刷新工作区" }
+                // A cancellation arriving after publication cannot turn a complete file into a partial one.
+                // Monitoring failures must not change the already committed outcome.
+                runCatching { currentCoroutineContext()[WorkspaceImportMonitor]?.update?.invoke(
+                    WorkspaceImportProgress("COMMITTED",content.size.toLong(),content.size.toLong())) }
+                }
                 return content.size.toLong() to expected
-            } finally { Files.deleteIfExists(staged.toPath()) }
+            } finally {
+                synchronized(stagingLock) {
+                    try { Files.deleteIfExists(staged.toPath()) } finally { activeStaging.remove(staged.absolutePath) }
+                }
+            }
         } finally { content.fill(0) }
     }
 }
