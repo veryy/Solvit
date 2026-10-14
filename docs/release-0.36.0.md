@@ -27,3 +27,8 @@ Linux环境保留无需root的Ubuntu、Python/venv、Node24/npm和Java17；新�
 ![聊天附件PDF原页与导入确认](screenshots/0.36.0/chat-attachment-workspace-pdf-fixed-candidate.png)
 
 本记录当前仍是发布准备；正式同源标签的全部门禁、真实页面截图及公开APK/源码下载核对完成后再追加交付证据。[完整阶段与失败修复记录](chat-attachment-workspace-stage.md)。
+
+
+## 本标签未发布
+
+正式38637297622的外网搜索区域回退用例失败于Kotlin动态正文为空，发布门禁拒绝发布；0.36.0没有公开APK。该标签保持3724617不移动，后续补丁修复正文读取时机后重新运行全门禁。生产Linux检查已通过，不能代替失败的搜索检查。[根因、先失败回归与修复记录](search-release-diagnosis.md)。
