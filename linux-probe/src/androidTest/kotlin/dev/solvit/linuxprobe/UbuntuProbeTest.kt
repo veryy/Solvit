@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 /** Real Android userland installation and package execution, not a desktop simulation. */
 @RunWith(AndroidJUnit4::class)
 class UbuntuProbeTest {
-    @Test fun ubuntuInstallsPythonAndNodeAndUsesSharedWorkspaceWithoutRoot() = runBlocking {
+    @Test fun ubuntuInstallsPythonAndNodeAndUsesSharedWorkspaceWithoutRoot(): Unit = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         assertTrue(Process.myUid() >= 10_000)
         val archive = File(context.cacheDir, "ubuntu.tar.xz")
