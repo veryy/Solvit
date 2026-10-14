@@ -1,0 +1,12 @@
+Solvit document reader
+
+PDFBox Android 2.0.27.0 (com.tom-roush:pdfbox-android)
+https://github.com/TomRoush/PdfBox-Android
+Apache License 2.0. Corresponding LICENSE and upstream NOTICE included here.
+Solvit uses the library API; no Operit conversion source was copied.
+
+Google ML Kit Text Recognition 16.0.1, Latin/Chinese/Japanese/Korean bundled SDKs
+https://developers.google.com/ml-kit/vision/text-recognition/v2/android
+https://developers.google.com/ml-kit/terms
+Google SDKs are distributed under their accompanying Google terms, not Solvit's project license.
+Bundled recognition models allow local recognition without a user model API key or a Play Services model download.

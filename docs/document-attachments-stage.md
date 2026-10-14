@@ -19,3 +19,11 @@ Solvit现状：选择器、私有原文件、消息引用和HTTP图片/文本路
 新增7个用例覆盖多页完整性、UTF-8累计容量、空页/二进制/状态、日志隐去正文、服务结果身份与版本、读取中权限撤销，以及经实际OpenAI Provider和MockWebServer检查HTTP页文字/来源/模式。此HTTP用例的解析服务是夹具，不能证明PDFBox或OCR已能读取真实PDF。仅做diff静态检查，等待远程；Android解析、OCR、预览、进度/取消、工作区导入、实际文件和设备验证均需继续完成。
 
 本次另核对[PDFBox Android官方使用/Apache-2.0](https://github.com/TomRoush/PdfBox-Android)和[ML Kit官方Android文字识别](https://developers.google.com/ml-kit/vision/text-recognition/v2/android)：初始化PDFBox资源加载器；ML Kit支持打包模型或首次下载模型，需明确呈现识别语言与可用性。本提交只定义服务，尚未引入这些依赖。上述Operit文件与附件测试已重新读取，9个上游checkout verify-only成功。
+
+## Android真实读取候选（尚未接入产品入口）
+
+新增独立document-android：PDFBox2.0.27.0从经过对话/大小/SHA核对的私有附件读取；临时文件、8MiB主内存/64MiB scratch边界、输出writer和逐页授权/取消检查。短文字页保留文字，空文字页以PdfRenderer逐页渲染，最多2200边长/4百万像素，经打包ML Kit16.0.1识别；识别器支持Latin/中文/日文/韩文构造选择，当前候选默认中文。取消等待识别时，像素和OCR许可留给Task完成回调清理，避免回收仍在识别的Bitmap；后续同实例OCR等待上一任务真正释放。密码文件、禁止提取、损坏、全空、超页/超文字均明确失败，不静默回传空内容。40页选取范围、语言选择与进度界面仍须继续接入，当前拒绝超限而不截断，不以这个候选替代最终长文范围。
+
+3个真实Android用例已写入：PDFBox生成含SHORT文字页和中英文扫描页的真实混合PDF，检查TEXT/OCR与实际字符；损坏/密码文件失败和临时文件回收；实际私有附件读取等待中取消、临时目录回收与下一次读取恢复。应用依赖模块以供设备门禁编译，但DocumentTextPlugin尚未注册，选择器仍拒绝PDF；没有提前开放不经设备验证的入口。PDFBox许可证/NOTICE及ML Kit官方条款来源随模块资产提供；尚未编译或执行这些新用例。
+
+31bf87f的远程38573980984实际失败于talloc固定源码下载curl56，未进入Gradle，核心7用例也未执行。完整失败日志已读取。同类下载在0.32候选出现过，下一步只为两个Samba官方HTTPS归档地址增加有界连接/请求期限与网络错误重试，仍严格校验原固定SHA，不更换依赖版本或跳过原生构建。参考官方talloc下载页与download.samba.org/pub/talloc目录。

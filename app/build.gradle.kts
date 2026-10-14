@@ -33,6 +33,7 @@ android {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation(project(":core"))
+    implementation(project(":document-android"))
     implementation(project(":linux-android"))
     implementation(project(":workspace-android"))
     implementation(project(":git-android"))
@@ -62,6 +63,7 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("com.squareup.okhttp3:okhttp:4.12.0")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    androidTestImplementation("com.tom-roush:pdfbox-android:2.0.27.0")
     testImplementation(kotlin("test-junit"))
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
