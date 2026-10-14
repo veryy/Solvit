@@ -83,3 +83,10 @@ PageFilePictureRenderer只接受当前页持有的PageBinaryDocument，原生先
 新增WorkspacePictureHtmlTest真实Android链：系统选择结果注册器提供真实PNG URI，生产renderer→bridge→QuickJS→工作区HTML img；检查原生缩略图实际解码尺寸、屏幕内可见范围，再核对真实截图有红色图片像素（不只DOM存在）。预览阶段工作区仍空，原文件未改；确认后实际目录里的完整PNG字节与来源一致。真实DocumentsUI手指选择不在此用例范围。远程生成及设备结果仍待执行；不将源代码/测试存在当成显示成功。
 
 文本/迁移候选bd58c94的Android38601350681 build成功。完整下载unit artifact11914581695并ZIP CRC/XML核对483单元零失败/错误/跳过；旧API18升级保留配置等原迁移组通过。设备115988220478仍在运行，PDF诊断和整条导入链尚无成功结论。图片页面77bd4f1远程生成38603304566成功，实际下载artifact11915201331、完整ZIP CRC后收回workspace/Git候选包，其他包未变。新增实际图片设备用例73d978f尚待Android编译/运行，不提前发布。
+
+
+## 文本导入设备链验收与图片候选检查
+
+源bd58c94的[Android38601350681](https://github.com/veryy/Solvit/actions/runs/38601350681) build/verify-ui均成功。完整下载UI artifact11914623641（5,295,956字节），ZIP CRC/XML核对65设备零失败/错误/跳过；此前unit归档为483单元零失败。实际WorkspaceImportHtmlTest通过选择、信息预览、确认取消、重名保留原文件、改名导入、生产Git untracked、生产Shell SHA/退出码与重开文件树整链。实际查看workspace-import-selected.png及workspace-import-directory.png，信息、路径输入、确认按钮与导入的300000字节文件可见。注册器提供真实URI，不宣称自动点击系统DocumentsUI。PDF原用例也通过，但没有PDF生产修复，间歇性超时的原因仍未确认，不将本轮成功称为已修复。
+
+图片候选cd423f4的[Android38603796081](https://github.com/veryy/Solvit/actions/runs/38603796081) build成功。完整下载unit artifact11914368368（370,356字节），ZIP CRC/XML核对485单元零失败/错误/跳过。合并已发布main文档后的8eacf7d推送触发分支并发规则，取消了旧verify-ui；取消归档11915428637完整ZIP CRC通过，只有部分设备执行记录，不能支持图片全链成功。继续观察新[Android38606210921](https://github.com/veryy/Solvit/actions/runs/38606210921)，不通过再次推送打断它。图片原生解码/EXIF/撤权与实际HTML可见截图仍以该完整设备结果为准，当前不公开候选APK。
