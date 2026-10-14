@@ -196,6 +196,7 @@ class ChatAttachmentsDeviceTest {
             rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_${originalUser.id}"))
             rule.onNodeWithTag("message_actions_${originalUser.id}").performClick()
             rule.onNodeWithText("编辑并分支").performClick()
+            rule.onNodeWithText("创建分支").assertIsEnabled() // The original question contains attachments and no text.
             rule.onNodeWithTag("branch_edit").performTextReplacement("edited attachment question")
             rule.onNodeWithText("创建分支").assertIsEnabled().performClick()
             rule.waitUntil(10_000) { vm.sessionId.value != session && vm.attachmentDrafts.value[vm.sessionId.value].orEmpty().size == 2 && !vm.branching.value }

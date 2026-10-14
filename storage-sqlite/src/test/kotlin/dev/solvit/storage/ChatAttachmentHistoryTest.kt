@@ -96,6 +96,22 @@ class ChatAttachmentHistoryTest {
             reopened.deleteSession(sessionId); reopened.deleteSession(branchId)
         }
     }
+    @Test fun corruptAttachmentReferencesPreventRecoveryFromDeletingAnyFiles() = runBlocking<Unit> {
+        SqliteChatStore(context).use { store ->
+            val session = store.createSession()
+            val orphan = store.attachmentFiles.import(session.id, "unsent.txt", "text/plain", java.io.ByteArrayInputStream("retain on error".toByteArray()))
+            store.append(ChatMessage("corrupt-reference",session.id,Role.USER,"text"))
+            SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path,null,SQLiteDatabase.OPEN_READWRITE).use {
+                it.execSQL("UPDATE messages SET attachments='invalid json' WHERE id='corrupt-reference'")
+            }
+            assertFailsWith<org.json.JSONException> { store.recoverAttachmentFiles() }
+            assertContentEquals("retain on error".toByteArray(),store.attachmentFiles.read(session.id,orphan))
+            SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path,null,SQLiteDatabase.OPEN_READWRITE).use {
+                it.execSQL("UPDATE messages SET attachments='[]' WHERE id='corrupt-reference'")
+            }
+            store.deleteSession(session.id)
+        }
+    }
     @Test fun versionNineUpgradeRetainsTextAndDefaultsAttachmentsToEmpty() = runBlocking<Unit> {
         val session = SqliteChatStore(context).use { store ->
             val session = store.createSession()
