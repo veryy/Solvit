@@ -289,3 +289,11 @@ verify-ui仍在运行，不能用编译通过替代本阶段或页面交付。
 线上服务仍为serverSHA df284c02...与Git1.1.1原字节。将候选server/Git1.2.0和原Git1.1.1暂存后，用独立localhost服务逐项比较API1–19真实目录：API1–18保持，API19内容/摘要一致但Git目录位置改变，完整对象顺序断言失败，因此未调用生产部署。原因是旧Git从根目录移到legacy后，同版本排序继承新的文件枚举顺序。
 
 新增可选legacy/catalog-order.json目录数据，通用服务在排序前按记录恢复被移动包的位置，不在服务器硬编码Git插件ID。新增API19 HTTP排序回归，预期ID顺序来自部署前实际目录，原包SHA断言保留；完整API1–19暂存比较仍待核对，npm测试只用Actions。此修复未发布APK或部署生产，线上旧客户端保持原状态。
+
+## API20市场上线与公网复核
+
+30d5344的通用legacy/catalog-order.json机制保留旧Git在目录中的原位置。实际远程暂存比较API1–19整个JSON相等，API20 Git1.2.0下载725628字节，SHA256 4d76704c82d72c9b904d2eba6b2f5aea908cb48b495d439c9b9b1a36709d3f4a。38507784878市场验证成功；38507784904插件任务112个SDK、4个市场实际零失败，首轮公网搜索无结果，失败作业复查成功，不能将网络失败改记为首轮通过。
+
+已部署 /opt/solvit-market，受控停止/启动服务，独占备份目录 .backup-api20-b3ea270 保留旧包与server，比较交换确认旧SHA后才替换。SSH调用返回非零但没有结果，不视作部署失败重做；后续只读服务器deployment-result.json确认实际已成功，server SHA619133f4e6e308fc0830d782fd1e18d656f1a17b2a174fa69fc8e357c25ecb51。进一步通过公网HTTPS逐项核对API1–19完整目录不变，API20及19各自实际包下载与SHA一致；旧Git1.1.1的715915字节/7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd仍可下载。
+
+这只是市场服务上线，0.30.0 APK仍未发布；Android页面失败须修复，插件真实GitHub账号写入尚未验收。
