@@ -33,10 +33,12 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
     override val state = mutableState.asStateFlow()
     private val mutex = Mutex()
     @Volatile private var operation: Job? = null
+    @Volatile private var installingRootfs = false
     init {
         installer?.let { manager -> scope.launch {
             manager.state.collect { next ->
-                // The initial replay must not overwrite a newly queued install/software job.
+                // Rootfs replay must not mark a later software job as already ready.
+                if (!installingRootfs) return@collect
                 if (next.stage == InstallationStage.IDLE && operation?.isActive == true) return@collect
                 mutableState.update { old -> old.copy(installed = manager.activeRoot() != null,
                     stage = next.stage.name, bytes = next.bytes, total = next.total, failure = next.details) }
@@ -100,23 +102,26 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         } finally { withContext(NonCancellable) { engine.cancel("builtin.linux", null, started.id) } }
     }
 
-    private suspend fun begin(stage: String, action: suspend () -> Unit) = mutex.withLock {
+    private suspend fun begin(stage: String, rootInstallation: Boolean = false, action: suspend () -> Unit) = mutex.withLock {
         check(supported) { "当前架构尚未提供 Linux 运行环境" }
         check(operation?.isActive != true) { "已有环境安装任务正在进行" }
+        installingRootfs = rootInstallation
         mutableState.update { it.copy(stage = stage, output = "", failure = null) }
-        operation = scope.launch(start = CoroutineStart.LAZY) {
+        val task = scope.launch(start = CoroutineStart.LAZY) {
             try { action(); mutableState.update { it.copy(installed = installer?.activeRoot() != null, stage = "READY") } }
             catch (e: CancellationException) { mutableState.update { it.copy(stage = "CANCELLED") }; throw e }
             catch (e: Exception) { mutableState.update { it.copy(stage = "FAILED", failure = e.message?.take(4096) ?: "Linux 环境操作失败") } }
+            finally { installingRootfs = false }
         }
-        operation!!.invokeOnCompletion { error ->
-            if (error is CancellationException) mutableState.update {
+        operation = task
+        task.invokeOnCompletion { error ->
+            if (operation === task && error is CancellationException) mutableState.update {
                 if (it.stage in setOf("DOWNLOADING", "EXTRACTING", "INITIALIZING", "INSTALLING_SOFTWARE")) it.copy(stage = "CANCELLED") else it
             }
         }
-        operation!!.start()
+        task.start()
     }
-    override suspend fun install() = begin("DOWNLOADING") {
+    override suspend fun install() = begin("DOWNLOADING", rootInstallation = true) {
         checkNotNull(installer).install { root -> run(root,
             "apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends python3 python3-venv nodejs npm ca-certificates && python3 --version && node --version && npm --version") }
     }
@@ -127,7 +132,9 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
             LinuxSoftware.NODE -> "nodejs npm"
             LinuxSoftware.JAVA -> "openjdk-17-jdk-headless"
         }
-        run(root, "apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends $packages")
+        val version = when (software) { LinuxSoftware.PYTHON -> "python3 --version && python3 -m pip --version"
+            LinuxSoftware.NODE -> "node --version && npm --version"; LinuxSoftware.JAVA -> "java -version" }
+        run(root, "dpkg --configure -a && apt-get -f install -y --no-install-recommends && apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends $packages && $version")
     }
     override suspend fun cancel() = mutex.withLock { operation?.cancelAndJoin(); Unit }
     private fun root() = checkNotNull(installer?.activeRoot()) { "请先在环境插件中完成 Ubuntu 安装" }

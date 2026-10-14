@@ -33,6 +33,12 @@ class UbuntuProbeTest {
             }
             assertEquals("${result.failure}\n${result.output}", "READY", result.stage)
             assertTrue(result.installed)
+            service.installSoftware(dev.solvit.core.LinuxSoftware.JAVA)
+            assertEquals("INSTALLING_SOFTWARE", service.state.value.stage)
+            val java = withTimeout(10 * 60_000L) { service.state.first { it.stage in setOf("READY", "FAILED", "CANCELLED") } }
+            assertEquals("${java.failure}\n${java.output}", "READY", java.stage)
+            assertTrue(java.output, java.output.contains("openjdk version \"17."))
+            android.util.Log.i("SolvitLinuxProbe", "JAVA_RUNTIME_VERIFIED|" + java.output.lines().first { it.contains("openjdk version") })
             val workspace = File(context.filesDir, "production shared workspace").apply { mkdirs() }
             val plan = service.command(workspace.absolutePath,
                 "python3 -c \"from pathlib import Path; Path('production-python.txt').write_text('python-ok')\" && node -e \"require('fs').writeFileSync('production-node.txt','node-ok')\"")
