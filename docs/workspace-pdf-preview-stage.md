@@ -27,3 +27,7 @@ HTML设备用例使用真实两页PDF、实际选中文件URI和生产renderer�
 远程TypeScript38615567853生成与typecheck/118 SDK零失败，但市场断言仍要求Git最新1.2.1，实际1.2.2使原检查失败。修正仅最新版本预期，保留API19原始Git字节与旧1.2.1下载检查；等待原工作流复验，不宣称本轮全部通过。
 
 远程TypeScript38615928135全部成功，完整任务日志核对118 SDK/5市场零失败，公网搜索/MCP/Skills门禁通过。实际下载生成artifact11919273507并核对ZIP CRC，仅同步workspace/Git两包，其他当前包字节保持。新workspace1.6.0/API23为759034字节/SHA7e365776b2df302b79d338980e5ce990f233d7f3a7762399a89c8fa3a50283b6；Git1.2.2/API20为741822字节/SHA1d7aa4b3556104907dac7e29d7ea4fb5e35a7f6565d3a6bf668771e643b8130b。候选API23私有市场兼容脚本逐项检查API1..19目录不变、API20..22仅兼容Git补丁、API22继续workspace1.5.0及全部历史下载字节；仍待远端实际执行。完整APK/真实HTML与API22迁移回归随后执行。
+
+原生bfd43c2/Android38614115299现已完整成功：实际下载11918424850单元及11920401437设备归档，两个ZIP CRC通过；XML为487单元与74设备，零失败/错误/跳过，明确包含两个PagePdfPreviewTest和全部五个PdfImportPreviewDeviceTest。原有聊天PDF与图像设备回归同轮执行。这是原生检查点证据，不等于后续API23 HTML验收。
+
+私有市场before/next实际校验完成，来自线上当前API22部署快照：API1..19完整目录相同，API20..22仅Git兼容补丁且API22仍选择workspace1.5.0；40个已公开版本全部下载字节保持，新API23包与远程生成SHA一致。staging路径.staging-api23-1792002855，尚未切换线上服务和客户端hostApi。
