@@ -61,11 +61,11 @@ internal fun ChatQueuePanel(items: List<ChatViewModel.QueuedMessage>, paused: Bo
                         if(editingId==item.id) {
                             OutlinedTextField(editedText,{editedText=it},modifier=Modifier.fillMaxWidth().testTag("queue_edit_input"),maxLines=4,enabled=!switching)
                             Row {
-                                TextButton(onClick={if(edit(item.id,editedText))editingId=null},enabled=!switching&&editedText.isNotBlank()) { UiText("保存") }
+                                TextButton(onClick={if(edit(item.id,editedText))editingId=null},enabled=!switching&&(editedText.isNotBlank()||item.attachments.isNotEmpty())) { UiText("保存") }
                                 TextButton(onClick={editingId=null}) { UiText("取消") }
                             }
                         }else {
-                            Text(item.text,maxLines=2,style=MaterialTheme.typography.bodySmall)
+                            Text(item.text.ifBlank { item.attachments.joinToString { it.name } },maxLines=2,style=MaterialTheme.typography.bodySmall)
                             FlowRow(horizontalArrangement=Arrangement.spacedBy(4.dp)) {
                                 TextButton(onClick={sendNow(item.id)},enabled=!switching,modifier=Modifier.testTag("queue_send_${item.id}")) { UiText("立即发送并打断") }
                                 TextButton(onClick={editingId=item.id;editedText=item.text},enabled=!switching) { UiText("编辑") }

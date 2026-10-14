@@ -71,3 +71,9 @@ SQLite存储与插件注册共用同一个AttachmentFiles实例。创建分支�
 ## 旧聊天删除失败修复
 
 495de45的完整38502934494失败在原SqliteChatStoreTest.migratesOldMessagesAndPersistsToolCallsAcrossReopening：旧v1聊天ID为s，附件清理的UUID限定抛IllegalArgumentException。保留原旧聊天/工具回传/删除断言，将非UUID旧ID映射为固定SHA-256目录名；UUID仍原目录兼容，原始旧ID不作为路径拼接。31项存储测试仅此项失败，修复仍待完整Actions验证。
+
+## Android附件链路验收候选
+
+新增ChatAttachmentsDeviceTest：实际OpenMultipleDocuments launch contract、取消后草稿不变、真实FileProvider图片/文本URI返回、Compose导入与预览、生产AttachmentFiles/SQLite/ChatService/ToolAgentRuntime/OpenAiProvider、真实MockWebServer HTTP请求、空文字发送、请求图片字节与选取PNG逐字节一致、文本正文包含中文/emoji、发送后查看文档、关闭SQLite重开保存引用与文件一致。选择器返回通过测试ActivityResultRegistry注入，未宣称系统DocumentsUI人工操作或真实模型视觉质量已验收。
+
+缩略图单独144像素采样，大图最多2048；选择器目标对话跨配置保留，application/octet-stream按已知文本扩展解析，其他二进制仍拒绝。队列的仅附件项显示文件名，编辑空文字仍可保存。新增Android测试依赖MockWebServer4.12.0（项目既有JVM测试版本），由Actions安装/运行，没有本地构建。当前代码和测试尚未远程通过，保留完整原Git/角色/插件/签名/覆盖安装门禁。

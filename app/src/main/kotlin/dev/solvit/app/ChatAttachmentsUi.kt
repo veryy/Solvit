@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -23,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import dev.solvit.core.ChatAttachment
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -33,7 +35,7 @@ import kotlinx.coroutines.withContext
 internal fun ChatAttachmentPicker(vm: ChatViewModel, session: String?, enabled: Boolean) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var target by remember { mutableStateOf<String?>(null) }
+    var target by rememberSaveable { mutableStateOf<String?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         val owner = target
         target = null
@@ -45,7 +47,8 @@ internal fun ChatAttachmentPicker(vm: ChatViewModel, session: String?, enabled: 
                             if (cursor.moveToFirst()) cursor.getString(0) else null
                         } ?: "attachment"
                         val safeName = name.replace(Regex("[\\p{Cntrl}/\\\\]"), "_").take(255).ifBlank { "attachment" }
-                        val mime = context.contentResolver.getType(uri)?.lowercase() ?: when (safeName.substringAfterLast('.').lowercase()) {
+                        val detected = context.contentResolver.getType(uri)?.lowercase()
+                        val mime = detected?.takeUnless { it == "application/octet-stream" } ?: when (safeName.substringAfterLast('.').lowercase()) {
                             "py", "kt", "java", "js", "ts", "md", "txt", "csv", "log" -> "text/plain"
                             "json" -> "application/json"
                             else -> "application/octet-stream"
@@ -61,7 +64,7 @@ internal fun ChatAttachmentPicker(vm: ChatViewModel, session: String?, enabled: 
     }
     IconButton(onClick = {
         target = session
-        picker.launch(arrayOf("image/*", "text/*", "application/json", "application/xml", "application/javascript"))
+        picker.launch(arrayOf("image/*", "text/*", "application/json", "application/xml", "application/javascript", "application/octet-stream"))
     }, enabled = enabled && session != null, modifier = Modifier.testTag("chat_attach")) {
         UiIcon(Icons.Default.AttachFile, "添加图片或文件")
     }
@@ -76,13 +79,13 @@ internal fun ChatAttachmentCards(vm: ChatViewModel, session: String, attachments
                 OutlinedCard(onClick = { preview = attachment }, modifier = Modifier.widthIn(max = 240.dp).testTag("attachment_${attachment.id}")) {
                     Row(Modifier.padding(8.dp)) {
                         if (attachment.mimeType.startsWith("image/")) {
-                            AttachmentImage(vm, session, attachment, Modifier.size(48.dp))
+                            AttachmentImage(vm, session, attachment, Modifier.size(48.dp), maxEdge = 144)
                         }
-                        Column(Modifier.padding(horizontal = 6.dp)) {
-                            Text(attachment.name, maxLines = 1)
+                        Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
+                            Text(attachment.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text("${attachment.sizeBytes / 1024} KiB", style = MaterialTheme.typography.labelSmall)
                         }
-                        if (removable) IconButton(onClick = { vm.removeDraftAttachment(session, attachment) }, modifier = Modifier.size(32.dp)) {
+                        if (removable) IconButton(onClick = { vm.removeDraftAttachment(session, attachment) }, modifier = Modifier.size(32.dp).testTag("attachment_remove_${attachment.id}")) {
                             UiIcon(Icons.Default.Close, "移除附件")
                         }
                     }
@@ -95,7 +98,7 @@ internal fun ChatAttachmentCards(vm: ChatViewModel, session: String, attachments
             Column(Modifier.fillMaxSize().padding(16.dp)) {
                 Row(Modifier.fillMaxWidth()) {
                     Text(attachment.name, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { preview = null }) { UiText("关闭") }
+                    TextButton(onClick = { preview = null }, modifier = Modifier.testTag("attachment_preview_close")) { UiText("关闭") }
                 }
                 if (attachment.mimeType.startsWith("image/")) AttachmentImage(vm, session, attachment, Modifier.fillMaxSize())
                 else AttachmentText(vm, session, attachment)
@@ -105,7 +108,7 @@ internal fun ChatAttachmentCards(vm: ChatViewModel, session: String, attachments
 }
 
 @Composable
-private fun AttachmentImage(vm: ChatViewModel, session: String, attachment: ChatAttachment, modifier: Modifier) {
+private fun AttachmentImage(vm: ChatViewModel, session: String, attachment: ChatAttachment, modifier: Modifier, maxEdge: Int = 2048) {
     var bitmap by remember(session, attachment.id) { mutableStateOf<ImageBitmap?>(null) }
     var failed by remember(session, attachment.id) { mutableStateOf(false) }
     LaunchedEffect(session, attachment.id) {
@@ -117,7 +120,7 @@ private fun AttachmentImage(vm: ChatViewModel, session: String, attachment: Chat
                     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                     var sample = 1
-                    while (bounds.outWidth / sample > 2048 || bounds.outHeight / sample > 2048) sample *= 2
+                    while (bounds.outWidth / sample > maxEdge || bounds.outHeight / sample > maxEdge) sample *= 2
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })?.asImageBitmap()
                         ?: error("图片解码失败")
                 }
@@ -126,7 +129,7 @@ private fun AttachmentImage(vm: ChatViewModel, session: String, attachment: Chat
         catch (_: Exception) { failed = true }
     }
     val image = bitmap
-    if (image != null) Image(image, contentDescription = attachment.name, modifier = modifier, contentScale = ContentScale.Fit)
+    if (image != null) Image(image, contentDescription = attachment.name, modifier = modifier.testTag("attachment_image_${attachment.id}"), contentScale = ContentScale.Fit)
     else if (failed) UiText("附件预览失败", modifier = modifier)
     else Icon(Icons.Default.Image, contentDescription = attachment.name, modifier = modifier)
 }
