@@ -21,7 +21,7 @@ export interface PluginContext {
   /** API19, authorized AI tool only; root and chat selectors are owned by the host. */
   readonly git?: {call(operation:'status'|'diff'|'history',args?:JsonObject):Promise<JsonValue>};
   /** API19, page-only. Native reviews are opaque handles; perform consumes a displayed confirmed action. */
-  readonly gitPage?: {query(operation:'status'|'diff'|'diffChunk'|'history'|'reviewCommit',args?:JsonObject):Promise<JsonValue>;
+  readonly gitPage?: {query(operation:'status'|'diff'|'diffChunk'|'history'|'reviewCommit'|'transferProgress'|'remoteOperation',args?:JsonObject):Promise<JsonValue>;
     perform():Promise<JsonValue>};
   /** API12, human page only. The host captures the chat; scripts cannot supply a chat/workspace id to file queries. */
   readonly workspacePage?: {query(operation:'snapshot'|'list'|'read'|'readChunk'|'editBegin'|'editAppend'|'editFinish'|'editDiscard'|'drafts'|'draft'|'changes'|'changeContent',args?:JsonObject):Promise<JsonValue>;
