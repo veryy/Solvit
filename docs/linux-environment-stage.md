@@ -104,3 +104,5 @@ Node v24.21.0 官方BUILDING.md对Linux ARM64/x64的支持基线为kernel>=4.18�
 候选 [Android38546632484](https://github.com/veryy/Solvit/actions/runs/38546632484) 已全通过，源9d5069e：build和verify-ui成功；实际下载unit artifact11885465917并完整ZIP CRC/XML核对447个单元，零失败/错误/跳过；Lint、APK和固定签名门禁成功。完整应用界面任务亦通过，包括新增真实environment HTML页面、拒绝安装不写入和旧签名覆盖升级。应用设备报告精确计数待正式版本归档核对，不用生产探针3个测试代替应用UI测试。代码以保留历史的fast-forward合入main。0.31.0正式标签还必须通过build/UI/plugins/search/Linux后才能公开APK。
 
 候选UI artifact11885916398完整ZIP CRC/XML核对59个应用/Web/终端测试，零失败/错误/跳过，但实际查看linux-plugin-before-install.png发现主内容空白、仅刷新footer可见。DOM存在断言不能证明可见可点，故主动取消未公开的0.31.0正式运行38549334671，保留其不可变标签，不移动历史。按已有Skills页面的稳定html/body百分比高度替换环境页面100dvh，并加强真实Android用例：记录布局尺寸，检查按钮可见范围及elementFromPoint命中，使用真实屏幕触摸打开安装确认，再验证拒绝不写入。环境包升1.0.1，应用候选0.31.1/build64；生成包静态同步后由远程生成检查确认。尚未宣称此布局修复通过，不发布空白页面APK。
+
+环境页面1.0.1生成检查38550289601通过。线上已经保留旧1.0.0包并更新当前到1.0.1；HTTPS实际下载17,753字节，SHA2561856e4c2391b9d589b31095b5c8dae64d9e75311590d62b278c2419ba8c2d5f0，与仓库一致；API20实际完整目录与更新前相同，旧1.0.0下载仍为4d5d07...01b7。旧包同时保存到仓库legacy目录，避免重新部署丢失历史下载。页面视觉/触摸回归仍在运行。
