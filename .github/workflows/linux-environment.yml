@@ -52,10 +52,22 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: |
-            ./gradlew -PlinuxProbe=true :linux-probe:connectedDebugAndroidTest --stacktrace
-            adb exec-out run-as dev.solvit.linuxprobe cat files/ubuntu-probe.log > linux-probe/build/ubuntu-probe.log
-            adb exec-out run-as dev.solvit.linuxprobe cat files/ubuntu-probe-versions.txt > linux-probe/build/ubuntu-probe-versions.txt
+          script: ./gradlew -PlinuxProbe=true :linux-probe:connectedDebugAndroidTest --stacktrace
+      - name: Verify actual runtime versions from device report
+        run: |
+          python3 - <<'PY_REPORT'
+          from pathlib import Path
+          import re
+          root = Path('linux-probe/build/outputs/androidTest-results')
+          logs = list(root.rglob('logcat-*UbuntuProbeTest*.txt'))
+          assert logs, 'Missing Ubuntu device logcat'
+          text = '\n'.join(p.read_text(errors='replace') for p in logs)
+          match = re.search(r'RUNTIME_VERSIONS\|(Python 3\.[0-9]+\.[0-9]+[^|\r\n]*)\|(v[0-9]+\.[0-9]+\.[0-9]+)\|([0-9]+\.[0-9]+\.[0-9]+)', text)
+          assert match, 'Actual Python/Node/npm versions were not captured'
+          versions = '\n'.join(match.groups()) + '\n'
+          Path('linux-probe/build/ubuntu-probe-versions.txt').write_text(versions)
+          print(versions)
+          PY_REPORT
       - uses: actions/upload-artifact@v4
         if: always()
         with:

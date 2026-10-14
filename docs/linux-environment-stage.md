@@ -56,3 +56,9 @@
 38527701091/a8d7eb2 已实际解包并启动 Ubuntu 24.04 guest bash，工作区从宿主读取检查通过；apt 下载30.5MB签名索引后以100退出，所有重命名返回 ENOSYS，尚未到Python/Node安装。锁定PRoot `tracee/seccomp.c` 中 PR_rename 会转成 PR_renameat；`tracee/event.c` 中 PROOT_NO_SECCOMP 控制过滤/适配路径。上游官方问题 https://github.com/termux/proot/issues/390 记录同类 x86_64 Android、仅在 PROOT_NO_SECCOMP=1 出现的失败。下一轮只清除 Ubuntu 启动中人为加入的该覆盖，让PRoot正常启用其适配；保持原下载、apt安装、脚本、venv断言和8分钟上限。此处不是关闭Android安全限制，不改变应用UID。是否修复以原完整Ubuntu测试为准。
 
 38528429036/7b76f2f证明重命名问题已消失：apt索引成功并下载Python/Node/npm安装包，随后dpkg在新建备份硬链接时 Permission denied（usr/bin/clear、var/lib/dpkg/status-old）。下一轮采用锁定Operit TerminalManager已经探测并使用的 --link2symlink，启用上游硬链接模拟，PROOT_L2S_DIR明确位于该rootfs的私有.l2s目录，其他脚本/断言保持。宿主UID和权限不改变。完整Ubuntu安装尚未通过；原阶段Android shell映射仍有效。产品环境的目录在首次apt初始化前必须固定，避免重命名破坏.l2s的绝对路径。
+
+## Ubuntu 实际安装与执行通过
+
+源f1d871f，[38529444261](https://github.com/veryy/Solvit/actions/runs/38529444261)通过。实际artifact11877745788（32,449,542字节）ZIP CRC/XML核对4单元、2 Android，零失败/错误/跳过；Ubuntu用例耗时106.972秒，apt安装、Python/Node脚本写文件、npm版本调用和venv均实际成功。ARM64仅源码编译，尚未真机执行。
+
+该轮版本导出不合格：Gradle完成连接测试会卸载诊断应用，随后adb run-as读到unknown package；不能把该导出文件当作版本证据。原安装执行通过不受影响，但精确版本暂不报告。修复为测试成功后向设备日志输出单行RUNTIME_VERSIONS，工作流从已收集的logcat严格解析并校验Python/Node/npm版本；缺少或格式错误就失败。下一轮重新核对真实报告。产品安装界面、软件管理、AI与PTY绑定仍未交付，公开版本保持0.30.2。

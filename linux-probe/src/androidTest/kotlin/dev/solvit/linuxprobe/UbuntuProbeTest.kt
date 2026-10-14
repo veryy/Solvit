@@ -66,7 +66,7 @@ class UbuntuProbeTest {
             val versions = File(workspace,"versions.txt").readText()
             assertTrue(versions,versions.startsWith("Python 3."))
             assertTrue(versions,versions.lines().any { it.startsWith("v") })
-            File(context.filesDir,"ubuntu-probe-versions.txt").writeText(versions)
+            android.util.Log.i("SolvitLinuxProbe", "RUNTIME_VERSIONS|" + versions.trim().replace("\n", "|"))
         } finally { child.destroyForcibly() }
     }
 }
