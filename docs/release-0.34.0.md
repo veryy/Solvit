@@ -16,7 +16,7 @@ Linux环境保留PRoot/Ubuntu、Python3.12.3、Node24.21.0/npm11.19.0、Java17�
 
 ## 验证状态
 
-文本候选[38601350681](https://github.com/veryy/Solvit/actions/runs/38601350681)通过483单元和65设备用例，完整报告ZIP CRC/XML及实际导入截图已核对。图片候选485单元和Lint通过，[38606210921](https://github.com/veryy/Solvit/actions/runs/38606210921)完整设备链69用例零失败/错误/跳过；完整报告ZIP CRC/XML及实际图片截图已核对。市场API22私有暂存比较通过，未公开新包。正式标签六项门禁、签名/覆盖升级、APK/源码公开下载核对均待完成。
+文本候选[38601350681](https://github.com/veryy/Solvit/actions/runs/38601350681)通过483单元和65设备用例，完整报告ZIP CRC/XML及实际导入截图已核对。图片候选485单元和Lint通过，[38606210921](https://github.com/veryy/Solvit/actions/runs/38606210921)完整设备链69用例零失败/错误/跳过；完整报告ZIP CRC/XML及实际图片截图已核对。市场API22私有暂存与公开HTTPS比较通过，已公开新工作区1.5.0/Git1.2.1；38个历史下载原字节保留，API1..19目录不变，API20/21仍使用兼容工作区1.4.0。客户端已切换hostApi22。正式标签六项门禁、签名/覆盖升级、APK/源码公开下载核对均待完成。
 
 保留已知诊断历史：曾发生PDF读取设备等待超时，以及此前WebView原生SIGSEGV；后续候选通过不等于原因已修复。原断言和超时保留，PDF失败时增加合成夹具状态和截图诊断。详细证据见[阶段记录](workspace-import-stage.md)。
 

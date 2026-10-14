@@ -104,3 +104,8 @@ PageFilePictureRenderer只接受当前页持有的PageBinaryDocument，原生先
 源8eacf7d的[Android38606210921](https://github.com/veryy/Solvit/actions/runs/38606210921) build/verify-ui均成功。完整下载UI artifact11916382922（5,440,774字节），ZIP CRC/XML核对69设备零失败/错误/跳过。FilePictureDeviceTest三个实际解码用例（大PNG、EXIF方向、坏图/撤权）通过，WorkspacePictureHtmlTest真实PNG→原生缩略图→bridge→QuickJS→工作区HTML→屏幕红色像素→完整原PNG导入通过；原二进制Git/Shell、PDF读取与覆盖升级用例保留通过。实际查看workspace-import-image.png：红色预览图确实显示，目标路径、说明及底部确认按钮可见。测试图不是产品图稿；系统选择注册器提供真实URI，不等于手指操作DocumentsUI。
 
 485单元结果已核对同一代码树的cd423f4归档；8eacf7d仅合并main公开版本文档。正式客户端hostApi22更新及正式标签六项门禁仍待完成，公开APK尚未更新。
+
+
+## API22市场公开更新与客户端下载切换
+
+图片69设备及实际截图验收后，先保留线上完整备份，再更新API22服务与候选workspace1.5.0/Git1.2.1，服务仍以solvit-market独立用户运行。启动后健康和新目录摘要检查通过。随后通过外部公开HTTPS逐个比较API1..19目录，完全不变；API20/21仅Git兼容补丁更新，工作区仍为1.4.0；38个历史版本下载SHA/长度与更新前基线一致。新workspace754032字节/SHA399e6a...bc72a、Git736820字节/SHA77454f...d83f9均与提交的生成包逐字节一致。当前客户端才将市场请求从hostApi21切换22，保留原MockWebServer目录请求断言并更新实际版本；最终以正式标签全门禁及公开APK核对为准。
