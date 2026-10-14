@@ -9,9 +9,6 @@ import android.media.ExifInterface
 import dev.solvit.core.*
 import kotlinx.coroutines.*
 import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.io.OutputStream
-import kotlin.math.max
 
 /** Selected images only. No paths, URLs, EXIF metadata or original pixels reach the page. */
 class AndroidFilePictureRenderer : PageFilePictureRenderer {
@@ -56,30 +53,7 @@ class AndroidFilePictureRenderer : PageFilePictureRenderer {
                 flat.eraseColor(Color.WHITE); Canvas(flat).drawBitmap(oriented, 0f, 0f, null)
             } finally { rotated?.recycle() }
             authorize(); currentCoroutineContext().ensureActive()
-            for (quality in listOf(85, 60, 35)) {
-                val bitmap = checkNotNull(thumbnail)
-                val output = ByteArrayOutputStream()
-                val bounded = object : OutputStream() {
-                    override fun write(value: Int) { if (output.size() >= PageFilePicture.MAX_BYTES) throw TooLarge(); output.write(value) }
-                    override fun write(data: ByteArray, offset: Int, count: Int) {
-                        if (count > PageFilePicture.MAX_BYTES - output.size()) throw TooLarge()
-                        output.write(data, offset, count)
-                    }
-                }
-                val complete = try { bitmap.compress(Bitmap.CompressFormat.JPEG, quality, bounded) } catch (_: TooLarge) { false }
-                authorize(); currentCoroutineContext().ensureActive()
-                if (complete) {
-                    val jpeg = output.toByteArray()
-                    try { return@withContext PageFilePicture(bitmap.width, bitmap.height, jpeg) }
-                    finally { jpeg.fill(0) }
-                }
-                if (quality == 60) {
-                    val smaller = Bitmap.createScaledBitmap(bitmap, max(1, bitmap.width / 2), max(1, bitmap.height / 2), true)
-                    thumbnail = smaller; bitmap.recycle()
-                }
-            }
-            error("图片预览超过容量限制")
+            encodeFilePicture(checkNotNull(thumbnail), authorize)
         } finally { thumbnail?.recycle(); decoded?.recycle(); bytes.fill(0) }
     }
-    private class TooLarge : RuntimeException()
 }

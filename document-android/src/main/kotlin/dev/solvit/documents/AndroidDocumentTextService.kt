@@ -13,24 +13,16 @@ import com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions
 import com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
-import com.tom_roush.pdfbox.io.MemoryUsageSetting
-import com.tom_roush.pdfbox.pdmodel.PDDocument
-import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import dev.solvit.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withLock
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
 import java.io.File
-import java.io.IOException
 import java.io.Writer
-import java.security.MessageDigest
-import java.util.UUID
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -42,7 +34,7 @@ import kotlin.math.sqrt
 class AndroidDocumentTextService(context: Context, private val attachments: ChatAttachmentStore,
     private val script: DocumentOcrScript = DocumentOcrScript.CHINESE) : DocumentTextService {
     private val cache = File(context.applicationContext.cacheDir, "document-reader")
-    private val reads = Mutex()
+    private val sources = PdfSourceAccess(cache)
     // A cancelled caller must not recycle pixels while ML Kit is still using them.
     private val ocrSlot = Semaphore(1)
     init { PDFBoxResourceLoader.init(context.applicationContext) }
@@ -57,39 +49,15 @@ class AndroidDocumentTextService(context: Context, private val attachments: Chat
     }
 
     private suspend fun <T> withSource(sessionId: String, attachment: ChatAttachment,
-        authorize: suspend () -> Unit, action: suspend (File, File) -> T): T = reads.withLock {
-        withContext(Dispatchers.IO) {
-            require(attachment.mimeType == "application/pdf") { "文档读取仅支持PDF" }
-            authorize(); currentCoroutineContext().ensureActive()
-            check(cache.mkdirs() || cache.isDirectory) { "无法创建文档临时目录" }
-            val directory = File(cache, UUID.randomUUID().toString())
-            check(directory.mkdir()) { "无法创建文档临时目录" }
-            try {
-                val source = File(directory, "source.pdf")
-                val bytes = attachments.read(sessionId, attachment, authorize)
-                try {
-                    require(bytes.size.toLong() == attachment.sizeBytes && bytes.size <= ChatAttachment.MAX_ATTACHMENT_BYTES) { "文档大小与附件记录不一致" }
-                    val hash = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
-                    require(hash == attachment.sha256) { "文档内容校验失败" }
-                    require(bytes.copyOfRange(0, min(bytes.size, 1024)).toString(Charsets.US_ASCII).contains("%PDF-")) { "文件不是有效PDF" }
-                    source.outputStream().use { it.write(bytes) }
-                } finally { bytes.fill(0) }
-                authorize(); currentCoroutineContext().ensureActive()
-                action(directory, source)
-            } catch (cancelled: CancellationException) { throw cancelled }
-            catch (_: InvalidPasswordException) { throw ModelException("PDF受密码保护，请先导出未加密副本") }
-            catch (failure: ModelException) { throw failure }
-            catch (_: IOException) { throw ModelException("PDF损坏或无法读取，请检查原文件") }
-            finally { directory.deleteRecursively() }
-        }
+        authorize: suspend () -> Unit, action: suspend (File, File) -> T): T {
+        require(attachment.mimeType == "application/pdf") { "文档读取仅支持PDF" }
+        return sources.read(attachment.sizeBytes, attachment.sha256, authorize,
+            { attachments.read(sessionId, attachment, authorize) }, action)
     }
 
     private suspend fun read(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit,
         progress: (DocumentReadEvent.Progress) -> Unit): DocumentText = withSource(sessionId, attachment, authorize) { directory, source ->
-        val memory = MemoryUsageSetting.setupMixed(8L * 1024 * 1024, 64L * 1024 * 1024).setTempDir(directory)
-        PDDocument.load(source, memory).use { document ->
-            if (document.isEncrypted) throw ModelException("PDF受密码保护，请先导出未加密副本")
-            if (!document.currentAccessPermission.canExtractContent()) throw ModelException("PDF禁止文字提取，请使用允许读取的副本")
+        readablePdf(directory, source).use { document ->
             val count = document.numberOfPages
             if (count !in 1..DocumentText.MAX_TOTAL_PAGES) throw ModelException("PDF为空或超过5000页文件限制")
             val selection = attachment.documentSelection ?: DocumentSelection(ocrScript=script)
@@ -132,9 +100,7 @@ class AndroidDocumentTextService(context: Context, private val attachments: Chat
 
     override suspend fun previewPdfPage(sessionId: String, attachment: ChatAttachment, page: Int,
         authorize: suspend () -> Unit): DocumentPagePreview = withSource(sessionId, attachment, authorize) { directory, source ->
-        val count = PDDocument.load(source, MemoryUsageSetting.setupMixed(8L * 1024 * 1024, 64L * 1024 * 1024).setTempDir(directory)).use { document ->
-            if (document.isEncrypted) throw ModelException("PDF受密码保护，请先导出未加密副本")
-            if (!document.currentAccessPermission.canExtractContent()) throw ModelException("PDF禁止文字提取，请使用允许读取的副本")
+        val count = readablePdf(directory, source).use { document ->
             document.numberOfPages
         }
         val selection = attachment.documentSelection ?: DocumentSelection(ocrScript=script)
@@ -232,7 +198,8 @@ class DocumentTextPlugin(private val context: Context) : SolvitPlugin {
     override val provides = setOf(DocumentTextServiceKey)
     override suspend fun enable(context: PluginContext) {
         withContext(Dispatchers.IO) {
-            DocumentSourceCache(File(this@DocumentTextPlugin.context.applicationContext.cacheDir, "document-reader")).removeInterruptedReads()
+            for (name in listOf("document-reader", "workspace-pdf-previews"))
+                DocumentSourceCache(File(this@DocumentTextPlugin.context.applicationContext.cacheDir, name)).removeInterruptedReads()
         }
         context.register(DocumentTextServiceKey, AndroidDocumentTextService(this.context, context.require(ChatAttachmentStoreKey)))
     }
