@@ -42,7 +42,10 @@ class Utf8ContextTokenMeter : ContextTokenMeter {
             message.toolCalls.sumOf { textTokens(it.id) + textTokens(it.name) + textTokens(it.argumentsJson) + 32 } +
             textTokens(message.toolCallId.orEmpty())
         val native = message.providerTranscript?.let { textTokens(it.blocksJson) } ?: 0L
-        return maxOf(canonical, native) + 32
+        // A reserve, not exact visual token usage. Never price base64 as text.
+        val imageReserve = message.images.size * 4096L
+        val attachmentMetadata = message.attachments.sumOf { textTokens(it.name) + textTokens(it.mimeType) + 128 }
+        return maxOf(canonical, native) + imageReserve + attachmentMetadata + 32
     }
     override fun measure(request: ModelRequest, policy: ContextBudgetPolicy): ContextMeasurement {
         val canonicalMessages = request.messages.sumOf(::messageTokens)

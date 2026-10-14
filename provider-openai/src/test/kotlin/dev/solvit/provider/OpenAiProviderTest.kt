@@ -10,6 +10,22 @@ import kotlin.test.*
 import kotlinx.serialization.json.jsonObject
 
 class OpenAiProviderTest {
+    @Test fun actualHttpRequestKeepsImagesAndTextInTheSameUserMessage() = runTest {
+        val image = ModelImage(java.util.UUID.randomUUID().toString(), "image/png", "AQIDBA==")
+        withServer("data: {\"choices\":[{\"delta\":{\"content\":\"answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n") { provider, request, server ->
+            provider.stream(request.copy(messages = listOf(ModelMessage(Role.USER, "看这张图", images = listOf(image))))).toList()
+            val payload = kotlinx.serialization.json.Json.parseToJsonElement(server.takeRequest().body.readUtf8()).jsonObject
+            val messages = payload.getValue("messages") as kotlinx.serialization.json.JsonArray
+            assertEquals(1, messages.size)
+            val message = messages.single().jsonObject
+            assertEquals("\"user\"", message.getValue("role").toString())
+            val content = message.getValue("content") as kotlinx.serialization.json.JsonArray
+            assertEquals("\"看这张图\"", content[0].jsonObject.getValue("text").toString())
+            assertEquals("\"data:image/png;base64,AQIDBA==\"", content[1].jsonObject.getValue("image_url").jsonObject.getValue("url").toString())
+            assertFalse(image.toString().contains(image.base64))
+        }
+    }
+
     @Test fun selectedOutputLimitParameterIsSentAloneWithConfiguredBudget() = runTest {
         for (parameter in listOf("max_tokens", "max_completion_tokens")) {
             withServer("data: {\"choices\":[{\"delta\":{\"content\":\"answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n") { provider, request, server ->

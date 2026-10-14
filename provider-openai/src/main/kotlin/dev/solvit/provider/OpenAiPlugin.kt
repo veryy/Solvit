@@ -44,7 +44,15 @@ class OpenAiProvider(private val client: OkHttpClient) : ModelProvider {
             putJsonArray("messages") {
                 request.messages.forEach { message -> add(buildJsonObject {
                     put("role", message.role.name.lowercase())
-                    put("content", if (message.content.isEmpty() && message.toolCalls.isNotEmpty()) JsonNull else JsonPrimitive(message.content))
+                    if (message.images.isEmpty()) {
+                        put("content", if (message.content.isEmpty() && message.toolCalls.isNotEmpty()) JsonNull else JsonPrimitive(message.content))
+                    } else put("content", JsonArray(buildList {
+                        if (message.content.isNotEmpty()) add(buildJsonObject { put("type", "text"); put("text", message.content) })
+                        message.images.forEach { image -> add(buildJsonObject {
+                            put("type", "image_url")
+                            putJsonObject("image_url") { put("url", "data:${image.mimeType};base64,${image.base64}") }
+                        }) }
+                    }))
                     message.toolCallId?.let { put("tool_call_id", it) }
                     if (message.toolCalls.isNotEmpty()) put("tool_calls", JsonArray(message.toolCalls.map(::callJson)))
                 }) }

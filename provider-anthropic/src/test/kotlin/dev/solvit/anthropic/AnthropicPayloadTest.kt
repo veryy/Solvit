@@ -5,6 +5,31 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class AnthropicPayloadTest {
+    @Test fun imagesStayInUserBlocksAndSignedToolContinuationDoesNotPersistBase64Prefixes() {
+        val image = ModelImage(java.util.UUID.randomUUID().toString(), "image/png", "AQIDBA==")
+        val user = ModelMessage(Role.USER, "看图", images = listOf(image))
+        val request = ModelRequest(ModelConfig(model = "test", providerId = "anthropic"), listOf(user))
+        val sent = nativeRequest(request)
+        val blocks = sent.payload.getValue("messages").jsonArray.single().jsonObject.getValue("content").jsonArray
+        assertEquals("看图", blocks[0].jsonObject.getValue("text").jsonPrimitive.content)
+        assertEquals("image", blocks[1].jsonObject.getValue("type").jsonPrimitive.content)
+        assertEquals(image.base64, blocks[1].jsonObject.getValue("source").jsonObject.getValue("data").jsonPrimitive.content)
+        assertEquals("", sent.requestPrefixJson)
+        val call = ToolCall("call-image", "clock", "{}")
+        val nativeBlocks = """[{"type":"thinking","thinking":"reason","signature":"fixture"},{"type":"tool_use","id":"call-image","name":"clock","input":{}}]"""
+        val assistant = ModelMessage(Role.ASSISTANT, "", toolCalls = listOf(call), providerTranscript =
+            ProviderTranscript("anthropic", "test", nativeBlocks, sent.options, sent.prefixHash, sent.requestPrefixJson))
+        val continued = nativeRequest(request.copy(messages = listOf(user, assistant,
+            ModelMessage(Role.TOOL, "now", toolCallId = call.id))))
+        assertEquals("", continued.requestPrefixJson)
+        assertEquals(image.base64, continued.payload.getValue("messages").jsonArray[0].jsonObject
+            .getValue("content").jsonArray[1].jsonObject.getValue("source").jsonObject.getValue("data").jsonPrimitive.content)
+        assertFailsWith<ModelException> {
+            nativeRequest(request.copy(messages = listOf(user.copy(images = listOf(ModelImage(image.attachmentId, "image/png", "BQYHCA=="))),
+                assistant, ModelMessage(Role.TOOL, "now", toolCallId = call.id))))
+        }
+    }
+
     @Test fun runtimeDataRefreshIsAppendOnlyAcrossTwoSignedToolStepsAndRejectsEditedPrefixes() {
         val callA = ToolCall("a", "clock", "{}")
         val callB = ToolCall("b", "clock", "{}")

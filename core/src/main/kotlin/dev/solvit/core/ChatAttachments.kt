@@ -31,3 +31,14 @@ interface ChatAttachmentStore {
         authorize: suspend () -> Unit = {})
 }
 val ChatAttachmentStoreKey = ServiceKey("chat.attachments", ChatAttachmentStore::class)
+
+/** Ephemeral model input, never a database field. toString must not expose image bytes. */
+class ModelImage(val attachmentId: String, val mimeType: String, val base64: String) {
+    init {
+        require(UUID.fromString(attachmentId).toString() == attachmentId) { "图片标识无效" }
+        require(mimeType in setOf("image/png", "image/jpeg", "image/webp", "image/gif")) { "模型不支持此图片格式" }
+        require(base64.isNotEmpty() && base64.length <= 28 * 1024 * 1024) { "图片超过大小限制" }
+        require(runCatching { java.util.Base64.getDecoder().decode(base64).size.toLong() <= ChatAttachment.MAX_ATTACHMENT_BYTES }.getOrDefault(false)) { "图片编码无效" }
+    }
+    override fun toString() = "ModelImage(attachmentId=$attachmentId, mimeType=$mimeType, bytes=<redacted>)"
+}

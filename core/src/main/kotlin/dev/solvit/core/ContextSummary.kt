@@ -36,6 +36,12 @@ fun contextPrefixDigest(messages: List<ChatMessage>): String {
     messages.forEach { message ->
         field(message.id); field(message.role.name); field(message.status.name); field(message.content)
         field(message.reasoning); field(message.toolCallId.orEmpty()); field(message.toolStage?.name.orEmpty())
+        if (message.attachments.isNotEmpty()) {
+            field("chat-attachments-v1"); field(message.attachments.size.toString())
+            message.attachments.forEach {
+                field(it.id); field(it.name); field(it.mimeType); field(it.sizeBytes.toString()); field(it.sha256)
+            }
+        }
         field(message.toolCalls.size.toString())
         message.toolCalls.forEach { field(it.id); field(it.name); field(it.argumentsJson) }
         val native = message.providerTranscript

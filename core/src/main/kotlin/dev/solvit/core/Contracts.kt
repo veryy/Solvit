@@ -37,7 +37,13 @@ data class ModelMessage(
     val providerTranscript: ProviderTranscript? = null,
     val sourceMessageId: String? = null,
     val attachments: List<ChatAttachment> = emptyList(),
-)
+    val images: List<ModelImage> = emptyList(),
+) {
+    init {
+        require(images.size <= 8 && images.map { it.attachmentId }.distinct().size == images.size) { "图片数量或标识无效" }
+        require(images.isEmpty() || role == Role.USER) { "图片只能属于用户消息" }
+    }
+}
 
 const val DEFAULT_SYSTEM_PROMPT = "你是 Solvit，一个认真、可靠的 AI 助手。"
 

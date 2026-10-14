@@ -8,6 +8,7 @@ import java.security.MessageDigest
 internal data class NativeReplay(val start: Int, val messages: List<JsonObject>, val context: List<String>)
 
 internal fun replayPrefix(request: ModelRequest, system: String, tools: JsonArray): NativeReplay? {
+    if (request.messages.any { it.images.isNotEmpty() }) return null
     val index = request.messages.indexOfLast {
         it.role == Role.ASSISTANT && it.providerTranscript?.providerId == ANTHROPIC_ID &&
             it.providerTranscript?.requestPrefixJson?.isNotEmpty() == true
@@ -26,8 +27,11 @@ internal fun replayPrefix(request: ModelRequest, system: String, tools: JsonArra
     return NativeReplay(index, savedMessages, prefix.getValue("runtimeContext").jsonArray.map { it.jsonPrimitive.content })
 }
 
-internal fun savedPrefix(request: ModelRequest, system: String, tools: JsonArray, messages: List<JsonObject>): String =
-    buildJsonObject {
+internal fun savedPrefix(request: ModelRequest, system: String, tools: JsonArray, messages: List<JsonObject>): String {
+    // Rebuild image prefixes from immutable private attachments each step. Persist only
+    // prefixHash and native assistant blocks, never an extra base64 copy in SQLite.
+    if (request.messages.any { it.images.isNotEmpty() }) return ""
+    return buildJsonObject {
         put("system", system); put("tools", tools); put("messages", JsonArray(messages))
         put("canonicalHash", canonicalInputHash(request.messages))
         put("runtimeContext", JsonArray(request.runtimeContext.map(::JsonPrimitive)))
@@ -35,6 +39,8 @@ internal fun savedPrefix(request: ModelRequest, system: String, tools: JsonArray
         if (it.toByteArray(Charsets.UTF_8).size > ProviderTranscript.MAX_BYTES)
             throw ModelException("模型请求投影超过保存限制，请缩小上下文")
     }
+
+}
 
 private fun canonicalInputHash(messages: List<ModelMessage>): String {
     val value = JsonArray(messages.filter { it.role != Role.SYSTEM }.map { message -> buildJsonObject {

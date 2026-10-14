@@ -105,6 +105,11 @@ class DefaultContextPreparation(
             policy.copy(outputTokens = output, automaticSummary = false))
         fun render(batch: List<ModelMessage>) = batch.joinToString("\n\n") { message -> buildString {
             append('[').append(message.role.name).append("]\n").append(message.content)
+            message.attachments.forEach { attachment ->
+                append("\n[附件来源：").append(attachment.name).append("；类型：").append(attachment.mimeType)
+                    .append("；ID：").append(attachment.id).append("；内容版本：").append(attachment.sha256)
+                    .append("。图片或文件原文未包含在本摘要资料中，不可据名称推断内容。]")
+            }
             message.toolCalls.forEach { append("\n工具调用 ").append(it.name).append(" ID=").append(it.id).append(" 参数=").append(it.argumentsJson) }
             message.toolCallId?.let { append("\n工具结果 ID=").append(it) }
         } }

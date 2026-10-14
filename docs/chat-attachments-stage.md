@@ -33,3 +33,13 @@ ChatMessage新增默认空附件列表，限定用户消息/最多8个且ID不�
 ## 首轮远程失败与修复
 
 350aaf9的Android38501256335失败，实际产物11865677764取回检查CRC/XML：新测试初始化错误为方法必须void；三个既有迁移场景明确duplicate column name: attachments。前者显式runBlocking<Unit>，后者升级前检查真实列，避免低版本号但已存在附件列时重复添加。真实v9消息表迁移仍独立验证新增列及旧内容。附件文件回归没有失败；本次完整测试尚未通过，不宣称新APK交付。
+
+## 模型图片内容块候选
+
+继续读取Operit同版本api/chat/llmprovider/OpenAIProvider.kt:824–889的image_url/data URI编码和DeepseekProviderMediaRoleTest.kt用户图片角色回归。参考其视觉能力检查及历史图像输入，未复制实现。另核对官方格式：[OpenAI图像输入](https://developers.openai.com/api/docs/guides/images-vision)、[Claude视觉](https://platform.claude.com/docs/zh-CN/build-with-claude/vision)。
+
+新增临时ModelImage输入（UUID、受限图片MIME/Base64与大小，toString隐藏字节），仅用户ModelMessage可携带最多8张。OpenAI将文字与image_url块放在同一用户消息，Claude使用image/source/base64块。新增OpenAI实际HTTP请求回归、Claude图片/签名工具后续步骤及改变图片后拒绝旧签名回归。尚未实现私有附件→ModelImage解析与App选择器，因此不能在界面上传。
+
+包含图片时Claude不持久保存带Base64的requestPrefixJson，每步从原用户内容重新构造并校验prefixHash，保留原生助手思考/工具块，不重复保存用户图片字节。普通文本的前缀重放保持。图片预算暂按每张4096预留，明确不是供应商实际usage；后续需尺寸/能力/总请求字节门禁。附件元数据加入摘要前缀校验（无附件历史摘要的旧摘要值不变），摘要资料保留名称/类型/ID/内容版本并明确没有原文，不允许据名称虚构内容。
+
+此候选待Actions验证，真实模型视觉能力、图片格式解码/尺寸限制、请求诊断脱敏、PDF/文档解析、分支引用归属和全局存储配额仍未完成。不能将ModelImage编码测试当作上传功能完整交付。

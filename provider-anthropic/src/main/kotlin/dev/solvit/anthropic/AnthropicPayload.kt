@@ -36,7 +36,16 @@ internal fun nativeRequest(request: ModelRequest): NativeRequest {
         val message = request.messages[index]
         when (message.role) {
             Role.SYSTEM -> Unit
-            Role.USER -> messages += nativeMessage("user",listOf(textBlock(message.content)))
+            Role.USER -> messages += nativeMessage("user", buildList {
+                if (message.content.isNotEmpty()) add(textBlock(message.content))
+                message.images.forEach { image -> add(buildJsonObject {
+                    put("type", "image")
+                    put("source", buildJsonObject {
+                        put("type", "base64"); put("media_type", image.mimeType); put("data", image.base64)
+                    })
+                }) }
+                if (isEmpty()) add(textBlock(""))
+            })
             Role.TOOL -> {
                 val results = mutableListOf<JsonObject>()
                 while (index < request.messages.size && request.messages[index].role == Role.TOOL) {
