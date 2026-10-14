@@ -10,6 +10,7 @@ import dev.solvit.market.WorkspacePageBridge
 import dev.solvit.core.ShellStage
 import dev.solvit.core.ExtensionPageSession
 import dev.solvit.core.ExtensionPageSnapshot
+import dev.solvit.core.PageWorkspaceAccess
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -32,7 +33,17 @@ class WorkspaceHtmlPageTest {
         }
         val manager = BuiltinWorkspaceManager(app)
         fun observedSession(): ExtensionPageSession {
-            val actual = manager.openPage("zh", WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat))
+            val bridge=WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat)
+            val observed=object : PageWorkspaceAccess by bridge {
+                override suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit): String {
+                    try { return bridge.query(operation,argumentsJson,authorize) }
+                    catch (failure: Throwable) {
+                        android.util.Log.i("WORKSPACE_PAGE_DIAG", "query=$operation type=${failure.javaClass.name} at=${failure.stackTrace.take(8).joinToString()}")
+                        throw failure
+                    }
+                }
+            }
+            val actual = manager.openPage("zh", observed)
             return object : ExtensionPageSession by actual {
                 override suspend fun dispatch(revision: Long, nodeId: String, value: String?, fields: Map<String, String>, confirmed: Boolean): ExtensionPageSnapshot {
                     try { return actual.dispatch(revision, nodeId, value, fields, confirmed) }
