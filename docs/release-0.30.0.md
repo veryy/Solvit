@@ -25,3 +25,16 @@
 修复保存后附件预览随列表行回收而关闭的问题；模型配置读取或解密失败时阻止发送，不再悄悄使用默认连接。
 
 真实 GitHub 账号的插件读写、真实模型看图/角色/流式/工具选择、自主项目任务和真机尚未验收。失败重试、PDF 等文档、工作区文件导入、总磁盘配额与孤立文件回收继续实施。屏幕操控按用户要求暂缓。完整范围见[产品路线](product-roadmap.md)，证据见[附件阶段](chat-attachments-stage.md)和[GitHub阶段](workspace-github-stage.md)。
+
+
+## 正式发布证据
+
+2026-10-14，标签 `v0.30.0` 固定源码 `37ffa0fc2b10b34e576f8f69851cf222f669a584`。[正式 Actions](https://github.com/veryy/Solvit/actions/runs/38514560022)的 build、verify-ui、verify-plugins、verify-search、release 全部成功，[公开 Release](https://github.com/veryy/Solvit/releases/tag/v0.30.0)已发布。
+
+- 实际单元产物11872285295与模拟器产物11871249622已下载并核对ZIP CRC/XML：432单元、57模拟器（App46/Web1/PTY10），零失败、错误和跳过。
+- 112 SDK、4市场、线上HTTPS MCP/Skills与公开搜索检查通过。Lint、固定签名和覆盖升级门禁通过。
+- APK产物11871821187与[公开 solvit-debug.apk](https://github.com/veryy/Solvit/releases/download/v0.30.0/solvit-debug.apk)已下载，逐字节一致：26,184,169字节，公开资产639327379。
+- APK SHA-256：`2494bd09463742540cf47a1a3e99c42cf120d7b9c24c05ce048b406c16b2dc64`。
+- 签名证书 SHA-256：`f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。
+
+没有进行本地构建。上述结果不能替代真实模型看图/角色/工具任务或真机体验验收。下一阶段仍按日常聊天附件、重试、文档及工作区导入顺序推进，屏幕操控暂缓。

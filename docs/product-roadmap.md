@@ -18,7 +18,7 @@ README增加中英文简介和英文页面，GitHub仓库简介同步；未完�
 
 ## 当前交付清单（2026-10-14）
 
-公开最新为[0.30.0](https://github.com/veryy/Solvit/releases/tag/v0.30.0)，build60/API20；[正式38514560022](https://github.com/veryy/Solvit/actions/runs/38514560022)五项任务全成功。实际单元报告432项通过；112 SDK/4市场、线上MCP/Skills与公开搜索成功，模拟器、Lint、固定签名和覆盖升级门禁通过。
+公开最新为[0.30.0](https://github.com/veryy/Solvit/releases/tag/v0.30.0)，build60/API20；[正式38514560022](https://github.com/veryy/Solvit/actions/runs/38514560022)五项任务全成功。实际XML报告432单元、57模拟器零失败/错误/跳过，公开APK与正式构建逐字节一致；112 SDK/4市场、线上MCP/Skills与公开搜索成功，模拟器、Lint、固定签名和覆盖升级门禁通过。
 
 本版交付图片/文本/代码选择、卡片与独立预览、只发附件、队列/打断、HTTP实际内容和SQLite持久引用；回复分支复制保留历史附件。修复配置读取失败后错误使用默认模型的问题。Git插件交付HTTPS远程操作和原生加密凭据；API20市场上线，旧API1–19兼容已核对。真实模型、真机和真实GitHub账号插件写入尚未验收。PDF、失败重试、编辑旧消息带回附件、工作区导入、全局配额及孤立文件回收仍待完成。详见[附件记录](chat-attachments-stage.md)和[远程Git记录](workspace-github-stage.md)。
 
