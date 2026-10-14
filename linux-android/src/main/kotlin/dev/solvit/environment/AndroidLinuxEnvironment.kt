@@ -28,7 +28,7 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
     private val http = OkHttpClient.Builder().followSslRedirects(false).connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(20, TimeUnit.SECONDS).build()
     private val installer = source?.let { RootfsInstallation(File(app.filesDir, "linux-environments"), it,
-        RootfsDownload { catalog, target, progress -> download(catalog, target, progress) }) }
+        RootfsDownload { catalog, target, progress -> download(catalog.url, target, progress) }) }
     private val initiallyInstalled = installer?.activeRoot() != null
     private val mutableState = MutableStateFlow(LinuxEnvironmentState(supported, initiallyInstalled, if (initiallyInstalled) "READY" else "IDLE"))
     override val state = mutableState.asStateFlow()
@@ -47,8 +47,8 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         } }
     }
 
-    private suspend fun download(catalog: RootfsSource, target: File, progress: (Long, Long?) -> Unit) = coroutineScope {
-        val call = http.newCall(Request.Builder().url(catalog.url).build())
+    private suspend fun download(url: String, target: File, progress: (Long, Long?) -> Unit) = coroutineScope {
+        val call = http.newCall(Request.Builder().url(url).build())
         val cancelWatcher = launch(start = CoroutineStart.UNDISPATCHED) {
             try { awaitCancellation() } finally { call.cancel() }
         }
@@ -128,7 +128,7 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         // A host-owned download is checksum-verified before extraction inside the guest.
         val archive = File(workspace, ".solvit-node-${java.util.UUID.randomUUID()}.tar.xz")
         try {
-            download(catalog, archive) { bytes, total -> mutableState.update { it.copy(bytes = bytes, total = total) } }
+            download(catalog.url, archive) { bytes, total -> mutableState.update { it.copy(bytes = bytes, total = total) } }
             withContext(Dispatchers.IO) {
                 val digest = java.security.MessageDigest.getInstance("SHA-256")
                 archive.inputStream().buffered().use { input ->
