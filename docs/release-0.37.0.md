@@ -12,8 +12,8 @@
 
 ## 候选验证
 
-- [插件38648117122](https://github.com/veryy/Solvit/actions/runs/38648117122)成功；实际日志确认122SDK、5市场用例及公开搜索/MCP/Skills通过，生成包ZIP CRC核对并提交。
-- [Android38648342947](https://github.com/veryy/Solvit/actions/runs/38648342947)的build成功；设备页面仍在执行，未当作完整验收。
+- [插件38651884555](https://github.com/veryy/Solvit/actions/runs/38651884555)成功；实际日志确认122SDK、5市场用例及公开搜索/MCP/Skills通过，生成包ZIP CRC核对并提交。自动文件树刷新清掉完成提示的回归已先红后绿。
+- [候选Android38648342947](https://github.com/veryy/Solvit/actions/runs/38648342947)构建/Lint/签名成功，实际报告ZIP CRC/XML确认508单元零失败。设备有三处失败：旧版本断言、旧同名即冲突断言和新字段选择器错误。修正后的针对性任务中系统文件导入/项目规则通过，聊天附件进一步暴露成功提示被自动树刷新清理；已用实际自动事件顺序复现并修复，完整HTML及正式门禁仍待复验。
 - 服务器私有before/next验证44个历史包原字节保留、API1..19目录不变、API20..24兼容、API25选择新包；公开HTTPS更新前24目录和44历史下载核对完成。市场尚未发布。
 
 完整过程与摘要见[阶段记录](workspace-import-replacement-stage.md)。ARM64真机、真实模型完整任务、真实系统文件选择器手指操作和本地stdio MCP仍待验收；屏幕操控继续暂缓。所有编译、SDK和Android测试均在远程执行。
