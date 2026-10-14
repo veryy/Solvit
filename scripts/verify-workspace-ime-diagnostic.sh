@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 # Stop at the first failure; preserve the original scenario's actions and assertions.
 set -euo pipefail
+solvit_diagnostic_expected='OK (1 test)'
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
   workspace-editor) solvit_diagnostic_test='dev.solvit.app.WorkspaceHtmlPageTest#htmlCreatesBindsBrowsesAndSavesThroughActualNativeConfirmationAndRejectsStaleFiles' ;;
   chat-interaction) solvit_diagnostic_test='dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole' ;;
   language-settings) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#languageSwitchesImmediatelyAndSurvivesRecreation' ;;
+  file-imports)
+    solvit_diagnostic_test='dev.solvit.app.ChatAttachmentWorkspaceHtmlTest,dev.solvit.app.WorkspaceImportHtmlTest,dev.solvit.app.ChatLayoutTest#actualAndroidTsProjectRulesRefreshWithoutChangingRoleOrCreatingUnboundWorkspace'
+    solvit_diagnostic_expected='OK (3 tests)' ;;
   *) echo 'Unknown diagnostic scenario'; exit 1 ;;
 esac
 solvit_diagnostic_repetitions=${SOLVIT_DIAGNOSTIC_REPETITIONS:-8}
@@ -23,5 +27,5 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
     -e class "$solvit_diagnostic_test" \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \
     | tee "ui-screenshots/page-diagnostic-iteration-$iteration.txt"
-  grep -F 'OK (1 test)' "ui-screenshots/page-diagnostic-iteration-$iteration.txt"
+  grep -F "$solvit_diagnostic_expected" "ui-screenshots/page-diagnostic-iteration-$iteration.txt"
 done

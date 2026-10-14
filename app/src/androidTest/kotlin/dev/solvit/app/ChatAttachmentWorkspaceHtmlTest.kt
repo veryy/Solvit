@@ -111,7 +111,7 @@ class ChatAttachmentWorkspaceHtmlTest {
             }
             assertEquals(0,external.exitCode)
             click("confirm");confirm()
-            waitDom("!!document.querySelector('[data-node=importPath]') && document.querySelector('[data-node=message]')?.textContent.includes('重新审阅')===true")
+            waitDom("!!document.getElementById('field-importPath') && document.querySelector('[data-node=message]')?.textContent.includes('重新审阅')===true")
             assertEquals("Shell modified after review",File(root,"saved.pdf").readText())
             assertTrue(root.listFiles()!!.none { it.name.startsWith("solvit-backup-") })
             click("prepareImport")

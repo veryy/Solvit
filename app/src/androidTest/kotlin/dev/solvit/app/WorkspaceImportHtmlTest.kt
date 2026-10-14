@@ -88,10 +88,17 @@ class WorkspaceImportHtmlTest {
             html.screenshot("workspace-import-selected")
             target("existing.bin");click("prepareImport");click("confirm");confirm(false)
             assertEquals("keep original",runBlocking { app.workspaces.read(workspace.id,"existing.bin") })
+            // The same-name review is now allowed. A real Shell edit after review is the
+            // conflict, and rejecting it must preserve that edit and the selected source.
+            val changed=runBlocking {
+                val job=app.workspaces.run(workspace.id,shell.id,"printf 'concurrent Shell edit' > existing.bin",10_000)
+                withTimeout(15_000) { app.workspaces.jobs.first { jobs->jobs.any { it.id==job.id&&it.stage==ShellStage.COMPLETED } }.first { it.id==job.id } }
+            }
+            assertEquals(0,changed.exitCode)
             click("confirm");confirm(true)
-            waitDom("document.querySelector('[data-node=message]')?.textContent.length>0")
-            assertEquals("keep original",runBlocking { app.workspaces.read(workspace.id,"existing.bin") })
-            click("cancel");waitDom("!!document.getElementById('field-importPath')")
+            waitDom("document.querySelector('[data-node=message]')?.textContent.includes('重新审阅')===true")
+            assertEquals("concurrent Shell edit",runBlocking { app.workspaces.read(workspace.id,"existing.bin") })
+            waitDom("!!document.getElementById('field-importPath')")
             target("imported.bin");click("prepareImport");click("confirm");confirm(true)
             waitDom("Array.from(document.querySelectorAll('[data-node^=file_name_]')).some(n=>n.textContent==='imported.bin')")
             val status=runBlocking { git.status() }
