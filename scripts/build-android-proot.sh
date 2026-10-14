@@ -7,6 +7,16 @@ build_dir="${RUNNER_TEMP:?GitHub Actions only}/solvit-android-proot"
 mkdir -p "$build_dir"
 git clone --no-checkout https://github.com/termux/proot.git "$build_dir/proot-source"
 git -C "$build_dir/proot-source" checkout --detach b8c1f5c5c6730dc9d521d5bd5ce1cfeedecde087
+# Narrow NDK Clang fix: upstream uses strcmp/memset without their declaration.
+python3 - "$build_dir/proot-source/src/extension/ashmem_memfd/ashmem_memfd.c" <<'PY_PATCH'
+import sys
+from pathlib import Path
+p = Path(sys.argv[1])
+s = p.read_text()
+anchor = '#include "tracee/seccomp.h"'
+assert s.count(anchor) == 1 and '#include <string.h>' not in s
+p.write_text(s.replace(anchor, '#include <string.h>\n' + anchor))
+PY_PATCH
 curl --fail --location --silent --show-error --retry 2 https://www.samba.org/ftp/talloc/talloc-2.5.0.tar.gz --output "$build_dir/talloc.tar.gz"
 printf '%s\n' "912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007  $build_dir/talloc.tar.gz" | sha256sum --check
 for abi in arm64-v8a x86_64; do
@@ -65,6 +75,7 @@ ANSWERS
     mkdir -p "linux-probe/build-inputs/$abi"
     cp "$abi_dir/talloc-2.5.0/cross-answers.txt" "linux-probe/build-inputs/$abi/"
 done
+git -C "$build_dir/proot-source" diff > linux-probe/build-inputs/ndk-string-header.patch
 cp "$build_dir/proot-source/COPYING" linux-probe/build-inputs/PROOT-COPYING
 cp "$build_dir/talloc.tar.gz" linux-probe/build-inputs/
 git -C "$build_dir/proot-source" archive --format=tar.gz HEAD > linux-probe/build-inputs/proot-source.tar.gz

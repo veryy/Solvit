@@ -34,3 +34,5 @@
 ## 首个远程兼容性探针
 
 `Linux environment compatibility` 工作流从锁定源码交叉编译 ARM64/x86_64 PRoot 与外置 loader，静态链接经过 SHA256 校验的 talloc 2.5.0，输出源码、许可和构建输入。`linux-probe` 仅在 `-PlinuxProbe=true` 时加入构建，未依赖到应用、没有产品入口。API35 模拟器用普通应用 UID 启动 APK 安装的 PRoot，核对伪 uid、带空格工作目录映射与双向文件可见。此探针使用 Android shell，不能替代 Ubuntu/Python/Node 安装运行验收；结果尚待实际工作流证明。未发布 Linux 功能 APK。
+
+第一轮38525788048实际失败在ARM64的NDK Clang编译：上游 ashmem_memfd.c 调用 strcmp/memset 却没有包含 string.h。talloc配置和静态编译已成功；失败尚未进入模拟器。修复仅给该文件加入标准声明头，不关闭编译错误或改变运行行为，补丁随构建输入上传，再按原探针验收。
