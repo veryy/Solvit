@@ -29,7 +29,8 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         .readTimeout(20, TimeUnit.SECONDS).build()
     private val installer = source?.let { RootfsInstallation(File(app.filesDir, "linux-environments"), it,
         RootfsDownload { catalog, target, progress -> download(catalog, target, progress) }) }
-    private val mutableState = MutableStateFlow(LinuxEnvironmentState(supported, installer?.activeRoot() != null, "IDLE"))
+    private val initiallyInstalled = installer?.activeRoot() != null
+    private val mutableState = MutableStateFlow(LinuxEnvironmentState(supported, initiallyInstalled, if (initiallyInstalled) "READY" else "IDLE"))
     override val state = mutableState.asStateFlow()
     private val mutex = Mutex()
     @Volatile private var operation: Job? = null

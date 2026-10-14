@@ -38,7 +38,7 @@ class TerminalPageBridge(private val workspace: WorkspaceService, private val te
         val context = TerminalPageAuthority(owner, chatId, granted.toSet()) { target -> check(target == binding); authority() }
         val result = withContext(context) {
             when (operation) {
-                "snapshot" -> JSONObject().put("shells", JSONArray(workspace.state.value.shells.filter { it.workspaceId == binding }
+                "snapshot" -> JSONObject().put("shells", JSONArray(workspace.state.value.shells.filter { it.workspaceId == binding }.sortedByDescending { it.runtime == ShellRuntime.UBUNTU }
                     .map { JSONObject().put("id",it.id).put("name",it.name).put("runtime",it.runtime.name) }))
                     .put("terminals", JSONArray(terminals.sessions.value.filter { session -> session.active && session.chatId == chatId &&
                         session.workspaceId == binding && (allowModelSessions || session.owner == owner) }

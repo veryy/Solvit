@@ -42,7 +42,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     var command by rememberSaveable(id, shellId) { mutableStateOf("") }
     var interactive by rememberSaveable(id) { mutableStateOf(true) }
     val shells = state.shells.filter { it.workspaceId == id }
-    val activeShell = shellId ?: shells.firstOrNull()?.id
+    val activeShell = shellId ?: (shells.firstOrNull { it.runtime == ShellRuntime.UBUNTU } ?: shells.firstOrNull())?.id
     FullScreenPage(onDismissRequest = onDismiss) {
         val keyboard = LocalSoftwareKeyboardController.current
         val focus = LocalFocusManager.current
