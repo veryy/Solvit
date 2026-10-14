@@ -112,3 +112,7 @@ Node v24.21.0 官方BUILDING.md对Linux ARM64/x64的支持基线为kernel>=4.18�
 修复源6c58e27的[38552946405](https://github.com/veryy/Solvit/actions/runs/38552946405) build/UI全成功。实际完整下载artifact11890490065（4,611,754字节），完整ZIP CRC/XML核对59个应用/Web/终端测试，零失败/错误/跳过。Linux页面设备布局viewport596/body596/main527.24，按钮完全位于可见范围且elementFromPoint命中；真实屏幕触摸打开包含本地化网络/空间说明的确认框，取消不启动下载、不创建工作区。实际查看PNG确认说明、安装按钮与底部刷新均正常，正文不再空白。Native运行时沿用已验证的Python3.12.3/Node24.21.0/npm11.19.0/Java17代码；正式0.31.1仍须全标签门禁与产物核对。
 
 正式0.31.1全部门禁成功并公开：[Release](https://github.com/veryy/Solvit/releases/tag/v0.31.1)、[Actions38555594514](https://github.com/veryy/Solvit/actions/runs/38555594514)。正式unit/UI归档完整ZIP CRC/XML为447单元及59设备，零失败/错误/跳过；公开APK和对应源码已实际下载并与正式产物逐字节比较一致，正式截图确认页面完整可見。准确大小、SHA、签名和限制见release-0.31.1.md。此交付完成环境功能阶段，不代表ARM64真机、真实模型项目任务、所有Node扩展或stdio MCP已完成；继续原路线。
+
+## 0.33.0正式门禁发现任务交接竞态
+
+38586931701的verify-linux/115931304832失败，已下载完整任务日志：生产Ubuntu安装READY后，原设备用例立即installSoftware(JAVA)报“已有环境安装任务正在进行”。源begin在Job内部更新READY，finally才清installingRootfs，Job尚未inactive；StateFlow调用方能在这个窗口重入。排序假设：READY通知早于Job收尾（源码与栈吻合）、取消清理仍占用、旧rootfs进度回放（后两者无本轮证据）。最小修复仅在终态后join旧操作再校验重复启动，保留运行中拒绝、mutex和取消回收，不添加延时/重试或放宽断言。原完整生产下载安装、Java17、共享工作区和PTY设备用例就是正确回归入口；无需浅层镜像实现测试。新候选0.33.1/build67，保留v0.33.0不可变标签；修复待远程复验，尚未发布。
