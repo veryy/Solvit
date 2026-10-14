@@ -7,6 +7,21 @@ import kotlin.test.*
 
 /** Exercise the host boundary before the API22 package/catalog rollout. */
 class WorkspaceImportControlTest {
+    @Test fun pdfQueryRejectsOldApisOrMissingServiceBeforeCallingTheNativePage():Unit=runBlocking {
+        var calls=0
+        val workspace=object:PageWorkspaceAccess {
+            override suspend fun query(operation:String,argumentsJson:String,authorize:suspend()->Unit):String {
+                authorize();assertEquals("importPdf",operation);calls++;return "{}"
+            }
+            override suspend fun perform(control:PageWorkspaceControl,authorize:suspend()->Unit):String=error("Read only")
+        }
+        val context=ScriptPageExecutionContext("test.pdf.page",{},workspace=workspace)
+        for((api,declared)in listOf(21 to true,22 to true,23 to false)) {
+            assertFails { context.queryWorkspace("importPdf",buildJsonObject {},api,declared) }
+        }
+        assertEquals(0,calls)
+        assertEquals("{}",context.queryWorkspace("importPdf",buildJsonObject {},23,true));assertEquals(1,calls)
+    }
     private fun pkg(api: Int = 22, declared: Boolean = true, workspace: Boolean = true) = ScriptPackage.parse(buildJsonObject {
         putJsonObject("manifest") {
             put("id", "test.import.page"); put("name", "Import"); put("description", "Fixture"); put("version", "1.0.0"); put("apiVersion", api)

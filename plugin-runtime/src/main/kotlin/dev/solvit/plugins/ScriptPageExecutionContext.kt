@@ -46,6 +46,9 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     }
     suspend fun queryWorkspace(operation: String, args: JsonObject, apiVersion: Int = 12, filesDeclared: Boolean = false): String {
         ensureAuthorized()
+        if (operation == "importPdf") check(apiVersion >= 23 && filesDeclared) {
+            "PDF文件预览需要 API23 及 workspace.files 服务声明"
+        }
         if (operation in setOf("importSelection", "importText", "importPicture")) requireImportAccess(apiVersion, filesDeclared)
         return checkNotNull(workspace) { "此页面没有聊天工作区授权" }.query(operation, args.toString(), ::ensureAuthorized)
             .also { ensureAuthorized() }

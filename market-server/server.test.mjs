@@ -83,6 +83,16 @@ test('catalog downloads match their declared integrity and expose no write API',
     const importer=api22.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
     assert.equal(importer.version,'1.5.0');assert.equal(importer.apiVersion,22);
     assert.deepEqual(importer.nativeServices,['workspace.files']);
+    const api23=await(await fetch(base+'/api/v1/plugins?hostApi=23')).json();
+    const pdfWorkspace=api23.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
+    assert.equal(pdfWorkspace.version,'1.6.0');assert.equal(pdfWorkspace.apiVersion,23);
+    assert.deepEqual(pdfWorkspace.nativeServices,['workspace.files']);
+    const originalImports=Buffer.from(await(await fetch(base+'/api/v1/packages/dev.solvit.workspace/1.5.0')).arrayBuffer());
+    assert.deepEqual(originalImports,await readFile(new URL('./packages/legacy/dev.solvit.workspace-1.5.0.solvit.json',import.meta.url)));
+    assert.equal(createHash('sha256').update(originalImports).digest('hex'),'399e6a23148c4043903788adeb2eb7203504710c3fe95b6af9a39d89b38bc72a');
+    const previousGit=Buffer.from(await(await fetch(base+'/api/v1/packages/dev.solvit.git/1.2.1')).arrayBuffer());
+    assert.deepEqual(previousGit,await readFile(new URL('./packages/legacy/dev.solvit.git-1.2.1.solvit.json',import.meta.url)));
+    assert.equal(createHash('sha256').update(previousGit).digest('hex'),'77454f4db363a764fafd507dc00a695dedb4fdc09f8f420d262d3b4d653d83f9');
     const api21=await(await fetch(base+'/api/v1/plugins?hostApi=21')).json();
     assert.equal(api21.plugins.find(plugin=>plugin.id==='dev.solvit.workspace').version,'1.4.0');
     const preserved=Buffer.from(await(await fetch(base+'/api/v1/packages/dev.solvit.workspace/1.4.0')).arrayBuffer());

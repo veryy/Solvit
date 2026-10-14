@@ -16,6 +16,34 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28])
 class WorkspaceImportPageBridgeTest {
+    @Test fun pdfPreviewNeedsTheReviewedSelectionAndClosesPixelsAfterScopeChanges()=fixture { service ->
+        val workspace=service.forChat("pdf-page")
+        var active="pdf-page";var calls=0;var changeDuringRender=false;var generated:PageFilePicture?=null
+        val renderer=PagePdfPreviewRenderer { _, page, authorize ->
+            authorize();calls++
+            val picture=PageFilePicture(1,1,byteArrayOf(0xff.toByte(),0xd8.toByte(),0xff.toByte(),0xd9.toByte()))
+            generated=picture
+            if(changeDuringRender)active="another-chat"
+            PagePdfPreview(page,2,picture,"fixture page $page",false)
+        }
+        val bridge=WorkspacePageBridge(service,null,"pdf-page",pdfRenderer=renderer) { active }
+        val document=PageBinaryDocument("fixture.pdf","application/pdf","fixture original bytes".toByteArray())
+        val selected=Json.parseToJsonElement(bridge.stageImport(document) {}).jsonObject
+        fun args(page:JsonPrimitive,id:JsonElement=selected.getValue("id"))=buildJsonObject {
+            put("id",id);put("sha256",selected.getValue("sha256"));put("page",page)
+        }
+        assertFails { bridge.query("importPdf",args(JsonPrimitive(1),JsonPrimitive("stale")).toString()) {} }
+        assertFails { bridge.query("importPdf",args(JsonPrimitive("1")).toString()) {} }
+        assertFails { bridge.query("importPdf",args(JsonPrimitive(0)).toString()) {} }
+        assertEquals(0,calls)
+        val result=Json.parseToJsonElement(bridge.query("importPdf",args(JsonPrimitive(2)).toString()) {}).jsonObject
+        assertEquals(JsonPrimitive(2),result["page"]);assertEquals(JsonPrimitive("fixture page 2"),result["text"])
+        assertFails { generated!!.jpegBytes() };assertTrue(service.list(workspace.id).isEmpty())
+        changeDuringRender=true
+        assertFails { bridge.query("importPdf",args(JsonPrimitive(1)).toString()) {} }
+        assertFails { generated!!.jpegBytes() };assertContentEquals("fixture original bytes".toByteArray(),document.readBytes())
+        bridge.close();assertFails { document.readBytes() }
+    }
     @Test fun textPreviewIsScopedToTheReviewedTokenAndDoesNotWrite()=fixture { service ->
         val workspace=service.forChat("preview-page")
         val bridge=WorkspacePageBridge(service,null,"preview-page")

@@ -14,6 +14,15 @@ const previewLabels={
  fr:['Aperçu du texte / code','Seul le début est affiché. Le fichier entier sera importé.','Ce fichier n’est pas un texte UTF-8 valide. Utilisez un aperçu de son format.','Aperçu limité à256KiB. L’import du fichier original reste possible.']
 };
 const pictureLabels={zh:['预览图片','缩略图；透明区域显示白底，动图仅显示首帧。导入保留原文件。'],en:['Preview image','Thumbnail; transparency is white and animation shows its first frame. Import keeps the original.'],ja:['画像を確認','縮小表示。透明部分は白、動画画像は最初のフレーム。元ファイルを保持します。'],ko:['이미지 미리 보기','축소 이미지. 투명 영역은 흰색, 애니메이션은 첫 프레임입니다. 원본을 유지합니다.'],es:['Vista previa de imagen','Miniatura; transparencia blanca y primer fotograma. Se conserva el original.'],fr:['Aperçu de l’image','Miniature ; transparence blanche et première image de l’animation. L’original est conservé.']};
+type PdfPreview={page:number;pageCount:number;text:string;truncated:boolean;width:number;height:number;source:string};
+const pdfLabels={
+ zh:['预览 PDF','页码','查看页面','上一页','下一页','此页没有可提取文字，请查看原页；聊天附件可以使用 OCR。','仅显示此页文字开头，导入保留完整 PDF。','PDF 原页'],
+ en:['Preview PDF','Page number','View page','Previous page','Next page','No extractable text on this page. View the original; chat attachments support OCR.','Only the beginning of this page text is shown. Import keeps the complete PDF.','Original PDF page'],
+ ja:['PDF を確認','ページ番号','ページを表示','前のページ','次のページ','このページに抽出できる文字はありません。原ページを確認してください。チャット添付はOCRに対応しています。','このページの文字の先頭のみ表示。元のPDF全体を保持します。','PDF 原ページ'],
+ ko:['PDF 미리 보기','페이지 번호','페이지 보기','이전 페이지','다음 페이지','추출할 텍스트가 없습니다. 원본 페이지를 보세요. 채팅 첨부는 OCR을 지원합니다.','페이지 텍스트의 앞부분만 표시합니다. 전체 PDF를 가져옵니다.','PDF 원본 페이지'],
+ es:['Vista previa de PDF','Número de página','Ver página','Página anterior','Página siguiente','Sin texto extraíble. Consulta el original; los adjuntos de chat admiten OCR.','Solo se muestra el principio del texto de esta página. Se importa el PDF completo.','Página PDF original'],
+ fr:['Aperçu PDF','Numéro de page','Afficher la page','Page précédente','Page suivante','Aucun texte extractible. Consultez la page originale ; les pièces jointes du chat prennent en charge l’OCR.','Seul le début du texte de cette page est affiché. Le PDF complet est conservé.','Page PDF originale']
+};
 const importLabels={
  zh:['导入文件','目标路径','确认导入','放弃选择','最多20MiB，保留原始文件；同名文件不会被覆盖。','重新选择','来源：系统文件选择器'],
  en:['Import file','Destination path','Confirm import','Discard selection','Up to 20MiB, original bytes. Existing files are never overwritten.','Choose another','Source: system file picker'],
@@ -46,6 +55,7 @@ export function workspacePage(importsEnabled=true){
  let importSelection:ImportSelection|null=null,importPath='';
  let importPreview:{kind:string;text:string|null;truncated:boolean}|null=null;
  let importPicture:{width:number;height:number;source:string}|null=null;
+ let importPdf:PdfPreview|null=null;
  let treeWorkspace:string|null=null,treeResult:JsonObject|null=null,treeRevision=0;
  const treeEntries=new Map<string,FileEntry>();
  return async({locale,event}:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
@@ -54,6 +64,7 @@ export function workspacePage(importsEnabled=true){
   const im=importLabels[locale.split(/[-_]/)[0] as keyof typeof importLabels]??importLabels.en;
   const ip=previewLabels[locale.split(/[-_]/)[0] as keyof typeof previewLabels]??previewLabels.en;
   const pic=pictureLabels[locale.split(/[-_]/)[0] as keyof typeof pictureLabels]??pictureLabels.en;
+  const pdf=pdfLabels[locale.split(/[-_]/)[0] as keyof typeof pdfLabels]??pdfLabels.en;
   const api=ctx.workspacePage;if(!api)throw Error('Workspace page needs API12');
   let snapshot=await api.query('snapshot') as unknown as Snapshot;
   if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear()}
@@ -88,17 +99,25 @@ export function workspacePage(importsEnabled=true){
     if(action==='selectImport'){
      const chosen=await api.perform() as unknown as ImportSelection|null;
      // Cancellation keeps the previous selection; only the host can supply metadata.
-     if(chosen){importSelection=chosen;importPreview=null;importPicture=null;importPath=(directory?directory+'/':'')+chosen.name;mode='import'}
+     if(chosen){importSelection=chosen;importPreview=null;importPicture=null;importPdf=null;importPath=(directory?directory+'/':'')+chosen.name;mode='import'}
     }
     else if(action==='importPreview'&&importSelection){importPath=event.fields.importPath??importPath;importPreview=await api.query('importText',{id:importSelection.id,sha256:importSelection.sha256}) as unknown as {kind:string;text:string|null;truncated:boolean}}
     else if(action==='importPicture'&&importSelection){importPath=event.fields.importPath??importPath;importPicture=await api.query('importPicture',{id:importSelection.id,sha256:importSelection.sha256}) as unknown as {width:number;height:number;source:string}}
+    else if(['importPdf','pdfPrev','pdfNext','pdfGo'].includes(action)&&importSelection){
+     importPath=event.fields.importPath??importPath;
+     const page=action==='pdfPrev'?(importPdf?.page??1)-1:action==='pdfNext'?(importPdf?.page??1)+1:action==='pdfGo'?Number(event.fields.pdfPageNumber):1;
+     if(!Number.isInteger(page)||page<1||page>5000||importPdf&&page>importPdf.pageCount)throw Error('Invalid PDF page');
+     const next=await api.query('importPdf',{id:importSelection.id,sha256:importSelection.sha256,page}) as unknown as PdfPreview;
+     if(next.page!==page||!Number.isInteger(next.pageCount)||next.pageCount<page||next.pageCount>5000)throw Error('PDF page changed');
+     importPdf=next;
+    }
     else if(action==='showImport'){importSelection=await api.query('importSelection') as unknown as ImportSelection|null;if(importSelection)mode='import'}
     else if(action==='prepareImport'&&importSelection){
      importPath=(event.fields.importPath??importPath).trim();
      if(!importPath||importPath.length>1024||importPath.startsWith('/')||importPath.includes('\\')||/[\u0000-\u001f\u007f]/.test(importPath)||importPath.split('/').some(p=>!p||p==='.'||p==='..'||p==='.git'))throw Error('Invalid relative path');
      prepare('importFile',{id:importSelection.id,path:importPath,sha256:importSelection.sha256});
     }
-    else if(action==='dropImport'&&importSelection){await api.perform();importSelection=null;importPreview=null;importPicture=null;mode='list';await list()}
+    else if(action==='dropImport'&&importSelection){await api.perform();importSelection=null;importPreview=null;importPicture=null;importPdf=null;mode='list';await list()}
     else if(action==='treeLoad'){
      const target=event.fields.treePath??'',start=Number(event.fields.treeOffset??0);
      if(!Number.isInteger(start)||start<0||start>1000)throw Error('Invalid directory offset');
@@ -216,8 +235,17 @@ export function workspacePage(importsEnabled=true){
     text('import_source',im[6],'caption'),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]),
     {id:'importPath',kind:'field',label:im[1],value:importPath});
    if(importSelection.mimeType.startsWith('image/'))nodes.push(button('importPicture',pic[0]));
+   else if(importSelection.mimeType==='application/pdf')nodes.push(button('importPdf',pdf[0]));
    else nodes.push(button('importPreview',ip[0]));
    if(importPicture)nodes.push({id:'import_picture',kind:'image',source:importPicture.source,alt:importSelection.name,width:importPicture.width,height:importPicture.height},text('import_picture_note',pic[1],'caption'));
+   if(importPdf){
+    nodes.push(text('pdf_page_meta',`${pdf[7]} ${importPdf.page} / ${importPdf.pageCount}`),
+     {id:'import_pdf_picture',kind:'image',source:importPdf.source,alt:`${importSelection.name} ${importPdf.page}`,width:importPdf.width,height:importPdf.height},
+     {id:'pdfPageNumber',kind:'field',label:pdf[1],value:String(importPdf.page)},
+     {id:'pdf_navigation',kind:'row',children:[{...button('pdfPrev',pdf[3]),enabled:importPdf.page>1},button('pdfGo',pdf[2]),{...button('pdfNext',pdf[4]),enabled:importPdf.page<importPdf.pageCount}]});
+    nodes.push(text('pdf_page_text',importPdf.text.trim()?importPdf.text:pdf[5]));
+    if(importPdf.truncated)nodes.push(text('pdf_truncated',pdf[6],'caption'));
+   }
    if(importPreview){
     if(importPreview.kind==='TEXT'){
      nodes.push(text('import_content',importPreview.text??''));

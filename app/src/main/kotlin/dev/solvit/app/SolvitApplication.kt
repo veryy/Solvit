@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class SolvitApplication : Application() {
+    val workspacePdfPreviews: PagePdfPreviewRenderer by lazy { dev.solvit.documents.AndroidPdfImportRenderer(this) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val mutableReady = MutableStateFlow<Result<ChatService>?>(null)
     val ready = mutableReady.asStateFlow()

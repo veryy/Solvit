@@ -12,6 +12,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     private val chatId: String, private val canInstallDrafts: Boolean = false,
     private val linux: LinuxEnvironmentService? = null,
     private val pictureRenderer: PageFilePictureRenderer? = null,
+    private val pdfRenderer: PagePdfPreviewRenderer? = null,
     private val activeChat: () -> String? = { chatId }) : PageWorkspaceAccess {
     init { require(chatId.isNotBlank() && chatId.length <= 128) }
     private val mutex = Mutex()
@@ -91,6 +92,25 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                         try {
                             buildJsonObject {
                                 put("width", picture.width); put("height", picture.height)
+                                put("source", "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(jpeg))
+                            }
+                        } finally { jpeg.fill(0) }
+                    }
+                }
+                "importPdf" -> {
+                    require(args.keys == setOf("id", "sha256", "page"))
+                    val selected = checkNotNull(importDraft) { "请先选择要导入的文件" }
+                    check(selected.first == text("id") && selected.second.sha256 == text("sha256")) { "选择的文件已改变" }
+                    val page = args.getValue("page").jsonPrimitive.also { require(!it.isString) }.int
+                    require(page in 1..DocumentText.MAX_TOTAL_PAGES) { "PDF页码无效" }
+                    checkNotNull(pdfRenderer) { "此页面没有PDF预览服务" }.render(selected.second, page) { verify(authorize) }.use { preview ->
+                        verify(authorize)
+                        val jpeg = preview.picture.jpegBytes()
+                        try {
+                            buildJsonObject {
+                                put("page", preview.page); put("pageCount", preview.pageCount)
+                                put("text", preview.text); put("truncated", preview.truncated)
+                                put("width", preview.picture.width); put("height", preview.picture.height)
                                 put("source", "data:image/jpeg;base64," + java.util.Base64.getEncoder().encodeToString(jpeg))
                             }
                         } finally { jpeg.fill(0) }

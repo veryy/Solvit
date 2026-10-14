@@ -7,7 +7,8 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
 class WorkspaceViewModel(val service: WorkspaceService, private val plugins: PluginDraftService, val terminals: TerminalService,
-    private val git: WorkspaceGitService? = null, private val linux: LinuxEnvironmentService? = null) : ViewModel() {
+    private val git: WorkspaceGitService? = null, private val linux: LinuxEnvironmentService? = null,
+    private val pdfPreviews: PagePdfPreviewRenderer? = null) : ViewModel() {
     val state = service.state
     val jobs = service.jobs
     val terminalSessions = terminals.sessions
@@ -26,7 +27,7 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
         manager.openPage(locale, pageAccess(canInstallDrafts = true))
     fun pageAccess(canInstallDrafts: Boolean = false): PageWorkspaceAccess =
         dev.solvit.market.WorkspacePageBridge(service, plugins, checkNotNull(chatId), canInstallDrafts, linux,
-            pictureRenderer = dev.solvit.documents.AndroidFilePictureRenderer()) { chatId }
+            pictureRenderer = dev.solvit.documents.AndroidFilePictureRenderer(), pdfRenderer = pdfPreviews) { chatId }
     fun environmentPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
         manager.openPage(locale, access = pageAccess())
     fun gitPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
