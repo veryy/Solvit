@@ -35,3 +35,7 @@ UI源1432382的远程TypeScript38624452027全部通过，实际完整任务日�
 UI候选c5d9b4b的38624928283整轮失败。实际UI11924566682完整ZIP CRC/XML为76设备、1失败、零错误/跳过；新增保存附件PDF/HTML/Git/Shell链通过且实际截图正常，失败发生于原WorkspaceHtmlPageTest保存后点击file_0等待进入src目录（原行86）；此前误读为IME断言，经独立诊断日志和源行号已纠正。没有生产编辑器修改可解释其根因，不能以新链通过或以前同用例通过替代本轮失败。保留原断言与10秒限制，以WORKSPACE_IME_DIAG只记录测试fixture的光标/组合/marker位置和失败截图；新增手动诊断workflow复用已验证相同生产源码的c5 APK、只远程编译instrumentation APK，连续执行原场景首失败即停，不做本地构建或盲目重跑至成功。继续诊断，市场未发布API24。
 
 独立诊断38628307407源2ebf1f2第一轮复现同一导航失败，11925321495完整ZIP CRC核对。IME前长度69044、光标69044；输入完成长度69052，marker位于69044，随后完整原文件保存断言通过，排除本轮IME失败。堆栈对应当前104行、原86行，是file_0进入src的断言。新增WORKSPACE_PAGE_DIAG只捕获fixture页的当前目录/首条文件、按钮busy/disabled、最新token/原生回复，并在任意DOM等待失败保存截图；透明包装页面回调仅观察状态，不改变请求或授权。按首条文件不符、树自动查询忙态/过期token、目录动作处理三个假设继续复现，不以IME成功或重跑替代导航修复。
+
+第二次隔离诊断38629699357源e72166e再次首轮复现，11925553028完整ZIP CRC核对。WORKSPACE_PAGE_DIAG在点击前记录directory=/、首项▸ src、busy=false且file_0启用，排除首项不是src；失败时仍为相同token/目录、所有按钮禁用。实际查看workspace-navigation-failed.png，原生外层明确显示“插件页面操作失败，请重新打开后重试。”，不是仅DOM断言或IME失效。下一步用仅测试包装的ExtensionPageSession.dispatch/PageWorkspaceAccess.query记录异常类型及代码位置（不输出消息/表单值）定位当前会话分发异常。源cc33bea的第三次独立诊断38631097327已实际启动；复用同一c5生产APK，不改变生产实现或授权判断。完整499单元及新附件HTML任务证据保持，但整版仍不能发布，API24仍未上线。
+
+![目录打开失败时的真实页面](screenshots/0.36.0/workspace-navigation-failed.png)
