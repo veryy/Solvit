@@ -123,6 +123,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val downloadState by updates.downloadState.collectAsStateWithLifecycle()
     val sessions by vm.sessions.collectAsStateWithLifecycle()
     val selected by vm.sessionId.collectAsStateWithLifecycle()
+    var attachmentPreview by remember(selected) { mutableStateOf<ChatAttachment?>(null) }
     var fileChangesRun by remember(selected) { mutableStateOf<ExecutionRun?>(null) }
     val fileChangesManager = remember(app) { dev.solvit.market.BuiltinWorkspaceManager(app) }
     val pageLocale = LocalUiLanguage.current
@@ -259,7 +260,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                             }
                             if (errorDetails != null) TextButton(onClick = { showErrorDetails = true }) { UiText("查看详细信息") }
                         }
-                        if (selected != null && selectedAttachments.isNotEmpty()) ChatAttachmentCards(vm, selected!!, selectedAttachments, removable = true)
+                        if (selected != null && selectedAttachments.isNotEmpty()) ChatAttachmentCards(vm, selected!!, selectedAttachments, removable = true) { hideInput(); attachmentPreview = it }
                         if (importingAttachment) LinearProgressIndicator(Modifier.fillMaxWidth())
                         Row(verticalAlignment = Alignment.Bottom) {
                             ChatAttachmentPicker(vm, selected, ready && !importingAttachment && !branching && !switching)
@@ -321,13 +322,16 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                         TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { UiText("新建工作区") }
                     }) else null, loadExecutionEvents=vm::executionEvents,
                     onOpenFileChanges={ run -> hideInput(); fileChangesRun=run }, attachmentsContent={ message ->
-                        if (selected != null) ChatAttachmentCards(vm, selected!!, message.attachments)
+                        if (selected != null) ChatAttachmentCards(vm, selected!!, message.attachments) { hideInput(); attachmentPreview = it }
                     })
                 }
 
             }
             }
         }
+    }
+    attachmentPreview?.let { attachment ->
+        selected?.let { session -> ChatAttachmentPreview(vm, session, attachment) { attachmentPreview = null } }
     }
     branchTarget?.let { (message,mode) ->
         ChatBranchDialog(message,mode,branching,branchError,

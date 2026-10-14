@@ -71,12 +71,11 @@ internal fun ChatAttachmentPicker(vm: ChatViewModel, session: String?, enabled: 
 }
 
 @Composable
-internal fun ChatAttachmentCards(vm: ChatViewModel, session: String, attachments: List<ChatAttachment>, removable: Boolean = false) {
-    var preview by remember(session) { mutableStateOf<ChatAttachment?>(null) }
+internal fun ChatAttachmentCards(vm: ChatViewModel, session: String, attachments: List<ChatAttachment>, removable: Boolean = false, onPreview: (ChatAttachment) -> Unit) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         attachments.forEach { attachment ->
             key(attachment.id) {
-                OutlinedCard(onClick = { preview = attachment }, modifier = Modifier.widthIn(max = 240.dp).testTag("attachment_${attachment.id}")) {
+                OutlinedCard(onClick = { onPreview(attachment) }, modifier = Modifier.widthIn(max = 240.dp).testTag("attachment_${attachment.id}")) {
                     Row(Modifier.padding(8.dp)) {
                         if (attachment.mimeType.startsWith("image/")) {
                             AttachmentImage(vm, session, attachment, Modifier.size(48.dp), maxEdge = 144)
@@ -93,16 +92,19 @@ internal fun ChatAttachmentCards(vm: ChatViewModel, session: String, attachments
             }
         }
     }
-    preview?.let { attachment ->
-        FullScreenPage(onDismissRequest = { preview = null }) {
-            Column(Modifier.fillMaxSize().padding(16.dp)) {
-                Row(Modifier.fillMaxWidth()) {
-                    Text(attachment.name, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { preview = null }, modifier = Modifier.testTag("attachment_preview_close")) { UiText("关闭") }
-                }
-                if (attachment.mimeType.startsWith("image/")) AttachmentImage(vm, session, attachment, Modifier.fillMaxSize())
-                else AttachmentText(vm, session, attachment)
+}
+
+/** Owned by the chat page, so a recycled message row cannot close its viewer. */
+@Composable
+internal fun ChatAttachmentPreview(vm: ChatViewModel, session: String, attachment: ChatAttachment, onDismiss: () -> Unit) {
+    FullScreenPage(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxSize().padding(16.dp)) {
+            Row(Modifier.fillMaxWidth()) {
+                Text(attachment.name, modifier = Modifier.weight(1f))
+                TextButton(onClick = onDismiss, modifier = Modifier.testTag("attachment_preview_close")) { UiText("关闭") }
             }
+            if (attachment.mimeType.startsWith("image/")) AttachmentImage(vm, session, attachment, Modifier.fillMaxSize())
+            else AttachmentText(vm, session, attachment)
         }
     }
 }
@@ -145,5 +147,5 @@ private fun AttachmentText(vm: ChatViewModel, session: String, attachment: ChatA
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { text = "附件预览失败" }
     }
-    SelectionContainer { Text(text ?: "正在读取附件…", modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) }
+    SelectionContainer { Text(text ?: "正在读取附件…", modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("attachment_text_${attachment.id}")) }
 }

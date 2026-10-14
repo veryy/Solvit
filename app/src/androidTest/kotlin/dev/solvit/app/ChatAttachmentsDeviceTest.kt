@@ -152,7 +152,14 @@ class ChatAttachmentsDeviceTest {
             assertArrayEquals(imageBytes, java.util.Base64.getDecoder().decode(uri.substringAfter(',')))
             assertTrue(vm.attachmentDrafts.value[session].orEmpty().isEmpty())
             rule.onNodeWithTag("attachment_${document.id}").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodesWithText("中文 fixture code 😀\nprint(42)").fetchSemanticsNodes().isNotEmpty() }
+            try {
+                rule.waitUntil(10_000) { rule.onAllNodesWithText("中文 fixture code 😀\nprint(42)").fetchSemanticsNodes().isNotEmpty() }
+            } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+                val body = rule.onAllNodesWithTag("attachment_text_${document.id}").fetchSemanticsNodes()
+                    .map { it.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString() }
+                throw AssertionError("Saved attachment viewer: body=$body, close controls=${rule.onAllNodesWithTag("attachment_preview_close").fetchSemanticsNodes().size}", timeout)
+            }
+            rule.onNodeWithTag("attachment_text_${document.id}").assertTextEquals("中文 fixture code 😀\nprint(42)")
             rule.onNodeWithTag("attachment_preview_close").performClick()
             rule.runOnUiThread { vm.viewModelScope.cancel() }
             store.close()
