@@ -171,7 +171,7 @@ test('API19 keeps the exact released Git bytes while API20 selects remote Git',a
   assert.deepEqual(oldBytes,await readFile(new URL('./packages/legacy/dev.solvit.git-1.1.1.solvit.json',import.meta.url)));
   assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd');
   const next=(await(await fetch(base+'/api/v1/plugins?hostApi=20')).json()).plugins.find(p=>p.id==='dev.solvit.git');
-  assert.equal(next.version,'1.2.0');assert.equal(next.apiVersion,20);
+  assert.equal(next.version,'1.2.1');assert.equal(next.apiVersion,20);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
 

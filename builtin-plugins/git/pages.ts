@@ -29,7 +29,7 @@ export function gitPage(){
  let commits:Commit[]=[],pending:Extract<PageHostAction,{kind:'git.perform'}>|null=null,author='',email='',commitMessage='';
  let remoteUrl='',remoteBranch='main',operationId='',remoteTarget='',remoteReview:{reviewId:string;localHead:string;remoteHead:string}|null=null;
  let remoteProgress='';
- const files=workspacePage();
+ const files=workspacePage(false);
  return async(input:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
   const t=labels[input.locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en,api=ctx.gitPage!,event=input.event;
   const rt=remoteLabels[input.locale.split(/[-_]/)[0] as keyof typeof remoteLabels]??remoteLabels.en;

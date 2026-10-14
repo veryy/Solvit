@@ -29,7 +29,7 @@ const labels={
  es:['Espacio de trabajo','Crear espacio','Vincular existente','Nombre','Crear','Vincular','Desvincular','Directorio','Volver','Actualizar','Nuevo texto','Ruta relativa','Texto UTF-8 (máximo 4 KB)','Revisar guardado','Confirmar','Cancelar','Directorio superior','Anterior','Siguiente','Directorio vacío','Este chat no tiene espacio','Guardado','Error: ','Borradores','Ver','Instalar desactivado','Reemplaza el mismo ID y queda desactivado. Autorízalo por separado.','Permisos','Completado','Escribir archivo','Nombre de Shell','Añadir Shell'],
  fr:['Espace de travail','Créer un espace','Lier un espace','Nom','Créer','Lier','Délier','Répertoire','Retour','Actualiser','Nouveau texte','Chemin relatif','Texte UTF-8 (maximum 4 Ko)','Vérifier la sauvegarde','Confirmer','Annuler','Parent','Précédent','Suivant','Répertoire vide','Aucun espace pour cette conversation','Enregistré','Échec : ','Brouillons','Voir','Installer désactivé','Remplace le même ID et reste désactivé. Autorisez-le séparément.','Autorisations','Terminé','Écrire le fichier','Nom Shell','Ajouter un Shell']
 };
-export function workspacePage(){
+export function workspacePage(importsEnabled=true){
  let mode='home',directory='',offset=0,total=0,files:FileEntry[]=[],names:W[]=[],workspaceOffset=0,path='',textValue='',sha:string|null=null,originalPath='',message='';
  let pending:Extract<PageHostAction,{kind:'workspace.perform'}>|null=null,returnMode='home',drafts:Draft[]=[],selected:Draft|null=null,draftOffset=0,draftTotal=0,draftText='';
  let editorId=0,chunk:TextChunk|null=null,phase='ready',uploadId='',uploadOffset=0;
@@ -184,7 +184,7 @@ export function workspacePage(){
   if(mode==='home'){
    nodes.push(text('name',current?.name??t[20],'title'));
    nodes.push(button('create',t[1]),button('choose',t[2]));
-   if(current){nodes.push(button('directory',t[7]),selectImport(),button('shell',t[31]),text('shells',snapshot.shells.map(s=>s.name).join(' · ')),button('drafts',t[23]),button('prepareUnbind',t[6]));if(importSelection)nodes.push(button('showImport',im[2]))}
+   if(current){nodes.push(button('directory',t[7]),...(importsEnabled?[selectImport()]:[]),button('shell',t[31]),text('shells',snapshot.shells.map(s=>s.name).join(' · ')),button('drafts',t[23]),button('prepareUnbind',t[6]));if(importSelection)nodes.push(button('showImport',im[2]))}
   }else if(mode==='create'||mode==='shell'){
    nodes.push({id:'name',kind:'field',label:mode==='create'?t[3]:t[30],value:mode==='create'?'':`Shell ${snapshot.shells.length+1}`});
    footer.push(button('home',t[8]),button(mode==='create'?'prepareCreate':'prepareShell',t[4]));
@@ -195,7 +195,7 @@ export function workspacePage(){
    nodes.push(text('directory',directory||'/','title'));if(!files.length)nodes.push(text('empty',t[19]));
    files.forEach((entry,i)=>nodes.push({id:`entry_${i}`,kind:'card',children:[text(`file_name_${i}`,(entry.directory?'▸ ':'')+entry.name),text(`file_size_${i}`,entry.directory?t[7]:`${entry.bytes} B`,'caption'),button(`file_${i}`,t[24],'file'),
     button(`rename_${i}`,f[1],'renameEntry'),button(`delete_${i}`,f[2],'deleteEntry')]}));
-   footer.push(button('home',t[8]),selectImport(),button('new',t[10]),button('mkdir',f[0]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
+   footer.push(button('home',t[8]),...(importsEnabled?[selectImport()]:[]),button('new',t[10]),button('mkdir',f[0]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
   }else if(mode==='import'&&importSelection){
    nodes.push(text('import_name',importSelection.name,'title'),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),
     text('import_source',im[6],'caption'),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]),
