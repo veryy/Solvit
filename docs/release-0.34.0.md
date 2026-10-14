@@ -29,3 +29,8 @@ Linux环境保留PRoot/Ubuntu、Python3.12.3、Node24.21.0/npm11.19.0、Java17�
 
 
 ![图片候选真实Android屏幕：插件HTML显示选择PNG的缩略图，确认仍导入原文件](screenshots/0.34.0/workspace-import-image.png)
+
+
+## 正式标签进行中
+
+不可变标签v0.34.0固定源 `8d4a40e65e319ce79582f69f4488229f5365a544`。正式[Android38609672475](https://github.com/veryy/Solvit/actions/runs/38609672475)正在执行全部门禁；插件任务日志已下载核对117 SDK及5市场测试零失败/错误/跳过，公开搜索任务成功。build/Linux/UI/发布和正式产物核对尚待完成，不将候选成功说成公开APK已发布。
