@@ -1,6 +1,7 @@
 package dev.solvit.provider
 
 import dev.solvit.core.*
+import dev.solvit.http.readResponse
 import dev.solvit.http.ResponseDiagnostics
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
@@ -10,7 +11,6 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.resumeWithException
 
 /** Discovery is independent of chatting and never requires a model name first. */
 class OpenAiModelCatalog(client: OkHttpClient) : ModelCatalogService {
@@ -29,11 +29,8 @@ class OpenAiModelCatalog(client: OkHttpClient) : ModelCatalogService {
         var lastResponse: ModelErrorDetails? = null
         val call = client.newCall(request.build())
         coroutineScope {
-            val cancellation = launch(start = CoroutineStart.UNDISPATCHED) {
-                try { awaitCancellation() } finally { call.cancel() }
-            }
             try {
-                call.await().use { response ->
+                call.readResponse { response ->
                     lastResponse = diagnostics.details(response)
                     if (!response.isSuccessful) throw diagnostics.httpFailure(response, when (response.code) {
                         401, 403 -> "获取模型认证失败，请检查密钥；独立列表地址如需同一密钥，请勾选对应选项"
@@ -63,7 +60,7 @@ class OpenAiModelCatalog(client: OkHttpClient) : ModelCatalogService {
             catch (e: IOException) {
                 currentCoroutineContext().ensureActive()
                 throw ModelException("获取模型连接失败，请查看详细信息", diagnostics.details(body = "${e.javaClass.simpleName}: ${e.message.orEmpty()}"))
-            } finally { cancellation.cancelAndJoin(); call.cancel() }
+            }
         }
     }
     private fun parse(text: String): List<AvailableModel> {
@@ -86,12 +83,6 @@ class OpenAiModelCatalog(client: OkHttpClient) : ModelCatalogService {
         if (models.isEmpty()) throw ModelException("响应中未解析出可用模型名称，请查看详细信息")
         return models
     }
-    private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
-        continuation.invokeOnCancellation { cancel() }
-        enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) { if (continuation.isActive) continuation.resumeWithException(e) }
-            override fun onResponse(call: Call, response: Response) { continuation.resume(response) { _, value, _ -> value.close() } }
-        })
-    }
+
     private companion object { const val MAX_BYTES = 2 * 1024 * 1024 }
 }

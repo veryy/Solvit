@@ -9,6 +9,7 @@ android {
 }
 dependencies {
     implementation(project(":core"))
+    implementation(project(":provider-http"))
     implementation(project(":plugin-runtime"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")

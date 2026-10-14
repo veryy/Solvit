@@ -27,7 +27,7 @@ class AnthropicProvider(private val client: OkHttpClient) : ModelProvider {
         return value.toInt()
     }
     override fun separatesRuntimeContext(config: ModelConfig) = true
-    override fun stream(request:ModelRequest):Flow<ModelChunk> = flow {
+    override fun stream(request:ModelRequest):Flow<ModelChunk> = channelFlow {
         validate(request.config)?.let { throw ModelException(it) }
         val native = nativeRequest(request)
         val builder = Request.Builder().url(request.config.baseUrl.trimEnd('/') + "/messages")
@@ -41,7 +41,7 @@ class AnthropicProvider(private val client: OkHttpClient) : ModelProvider {
                 last=diagnostics.details(response)
                 if(!response.isSuccessful) throw diagnostics.httpFailure(response,"Claude 请求失败（HTTP ${response.code}）")
                 val source=response.body?.source() ?: throw ModelException("模型服务返回空响应")
-                val blocks = NativeBlocks { emit(it) }
+                val blocks = NativeBlocks { send(it) }
                 var stopped=false;var started=false;var stopReason:String?=null
                 if(response.header("Content-Type")?.contains("text/event-stream",true)==true) {
                     readSse(source) { event,data ->
@@ -77,15 +77,15 @@ class AnthropicProvider(private val client: OkHttpClient) : ModelProvider {
                     stopReason=root["stop_reason"]?.jsonPrimitive?.contentOrNull
                 }
                 val completed=blocks.complete(stopReason)
-                emit(ModelChunk.NativeTranscript(ProviderTranscript(id,request.config.model,completed.first.toString(),native.options,native.prefixHash,native.requestPrefixJson)))
-                if(completed.second.isNotEmpty()) emit(ModelChunk.ToolCalls(completed.second))
-                emit(ModelChunk.Done)
+                send(ModelChunk.NativeTranscript(ProviderTranscript(id,request.config.model,completed.first.toString(),native.options,native.prefixHash,native.requestPrefixJson)))
+                if(completed.second.isNotEmpty()) send(ModelChunk.ToolCalls(completed.second))
+                send(ModelChunk.Done)
             }
         } catch(e:CancellationException) { throw e }
         catch(e:ModelException) { throw if(e.details!=null) e else ModelException(e.message ?: "Claude 请求失败",last) }
         catch(e:IOException) { currentCoroutineContext().ensureActive();throw ModelException("Claude 连接失败，请查看详细信息",diagnostics.details(body="${e.javaClass.simpleName}: ${e.message.orEmpty()}")) }
         catch(e:Exception) { throw ModelException("Claude 响应格式异常，请查看详细信息",last) }
-    }.flowOn(Dispatchers.IO)
+    }.buffer(0).flowOn(Dispatchers.IO)
     private fun requireStarted(value:Boolean) { if(!value) throw ModelException("模型流缺少开始事件") }
 }
 

@@ -3,6 +3,7 @@ package dev.solvit.market
 import android.content.Context
 import android.util.AtomicFile
 import dev.solvit.core.*
+import dev.solvit.http.readResponse
 import dev.solvit.plugins.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
@@ -17,7 +18,6 @@ import java.io.File
 import java.io.IOException
 import java.net.URI
 import java.util.concurrent.TimeUnit
-import kotlin.coroutines.resumeWithException
 
 private const val MARKET_URL = "https://solvit.207.57.126.73.sslip.io"
 
@@ -525,7 +525,7 @@ class AndroidMarketplace(
                     val cancellationRequest = outgoing.newBuilder().post(body.toRequestBody("application/json; charset=utf-8".toMediaType())).build()
                     suspend {
                         if ("network" in prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty())
-                            client.newCall(cancellationRequest).await().use { }
+                            client.newCall(cancellationRequest).readResponse { }
                     }
                 }
                 val timeout = arguments["timeoutMs"]?.jsonPrimitive?.long
@@ -570,10 +570,7 @@ class AndroidMarketplace(
         return coroutineScope {
             val requestJob = currentCoroutineContext().job
             var completed = false
-            val cancellation = launch(start = CoroutineStart.UNDISPATCHED) {
-                try { awaitCancellation() } finally { call.cancel() }
-            }
-            try { call.await().use { response ->
+            try { call.readResponse { response ->
             if (!allowHttpError && !response.isSuccessful) throw IOException("请求失败（HTTP ${response.code}）")
             val body = response.body ?: throw IOException("服务返回空响应")
             if (body.contentLength() > maxBytes) throw IOException("服务返回内容过大")
@@ -595,8 +592,7 @@ class AndroidMarketplace(
                 // OkHttp's socket failure can race coroutine cancellation, so an
                 // IOException may arrive instead of CancellationException. Use
                 // the invocation's job state and finish cleanup before returning.
-                withContext(NonCancellable) {
-                    cancellation.cancelAndJoin(); call.cancel()
+                withContext(NonCancellable + Dispatchers.IO) {
                     if (!completed && !requestJob.isActive && onCancelled != null) {
                         try { withTimeout(1_000) { onCancelled() } } catch (_: Exception) { /* Cleanup must not prevent stopping. */ }
                     }
@@ -605,13 +601,6 @@ class AndroidMarketplace(
         }
     }
 
-    private suspend fun Call.await(): Response = suspendCancellableCoroutine { continuation ->
-        continuation.invokeOnCancellation { cancel() }
-        enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) { if (continuation.isActive) continuation.resumeWithException(e) }
-            override fun onResponse(call: Call, response: Response) { continuation.resume(response) { _, value, _ -> value.close() } }
-        })
-    }
 }
 
 private fun terminalJson(session: TerminalSession): JsonObject = buildJsonObject {
