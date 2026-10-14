@@ -8,6 +8,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import dev.solvit.market.BuiltinWorkspaceManager
 import dev.solvit.market.WorkspacePageBridge
 import dev.solvit.core.ShellStage
+import dev.solvit.core.ExtensionPageSession
+import dev.solvit.core.ExtensionPageSnapshot
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -29,6 +31,25 @@ class WorkspaceHtmlPageTest {
             app.marketplace.disable("dev.solvit.workspace")
         }
         val manager = BuiltinWorkspaceManager(app)
+        fun observedSession(): ExtensionPageSession {
+            val actual = manager.openPage("zh", WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat))
+            return object : ExtensionPageSession by actual {
+                override suspend fun dispatch(revision: Long, nodeId: String, value: String?, fields: Map<String, String>, confirmed: Boolean): ExtensionPageSnapshot {
+                    try { return actual.dispatch(revision, nodeId, value, fields, confirmed) }
+                    catch (failure: Throwable) {
+                        // Types and code locations only; never echo arbitrary host/script messages or field values.
+                        var cause: Throwable? = failure
+                        repeat(4) {
+                            cause?.let { current ->
+                                android.util.Log.i("WORKSPACE_PAGE_DIAG", "dispatch=$nodeId revision=$revision type=${current.javaClass.name} at=${current.stackTrace.take(8).joinToString()}")
+                                cause=current.cause
+                            }
+                        }
+                        throw failure
+                    }
+                }
+            }
+        }
         val html = HtmlPageProbe(rule.activity)
         val initialText = "<script>window.executed=true</script>\n第一版🙂\n" + "const value = 1; // 中文\n".repeat(3000)
         val marker = "IME_EDIT"
@@ -78,7 +99,7 @@ class WorkspaceHtmlPageTest {
         }
         try {
             rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
-                if (visible) PluginPageScreen("工作区", { manager.openPage("zh", WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat)) }) { visible = false }
+                if (visible) PluginPageScreen("工作区", { observedSession() }) { visible = false }
             } } }
             waitDom("window.pluginPageReady===true && !!document.querySelector('[data-node=create]')")
             html.js("""(()=>{const update=window.solvitPageUpdate,onmessage=solvitHost.onmessage;
