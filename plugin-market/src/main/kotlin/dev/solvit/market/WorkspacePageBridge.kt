@@ -19,6 +19,21 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     private data class TextDraft(val id:String,val path:String,val expectedSha256:String?,val total:Int,
         val text:StringBuilder=StringBuilder(),var bytes:Int=0,var sha256:String?=null)
     private var textDraft:TextDraft?=null
+    private var importDraft:Pair<String,PageBinaryDocument>?=null
+    private fun importMetadata():JsonElement = importDraft?.let { (id,document) -> buildJsonObject {
+        put("id",id);put("name",document.name);put("mimeType",document.mimeType);put("bytes",document.sizeBytes);put("sha256",document.sha256)
+    } } ?: JsonNull
+    override suspend fun stageImport(document:PageBinaryDocument,authorize:suspend ()->Unit):String {
+        var adopted=false
+        try {
+            return mutex.withLock {
+                verify(authorize);workspace()
+                val next=java.util.UUID.randomUUID().toString() to document
+                importDraft?.second?.close();importDraft=next;adopted=true
+                importMetadata().toString()
+            }
+        } finally { if(!adopted) document.close() }
+    }
     private suspend fun verify(authorize: suspend () -> Unit) {
         check(!closed) { "工作区页面已关闭。" }
         authorize()
@@ -54,6 +69,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                     }
                 }
                 "snapshot" -> { require(args.isEmpty()); snapshot() }
+                "importSelection" -> { require(args.isEmpty());importMetadata() }
                 "list" -> {
                     require(args.keys == setOf("path", "offset"))
                     val offset = args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int.also { require(it in 0..1000) }
@@ -160,6 +176,21 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         var nextBinding = binding
         scoped(authorize, { created }) {
             when (control.operation) {
+                "importFile" -> {
+                    val selected=checkNotNull(importDraft) { "请先选择要导入的文件" }
+                    check(selected.first==text("id") && selected.second.sha256==text("sha256")) { "选择的文件已改变，请重新确认" }
+                    val bytes=selected.second.readBytes()
+                    try { service.importFile(workspace(),text("path"),bytes,selected.second.sha256) }
+                    finally { bytes.fill(0) }
+                    verify(authorize)
+                    selected.second.close();importDraft=null
+                }
+                "dropImport" -> {
+                    val selected=checkNotNull(importDraft) { "选择的文件已失效" }
+                    check(selected.first==text("id")) { "选择的文件已改变" }
+                    selected.second.close();importDraft=null
+                }
+
                 "create" -> {
                     val value = service.create(text("name")); created = value.id
                     service.createShell(value.id, "Shell 1")
@@ -195,5 +226,5 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         verify(authorize)
         snapshot().toString()
     }
-    override suspend fun close() = mutex.withLock { closed=true;textDraft=null }
+    override suspend fun close() = mutex.withLock { closed=true;textDraft=null;importDraft?.second?.close();importDraft=null }
 }

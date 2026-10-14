@@ -5,6 +5,10 @@ import kotlin.coroutines.CoroutineContext
 
 /** Human page capability attached by the host, never derived from a script-supplied chat id. */
 interface PageWorkspaceAccess {
+    /** Takes ownership only of this page's user-selected file; scripts receive metadata, never bytes. */
+    suspend fun stageImport(document: PageBinaryDocument, authorize: suspend () -> Unit): String {
+        document.close();error("此工作区页面不支持文件导入")
+    }
     suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit): String
     suspend fun perform(control: PageWorkspaceControl, authorize: suspend () -> Unit): String
     /** Drop page-owned staging when the page closes; it must not outlive its capability. */

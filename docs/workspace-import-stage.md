@@ -31,3 +31,11 @@ JVM边界用例显式注入create-only发布适配器，只验证宿主事务和
 UI候选分支保留历史merge了main的0.33.1安装收尾修复，版本准备0.34.0/build68；没有加入已启动的v0.33.1标签。PageDocumentAccess追加可选selectFile，旧文本/ZIP接口保持；宿主复用原OpenDocument选择器，同一页面只允许一个文件选择/保存等待，最多读取20MiB原始字节，不给JS URI或文件路径。PageBinaryDocument保存固定大小/SHA，防御复制，close清空并拒绝后续读取，诊断不输出名称/正文；不解码成UTF8、不把图片/PDF转成文本替代原文件。
 
 取消/关闭/授权失效后，未交接对象清空，延迟系统结果不转给新请求；同一Outstanding槽等旧选择器返回，避免旧URI污染下一次选择。追加2个核心用例核对二进制/摘要、输入与返回副本、日志和关闭失效、无效类型/名称/超容量。当前入口还未连到JS工作区页面，实际选择器、插件桥、预览/确认、进度取消及设备完整链继续实现；本候选仅静态diff检查，不提前宣称远程执行通过。
+
+## 页面归属的导入草稿桥
+
+PageWorkspaceAccess追加host-only stageImport；WorkspacePageBridge捕获对话/工作区，接受选择后只返回不含URI/正文的id、文件名、类型、大小、SHA。一页只持有一个原文件，替换、关闭和成功导入清空旧字节；无工作区的普通聊天拒绝而不自动创建工作区。importFile动作必须匹配当前host token与SHA，路径来自已确认控件，经原生WorkspacePageAuthority在锁内重验。冲突保留选择供改名重试，取消/失败不自动覆盖或删除已有文件。
+
+新增4个真实宿主桥单元入口：选中文件只返回元数据且确认后原字节写入；旧token/切换共享工作区对话拒绝及关闭释放；重名保留草稿、提交前撤权无部分文件、改名重试；普通聊天拒绝并释放来历文件。JVM发布适配器显式注入，仅验证宿主桥；JNI设备验证继续依赖独立原用例。
+
+ScriptPageHostAction加入importFile/dropImport严格字段检查，ScriptPageExecutionContext要求API22，旧API1..21不能调用新动作。当前manifest上限仍21，新动作暂不能由发布插件发起；后续还须增加API22声明、文件选择动作、BuiltinWorkspaceManager文档选择器接入、TS SDK/HTML页、市场旧版本保留，以及实际选择→预览→确认→Shell/Git/重开与撤权验证。本文不把几个服务接口当成产品入口已完成。新增桥代码尚未远程编译执行。
