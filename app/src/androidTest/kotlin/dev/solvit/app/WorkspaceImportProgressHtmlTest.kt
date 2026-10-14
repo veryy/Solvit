@@ -76,6 +76,18 @@ class WorkspaceImportProgressHtmlTest {
             }
             assertEquals(0,result.exitCode);assertTrue(result.output.joinToString(""){it.text}.contains(attachment.sha256))
             html.screenshot("workspace-import-progress-completed").recycle()
+            // Recreate the native service with a crash-shaped reserved orphan. This verifies
+            // Android startup cleanup, not an actual OS kill of the running test process.
+            val orphan=File(root,"nested/.solvit-import-crash.partial").apply { parentFile!!.mkdir();writeText("orphan") }
+            val ordinary=File(root,"nested/user.partial").apply { writeText("keep") }
+            val cleanupScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
+            val reopened=dev.solvit.workspace.AndroidWorkspaces(app,cleanupScope)
+            try {
+                rule.waitUntil(10_000){!orphan.exists()}
+                assertEquals("keep",ordinary.readText())
+                assertArrayEquals(bytes,File(root,"data.bin").readBytes())
+                assertArrayEquals(original,root.listFiles()!!.single { it.name.startsWith("solvit-backup-") }.readBytes())
+            }finally{runBlocking { reopened.close() };cleanupScope.cancel()}
         }finally{release.complete(Unit);rule.runOnUiThread { visible=false };runBlocking { bridge.close() }}
     }
 }
