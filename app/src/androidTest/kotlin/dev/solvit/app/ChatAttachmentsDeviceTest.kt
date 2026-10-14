@@ -49,6 +49,17 @@ class ChatAttachmentsDeviceTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
     private fun screenshot(name: String) {
         require(name.matches(Regex("[a-z-]+")))
+        rule.waitForIdle()
+        runBlocking {
+            val frame = CompletableDeferred<Unit>()
+            rule.activity.runOnUiThread {
+                val view = rule.activity.window.decorView
+                check(view.isHardwareAccelerated)
+                view.viewTreeObserver.registerFrameCommitCallback { frame.complete(Unit) }
+                view.invalidate()
+            }
+            withTimeout(10_000) { frame.await() }
+        }
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
@@ -221,6 +232,8 @@ class ChatAttachmentsDeviceTest {
                 throw AssertionError("Edited draft removal: selected=${vm.sessionId.value}, branch=$branch, importing=${vm.importingAttachment.value}, refs=${vm.attachmentDrafts.value[branch].orEmpty().map { it.id }}, error=${vm.error.value}", timeout)
             }
             assertEquals("中文 fixture code 😀\nprint(42)", runBlocking { files.read(session, document).toString(Charsets.UTF_8) })
+            rule.onNodeWithTag("attachment_${copiedText.id}").assertDoesNotExist()
+            rule.onNodeWithTag("attachment_${copiedImage.id}").assertIsDisplayed()
             screenshot("chat-edit-attachment-draft")
             server.enqueue(MockResponse().setHeader("Content-Type","text/event-stream")
                 .setBody("data: {\"choices\":[{\"delta\":{\"content\":\"edited answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"))
