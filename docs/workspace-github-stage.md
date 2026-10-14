@@ -283,3 +283,9 @@ verify-ui仍在运行，不能用编译通过替代本阶段或页面交付。
 ## 凭据文案构建失败修复
 
 完整Android38499078672在LanguageTest.catalogCoversSixLanguagesAndPreservesTemplateArguments失败，LanguageTest.kt:34抛JSONException。逐项检查实际目录后确认新增六条凭据文案缺少zh字段，其他五种语言代码及字符串类型完整。补齐六条中文字段，保留原六语言和占位符测试。参考Operit固定版本app/src/main/res/values/strings.xml默认中文资源行为，未复制代码。此修复待远程原场景验证，不将JSON检查当作Android通过。
+
+## API20市场暂存兼容失败
+
+线上服务仍为serverSHA df284c02...与Git1.1.1原字节。将候选server/Git1.2.0和原Git1.1.1暂存后，用独立localhost服务逐项比较API1–19真实目录：API1–18保持，API19内容/摘要一致但Git目录位置改变，完整对象顺序断言失败，因此未调用生产部署。原因是旧Git从根目录移到legacy后，同版本排序继承新的文件枚举顺序。
+
+新增可选legacy/catalog-order.json目录数据，通用服务在排序前按记录恢复被移动包的位置，不在服务器硬编码Git插件ID。新增API19 HTTP排序回归，预期ID顺序来自部署前实际目录，原包SHA断言保留；完整API1–19暂存比较仍待核对，npm测试只用Actions。此修复未发布APK或部署生产，线上旧客户端保持原状态。

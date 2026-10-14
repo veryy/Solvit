@@ -17,6 +17,21 @@ export async function readCatalog(directory) {
     throw error;
   });
   files.push(...legacy.filter(name => name.endsWith('.solvit.json')).map(name => join('legacy', name)));
+  // A package moved to legacy can retain its original catalog tie-break position.
+  // This data belongs to the catalog, not to any plugin-specific server logic.
+  const placement = await readFile(join(directory, 'legacy', 'catalog-order.json'), 'utf8')
+    .then(JSON.parse).catch(error => { if (error.code === 'ENOENT') return []; throw error; });
+  if (!Array.isArray(placement) || placement.length > 100) throw new Error('Invalid legacy catalog order');
+  for (const item of placement) {
+    if (!item || typeof item.file !== 'string' || typeof item.after !== 'string' ||
+        !/^[a-z0-9.-]+\.solvit\.json$/.test(item.file) || !/^[a-z0-9.-]+\.solvit\.json$/.test(item.after))
+      throw new Error('Invalid legacy catalog order');
+    const file = join('legacy', item.file);
+    const position = files.indexOf(file);
+    if (position < 0 || files.indexOf(item.after) < 0) continue;
+    files.splice(position, 1);
+    files.splice(files.indexOf(item.after) + 1, 0, file);
+  }
   const entries = [];
   const packages = new Map();
   for (const file of files) {
