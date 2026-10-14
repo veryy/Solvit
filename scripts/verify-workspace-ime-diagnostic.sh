@@ -3,7 +3,7 @@
 set -euo pipefail
 mkdir -p ui-screenshots
 capture() {
-  timeout 15s adb logcat -d -s WORKSPACE_IME_DIAG:I TestRunner:I '*:S' > ui-screenshots/workspace-ime-logcat.txt || true
+  timeout 15s adb logcat -d -s WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I TestRunner:I '*:S' > ui-screenshots/workspace-ime-logcat.txt || true
   timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
 }
 trap capture EXIT

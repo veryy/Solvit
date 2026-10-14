@@ -1,4 +1,4 @@
-name: Workspace editor IME diagnostic
+name: Workspace editor page diagnostic
 on:
   workflow_dispatch:
     inputs:

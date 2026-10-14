@@ -43,9 +43,26 @@ class WorkspaceHtmlPageTest {
                   lastLine:line?.textContent,lineTop:r?.top,lineBottom:r?.bottom,height:innerHeight}})()""")
             android.util.Log.i("WORKSPACE_IME_DIAG", snapshot)
         }
-        fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+        fun pageState(phase: String) {
+            android.util.Log.i("WORKSPACE_PAGE_DIAG", html.js("""(()=>{const s=window.workspaceDiagnosticState;
+                return {phase:${JsonPrimitive(phase)},token:s?.token,busy:s?.busy,
+                  directory:document.querySelector('[data-node=directory]')?.textContent,
+                  first:document.querySelector('[data-node=file_name_0]')?.textContent,
+                  buttons:Array.from(document.querySelectorAll('button')).map(b=>[b.dataset.node,b.disabled]),
+                  alerts:Array.from(document.querySelectorAll('[role=alert]')).map(n=>n.textContent),
+                  message:document.querySelector('[data-node=message]')?.textContent,
+                  reply:window.workspaceDiagnosticReply}})()"""))
+        }
+        fun waitDom(expression: String) {
+            try { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+            catch (failure: Throwable) {
+                runCatching { pageState(expression);html.screenshot("workspace-editor-page-failed").recycle() }
+                throw failure
+            }
+        }
         fun click(id: String) {
             waitDom("!!document.querySelector('[data-node=$id]') && !document.querySelector('[data-node=$id]').disabled")
+            if(id=="file_0")pageState("before-file-open")
             html.js("document.querySelector('[data-node=$id]').click()")
         }
         fun field(id: String, text: String) { html.js("(()=>{const input=document.getElementById('field-$id');input.value=${JsonPrimitive(text)};input.dispatchEvent(new Event('input'))})()") }
@@ -64,6 +81,9 @@ class WorkspaceHtmlPageTest {
                 if (visible) PluginPageScreen("工作区", { manager.openPage("zh", WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat)) }) { visible = false }
             } } }
             waitDom("window.pluginPageReady===true && !!document.querySelector('[data-node=create]')")
+            html.js("""(()=>{const update=window.solvitPageUpdate,onmessage=solvitHost.onmessage;
+                window.solvitPageUpdate=s=>{window.workspaceDiagnosticState=s;update(s)};
+                solvitHost.onmessage=e=>{window.workspaceDiagnosticReply=e.data;onmessage(e)}})()""")
             assertNull(runBlocking { app.workspaces.bound(chat) })
             click("create"); waitDom("!!document.getElementById('field-name')")
             field("name", "HTML 工作目录"); click("prepareCreate")

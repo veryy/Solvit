@@ -30,4 +30,4 @@ API24市场私有before/next监听验证42个历史版本原字节保持：API1.
 
 ![候选聊天附件PDF原页](screenshots/0.36.0/chat-attachment-workspace-pdf-candidate.png)
 
-失败是既有WorkspaceHtmlPageTest在原第86行等待Android真实按键输入出现在长文档末尾，10秒内未满足；没有放宽超时或删除触摸/保存/冲突断言。现有日志不能区分触摸光标位置、IME组合或编辑器重建。新增fixture专用WORKSPACE_IME_DIAG边界记录和失败截图，独立远程诊断复用同一生产APK、只重编译测试包，连续执行原真实场景并在首个失败停止。该运行仍未发布，市场和客户端hostApi保持23。
+失败是既有WorkspaceHtmlPageTest在原第86行点击保存后的file_0，10秒内未进入src目录。初次误将该行对应到IME输入；独立诊断38628307407/11925321495实际已确认真实按键正确追加到末尾（69044→69052、marker位于69044），完整文件保存断言成功，随后同一目录导航失败。诊断归档完整ZIP CRC核对；修正此前行号误判，没有放宽超时或删除触摸/保存/冲突断言。新增fixture专用WORKSPACE_IME_DIAG边界记录和失败截图，独立远程诊断复用同一生产APK、只重编译测试包，连续执行原真实场景并在首个失败停止。该运行仍未发布，市场和客户端hostApi保持23。
