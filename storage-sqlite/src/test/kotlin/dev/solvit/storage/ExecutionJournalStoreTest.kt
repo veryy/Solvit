@@ -28,7 +28,27 @@ class ExecutionJournalStoreTest {
             assertTrue(store.appendExecutionEvents(run.id,0,listOf(ExecutionEvent(1,ExecutionKind.STEP_STARTED)),11))
             assertTrue(store.finishExecutionRun(run.id,ExecutionStatus.FAILED,12))
         }
-        SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path,null,SQLiteDatabase.OPEN_READWRITE).use { it.version=10 }
+        SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path,null,SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.beginTransaction()
+            try {
+                // Install the actual v10 UNIQUE owner constraint, not only a downgraded version number.
+                db.execSQL("CREATE TEMP TABLE old_runs AS SELECT * FROM execution_runs")
+                db.execSQL("CREATE TEMP TABLE old_events AS SELECT * FROM execution_events")
+                db.execSQL("DROP TABLE execution_file_refs")
+                db.execSQL("DROP TABLE execution_events")
+                db.execSQL("DROP TABLE execution_runs")
+                db.execSQL("CREATE TABLE execution_runs (id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, user_message_id TEXT NOT NULL UNIQUE REFERENCES messages(id) ON DELETE CASCADE, role_id TEXT, workspace_id TEXT, started_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, status TEXT NOT NULL)")
+                db.execSQL("CREATE INDEX execution_runs_session ON execution_runs(session_id, started_at)")
+                db.execSQL("CREATE UNIQUE INDEX execution_runs_active ON execution_runs(session_id) WHERE status='RUNNING'")
+                db.execSQL("CREATE TABLE execution_events (run_id TEXT NOT NULL REFERENCES execution_runs(id) ON DELETE CASCADE, sequence INTEGER NOT NULL, recorded_at INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(run_id, sequence))")
+                db.execSQL("INSERT INTO execution_runs SELECT * FROM old_runs")
+                db.execSQL("INSERT INTO execution_events SELECT * FROM old_events")
+                ExecutionFileCaptureDatabase.create(db)
+                db.execSQL("DROP TABLE old_events");db.execSQL("DROP TABLE old_runs")
+                db.version=10
+                db.setTransactionSuccessful()
+            } finally { db.endTransaction() }
+        }
         SqliteChatStore(context).use { store ->
             assertEquals(1,store.executionEvents(run.sessionId,run.id).size)
             assertEquals("create a project",store.history(run.sessionId).single().content)
