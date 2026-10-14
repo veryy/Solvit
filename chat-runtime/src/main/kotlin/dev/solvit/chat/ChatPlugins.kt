@@ -24,6 +24,7 @@ class DefaultChatService(
     private val workspaces: WorkspaceService? = null,
     private val modelProfiles: ModelProfilesService? = null,
     private val postTurnHooks: PostTurnHookRegistry? = null,
+    private val attachmentStore: ChatAttachmentStore? = null,
 ) : ChatService {
     // V1 permits one active turn. Deletion cannot race with a stream settlement.
     private val turn = Mutex()
@@ -39,8 +40,18 @@ class DefaultChatService(
         try { store.deleteSession(sessionId); roles?.select(sessionId, null); workspaces?.unbind(sessionId) } finally { turn.unlock() }
     }
 
-    override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization): Flow<ModelChunk> = flow {
-        require(text.isNotBlank())
+    override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization): Flow<ModelChunk> =
+        sendAttachments(sessionId, text, emptyList(), config, authorization)
+    override fun sendAttachments(sessionId: String, text: String, attachments: List<ChatAttachment>, config: ModelConfig,
+        authorization: ToolAuthorization): Flow<ModelChunk> {
+        val snapshot = attachments.toList()
+        return sendTurn(sessionId, text, snapshot, config, authorization)
+    }
+    private fun sendTurn(sessionId: String, text: String, attachments: List<ChatAttachment>, config: ModelConfig,
+        authorization: ToolAuthorization): Flow<ModelChunk> = flow {
+        require(text.isNotBlank() || attachments.isNotEmpty())
+        require(attachments.isEmpty() || attachmentStore != null) { "附件服务未启用" }
+        ChatMessage("validation", sessionId, Role.USER, text, attachments = attachments)
         config.validate()?.let { error(it) }
         check(turn.tryLock()) { "已有回复正在生成" }
         val answer = StringBuilder()
@@ -84,7 +95,7 @@ class DefaultChatService(
             sourceProfileId = modelProfiles?.state?.value?.profiles?.firstOrNull { it.config === config }?.id
             sourceTargets = if (store.supportsCompletedTurns) postTurnHooks?.admit(sourceRole).orEmpty() else emptyList()
             val conversation = workspaces?.bound(sessionId)?.let { ConversationContext(sessionId, it.id) }
-            val user = ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim())
+            val user = ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim(), attachments = attachments)
             sourceUserId = user.id
             persist(user)
             admitted = true
@@ -98,7 +109,12 @@ class DefaultChatService(
             val messages = buildList {
                 val instructions = ChatContextComposer.render(sections)
                 if (instructions.isNotBlank()) add(ModelMessage(Role.SYSTEM, instructions))
-                addAll(completeContext(history, trackSources = true))
+                val projected = completeContext(history, trackSources = true)
+                val resolver = attachmentStore?.let(::AttachmentContentResolver)
+                projected.forEach { message ->
+                    if (message.attachments.isEmpty()) add(message)
+                    else add((resolver ?: error("附件服务未启用")).resolve(sessionId, message))
+                }
             }
             var done = false
             agent.run(ModelRequest(config, messages, authorization = authorization, agentRole = role, conversation = conversation,
@@ -159,9 +175,9 @@ internal fun completeContext(history: List<ChatMessage>, trackSources: Boolean =
     return result
 }
 
-class ChatServicePlugin(private val useWorkspaces: Boolean = false) : SolvitPlugin {
+class ChatServicePlugin(private val useWorkspaces: Boolean = false, private val useAttachments: Boolean = false) : SolvitPlugin {
     override val id = "builtin.chat"
-    override val requires = buildSet { addAll(setOf(Services.Storage, Services.Agent, RoleServiceKey, ModelProfilesServiceKey, PostTurnHookServiceKey)); if (useWorkspaces) add(WorkspaceServiceKey) }
+    override val requires = buildSet { addAll(setOf(Services.Storage, Services.Agent, RoleServiceKey, ModelProfilesServiceKey, PostTurnHookServiceKey)); if (useWorkspaces) add(WorkspaceServiceKey); if (useAttachments) add(ChatAttachmentStoreKey) }
     override val provides = setOf(Services.Chat)
     override suspend fun enable(context: PluginContext) {
         context.register(Services.Chat, DefaultChatService(
@@ -169,6 +185,7 @@ class ChatServicePlugin(private val useWorkspaces: Boolean = false) : SolvitPlug
             if (useWorkspaces) context.require(WorkspaceServiceKey) else null,
             context.require(ModelProfilesServiceKey),
             context.require(PostTurnHookServiceKey),
+            if (useAttachments) context.require(ChatAttachmentStoreKey) else null,
         ))
     }
 }

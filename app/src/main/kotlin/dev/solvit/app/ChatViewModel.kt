@@ -69,7 +69,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             catch (e: Exception) { error.value = "免询问授权保存失败，请重试或允许这一次"; pending.resolving.value = false }
         }
     }
-    data class QueuedMessage(val id: String, val sessionId: String, val text: String)
+    data class QueuedMessage(val id: String, val sessionId: String, val text: String, val attachments: List<ChatAttachment> = emptyList())
     val queuedMessages = MutableStateFlow<List<QueuedMessage>>(emptyList())
     private val pausedChats = mutableSetOf<String>()
     val queuePaused = MutableStateFlow(false)
@@ -171,23 +171,25 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         try { persistConfiguration(value); config.value = value; modelConfigured.value = true; error.value = null }
         finally { saving.value = false }
     }
-    fun send(text: String): Boolean {
+    fun send(text: String, attachments: List<ChatAttachment> = emptyList()): Boolean {
         val id = selected.value ?: return false
-        if (branching.value || !ready.value || text.isBlank()) return false
+        if (branching.value || !ready.value || (text.isBlank() && attachments.isEmpty())) return false
+        if (!validAttachments(attachments)) return false
         config.value.validate()?.let { error.value = it; return false }
         if (queuedMessages.value.size >= 32) { error.value = "等待队列已满，请先发送或移除消息"; return false }
         if (busy.value || switching.value || queuedMessages.value.any { it.sessionId == id }) {
-            queuedMessages.value += QueuedMessage(UUID.randomUUID().toString(), id, text.trim())
+            queuedMessages.value += QueuedMessage(UUID.randomUUID().toString(), id, text.trim(), attachments.toList())
             if (!busy.value && !switching.value && !queuePaused.value) drainQueue()
             return true
         }
         pauseQueue(id,false)
-        return startTurn(id, text.trim())
+        return startTurn(id, text.trim(), attachments.toList())
     }
     fun removeQueued(itemId: String) { if (!switching.value) queuedMessages.value = queuedMessages.value.filterNot { it.id == itemId } }
     fun editQueued(itemId: String, text: String): Boolean {
-        if (switching.value || text.isBlank()) return false
+        if (switching.value) return false
         val item = queuedMessages.value.firstOrNull { it.id == itemId && it.sessionId == selected.value } ?: return false
+        if (text.isBlank() && item.attachments.isEmpty()) return false
         queuedMessages.value = queuedMessages.value.map { if (it.id == item.id) it.copy(text = text.trim()) else it }
         return true
     }
@@ -195,7 +197,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     private fun drainQueue() {
         if (busy.value || switching.value || queuePaused.value) return
         val item = queuedMessages.value.firstOrNull { it.sessionId == selected.value } ?: return
-        if (startTurn(item.sessionId, item.text)) queuedMessages.value = queuedMessages.value.filterNot { it.id == item.id }
+        if (startTurn(item.sessionId, item.text, item.attachments)) queuedMessages.value = queuedMessages.value.filterNot { it.id == item.id }
         else pauseQueue(item.sessionId,true)
     }
     fun sendQueuedNow(itemId: String): Boolean {
@@ -207,7 +209,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             try {
                 previous?.cancelAndJoin()
                 if (selected.value != item.sessionId) return@launch
-                if (startTurn(item.sessionId, item.text)) {
+                if (startTurn(item.sessionId, item.text, item.attachments)) {
                     queuedMessages.value = queuedMessages.value.filterNot { it.id == item.id }
                     pauseQueue(item.sessionId,false)
                 }
@@ -215,17 +217,25 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         }
         return true
     }
-    fun interruptAndSend(text: String): Boolean {
+    fun interruptAndSend(text: String, attachments: List<ChatAttachment> = emptyList()): Boolean {
         val id = selected.value ?: return false
-        if (switching.value || branching.value || !ready.value || text.isBlank()) return false
+        if (switching.value || branching.value || !ready.value || (text.isBlank() && attachments.isEmpty())) return false
+        if (!validAttachments(attachments)) return false
         config.value.validate()?.let { error.value = it; return false }
         if (queuedMessages.value.size >= 32) { error.value = "等待队列已满，请先发送或移除消息"; return false }
-        val item = QueuedMessage(UUID.randomUUID().toString(), id, text.trim())
+        val item = QueuedMessage(UUID.randomUUID().toString(), id, text.trim(), attachments.toList())
         queuedMessages.value += item
         return sendQueuedNow(item.id)
     }
-    private fun startTurn(id: String, text: String): Boolean {
-        if (selected.value != id || busy.value || branching.value || !ready.value || text.isBlank()) return false
+    private fun validAttachments(attachments: List<ChatAttachment>): Boolean {
+        if (attachments.size > 8 || attachments.map { it.id }.distinct().size != attachments.size ||
+            attachments.sumOf { it.sizeBytes } > ChatAttachment.MAX_ATTACHMENT_BYTES) {
+            error.value = "附件数量或总大小超过限制"; return false
+        }
+        return true
+    }
+    private fun startTurn(id: String, text: String, attachments: List<ChatAttachment> = emptyList()): Boolean {
+        if (selected.value != id || busy.value || branching.value || !ready.value || (text.isBlank() && attachments.isEmpty())) return false
         dismissError()
         config.value.validate()?.let { error.value = it; return false }
         draft.value = ""
@@ -263,7 +273,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                     else -> error("Unexpected presentation event")
                 } }
                 try {
-                chat.send(id, text, snapshot, gate).collect { chunk -> when (chunk) {
+                chat.sendAttachments(id, text, attachments, snapshot, gate).collect { chunk -> when (chunk) {
                     is ModelChunk.NativeTranscript -> Unit
                     is ModelChunk.Text -> {
                         if (chunk.value.isNotEmpty()) replyTiming.update { it?.copy(firstTextMs = it.firstTextMs ?: elapsed(),

@@ -24,6 +24,36 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun attachmentOnlySendPersistsReferencesAndReopensImagesForFollowingTurns() = runTest {
+        val store = MemoryStore()
+        val image = ChatAttachment(java.util.UUID.randomUUID().toString(), "image.png", "image/png", 4, "a".repeat(64))
+        var reads = 0
+        val files = object : ChatAttachmentStore {
+            override suspend fun import(sessionId: String, name: String, mimeType: String, input: java.io.InputStream,
+                authorize: suspend () -> Unit): ChatAttachment = error("unused")
+            override suspend fun read(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit): ByteArray {
+                assertEquals("session", sessionId); assertEquals(image, attachment); reads++
+                return byteArrayOf(1, 2, 3, 4)
+            }
+            override suspend fun remove(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit) = error("unused")
+        }
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest) = flow {
+                val attached = request.messages.single { it.attachments.isNotEmpty() }
+                assertEquals(Role.USER, attached.role)
+                assertEquals("AQIDBA==", attached.images.single().base64)
+                emit(ModelChunk.Text("answer")); emit(ModelChunk.Done)
+            }
+        }
+        val chat = DefaultChatService(store, agent, EventBus(), attachmentStore = files)
+        chat.sendAttachments("session", "", listOf(image), ModelConfig()).toList()
+        assertEquals(listOf(image), store.saved.first().attachments)
+        assertEquals("", store.saved.first().content)
+        DefaultChatService(store, agent, EventBus(), attachmentStore = files).send("session", "continue", ModelConfig()).toList()
+        assertEquals(2, reads)
+        assertTrue(store.saved.filter { it.role == Role.ASSISTANT }.all { it.attachments.isEmpty() })
+    }
+
     @Test fun characterReplacesBuiltInIntroductionButKeepsExplicitUserRules() {
         val role = AgentRole("star", "星辰", "使用简洁中文回答")
         val default = ChatContextComposer.render(ChatContextComposer.sections(role, ModelConfig().systemPrompt))

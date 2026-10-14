@@ -9,6 +9,45 @@ import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
+    @Test fun queuedAttachmentOnlyMessagesKeepAnImmutableSnapshotAndCanInterrupt() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val received = mutableListOf<Pair<String, List<ChatAttachment>>>()
+            val chat = object : ChatService {
+                override fun sessions() = flowOf(listOf(ChatSession("session", "Test", 0)))
+                override fun messages(sessionId: String) = flowOf(emptyList<ChatMessage>())
+                override suspend fun createSession() = ChatSession("session", "Test", 0)
+                override suspend fun deleteSession(sessionId: String) = Unit
+                override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization) =
+                    sendAttachments(sessionId, text, emptyList(), config, authorization)
+                override fun sendAttachments(sessionId: String, text: String, attachments: List<ChatAttachment>, config: ModelConfig,
+                    authorization: ToolAuthorization) = flow {
+                    received += text to attachments
+                    emit(ModelChunk.Text("partial")); awaitCancellation()
+                }
+            }
+            val settings = object : SettingsStore {
+                override suspend fun load() = ModelConfig()
+                override suspend fun save(value: ModelConfig) = Unit
+            }
+            val vm = ChatViewModel(chat, settings)
+            try {
+                runCurrent(); assertTrue(vm.send("first")); runCurrent()
+                val attachment = ChatAttachment(java.util.UUID.randomUUID().toString(), "image.png", "image/png", 4, "a".repeat(64))
+                val draft = mutableListOf(attachment)
+                assertTrue(vm.send("", draft)); draft.clear()
+                val item = vm.queuedMessages.value.single()
+                assertEquals(listOf(attachment), item.attachments)
+                assertTrue(vm.editQueued(item.id, ""))
+                assertTrue(vm.sendQueuedNow(item.id)); runCurrent()
+                assertEquals(listOf(attachment), received.last().second)
+                assertEquals("", received.last().first)
+                assertTrue(vm.queuedMessages.value.isEmpty())
+                vm.stop(); runCurrent()
+            } finally { vm.viewModelScope.cancel() }
+        } finally { Dispatchers.resetMain() }
+    }
+
     @Test fun receivingALargeDeltaDoesNotDelayProviderOrToolStatus() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {

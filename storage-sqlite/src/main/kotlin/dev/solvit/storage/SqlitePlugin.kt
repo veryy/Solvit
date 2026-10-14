@@ -398,11 +398,12 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
 
 class SqliteStoragePlugin(private val androidContext: Context) : SolvitPlugin {
     override val id = "builtin.storage.sqlite"
-    override val provides = setOf(Services.Storage)
+    override val provides = setOf(Services.Storage, ChatAttachmentStoreKey)
     override suspend fun enable(context: PluginContext) {
         val store = SqliteChatStore(androidContext)
         context.own { store.close() }
         store.recoverInterruptedExecutions(System.currentTimeMillis())
         context.register(Services.Storage, store)
+        context.register(ChatAttachmentStoreKey, AttachmentFiles(java.io.File(androidContext.filesDir, "chat-attachments")))
     }
 }

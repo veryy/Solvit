@@ -206,6 +206,11 @@ interface ChatService {
     suspend fun createSession(): ChatSession
     suspend fun deleteSession(sessionId: String)
     fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization = DenyTools): Flow<ModelChunk>
+    fun sendAttachments(sessionId: String, text: String, attachments: List<ChatAttachment>, config: ModelConfig,
+        authorization: ToolAuthorization = DenyTools): Flow<ModelChunk> {
+        require(attachments.isEmpty()) { "聊天服务尚未支持附件" }
+        return send(sessionId, text, config, authorization)
+    }
 }
 
 object Services {
