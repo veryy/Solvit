@@ -8,6 +8,23 @@ import java.io.File
 import kotlin.test.*
 
 class ShellProcessesTest {
+    @Test fun trustedRuntimePlanPreservesArgumentsEnvironmentAndProcessGroupCancellation() = runBlocking<Unit> { testEngine { engine, workspace ->
+        val plan = HostProcessPlan(listOf("/bin/sh", "-c", "printf '%s' \"\$SOLVIT_RUNTIME_TEST\"; printf '%s' \"\$1\"", "guest", "quote ' and 空格"),
+            mapOf("SOLVIT_RUNTIME_TEST" to "runtime:", "PROOT_NO_SECCOMP" to null))
+        val job = engine.start("test.shell", null, ShellRequest("must not execute this host command"), ExecutionMode.APP, plan = plan)
+        val result = finished(engine, job.id)
+        assertEquals(ShellStage.COMPLETED, result.stage)
+        assertEquals("runtime:quote ' and 空格", result.output.joinToString("") { it.text })
+        val waiting = engine.start("test.shell", null, ShellRequest("guest wait"), ExecutionMode.APP,
+            plan = HostProcessPlan(listOf("/bin/sh", "-c", "(sleep 2; printf bad > guest-cancelled.txt) & wait"), emptyMap()))
+        withTimeout(5_000) { engine.jobs.first { jobs -> jobs.any { it.id == waiting.id && it.stage == ShellStage.RUNNING } } }
+        engine.cancelOwner("test.shell")
+        delay(2_500)
+        assertFalse(File(workspace, "guest-cancelled.txt").exists())
+        assertFailsWith<IllegalStateException> {
+            ShellLauncher(ShellPaths("/bin/sh", "/usr/bin/setsid")).launch(ShellRequest("pwd"), ExecutionMode.ROOT, workspace, workspace, plan)
+        }
+    } }
     private suspend fun testEngine(block: suspend (ShellJobEngine, File) -> Unit) {
         val workspace = Files.createTempDirectory("solvit-shell-test").toFile()
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

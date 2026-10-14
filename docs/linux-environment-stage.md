@@ -72,3 +72,7 @@
 公开版本仍为 0.30.2；此证明属于底层兼容性，不代表产品的环境安装、取消恢复、软件管理或 AI/PTY 环境绑定已交付。下一步将同一启动配置提取为共享运行时，并接入按需安装和插件页面。
 
 共享运行时新增 LinuxLaunch 与 RootfsInstallation：命令/交互终端复用同一工作区映射和 PRoot 环境变量；安装目录在初始化前就固定，完成后只原子切换 active 指针。失败、取消保留旧环境；下载、校验、解包、初始化状态经 Flow 提供，私有路径只给可信宿主。新增4个事务/启动边界用例，Ubuntu Android探针改用这两个生产模块，仍执行完整 apt/Python/Node/venv 断言；等待本轮远程结果。产品接入尚未完成。
+
+5904168 的共享启动/事务安装已经由 [38535852875](https://github.com/veryy/Solvit/actions/runs/38535852875) 实际通过，Android 上仍完成完整 apt/Python/Node/venv 与工作区断言，并核对 active 指针指向初始化时的固定目录；版本日志保持 Python 3.12.3、Node 18.19.1、npm 9.2.0。新增取消/失败保留旧环境、重建管理器识别安装、下载中断和启动映射测试通过任务门禁；报告成员的精确数量待归档核对。
+
+宿主接入第一块新增独立 linux-android 原生 provider：可信固定目录下载、HTTPS/容量限制、协程取消、Android 当前网络 DNS、apt 日志和 Python/Node/Java 软件包组。Linux 命令使用既有 ShellJobEngine 的输出限额、超时及进程组 watchdog，而非另建不受管的命令执行器；宿主运行计划只用于 APP 身份。该 provider 还未注册到正式应用或开放给 JS，下一轮检查其编译及进程清理回归。

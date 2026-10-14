@@ -20,3 +20,4 @@ include(":git-android")
 // Opt-in remote native compatibility probe, never a dependency of the shipped app.
 if (providers.gradleProperty("linuxProbe").orNull == "true") include(":linux-probe")
 include(":linux-runtime")
+include(":linux-android")

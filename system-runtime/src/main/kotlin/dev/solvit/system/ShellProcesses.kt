@@ -33,10 +33,17 @@ class ShellLauncher(private val paths: ShellPaths) {
         exit ${'$'}?
     """.trimIndent()
 
-    fun launch(request: ShellRequest, mode: ExecutionMode, cwd: File, workspace: File): Process {
-        val args = listOf(paths.setsid) + paths.setsidArguments + listOf(paths.shell, "-c", script, "solvit-job", paths.shell, request.command, cwd.path)
+    fun launch(request: ShellRequest, mode: ExecutionMode, cwd: File, workspace: File,
+        plan: HostProcessPlan? = null): Process {
+        check(plan == null || mode == ExecutionMode.APP) { "Linux 用户环境仅使用普通应用身份" }
+        val selectedScript = if (plan == null) script else script.replace("\"${'$'}1\" -c \"${'$'}2\" 3<&-", "shift 3\n\"${'$'}@\" 3<&-")
+        val args = listOf(paths.setsid) + paths.setsidArguments + listOf(paths.shell, "-c", selectedScript, "solvit-job", paths.shell, request.command, cwd.path) + plan?.arguments.orEmpty()
         val command = if (mode == ExecutionMode.ROOT) paths.rootPrefix + args.joinToString(" ", transform = ::shellQuote) else args
-        return ProcessBuilder(command).directory(workspace).start()
+        return ProcessBuilder(command).directory(workspace).apply {
+            plan?.environment?.forEach { (key, value) ->
+                if (value == null) environment().remove(key) else environment()[key] = value
+            }
+        }.start()
     }
 }
 
@@ -63,7 +70,8 @@ class ShellJobEngine(
     private fun active(stage: ShellStage) = stage in setOf(ShellStage.STARTING, ShellStage.RUNNING)
 
     fun start(owner: String, roleId: String?, request: ShellRequest, mode: ExecutionMode,
-        workspaceDirectory: File = workspace, workspaceId: String? = null, shellSessionId: String? = null): ShellJob {
+        workspaceDirectory: File = workspace, workspaceId: String? = null, shellSessionId: String? = null,
+        plan: HostProcessPlan? = null): ShellJob {
         request.validate()
         check(scope.isActive) { "系统执行服务已关闭" }
         val base = workspaceDirectory.canonicalFile.also { check(it.isDirectory) { "工作区无法打开" } }
@@ -80,7 +88,7 @@ class ShellJobEngine(
                 val expired = records.entries.firstOrNull { !active(it.value.snapshot.stage) } ?: error("任务数量已达上限")
                 records.remove(expired.key)
             }
-            record.task = scope.launch(start = CoroutineStart.LAZY) { run(record, request, mode, cwd, base) }
+            record.task = scope.launch(start = CoroutineStart.LAZY) { run(record, request, mode, cwd, base, plan) }
             record.task.invokeOnCompletion { cause ->
                 if (cause is CancellationException) update(record) {
                     if (active(it.stage)) it.copy(stage = ShellStage.CANCELLED) else it
@@ -93,14 +101,14 @@ class ShellJobEngine(
         return synchronized(monitor) { record.snapshot }
     }
 
-    private suspend fun run(record: Record, request: ShellRequest, mode: ExecutionMode, cwd: File, base: File) {
+    private suspend fun run(record: Record, request: ShellRequest, mode: ExecutionMode, cwd: File, base: File, plan: HostProcessPlan?) {
         try {
             withTimeout(request.timeoutMs) {
                 withContext(Dispatchers.IO) {
                     ensureActive()
                     // Store inside the IO block: cancellation cannot discard a
                     // newly started process before finally has its reference.
-                    record.process = launcher.launch(request, mode, cwd, base)
+                    record.process = launcher.launch(request, mode, cwd, base, plan)
                 }
                 val process = record.process!!
                 update(record) { it.copy(stage = ShellStage.RUNNING) }

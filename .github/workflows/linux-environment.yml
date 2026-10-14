@@ -6,6 +6,9 @@ on:
     paths:
       - 'linux-probe/**'
       - 'linux-runtime/**'
+      - 'linux-android/**'
+      - 'system-runtime/**'
+      - 'core/**'
       - 'scripts/build-android-proot.sh'
       - '.github/workflows/linux-environment.yml'
 permissions:
@@ -33,7 +36,7 @@ jobs:
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
           bash scripts/build-android-proot.sh
       - name: Validate rootfs installation boundaries
-        run: ./gradlew :linux-runtime:test --stacktrace
+        run: ./gradlew :linux-runtime:test :system-runtime:test :linux-android:assembleDebug --stacktrace
       - name: Prepare checksum-verified Ubuntu fixture
         run: |
           mkdir -p linux-probe/src/main/assets

@@ -1,0 +1,141 @@
+package dev.solvit.environment
+
+import android.content.Context
+import android.net.ConnectivityManager
+import android.os.Build
+import dev.solvit.core.*
+import dev.solvit.linux.*
+import dev.solvit.system.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.File
+import java.util.concurrent.TimeUnit
+
+/** Native I/O provider; human controls are exposed only by a separately authorized plugin page. */
+class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScope) : LinuxEnvironmentService {
+    private val app = context.applicationContext
+    private val native = File(app.applicationInfo.nativeLibraryDir)
+    private val source = Build.SUPPORTED_ABIS.firstNotNullOfOrNull(UbuntuCatalog::forAbi)
+    private val supported = source != null && File(native, "libsolvit_proot.so").isFile && File(native, "libsolvit_loader.so").isFile
+    private val temporary = File(app.cacheDir, "linux").apply { check(mkdirs() || isDirectory) }
+    private val workspace = File(app.filesDir, "linux-install-workspace").apply { check(mkdirs() || isDirectory) }
+    private val launcher = LinuxLaunch(native, temporary)
+    private val engine = ShellJobEngine(scope, ShellLauncher(ShellPaths("/system/bin/sh", "/system/bin/toybox", setsidArguments = listOf("setsid"))), workspace)
+    private val http = OkHttpClient.Builder().followSslRedirects(false).connectTimeout(20, TimeUnit.SECONDS)
+        .readTimeout(20, TimeUnit.SECONDS).build()
+    private val installer = source?.let { RootfsInstallation(File(app.filesDir, "linux-environments"), it,
+        RootfsDownload { catalog, target, progress -> download(catalog, target, progress) }) }
+    private val mutableState = MutableStateFlow(LinuxEnvironmentState(supported, installer?.activeRoot() != null, "IDLE"))
+    override val state = mutableState.asStateFlow()
+    private val mutex = Mutex()
+    private var operation: Job? = null
+    init {
+        installer?.let { manager -> scope.launch {
+            manager.state.collect { next ->
+                mutableState.update { old -> old.copy(installed = manager.activeRoot() != null,
+                    stage = next.stage.name, bytes = next.bytes, total = next.total, failure = next.details) }
+            }
+        } }
+    }
+
+    private suspend fun download(catalog: RootfsSource, target: File, progress: (Long, Long?) -> Unit) = coroutineScope {
+        val call = http.newCall(Request.Builder().url(catalog.url).build())
+        val cancelWatcher = launch(start = CoroutineStart.UNDISPATCHED) {
+            try { awaitCancellation() } finally { call.cancel() }
+        }
+        try {
+            withContext(Dispatchers.IO) {
+                call.execute().use { response ->
+                    check(response.isSuccessful) { "Ubuntu 下载失败：HTTP ${response.code}" }
+                    check(response.request.url.isHttps) { "Ubuntu 下载必须使用 HTTPS" }
+                    val body = checkNotNull(response.body)
+                    val total = body.contentLength().takeIf { it > 0 }
+                    val limit = 128L * 1024 * 1024
+                    check(total == null || total <= limit) { "Ubuntu 归档超过下载容量限制" }
+                    body.byteStream().use { input -> target.outputStream().use { output ->
+                        val buffer = ByteArray(64 * 1024); var written = 0L
+                        while (true) {
+                            ensureActive(); val count = input.read(buffer); if (count < 0) break
+                            check(count <= limit - written) { "Ubuntu 归档超过下载容量限制" }
+                            output.write(buffer, 0, count); written += count; progress(written, total)
+                        }
+                        check(total == null || written == total) { "Ubuntu 下载不完整" }
+                    } }
+                }
+            }
+        } finally { cancelWatcher.cancelAndJoin() }
+    }
+
+    private fun plan(root: File, command: String): HostProcessPlan = launcher.command(root, workspace, command).let {
+        HostProcessPlan(it.arguments, it.environment)
+    }
+    private fun configureDns(root: File) {
+        val connectivity = app.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val dns = connectivity.activeNetwork?.let(connectivity::getLinkProperties)?.dnsServers.orEmpty()
+            .mapNotNull { it.hostAddress }.filter { '%' !in it && it.matches(Regex("[0-9a-fA-F:.]+")) }
+        check(dns.isNotEmpty()) { "未获取到当前网络的 DNS，请连接网络后重试" }
+        // The catalog has a regular resolv.conf; never follow a guest absolute symlink on the host.
+        val target = File(root, "etc/resolv.conf").toPath()
+        check(java.nio.file.Files.isRegularFile(target, java.nio.file.LinkOption.NOFOLLOW_LINKS))
+        target.toFile().writeText(dns.joinToString("\n", postfix = "\n") { "nameserver $it" })
+    }
+
+    private suspend fun run(root: File, command: String) {
+        configureDns(root)
+        val started = engine.start("builtin.linux", null, ShellRequest(command, timeoutMs = 600_000),
+            ExecutionMode.APP, plan = plan(root, command))
+        try {
+            val ended = engine.jobs.map { jobs -> jobs.first { it.id == started.id } }
+                .onEach { job -> mutableState.update { it.copy(output = job.output.joinToString("") { chunk -> chunk.text }.takeLast(16_000)) } }
+                .first { it.stage !in setOf(ShellStage.STARTING, ShellStage.RUNNING) }
+            check(ended.stage == ShellStage.COMPLETED && ended.exitCode == 0) {
+                "Linux 命令${ended.stage}，退出码 ${ended.exitCode ?: "未知"}；${ended.failure.orEmpty()}"
+            }
+        } finally { withContext(NonCancellable) { engine.cancel("builtin.linux", null, started.id) } }
+    }
+
+    private suspend fun begin(stage: String, action: suspend () -> Unit) = mutex.withLock {
+        check(supported) { "当前架构尚未提供 Linux 运行环境" }
+        check(operation?.isActive != true) { "已有环境安装任务正在进行" }
+        mutableState.update { it.copy(stage = stage, output = "", failure = null) }
+        operation = scope.launch {
+            try { action(); mutableState.update { it.copy(installed = installer?.activeRoot() != null, stage = "READY") } }
+            catch (e: CancellationException) { mutableState.update { it.copy(stage = "CANCELLED") }; throw e }
+            catch (e: Exception) { mutableState.update { it.copy(stage = "FAILED", failure = e.message?.take(4096) ?: "Linux 环境操作失败") } }
+        }
+    }
+    override suspend fun install() = begin("DOWNLOADING") {
+        checkNotNull(installer).install { root -> run(root,
+            "apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends python3 python3-venv nodejs npm ca-certificates && python3 --version && node --version && npm --version") }
+    }
+    override suspend fun installSoftware(software: LinuxSoftware) = begin("INSTALLING_SOFTWARE") {
+        val root = checkNotNull(installer?.activeRoot()) { "请先安装 Ubuntu 环境" }
+        val packages = when (software) {
+            LinuxSoftware.PYTHON -> "python3 python3-venv python3-pip"
+            LinuxSoftware.NODE -> "nodejs npm"
+            LinuxSoftware.JAVA -> "openjdk-17-jdk-headless"
+        }
+        run(root, "apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends $packages")
+    }
+    override suspend fun cancel() = mutex.withLock { operation?.cancelAndJoin() }
+    private fun root() = checkNotNull(installer?.activeRoot()) { "请先在环境插件中完成 Ubuntu 安装" }
+    override fun command(workspaceDirectory: String, command: String, cwd: String): HostProcessPlan =
+        launcher.command(root(), File(workspaceDirectory), command, File(cwd)).let { HostProcessPlan(it.arguments, it.environment) }
+    override fun terminal(workspaceDirectory: String): HostProcessPlan =
+        launcher.terminal(root(), File(workspaceDirectory)).let { HostProcessPlan(it.arguments, it.environment) }
+    suspend fun close() { cancel(); engine.close(); http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll() }
+}
+
+class LinuxEnvironmentPlugin(private val androidContext: Context) : SolvitPlugin {
+    override val id = "builtin.linux"
+    override val provides = setOf(LinuxEnvironmentServiceKey)
+    override suspend fun enable(context: PluginContext) {
+        val service = AndroidLinuxEnvironment(androidContext, context.scope)
+        context.own { service.close() }
+        context.register(LinuxEnvironmentServiceKey, service)
+    }
+}
