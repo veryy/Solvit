@@ -11,7 +11,8 @@ import java.util.UUID
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null,
     private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null, private val approvals: ToolPolicyService? = null, private val profiles: ModelProfilesService? = null,
-    private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 }, private val displaySpeed: () -> Int = { 0 }, private val attachmentStore: ChatAttachmentStore? = null) : ViewModel() {
+    private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 }, private val displaySpeed: () -> Int = { 0 }, private val attachmentStore: ChatAttachmentStore? = null,
+    private val documentText: DocumentTextService? = null) : ViewModel() {
     suspend fun discoverModels(candidate: ModelConfig): List<AvailableModel> =
         (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
@@ -85,6 +86,20 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     suspend fun readAttachment(session: String, attachment: ChatAttachment): ByteArray {
         check(selected.value == session) { "对话已改变" }
         return (attachmentStore ?: error("附件服务未启用")).read(session, attachment) { check(selected.value == session) { "对话已改变" } }
+    }
+    fun readDocumentEvents(session: String, attachment: ChatAttachment): Flow<DocumentReadEvent> = flow {
+        check(selected.value == session) { "对话已改变" }
+        emitAll((documentText ?: error("PDF读取服务未启用")).readPdfEvents(session, attachment) {
+            check(selected.value == session) { "对话已改变" }
+        })
+    }
+    fun setDocumentSelection(session: String, id: String, selection: DocumentSelection): ChatAttachment {
+        check(selected.value == session && !switching.value && !branching.value && !importingAttachment.value) { "附件选择已失效" }
+        val current=attachmentDrafts.value[session].orEmpty()
+        val source=current.firstOrNull { it.id == id && it.mimeType == "application/pdf" } ?: error("仅可修改未发送PDF的读取范围")
+        val updated=source.copy(documentSelection=selection)
+        attachmentDrafts.value=attachmentDrafts.value + (session to current.map { if(it.id==id) updated else it })
+        return updated
     }
     val draft = MutableStateFlow("")
     val reasoning = MutableStateFlow("")

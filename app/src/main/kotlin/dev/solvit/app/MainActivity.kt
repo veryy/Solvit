@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
                             val service = result!!.getOrThrow()
                             val factory = remember(service) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches, app.toolApprovals, app.modelProfiles, displaySpeed={ app.appearance.chat.value.replySpeed }, attachmentStore=app.attachments) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches, app.toolApprovals, app.modelProfiles, displaySpeed={ app.appearance.chat.value.replySpeed }, attachmentStore=app.attachments, documentText=app.documents) as T
                             } }
                             val vm: ChatViewModel = viewModel(factory = factory)
                             val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {

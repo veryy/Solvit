@@ -51,6 +51,7 @@ internal fun ChatAttachmentPicker(vm: ChatViewModel, session: String?, enabled: 
                         val mime = detected?.takeUnless { it == "application/octet-stream" } ?: when (safeName.substringAfterLast('.').lowercase()) {
                             "py", "kt", "java", "js", "ts", "md", "txt", "csv", "log" -> "text/plain"
                             "json" -> "application/json"
+                            "pdf" -> "application/pdf"
                             else -> "application/octet-stream"
                         }
                         safeName to mime
@@ -64,7 +65,7 @@ internal fun ChatAttachmentPicker(vm: ChatViewModel, session: String?, enabled: 
     }
     IconButton(onClick = {
         target = session
-        picker.launch(arrayOf("image/*", "text/*", "application/json", "application/xml", "application/javascript", "application/octet-stream"))
+        picker.launch(arrayOf("image/*", "text/*", "application/pdf", "application/json", "application/xml", "application/javascript", "application/octet-stream"))
     }, enabled = enabled && session != null, modifier = Modifier.testTag("chat_attach")) {
         UiIcon(Icons.Default.AttachFile, "添加图片或文件")
     }
@@ -104,6 +105,7 @@ internal fun ChatAttachmentPreview(vm: ChatViewModel, session: String, attachmen
                 TextButton(onClick = onDismiss, modifier = Modifier.testTag("attachment_preview_close")) { UiText("关闭") }
             }
             if (attachment.mimeType.startsWith("image/")) AttachmentImage(vm, session, attachment, Modifier.fillMaxSize())
+            else if (attachment.mimeType == "application/pdf") PdfAttachmentPreview(vm, session, attachment, Modifier.weight(1f))
             else AttachmentText(vm, session, attachment)
         }
     }

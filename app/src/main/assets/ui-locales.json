@@ -5110,5 +5110,213 @@
     "ko": "첨부 파일 정리에 실패했습니다",
     "es": "No se pudieron limpiar los adjuntos",
     "fr": "Échec du nettoyage des pièces jointes"
+  },
+  "文字页直接提取，扫描页在本机识别。OCR可能有误，请核对原文。": {
+    "zh": "文字页直接提取，扫描页在本机识别。OCR可能有误，请核对原文。",
+    "en": "Text pages are extracted directly; scans are recognized on-device. OCR can make mistakes; check the original.",
+    "ja": "文字ページは直接抽出し、スキャンは端末内で認識します。OCRの誤りは原文で確認してください。",
+    "ko": "텍스트는 직접 추출하고 스캔은 기기에서 인식합니다. OCR 오류가 있을 수 있으니 원본을 확인하세요.",
+    "es": "El texto se extrae directamente; los escaneos se reconocen en el dispositivo. Comprueba el original por posibles errores de OCR.",
+    "fr": "Le texte est extrait directement ; les scans sont reconnus sur l’appareil. Vérifiez l’original, car l’OCR peut se tromper."
+  },
+  "读取范围与语言": {
+    "zh": "读取范围与语言",
+    "en": "Pages and recognition language",
+    "ja": "読み取り範囲と言語",
+    "ko": "읽을 페이지와 인식 언어",
+    "es": "Páginas e idioma de reconocimiento",
+    "fr": "Pages et langue de reconnaissance"
+  },
+  "停止读取": {
+    "zh": "停止读取",
+    "en": "Stop reading",
+    "ja": "読み取りを停止",
+    "ko": "읽기 중지",
+    "es": "Detener lectura",
+    "fr": "Arrêter la lecture"
+  },
+  "重新读取": {
+    "zh": "重新读取",
+    "en": "Read again",
+    "ja": "再読み取り",
+    "ko": "다시 읽기",
+    "es": "Leer de nuevo",
+    "fr": "Relire"
+  },
+  "起始页": {
+    "zh": "起始页",
+    "en": "First page",
+    "ja": "開始ページ",
+    "ko": "시작 페이지",
+    "es": "Primera página",
+    "fr": "Première page"
+  },
+  "结束页（留空至末页）": {
+    "zh": "结束页（留空至末页）",
+    "en": "Last page (blank for end)",
+    "ja": "終了ページ（空欄で最終まで）",
+    "ko": "마지막 페이지 (비우면 끝까지)",
+    "es": "Última página (vacío hasta el final)",
+    "fr": "Dernière page (vide pour la fin)"
+  },
+  "识别语言：{0}": {
+    "zh": "识别语言：{0}",
+    "en": "Recognition language: {0}",
+    "ja": "認識言語：{0}",
+    "ko": "인식 언어: {0}",
+    "es": "Idioma de reconocimiento: {0}",
+    "fr": "Langue de reconnaissance : {0}"
+  },
+  "拉丁字母": {
+    "zh": "拉丁字母",
+    "en": "Latin alphabet",
+    "ja": "ラテン文字",
+    "ko": "라틴 문자",
+    "es": "Alfabeto latino",
+    "fr": "Alphabet latin"
+  },
+  "中文": {
+    "zh": "中文",
+    "en": "Chinese",
+    "ja": "中国語",
+    "ko": "중국어",
+    "es": "Chino",
+    "fr": "Chinois"
+  },
+  "日文": {
+    "zh": "日文",
+    "en": "Japanese",
+    "ja": "日本語",
+    "ko": "일본어",
+    "es": "Japonés",
+    "fr": "Japonais"
+  },
+  "韩文": {
+    "zh": "韩文",
+    "en": "Korean",
+    "ja": "韓国語",
+    "ko": "한국어",
+    "es": "Coreano",
+    "fr": "Coréen"
+  },
+  "每次最多40页、256KiB文字。选择会随消息保存，范围外页面不会发给模型。": {
+    "zh": "每次最多40页、256KiB文字。选择会随消息保存，范围外页面不会发给模型。",
+    "en": "Up to 40 pages and 256 KiB of text per read. The selection is saved with the message; other pages are not sent to the model.",
+    "ja": "1回最大40ページ・256KiBです。選択はメッセージに保存され、範囲外はモデルに送信されません。",
+    "ko": "한 번에 최대 40페이지, 텍스트 256KiB입니다. 선택은 메시지에 저장되며 범위 밖 페이지는 모델에 전송되지 않습니다.",
+    "es": "Hasta 40 páginas y 256 KiB de texto por lectura. La selección se guarda con el mensaje; las demás páginas no se envían al modelo.",
+    "fr": "Jusqu’à 40 pages et 256 Kio de texte par lecture. La sélection est enregistrée avec le message ; les autres pages ne sont pas envoyées au modèle."
+  },
+  "请输入有效起始页": {
+    "zh": "请输入有效起始页",
+    "en": "Enter a valid first page",
+    "ja": "有効な開始ページを入力してください",
+    "ko": "유효한 시작 페이지를 입력하세요",
+    "es": "Introduce una primera página válida",
+    "fr": "Saisissez une première page valide"
+  },
+  "请输入有效结束页": {
+    "zh": "请输入有效结束页",
+    "en": "Enter a valid last page",
+    "ja": "有効な終了ページを入力してください",
+    "ko": "유효한 마지막 페이지를 입력하세요",
+    "es": "Introduce una última página válida",
+    "fr": "Saisissez une dernière page valide"
+  },
+  "PDF选取页范围无效": {
+    "zh": "PDF选取页范围无效",
+    "en": "Invalid PDF page selection",
+    "ja": "PDFのページ範囲が無効です",
+    "ko": "PDF 페이지 범위가 올바르지 않습니다",
+    "es": "Selección de páginas PDF no válida",
+    "fr": "Sélection de pages PDF invalide"
+  },
+  "PDF读取失败": {
+    "zh": "PDF读取失败",
+    "en": "Could not read PDF",
+    "ja": "PDFを読み取れません",
+    "ko": "PDF를 읽지 못했습니다",
+    "es": "No se pudo leer el PDF",
+    "fr": "Impossible de lire le PDF"
+  },
+  "保存并读取": {
+    "zh": "保存并读取",
+    "en": "Save and read",
+    "ja": "保存して読み取り",
+    "ko": "저장하고 읽기",
+    "es": "Guardar y leer",
+    "fr": "Enregistrer et lire"
+  },
+  "已发送附件的读取选择已保存；编辑并分支后可调整。": {
+    "zh": "已发送附件的读取选择已保存；编辑并分支后可调整。",
+    "en": "Sent attachments keep their saved selection. Edit and branch to change it.",
+    "ja": "送信済み添付は選択を保持します。編集して分岐すると変更できます。",
+    "ko": "전송된 첨부 파일은 저장된 선택을 유지합니다. 편집 및 분기로 변경하세요.",
+    "es": "Los adjuntos enviados conservan su selección. Edita y crea una rama para cambiarla.",
+    "fr": "Les pièces jointes envoyées conservent leur sélection. Modifiez et créez une branche pour la changer."
+  },
+  "正在打开PDF…": {
+    "zh": "正在打开PDF…",
+    "en": "Opening PDF…",
+    "ja": "PDFを開いています…",
+    "ko": "PDF 여는 중…",
+    "es": "Abriendo PDF…",
+    "fr": "Ouverture du PDF…"
+  },
+  "正在读取第{0}/{1}页": {
+    "zh": "正在读取第{0}/{1}页",
+    "en": "Reading page {0}/{1}",
+    "ja": "ページ{0}/{1}を読み取り中",
+    "ko": "{0}/{1}페이지 읽는 중",
+    "es": "Leyendo página {0}/{1}",
+    "fr": "Lecture de la page {0}/{1}"
+  },
+  "已停止读取": {
+    "zh": "已停止读取",
+    "en": "Reading stopped",
+    "ja": "読み取りを停止しました",
+    "ko": "읽기가 중지되었습니다",
+    "es": "Lectura detenida",
+    "fr": "Lecture arrêtée"
+  },
+  "共{0}页，本次读取第{1}至{2}页": {
+    "zh": "共{0}页，本次读取第{1}至{2}页",
+    "en": "{0} pages; reading pages {1}–{2}",
+    "ja": "全{0}ページ、今回の範囲：{1}～{2}",
+    "ko": "총 {0}페이지, 읽기 범위: {1}–{2}",
+    "es": "{0} páginas; lectura de {1} a {2}",
+    "fr": "{0} pages ; lecture des pages {1} à {2}"
+  },
+  "第{0}页 · {1}": {
+    "zh": "第{0}页 · {1}",
+    "en": "Page {0} · {1}",
+    "ja": "ページ{0} · {1}",
+    "ko": "{0}페이지 · {1}",
+    "es": "Página {0} · {1}",
+    "fr": "Page {0} · {1}"
+  },
+  "文字提取": {
+    "zh": "文字提取",
+    "en": "Extracted text",
+    "ja": "文字抽出",
+    "ko": "텍스트 추출",
+    "es": "Texto extraído",
+    "fr": "Texte extrait"
+  },
+  "扫描识别": {
+    "zh": "扫描识别",
+    "en": "Scan recognition",
+    "ja": "スキャン認識",
+    "ko": "스캔 인식",
+    "es": "Reconocimiento del escaneo",
+    "fr": "Reconnaissance du scan"
+  },
+  "无文字": {
+    "zh": "无文字",
+    "en": "No text",
+    "ja": "文字なし",
+    "ko": "텍스트 없음",
+    "es": "Sin texto",
+    "fr": "Aucun texte"
   }
 }

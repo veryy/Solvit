@@ -37,29 +37,31 @@ class DocumentReaderDeviceTest {
         PDFBoxResourceLoader.init(app)
         return app
     }
-    private fun pdf(scanned: Boolean = false, password: Boolean = false): ByteArray {
-        PDDocument().use { document ->
-            val first = PDPage(PDRectangle(500f, 250f)); document.addPage(first)
-            PDPageContentStream(document, first).use { stream ->
-                stream.beginText(); stream.setFont(PDType1Font.HELVETICA, 24f)
-                stream.newLineAtOffset(30f, 180f); stream.showText("SHORT"); stream.endText()
+    companion object {
+        internal fun pdf(scanned: Boolean = false, password: Boolean = false): ByteArray {
+            PDDocument().use { document ->
+                val first = PDPage(PDRectangle(500f, 250f)); document.addPage(first)
+                PDPageContentStream(document, first).use { stream ->
+                    stream.beginText(); stream.setFont(PDType1Font.HELVETICA, 24f)
+                    stream.newLineAtOffset(30f, 180f); stream.showText("SHORT"); stream.endText()
+                }
+                if (scanned) {
+                    val bitmap = Bitmap.createBitmap(1000, 500, Bitmap.Config.ARGB_8888)
+                    try {
+                        bitmap.eraseColor(Color.WHITE)
+                        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color=Color.BLACK; textSize=54f }
+                        Canvas(bitmap).apply {
+                            drawText("SCAN PAGE 2026", 50f, 110f, paint)
+                            drawText("扫描测试 2026", 50f, 240f, paint)
+                        }
+                        val second = PDPage(PDRectangle(500f, 250f)); document.addPage(second)
+                        val image = LosslessFactory.createFromImage(document, bitmap)
+                        PDPageContentStream(document, second).use { it.drawImage(image, 0f, 0f, 500f, 250f) }
+                    } finally { bitmap.recycle() }
+                }
+                if (password) document.protect(StandardProtectionPolicy("owner", "secret", AccessPermission()).apply { encryptionKeyLength=128 })
+                return ByteArrayOutputStream().use { output -> document.save(output); output.toByteArray() }
             }
-            if (scanned) {
-                val bitmap = Bitmap.createBitmap(1000, 500, Bitmap.Config.ARGB_8888)
-                try {
-                    bitmap.eraseColor(Color.WHITE)
-                    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color=Color.BLACK; textSize=54f }
-                    Canvas(bitmap).apply {
-                        drawText("SCAN PAGE 2026", 50f, 110f, paint)
-                        drawText("扫描测试 2026", 50f, 240f, paint)
-                    }
-                    val second = PDPage(PDRectangle(500f, 250f)); document.addPage(second)
-                    val image = LosslessFactory.createFromImage(document, bitmap)
-                    PDPageContentStream(document, second).use { it.drawImage(image, 0f, 0f, 500f, 250f) }
-                } finally { bitmap.recycle() }
-            }
-            if (password) document.protect(StandardProtectionPolicy("owner", "secret", AccessPermission()).apply { encryptionKeyLength=128 })
-            return ByteArrayOutputStream().use { output -> document.save(output); output.toByteArray() }
         }
     }
     private suspend fun import(app: SolvitApplication, session: String, bytes: ByteArray) =

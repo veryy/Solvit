@@ -6,6 +6,10 @@ import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction.REPORT
 
 internal fun validateChatAttachment(attachment: ChatAttachment, bytes: ByteArray) {
+    if (attachment.mimeType == "application/pdf") {
+        require(bytes.size >= 8 && bytes.copyOfRange(0, minOf(bytes.size, 1024)).toString(Charsets.US_ASCII).contains("%PDF-")) { "文件不是有效PDF" }
+        return
+    }
     if (attachment.mimeType.startsWith("image/")) {
         require(attachment.mimeType in setOf("image/jpeg", "image/png", "image/webp", "image/gif")) { "暂不支持此图片格式" }
         val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
