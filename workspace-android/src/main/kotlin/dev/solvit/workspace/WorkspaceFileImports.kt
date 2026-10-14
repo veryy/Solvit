@@ -5,7 +5,6 @@ import dev.solvit.core.WorkspaceImportTarget
 import dev.solvit.core.WorkspaceImportMonitor
 import dev.solvit.core.WorkspaceImportProgress
 import kotlinx.coroutines.yield
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.currentCoroutineContext
@@ -124,7 +123,7 @@ internal object WorkspaceFileImports {
                     publisher.publish(backup,destination)
                 } catch(recovery:Throwable) { failure.addSuppressed(recovery) }
             }
-            if(Files.exists(backup.toPath(),NOFOLLOW_LINKS) && failure !is CancellationException) {
+            if(Files.exists(backup.toPath(),NOFOLLOW_LINKS)) {
                 throw IllegalStateException("${failure.message}；原文件保留在 ${backup.relativeTo(root).invariantSeparatorsPath}",failure)
             }
             throw failure
