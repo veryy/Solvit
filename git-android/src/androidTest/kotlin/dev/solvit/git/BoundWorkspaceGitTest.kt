@@ -14,6 +14,54 @@ import java.util.UUID
 
 @RunWith(AndroidJUnit4::class)
 class BoundWorkspaceGitTest {
+    @Test fun resolvedConflictCommitPreservesBothParentsAndRejectsChangedMergeHead() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val workspaces = AndroidWorkspaces(context, scope)
+        val chat = "git-merge-${UUID.randomUUID()}"
+        val root = File(workspaces.location(workspaces.forChat(chat).id))
+        val page = BoundWorkspaceGit(workspaces, chat, { chat }, authorizeWrite = {}) { }
+        try {
+            Git.init().setDirectory(root).setInitialBranch("main").setFs(WorkspaceGitFileSystem()).call().use { git ->
+                fun commit(content: String): org.eclipse.jgit.revwalk.RevCommit {
+                    File(root, "conflict.txt").writeText(content)
+                    git.add().addFilepattern("conflict.txt").call()
+                    return git.commit().setMessage("Fixture change").setAuthor("Fixture", "test@example.invalid")
+                        .setCommitter("Fixture", "test@example.invalid").call()
+                }
+                val base = commit("base\n")
+                val remote = commit("remote\n")
+                git.reset().setMode(org.eclipse.jgit.api.ResetCommand.ResetType.HARD).setRef(base.name).call()
+                val local = commit("local\n")
+                val merge = git.merge().include(remote).setCommit(false).call()
+                assertEquals(org.eclipse.jgit.api.MergeResult.MergeStatus.CONFLICTING, merge.mergeStatus)
+                assertTrue(page.status().entries.single().conflict)
+                val unresolved = page.reviewIndex()
+                try { page.commit(unresolved, "Must reject unresolved", "Fixture", "test@example.invalid"); fail("Unresolved conflict") }
+                catch (_: IllegalStateException) { }
+                File(root, "conflict.txt").writeText("resolved 中文 😀\n")
+                val resolved = page.stage(page.diff("conflict.txt", false))
+                assertEquals("MERGING_RESOLVED", resolved.state)
+                assertEquals(listOf(remote.name), resolved.mergeHeads)
+                git.repository.writeMergeHeads(listOf(base))
+                try { page.commit(resolved, "Must reject stale merge parent", "Fixture", "test@example.invalid"); fail("Changed merge head") }
+                catch (_: IllegalStateException) { }
+                assertEquals(local.name, git.repository.resolve("HEAD").name)
+                git.repository.writeMergeHeads(listOf(remote))
+                val result = page.commit(page.reviewIndex(), "Resolve both histories", "Fixture", "test@example.invalid")
+                org.eclipse.jgit.revwalk.RevWalk(git.repository).use { walk ->
+                    val actual = walk.parseCommit(org.eclipse.jgit.lib.ObjectId.fromString(result.id))
+                    assertEquals(listOf(local.name, remote.name), actual.parents.map { it.name })
+                }
+                assertEquals(org.eclipse.jgit.lib.RepositoryState.SAFE, git.repository.repositoryState)
+                assertNull(git.repository.readMergeHeads())
+                assertNull(git.repository.readMergeCommitMsg())
+                assertEquals("resolved 中文 😀\n", File(root, "conflict.txt").readText())
+                assertTrue(page.status().entries.isEmpty())
+            }
+        } finally { page.close(); workspaces.unbind(chat); scope.cancel(); root.deleteRecursively() }
+    }
+
     @Test fun explicitInitializationStagesFirstFilesAndCommitsWithoutReplacingOtherWorktreeContent() = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

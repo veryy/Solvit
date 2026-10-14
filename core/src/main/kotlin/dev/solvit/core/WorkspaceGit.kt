@@ -20,7 +20,8 @@ interface WorkspaceGitService {
 interface WorkspaceGitSession {
     data class Entry(val path: String, val staged: String?, val working: String?, val conflict: Boolean)
     data class Status(val branch: String?, val head: String?, val entries: List<Entry>, val total: Int)
-    data class Revision(val head: String?, val indexSha256: String?, val branch: String?)
+    data class Revision(val head: String?, val indexSha256: String?, val branch: String?,
+        val state: String = "SAFE", val mergeHeads: List<String> = emptyList())
     data class Diff(val path: String, val staged: Boolean, val patch: String, val revision: Revision,
         val workingSha256: String?, val workingExecutable: Boolean?)
     data class Commit(val id: String, val message: String, val author: String, val timeSeconds: Int)

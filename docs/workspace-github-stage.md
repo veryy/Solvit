@@ -122,3 +122,19 @@ JS/model不接收凭据。进度为独立StateFlow；取消/关闭先取消拥�
 
 本阶段尚未远程验证；不是插件页面交付。后续保留克隆、pull/合并冲突、
 原生安全凭据输入、HTML页面、AI写入以及真实GitHub账户读写与APK发布。
+
+## 拉取审阅与合并恢复候选
+
+再次阅读固定JGit CommitCommand.java:345–375/610–630及
+PullCommandTest.java:testPullConflict：冲突应保留MERGE_HEAD、解决后的提交同时保留
+当前HEAD与合并父提交，仅在引用写入成功后清理合并记录。原Bound提交只允许SAFE，
+无法完成冲突恢复，因此Revision增加仓库状态和mergeHeads，审阅期间变化会拒绝提交；
+MERGING_RESOLVED允许显式提交双父历史，未解决冲突仍拒绝。
+
+新增reviewPull下载后捕获本地HEAD/索引/分支与工作区文件、目录、可执行位摘要；
+用户审阅后merge复核状态和字节，保留JGit快进、非快进无自动提交与真实冲突结果。
+当前要求先提交工作区变化，不自动stash或覆盖未提交内容；审阅最多100000项/64MiB，
+单文件8MiB，符号链接暂拒绝。新增实际HTTPS后端完整链：下载远端变化→Shell改动使
+旧审阅拒绝且保留字节→冲突→审阅暂存解决→双父提交→推送→独立仓库重新读取。
+另有合并父提交被改动时拒绝原提交审阅的Android回归。源码尚待远程验证，
+HTML页面、克隆、真实GitHub账户与正式APK仍未交付。

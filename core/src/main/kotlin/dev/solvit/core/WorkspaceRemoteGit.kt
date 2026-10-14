@@ -16,6 +16,9 @@ interface WorkspaceRemoteGitSession : WorkspaceGitSession {
     data class PushReview(val endpoint: GitRemoteEndpoint, val branch: String,
         val revision: WorkspaceGitSession.Revision, val remoteHead: String)
     data class Push(val branch: String, val head: String, val status: String)
+    data class PullReview(val revision: WorkspaceGitSession.Revision, val remoteHead: String,
+        val worktreeSha256: String)
+    data class Merge(val status: String, val head: String?, val conflicts: List<String>)
 
     val progress: StateFlow<Progress?>
     /** Downloads objects and a tracking ref; does not change HEAD, index or workspace files. */
@@ -24,5 +27,8 @@ interface WorkspaceRemoteGitSession : WorkspaceGitSession {
     suspend fun reviewPush(endpoint: GitRemoteEndpoint, branch: String): PushReview
     /** Pushes only the reviewed commit, without force, using the reviewed remote head as a lease. */
     suspend fun push(review: PushReview): Push
+    suspend fun reviewPull(endpoint: GitRemoteEndpoint, branch: String): PullReview
+    /** Applies reviewed objects locally; a non-fast-forward merge waits for an explicit commit. */
+    suspend fun merge(review: PullReview): Merge
     suspend fun cancelTransfer()
 }

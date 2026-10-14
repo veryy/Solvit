@@ -123,6 +123,60 @@ class BoundWorkspaceGit(
         WorkspaceRemoteGitSession.Push(result.branch, result.localHead, result.status)
     }
 
+    private fun worktreeFingerprint(root: File): String {
+        val hash = MessageDigest.getInstance("SHA-256")
+        var count = 0
+        var bytes = 0L
+        Files.walk(root.toPath()).use { paths ->
+            paths.filter { !it.startsWith(File(root, ".git").toPath()) }.sorted().forEach { path ->
+                check(++count <= 100_000) { "工作区超过拉取审阅上限" }
+                check(!Files.isSymbolicLink(path)) { "拉取审阅暂不支持符号链接" }
+                val relative = root.toPath().relativize(path).toString()
+                hash.update(relative.toByteArray(Charsets.UTF_8)); hash.update(0.toByte())
+                if (Files.isRegularFile(path)) {
+                    hash.update(1.toByte())
+                    val file = path.toFile()
+                    bytes += file.length()
+                    check(bytes <= 64L * 1024 * 1024) { "工作区超过拉取审阅大小上限" }
+                    hash.update(checkNotNull(digest(file)).toByteArray(Charsets.US_ASCII))
+                    hash.update(if (file.canExecute()) 1.toByte() else 0.toByte())
+                } else { check(Files.isDirectory(path)) { "工作区包含不支持的文件类型" }; hash.update(2.toByte()) }
+            }
+        }
+        return hash.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    override suspend fun reviewPull(endpoint: GitRemoteEndpoint, branch: String) = transfer(endpoint, "review-pull") { git ->
+        val local = revision(git)
+        check(local.state == "SAFE" && local.head != null && local.branch == "refs/heads/$branch") {
+            "拉取需要当前分支已有提交，且没有未完成的操作"
+        }
+        check(git.status().call().isClean) { "请先提交工作区变化，再拉取合并" }
+        val worktree = worktreeFingerprint(git.repository.workTree)
+        val remote = remoteTransport.fetch(git.repository, endpoint, branch, borrowCredentials(endpoint),
+            { verifyRemote(endpoint) }, { report("review-pull", it) })
+        check(revision(git) == local && worktreeFingerprint(git.repository.workTree) == worktree) {
+            "工作区在下载期间变化，请重新审阅"
+        }
+        WorkspaceRemoteGitSession.PullReview(local, remote.head, worktree)
+    }
+
+    override suspend fun merge(review: WorkspaceRemoteGitSession.PullReview) = access { git ->
+        fun unchanged() {
+            check(review.revision.state == "SAFE" && revision(git) == review.revision &&
+                git.status().call().isClean && worktreeFingerprint(git.repository.workTree) == review.worktreeSha256) {
+                "工作区或提交在拉取审阅后变化，请重新审阅"
+            }
+        }
+        unchanged()
+        verifyWrite()
+        unchanged()
+        val remote = RevWalk(git.repository).use { it.parseCommit(ObjectId.fromString(review.remoteHead)) }
+        val result = git.merge().include(remote).setCommit(false).call()
+        WorkspaceRemoteGitSession.Merge(result.mergeStatus.name, git.repository.resolve(Constants.HEAD)?.name,
+            git.status().call().conflicting.sorted())
+    }
+
     override suspend fun cancelTransfer() {
         verify() // Must not wait behind the transfer's repository mutex.
         synchronized(transferLock) { activeTransfer?.cancel() }
@@ -248,7 +302,8 @@ class BoundWorkspaceGit(
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
     private fun revision(git: Git) = Revision(git.repository.resolve(Constants.HEAD)?.name,
-        digest(File(git.repository.directory, "index")), git.repository.fullBranch)
+        digest(File(git.repository.directory, "index")), git.repository.fullBranch,
+        git.repository.repositoryState.name, git.repository.readMergeHeads().orEmpty().map { it.name })
 
     /** Read a real HEAD/index or index/worktree patch without changing either tree. */
     override suspend fun diff(path: String, staged: Boolean): Diff = access { git ->
@@ -393,8 +448,9 @@ class BoundWorkspaceGit(
         require(message.isNotBlank() && message.length <= 4096 && '\u0000' !in message)
         require(author.isNotBlank() && author.length <= 80 && author.none(Char::isISOControl))
         require(email.length <= 254 && email.none(Char::isISOControl) && email.matches(Regex("[^\\s<>@]+@[^\\s<>@]+")))
-        check(git.repository.repositoryState == org.eclipse.jgit.lib.RepositoryState.SAFE) {
-            "仓库存在未完成的合并或其他操作，请先处理"
+        val merging = git.repository.repositoryState == org.eclipse.jgit.lib.RepositoryState.MERGING_RESOLVED
+        check(merging || git.repository.repositoryState == org.eclipse.jgit.lib.RepositoryState.SAFE) {
+            "仓库仍有未解决的冲突或其他操作，请先处理并暂存解决结果"
         }
         check(revision(git) == expected) { "HEAD或暂存区已变化，请重新审阅" }
         verifyWrite()
@@ -403,11 +459,13 @@ class BoundWorkspaceGit(
             check(revision(git) == expected) { "HEAD或暂存区在获取索引锁时变化" }
             git.repository.newObjectInserter().use { inserter ->
                 val tree = cache.writeTree(inserter)
-                check((expected.head != null || cache.entryCount > 0) && tree != git.repository.resolve("HEAD^{tree}")) { "暂存区没有需要提交的变化" }
+                check((expected.head != null || cache.entryCount > 0) &&
+                    (merging || tree != git.repository.resolve("HEAD^{tree}"))) { "暂存区没有需要提交的变化" }
+                check(!merging || expected.head != null && expected.mergeHeads.isNotEmpty()) { "合并父提交缺失，请重新审阅" }
                 val identity = PersonIdent(author, email)
                 val commit = CommitBuilder().apply {
                     setTreeId(tree)
-                    expected.head?.let { setParentId(ObjectId.fromString(it)) }
+                    setParentIds((listOfNotNull(expected.head) + expected.mergeHeads).distinct().map(ObjectId::fromString))
                     setAuthor(identity); setCommitter(identity); setMessage(message)
                 }
                 val id = inserter.insert(commit)
@@ -421,6 +479,10 @@ class BoundWorkspaceGit(
                 update.setRefLogMessage("commit: " + message.lineSequence().first(), false)
                 check(update.update() in setOf(RefUpdate.Result.NEW, RefUpdate.Result.FAST_FORWARD)) {
                     "Git提交未写入：HEAD已变化或无法获得引用锁，请刷新"
+                }
+                if (merging) {
+                    git.repository.writeMergeHeads(null)
+                    git.repository.writeMergeCommitMsg(null)
                 }
                 RevWalk(git.repository).use { walk ->
                     val result = walk.parseCommit(id)

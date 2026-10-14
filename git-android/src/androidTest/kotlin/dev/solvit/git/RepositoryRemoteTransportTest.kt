@@ -114,6 +114,61 @@ class RepositoryRemoteTransportTest {
         }
     }
 
+    @Test fun boundPullReviewRejectsChangedFilesThenResolvesAndPushesBothHistories() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val workspaces = AndroidWorkspaces(context, scope)
+        val chat = "git-bound-pull-${UUID.randomUUID()}"
+        val root = File(workspaces.location(workspaces.forChat(chat).id))
+        val remote = endpoint("bound-pull")
+        val page = BoundWorkspaceGit(workspaces, chat, { chat }, authorizeWrite = {}, authorizeNetwork = {}) { }
+        val engine = RepositoryRemoteTransport(tls)
+        page.remoteTransport = engine
+        page.borrowCredentials = { credentials(it) }
+        try {
+            page.initialize()
+            val base = page.fetch(remote, "main")
+            val local = Git.open(root).use { git ->
+                git.reset().setMode(ResetCommand.ResetType.HARD).setRef(base.head).call()
+                commit(git, root, "local branch\n")
+            }
+            val remoteCommit = repository { git, directory ->
+                engine.fetch(git.repository, remote, "main", credentials(remote), {})
+                git.reset().setMode(ResetCommand.ResetType.HARD).setRef(base.head).call()
+                val id = commit(git, directory, "remote branch\n")
+                assertEquals("OK", engine.push(git.repository, remote, "main", id, base.head, credentials(remote), {}).status)
+                id
+            }
+            val review = page.reviewPull(remote, "main")
+            File(root, "content.txt").writeText("Shell wrote after review\n")
+            try { page.merge(review); fail("Changed workspace must reject reviewed merge") }
+            catch (_: IllegalStateException) { }
+            assertEquals("Shell wrote after review\n", File(root, "content.txt").readText())
+            assertEquals(local, page.status().head)
+            File(root, "content.txt").writeText("local branch\n")
+            val result = page.merge(page.reviewPull(remote, "main"))
+            assertEquals("CONFLICTING", result.status)
+            assertEquals(listOf("content.txt"), result.conflicts)
+            assertTrue(File(root, "content.txt").readText().contains("<<<<<<<"))
+            File(root, "content.txt").writeText("resolved local and remote\n")
+            val resolved = page.stage(page.diff("content.txt", false))
+            val merged = page.commit(resolved, "Resolve pull", "Fixture", "test@example.invalid")
+            Git.open(root).use { git ->
+                org.eclipse.jgit.revwalk.RevWalk(git.repository).use { walk ->
+                    val actual = walk.parseCommit(org.eclipse.jgit.lib.ObjectId.fromString(merged.id))
+                    assertEquals(listOf(local, remoteCommit), actual.parents.map { it.name })
+                }
+                assertEquals(RepositoryState.SAFE, git.repository.repositoryState)
+            }
+            assertEquals("OK", page.push(page.reviewPush(remote, "main")).status)
+            repository { git, directory ->
+                val actual = engine.fetch(git.repository, remote, "main", credentials(remote), {})
+                assertEquals(merged.id, actual.head)
+                git.reset().setMode(ResetCommand.ResetType.HARD).setRef(actual.head).call()
+                assertEquals("resolved local and remote\n", File(directory, "content.txt").readText())
+            }
+        } finally { page.close(); workspaces.unbind(chat); scope.cancel(); root.deleteRecursively() }
+    }
+
     @Test fun closingBoundSessionCancelsTransferWithoutWaitingForRepositoryLock() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val workspaces = AndroidWorkspaces(context, scope)
