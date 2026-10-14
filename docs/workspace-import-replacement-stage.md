@@ -26,3 +26,9 @@
 页面新增API25的reviewImport/importReviewed；宿主保存不可伪造的单次reviewId，绑定选中文档、目标路径、源摘要和宿主捕获的目标摘要。提交失败后页面保留选择、返回重新审阅，不能重复使用旧确认。显示被替换文件大小/摘要与保留备份说明；成功显示备份路径。旧importFile仍仅新建。新增API/声明/确认门禁、实际AndroidWorkspaces桥接token测试及SDK页面审阅回归；原有真实QuickJS/HTML/PDF/Git/Shell设备任务追加取消、Shell修改后冲突、重新审阅与成功保留原文件。上述页面接入尚待远程生成包及运行，不提前宣称通过。
 
 workspace下一包1.8.0/API25；共享目录代码使Git包升为1.2.4/API20。已按原字节保存已公开workspace1.7.0和Git1.2.3到legacy，保持原SHA256，未修改公开市场、未把API25下载交给旧宿主。
+
+## 插件与市场预演
+
+7db98b7 的 [远程插件生成38648117122](https://github.com/veryy/Solvit/actions/runs/38648117122)成功；完整任务日志确认122 SDK/5市场零失败，公开搜索、HTTPS MCP、Skills也通过。实际下载11933034134核对ZIP CRC，仅同步workspace/Git新包到市场与APK两处，b288b7b提交。workspace1.8.0为767107字节、SHA256 6e7d3e22d8f4df745f87702986a142818c139f8fca4d2f17e0e25b688e5ed3d5；Git1.2.4为749895字节、SHA256 7cfd8eb28865d9bb529aff3d342ad11a8bd15fd0c8df1fb89cc7917ae71755e4。
+
+服务器私有 .staging-api25-1792017186 对before/next两个真实Node服务运行verify-market-api25.mjs：API1..19目录完全一致，API20..24仅Git兼容更新且工作区保留各自兼容版本（API24仍1.7.0），44个历史包全部原字节保留，API25选择1.8.0/API25与Git1.2.4/API20并核对新包摘要。尚未更新公开服务。Android候选38648342947正在运行，完整页面、升级及APK结果仍待确认。
