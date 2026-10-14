@@ -6,6 +6,21 @@ import { tmpdir } from 'node:os';
 import vm from 'node:vm';
 import { buildPlugin } from '../scripts/build-plugin.mjs';
 
+test('API22 file import requires its service declaration and workspace permission', async () => {
+  const dir=await mkdtemp(join(tmpdir(),'solvit-import-page-'));
+  try {
+    const entry=join(dir,'entry.ts'),file=join(dir,'manifest.json'),output=join(dir,'output.json');
+    await writeFile(entry,'export default {tools:{}};');
+    const manifest={id:'test.import.page',name:'Import',description:'Test',version:'1.0.0',apiVersion:22,
+      permissions:['workspace'],nativeServices:['workspace.files'],dependencies:[],tools:[]};
+    for(const invalid of [{...manifest,apiVersion:21},{...manifest,permissions:[]},{...manifest,nativeServices:['workspace.unknown']}]) {
+      await writeFile(file,JSON.stringify(invalid));await assert.rejects(()=>buildPlugin(entry,file,output));
+    }
+    await writeFile(file,JSON.stringify(manifest));await buildPlugin(entry,file,output);
+    assert.deepEqual(JSON.parse(await readFile(output,'utf8')).manifest,manifest);
+  } finally {await rm(dir,{recursive:true})}
+});
+
 test('API19 Git pages bundle with explicit workspace/Git permissions and reject incompatible manifests', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'solvit-git-page-'));
   try {

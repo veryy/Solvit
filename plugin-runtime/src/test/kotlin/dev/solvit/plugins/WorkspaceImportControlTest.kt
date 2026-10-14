@@ -7,6 +7,22 @@ import kotlin.test.*
 
 /** Exercise the host boundary before the API22 package/catalog rollout. */
 class WorkspaceImportControlTest {
+    private fun pkg(api: Int = 22, declared: Boolean = true, workspace: Boolean = true) = ScriptPackage.parse(buildJsonObject {
+        putJsonObject("manifest") {
+            put("id", "test.import.page"); put("name", "Import"); put("description", "Fixture"); put("version", "1.0.0"); put("apiVersion", api)
+            put("permissions", buildJsonArray { if (workspace) add("workspace") })
+            put("dependencies", JsonArray(emptyList())); put("tools", JsonArray(emptyList()))
+            put("nativeServices", buildJsonArray { if (declared) add("workspace.files") })
+            put("pages", Json.parseToJsonElement("""[{"id":"main","title":"Import"}]"""))
+        }
+        put("source", """globalThis.solvitPlugin={tools:{},pages:{main:async(input,ctx)=>{
+          let selection=null;
+          if(input.event) selection=await ctx.workspacePage.perform();
+          return {title:'Import',nodes:[{id:'select',kind:'button',text:'Select',action:'select',
+            hostAction:{kind:'workspace.perform',operation:'selectImport',arguments:{}}},
+            {id:'metadata',kind:'text',text:JSON.stringify(selection)}]};
+        }}};""")
+    }.toString().toByteArray())
     private fun control(operation: String = "selectImport", args: JsonObject = buildJsonObject {}) = buildJsonObject {
         put("kind", "workspace.perform"); put("operation", operation); put("arguments", args)
     }
@@ -78,5 +94,28 @@ class WorkspaceImportControlTest {
         assertEquals("null", page.performWorkspace(22, filesDeclared = true))
         assertContentEquals(byteArrayOf(42), old.readBytes())
         workspace.close()
+    }
+
+    @Test fun actualQuickJsUsesTheConfirmedPickerAndClosesItsWorkspaceOwner(): Unit = runBlocking {
+        assertFails { pkg(api = 21) }; assertFails { pkg(workspace = false) }
+        val selected = PageBinaryDocument("ramp.bin", "application/octet-stream", byteArrayOf(0, -1, 42))
+        val workspace = Workspace()
+        var opens = 0
+        for (source in listOf(pkg(declared = false), pkg(api = 21, declared = false), pkg())) {
+            val page = ScriptPageSession(source, "main", "en", ScriptHost { _, _, _ -> error("No arbitrary host calls") }) {}
+            page.attachWorkspace(workspace); page.attachDocuments(picker { opens++; selected })
+            try {
+                val view = page.open()
+                assertFails { page.dispatch(view, "select") }; assertEquals(0, opens)
+                if (source.manifest.apiVersion == 22 && "workspace.files" in source.manifest.nativeServices) {
+                    val result = page.dispatch(view, "select", confirmed = true)
+                    assertTrue(result.toJson().contains("ramp.bin")); assertEquals(1, opens)
+                    assertContentEquals(byteArrayOf(0, -1, 42), workspace.selected!!.readBytes())
+                } else {
+                    assertFails { page.dispatch(view, "select", confirmed = true) }; assertEquals(0, opens)
+                }
+            } finally { page.close() }
+        }
+        assertFails { selected.readBytes() }
     }
 }
