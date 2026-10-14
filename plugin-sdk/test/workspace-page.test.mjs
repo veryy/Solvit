@@ -135,6 +135,10 @@ test('existing destination shows its reviewed version; cancel does not write and
  await h.event('prepareImport');assert.equal(h.nodes().find(n=>n.id==='replace_sha').text,'b'.repeat(64));
  await h.event('confirm');assert.equal(h.imports.length,1);
  assert.ok(h.nodes().find(n=>n.id==='message').text.includes('solvit-backup-original'));
+ // The real HTML tree automatically reloads after its revision changes on import.
+ await h.event('tree_load',{treePath:'',treeOffset:'0'});
+ assert.ok(h.nodes().find(n=>n.id==='message')?.text.includes('solvit-backup-original'),
+  'automatic tree loading must retain the completed import and backup location');
 });
 test('discarding an import selection never submits a write',async()=>{
  const h=harness();await h.render();h.nextSelection={id:'chosen',name:'file.bin',mimeType:'application/octet-stream',bytes:0,sha256:'d'.repeat(64)};
