@@ -102,7 +102,7 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         } finally { withContext(NonCancellable) { engine.cancel("builtin.linux", null, started.id) } }
     }
 
-    private suspend fun begin(stage: String, rootInstallation: Boolean = false, action: suspend () -> Unit) = mutex.withLock {
+    private suspend fun begin(stage: String, rootInstallation: Boolean = false, action: suspend () -> Unit): Unit = mutex.withLock {
         check(supported) { "当前架构尚未提供 Linux 运行环境" }
         check(operation?.isActive != true) { "已有环境安装任务正在进行" }
         installingRootfs = rootInstallation
@@ -120,6 +120,7 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
             }
         }
         task.start()
+        Unit
     }
     override suspend fun install() = begin("DOWNLOADING", rootInstallation = true) {
         checkNotNull(installer).install { root -> run(root,

@@ -18,6 +18,9 @@ android {
 val jgitAndroidEngine = configurations.create("jgitAndroidEngine") {
     isCanBeConsumed = false
     isCanBeResolved = true
+    // Keep Codec in Gradle's normal dependency graph so Commons Compress and JGit
+    // share one version; file dependencies otherwise bypass conflict resolution.
+    exclude(group = "commons-codec", module = "commons-codec")
     attributes.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, "solvit-android-jgit")
 }
 dependencies {
@@ -27,6 +30,7 @@ dependencies {
     }
     add(jgitAndroidEngine.name, "org.eclipse.jgit:org.eclipse.jgit:7.8.0.202609011348-r")
     implementation(files(jgitAndroidEngine))
+    implementation("commons-codec:commons-codec:1.22.1")
     implementation(project(":core"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     androidTestImplementation(project(":workspace-android"))
