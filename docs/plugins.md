@@ -109,3 +109,41 @@ sources包含path、TEXT/ABSENT/BINARY/OVERSIZED/UNAVAILABLE状态；TEXT有完�
 管理控件声明 `kind: 'workspace.perform'`，操作包括 `installEnvironment`、`cancelEnvironment`、`installSoftware`（`software` 只允许 `PYTHON`、`NODE`、`JAVA`）、`createLinuxShell`（当前工作区及名称）。执行仅接受当前页面已显示、由用户确认的单次原生操作；脚本不能提供进程参数、安装命令、下载地址、归档哈希或宿主私有目录。没有 API21、服务声明或完整权限时拒绝调用。
 
 安装环境不会把 QuickJS 变成 Node，也不会为 MCP 自动启动本地进程。AI 使用已创建的 Ubuntu Shell，通过现有工作区工具和对话内授权执行命令。安装本身属于人类环境管理页面，不向模型添加一个可随意安装系统环境的工具。
+
+## API22 候选：工作区文件导入与预览
+
+**尚未正式发布。** 当前源码和远程候选提供以下接口，公开0.33.1宿主仍是API21。最终APK、市场兼容和设备结果见[导入阶段记录](workspace-import-stage.md)。不要让旧宿主安装需要API22的包。
+
+人工HTML页面须声明 `apiVersion: 22`、`permissions: ["workspace"]`、`nativeServices: ["workspace.files"]`。聊天、工作区及文件来源由宿主捕获；脚本不能指定聊天ID、文件URI、宿主目录或替换为下载URL。普通对话没有工作区时先由用户创建/绑定；文件导入不会自动创建工作区。工具、Hook与生命周期不能使用此页面能力。
+
+| 调用 | 返回与用途 |
+| --- | --- |
+| `workspacePage.query('importSelection')` | 当前选择的 `{id,name,mimeType,bytes,sha256}`，或null；不含原文件正文/URI |
+| `workspacePage.query('importText', {id,sha256})` | `{kind,text,truncated}`。严格UTF-8，最多256KiB源文件、显示前8192个UTF-16单元；文本截断明确标记，二进制或超限返回分类 |
+| `workspacePage.query('importPicture', {id,sha256})` | `{width,height,source}`。当前图像的有界JPEG缩略图，最多640边/64KiB；透明背景白色，动图仅首帧，原图不改变 |
+
+选择和写入只接受**已经显示并由用户确认的控件**，处理函数调用无参数 `await ctx.workspacePage.perform()`：
+
+```ts
+const select = {
+  id: 'select', kind: 'button', text: '选择文件', action: 'select',
+  hostAction: {kind: 'workspace.perform', operation: 'selectImport', arguments: {}},
+};
+// 点击并获宿主确认后：
+const selection = await ctx.workspacePage.perform();
+```
+
+`selectImport`返回文件元数据或null。取消选择保留已有选择；不要用null覆盖原页面草稿。选择本身不写入工作区。界面先显示名称、大小、来源及目标相对路径，然后另一个确认控件声明：
+
+```ts
+hostAction: {
+  kind: 'workspace.perform', operation: 'importFile',
+  arguments: {id: selection.id, sha256: selection.sha256, path: 'images/photo.png'},
+}
+```
+
+确认后完整原始字节以create-only方式导入（最多20MiB），已存在的同名文件返回冲突，保留选择供用户改名；不得静默覆盖、重复自动提交或将缩略图代替原文件。父目录须已存在。成功返回工作区snapshot并释放当前选择。放弃选择使用确认控件 `dropImport` 与 `{id}`，只释放草稿。替换选择、关闭页面、切换对话/绑定或撤权后，旧id不能继续使用。
+
+缩略图显示使用API22 HTML页面的 `image` 节点 `{id,kind:'image',source,alt,width,height}`。source仅接受规范Base64内联JPEG及上述容量/尺寸边界，不能使用HTTP、file或SVG地址，也不能附带action。HTML负责实际img绘制，例如工作区的 `ui/main.mjs`；通用旧版 `mountPage` helper没有图片绘制逻辑，第三方页面要实现自己的渲染。声明的JPEG标记不等于完整解码保证；内置预览服务会实际解码并重新编码缩略图。
+
+当前图片与文本候选不等于完整导入交付。PDF内容预览、聊天附件来源、覆盖版本检查、进度/停止、崩溃后暂存回收以及真机/真实模型任务仍按阶段记录继续实现。
