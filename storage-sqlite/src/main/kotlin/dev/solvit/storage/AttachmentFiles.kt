@@ -117,5 +117,60 @@ class AttachmentFiles(private val directory: File) : ChatAttachmentStore {
             check(file.delete()) { "无法删除附件" }
         }
     }
+    /** Called only on the SQLite IO transaction thread for a newly created branch. */
+    internal fun copyForBranch(sourceSessionId: String, targetSessionId: String, attachments: List<ChatAttachment>) {
+        if (attachments.isEmpty()) return
+        val target = session(targetSessionId, false)
+        check(!target.exists()) { "分支附件目录已存在" }
+        check(target.mkdir()) { "无法创建分支附件目录" }
+        try {
+            attachments.distinctBy { it.id }.forEach { attachment ->
+                val source = blob(sourceSessionId, attachment)
+                val destination = File(target, attachment.id + ".blob")
+                check(destination.createNewFile()) { "分支附件文件已存在" }
+                source.inputStream().use { input -> FileOutputStream(destination).use { output ->
+                    val buffer = ByteArray(8192)
+                    var copied = 0L
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count == -1) break
+                        if (count == 0) continue
+                        copied += count
+                        check(copied <= attachment.sizeBytes) { "分支附件内容已改变" }
+                        output.write(buffer, 0, count)
+                    }
+                    output.fd.sync()
+                } }
+                check(Files.isRegularFile(destination.toPath(), NOFOLLOW_LINKS) && destination.length() == attachment.sizeBytes) { "分支附件内容已改变" }
+                val hash = MessageDigest.getInstance("SHA-256")
+                destination.inputStream().use { input ->
+                    val buffer = ByteArray(8192)
+                    var size = 0L
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count == -1) break
+                        if (count == 0) continue
+                        size += count
+                        check(size <= attachment.sizeBytes) { "分支附件内容已改变" }
+                        hash.update(buffer, 0, count)
+                    }
+                    check(size == attachment.sizeBytes && hash.digest().hex() == attachment.sha256) { "分支附件内容已改变" }
+                }
+            }
+        } catch (failure: Throwable) {
+            // This directory was exclusively created above; links are unlinked, not followed.
+            target.listFiles().orEmpty().forEach { it.delete() }; target.delete()
+            throw failure
+        }
+    }
+    internal fun deleteSessionFiles(sessionId: String) {
+        val folder = session(sessionId, false)
+        if (!folder.exists()) return
+        // The flat attachment directory never contains child directories.
+        val files = folder.listFiles() ?: error("无法读取附件目录")
+        check(files.all { !Files.isDirectory(it.toPath(), NOFOLLOW_LINKS) }) { "附件目录包含未知子目录" }
+        files.forEach { check(it.delete()) { "无法删除附件文件" } }
+        check(folder.delete()) { "无法删除附件目录" }
+    }
     private fun ByteArray.hex() = joinToString("") { "%02x".format(it.toInt() and 255) }
 }

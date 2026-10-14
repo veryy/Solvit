@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream
 
 class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = ExecutionFileCaptureDatabase.MAX_QUOTA_BYTES) : ChatStore, AutoCloseable {
     init { require(captureQuotaBytes in 0..ExecutionFileCaptureDatabase.MAX_QUOTA_BYTES) }
+    internal val attachmentFiles = AttachmentFiles(java.io.File(context.applicationContext.filesDir, "chat-attachments"))
     private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 10) {
         override fun onConfigure(db: SQLiteDatabase) { db.setForeignKeyConstraintsEnabled(true) }
         override fun onCreate(db: SQLiteDatabase) {
@@ -189,6 +190,7 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
             put("id", session.id); put("title", session.title); put("updated_at", session.updatedAt)
             put("origin_session_id", sessionId); put("origin_message_id", point.messageId)
         })
+        attachmentFiles.copyForBranch(sessionId, session.id, prefix.flatMap { it.attachments })
         prefix.forEach { insertMessage(db, it.copy(id = UUID.randomUUID().toString(), sessionId = session.id)) }
         session
     }
@@ -365,9 +367,11 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
             } }).toString())
         })
     }
-    override suspend fun deleteSession(sessionId: String) { write {
-        it.delete("sessions", "id=?", arrayOf(sessionId)); ExecutionFileCaptureDatabase.collect(it)
-    } }
+    override suspend fun deleteSession(sessionId: String) {
+        write { it.delete("sessions", "id=?", arrayOf(sessionId)); ExecutionFileCaptureDatabase.collect(it) }
+        // Database deletion must commit before bytes are removed; rollback cannot recreate bytes.
+        withContext(Dispatchers.IO) { attachmentFiles.deleteSessionFiles(sessionId) }
+    }
     private fun decodeAttachments(value: String): List<ChatAttachment> {
         val array = JSONArray(value)
         check(array.length() <= 8) { "附件记录无效" }
@@ -404,6 +408,6 @@ class SqliteStoragePlugin(private val androidContext: Context) : SolvitPlugin {
         context.own { store.close() }
         store.recoverInterruptedExecutions(System.currentTimeMillis())
         context.register(Services.Storage, store)
-        context.register(ChatAttachmentStoreKey, AttachmentFiles(java.io.File(androidContext.filesDir, "chat-attachments")))
+        context.register(ChatAttachmentStoreKey, store.attachmentFiles)
     }
 }

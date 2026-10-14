@@ -34,6 +34,31 @@ class ChatAttachmentHistoryTest {
             }
         }
     }
+    @Test fun branchRetainsItsOwnVerifiedBytesAfterOriginalConversationIsDeleted() = runBlocking<Unit> {
+        val bytes = "中文 attachment".toByteArray()
+        var original = ""
+        var branch = ""
+        var reference: ChatAttachment? = null
+        SqliteChatStore(context).use { store ->
+            val session = store.createSession(); original = session.id
+            val attachment = store.attachmentFiles.import(session.id, "note.txt", "text/plain", java.io.ByteArrayInputStream(bytes))
+            reference = attachment
+            store.append(ChatMessage("u", session.id, Role.USER, "read", attachments = listOf(attachment)))
+            store.append(ChatMessage("a", session.id, Role.ASSISTANT, "reply"))
+            branch = store.forkSession(session.id, BranchPoint("a", BranchMode.AFTER_REPLY)).id
+            assertContentEquals(bytes, store.attachmentFiles.read(branch, attachment))
+            store.deleteSession(original)
+            assertFailsWith<IllegalStateException> { store.attachmentFiles.read(original, attachment) }
+            assertContentEquals(bytes, store.attachmentFiles.read(branch, attachment))
+        }
+        SqliteChatStore(context).use { reopened ->
+            val attachment = reopened.history(branch).first().attachments.single()
+            assertEquals(reference, attachment)
+            assertContentEquals(bytes, reopened.attachmentFiles.read(branch, attachment))
+            reopened.deleteSession(branch)
+            assertFailsWith<IllegalStateException> { reopened.attachmentFiles.read(branch, attachment) }
+        }
+    }
     @Test fun versionNineUpgradeRetainsTextAndDefaultsAttachmentsToEmpty() = runBlocking<Unit> {
         val session = SqliteChatStore(context).use { store ->
             val session = store.createSession()
