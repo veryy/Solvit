@@ -25,3 +25,8 @@ Linux环境保留无需root的Ubuntu、Python/venv、Node24/npm和Java17；新�
 正文修复前的真实WebView38638144639已稳定复现两项空正文失败，完整报告ZIP CRC/XML核对：原场景通过，1500ms延迟article与永久空article两项失败。修复89b7b6e的WebView38638678933及公开搜索38638678882已成功；搜索原三查询和主入口受控故障后的真实区域正文均通过。WebView绿色归档11929062869完整ZIP CRC/XML为3/0/0/0，红色归档11929482234为3/2/0/0。完整同源正式发布、截图、APK/源码实际下载比较尚未完成。
 
 [聊天附件与目录修复证据](chat-attachment-workspace-stage.md) · [动态正文诊断](search-release-diagnosis.md)
+
+
+## 正式运行
+
+不可变v0.36.1指向c05d96b51a47b5c5e6b129f7ee2c6e9234211018，[正式Actions38639262884](https://github.com/veryy/Solvit/actions/runs/38639262884)正在执行。正式插件与搜索任务已成功；实际搜索归档11930130279完整ZIP CRC/JSON确认原三查询和受控区域回退正文通过。Linux源码产物11928863717已下载并核对外层/内层ZIP CRC，内部1072569字节、SHA256 70cc54d47be0aa4d9fadd98f825459e9f2b361cd7e80e76c8de49d9dba2a68e2。Android/Linux设备与公开APK下载比较仍待完成，不提前宣称发布。
