@@ -59,3 +59,9 @@ UI候选c5d9b4b的38624928283整轮失败。实际UI11924566682完整ZIP CRC/XML
 修复候选24562e8的设备归档11927543743（5542170字节）已完整下载并核对ZIP CRC/XML：76设备、1失败、零错误/跳过。原WorkspaceHtmlPageTest在27.160秒通过，新ChatAttachmentWorkspaceHtmlTest在11.359秒通过，证明目录footer修复与保存PDF完整链实际有效。唯一失败变为ChatInteractionDeviceTest的send轮询（第118行），2.363秒即抛SnapshotStateObserver跨线程异常，栈经过fetchOneOrThrow→printToString，不是10秒键盘位置断言失败。
 
 对照已有ChatLayoutTest.geometry（集合查找避开测试线程诊断树遍历，布局与window/insets在UI线程读取）及AndroidX官方Compose同步文档。修复同一发送轮询：集合查找，控件暂缺继续等待；UI线程原子读取布局/键盘，保留原10秒、IME可见/高度与输入栏位置要求，并要求输入栏大小大于0。未改产品UI/键盘行为，原角色/授权/队列编辑/中断/新聊天断言保留。通用化既有手动诊断workflow为两个固定场景和1..8次重现，仍校验生产源码等同已有APK并首失败停止；接下来复用245候选APK远程运行完整聊天交互五次，再做正式全门禁。市场API24仍未部署。
+
+核对Google Maven官方compose-bom2024.12.01 POM，ui-test/ui-test-junit4均为1.7.6；下载对应官方sources.jar只作静态阅读并核对ZIP CRC。SemanticsNodeInteraction.kt::fetchOneOrThrow在成功命中一个节点后也会调用printToString缓存lastSeenSemantics，因此不是必须控件缺失才触发；本轮栈恰在该第189行，Output.kt递归getChildren进入语义观察。集合fetchSemanticsNodes不做该诊断遍历；窗口和bounds仍须主线程读取。没有复制AndroidX源码或更新依赖。独立38636197152正在远程重编测试APK并复用相同245生产APK，五次完整角色/权限/队列/键盘场景首失败停止。
+
+独立聊天诊断38636197152源f3c6e32实际成功；完整任务日志确认生产APK源24562e8且五次完整场景全部OK。11928930382（104950字节）已下载并核对完整ZIP CRC和五份迭代结果，原断言/10秒限制保留。市场已从重新验证的修复快照受保护切换并重启健康，回滚备份保留；42个历史包全量前置核对及新包SHA匹配。公网HTTPS after尚在核对，客户端暂未切24，正式APK尚未发布。
+
+API24公网after实际核对完成：24个目录和42个历史包原HTTP下载全部通过；API1..19目录不变，API20..23只有兼容Git1.2.3，旧工作区继续原版本。新workspace1.7.0和Git1.2.3下载字节与本次修复仓库包相同。至此客户端MarketplacePlugin改hostApi24并同步严格请求路径回归，未改动原生二进制来源、签名或迁移策略。准备将完整候选快进合入已有main历史并新建不可变v0.36.0；正式同源全门禁、截图和公开下载比较仍待完成。
