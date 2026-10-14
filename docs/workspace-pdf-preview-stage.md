@@ -25,3 +25,5 @@ PagePdfPreviewRenderer只接当前页持有的PageBinaryDocument和1-based页码
 HTML设备用例使用真实两页PDF、实际选中文件URI和生产renderer，检查第二页蓝色像素、文字和页码边界，预览不写文件，取消选择与确认保持原页，最终磁盘PDF字节等于原文件。系统DocumentsUI触摸仍不在此范围。新增已公开API22/1.5.0迁移用例，保留启用状态、权限和关闭项目规则配置，修改包及卸载不被覆盖/恢复。
 
 远程TypeScript38615567853生成与typecheck/118 SDK零失败，但市场断言仍要求Git最新1.2.1，实际1.2.2使原检查失败。修正仅最新版本预期，保留API19原始Git字节与旧1.2.1下载检查；等待原工作流复验，不宣称本轮全部通过。
+
+远程TypeScript38615928135全部成功，完整任务日志核对118 SDK/5市场零失败，公网搜索/MCP/Skills门禁通过。实际下载生成artifact11919273507并核对ZIP CRC，仅同步workspace/Git两包，其他当前包字节保持。新workspace1.6.0/API23为759034字节/SHA7e365776b2df302b79d338980e5ce990f233d7f3a7762399a89c8fa3a50283b6；Git1.2.2/API20为741822字节/SHA1d7aa4b3556104907dac7e29d7ea4fb5e35a7f6565d3a6bf668771e643b8130b。候选API23私有市场兼容脚本逐项检查API1..19目录不变、API20..22仅兼容Git补丁、API22继续workspace1.5.0及全部历史下载字节；仍待远端实际执行。完整APK/真实HTML与API22迁移回归随后执行。
