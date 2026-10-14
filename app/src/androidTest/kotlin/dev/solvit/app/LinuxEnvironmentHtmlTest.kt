@@ -35,8 +35,13 @@ class LinuxEnvironmentHtmlTest {
             waitDom("window.pluginPageReady===true && !!document.querySelector('[data-node=install]')")
             waitDom("document.querySelector('[data-node=status]').textContent.includes('尚未安装')")
             assertEquals("false", html.js("!!document.querySelector('[data-node=newShell]')"))
+            // DOM existence alone passed even when WebView painted only the footer.
+            // Check real bounds and hit-testing, then use a screen touch rather than JS click.
+            val geometry = "(()=>{const main=document.querySelector('main'),b=document.querySelector('[data-node=install]'),r=b.getBoundingClientRect();return JSON.stringify({viewport:innerHeight,body:document.body.getBoundingClientRect().height,main:main.getBoundingClientRect().height,button:{top:r.top,bottom:r.bottom,height:r.height},dvh:CSS.supports('height','100dvh')})})()"
+            android.util.Log.i("SolvitLinuxPage", "LAYOUT_GEOMETRY|" + html.js(geometry))
+            waitDom("(()=>{const b=document.querySelector('[data-node=install]'),r=b.getBoundingClientRect();return r.height>20 && r.top>=0 && r.bottom<innerHeight && document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===b})()")
             html.screenshot("linux-plugin-before-install")
-            html.js("document.querySelector('[data-node=install]').click()")
+            html.tapElement("[data-node=install]")
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("取消").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isEmpty() }

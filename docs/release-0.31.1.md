@@ -1,4 +1,4 @@
-# Solvit 0.31.0：手机上的 Linux 开发环境
+# Solvit 0.31.1：手机上的 Linux 开发环境
 
 这版给工作区加上无需 root 的 Ubuntu 24.04。它按需下载，不把整个发行版塞进 APK。
 
