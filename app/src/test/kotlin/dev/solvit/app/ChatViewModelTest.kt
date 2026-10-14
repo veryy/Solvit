@@ -84,6 +84,72 @@ class ChatViewModelTest {
         } finally { Dispatchers.resetMain() }
     }
 
+    @Test fun removingQueuedAttachmentsReclaimsOnlyUnreferencedFilesAndRejectsOtherChats() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            fun attachment(name: String) = ChatAttachment(java.util.UUID.randomUUID().toString(), name, "text/plain", 1, "a".repeat(64))
+            val saved = attachment("saved.txt"); val shared = attachment("shared.txt"); val unused = attachment("unused.txt")
+            val removed = mutableListOf<String>()
+            val history = listOf(ChatMessage("user", "session", Role.USER, "saved", attachments=listOf(saved)))
+            val chat = object : ChatService {
+                override fun sessions() = flowOf(listOf(ChatSession("session", "Test", 0)))
+                override fun messages(sessionId: String) = flowOf(if (sessionId == "session") history else emptyList())
+                override suspend fun createSession() = ChatSession("other", "Other", 0)
+                override suspend fun deleteSession(sessionId: String) = Unit
+                override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization) = flow<ModelChunk> { awaitCancellation() }
+            }
+            val files = object : ChatAttachmentStore {
+                override suspend fun import(sessionId: String, name: String, mimeType: String, input: java.io.InputStream, authorize: suspend () -> Unit): ChatAttachment = error("unused")
+                override suspend fun read(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit): ByteArray = error("unused")
+                override suspend fun remove(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit) { removed += attachment.id }
+            }
+            val settings = object : SettingsStore { override suspend fun load() = ModelConfig(); override suspend fun save(value: ModelConfig) = Unit }
+            val vm = ChatViewModel(chat, settings, attachmentStore=files)
+            try {
+                runCurrent()
+                vm.attachmentDrafts.value = mapOf("session" to listOf(shared))
+                vm.queuedMessages.value = listOf(ChatViewModel.QueuedMessage("discard", "session", "", listOf(saved,shared,unused)),
+                    ChatViewModel.QueuedMessage("foreign", "other", "", listOf(unused)))
+                vm.removeQueued("foreign"); runCurrent()
+                assertEquals(2,vm.queuedMessages.value.size);assertTrue(removed.isEmpty())
+                vm.removeQueued("discard");runCurrent()
+                assertEquals(listOf(unused.id),removed)
+                assertEquals("foreign",vm.queuedMessages.value.single().id)
+                assertEquals(listOf(shared),vm.attachmentDrafts.value.getValue("session"))
+            } finally { vm.viewModelScope.cancel() }
+        } finally { Dispatchers.resetMain() }
+    }
+
+    @Test fun editedAttachmentCopyFailureDeletesNewBranchAndPreservesOriginalSelection() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val image=ChatAttachment(java.util.UUID.randomUUID().toString(),"image.png","image/png",1,"a".repeat(64))
+            val deleted=mutableListOf<String>()
+            val chat=object:ChatService {
+                override fun sessions()=flowOf(listOf(ChatSession("source","Source",0)))
+                override fun messages(sessionId:String)=flowOf(listOf(ChatMessage("original",sessionId,Role.USER,"",attachments=listOf(image))))
+                override suspend fun createSession()=ChatSession("source","Source",0)
+                override suspend fun deleteSession(sessionId:String){deleted+=sessionId}
+                override fun send(sessionId:String,text:String,config:ModelConfig,authorization:ToolAuthorization)=flowOf(ModelChunk.Done)
+            }
+            val branches=object:ChatBranchService{override suspend fun fork(sessionId:String,point:BranchPoint)=ChatSession("copy","Copy",0)}
+            val files=object:ChatAttachmentStore {
+                override suspend fun import(sessionId:String,name:String,mimeType:String,input:java.io.InputStream,authorize:suspend()->Unit):ChatAttachment=error("disk full fixture")
+                override suspend fun read(sessionId:String,attachment:ChatAttachment,authorize:suspend()->Unit)=byteArrayOf(1)
+                override suspend fun remove(sessionId:String,attachment:ChatAttachment,authorize:suspend()->Unit)=Unit
+            }
+            val settings=object:SettingsStore{override suspend fun load()=ModelConfig();override suspend fun save(value:ModelConfig)=Unit}
+            val vm=ChatViewModel(chat,settings,branches=branches,attachmentStore=files)
+            try {
+                runCurrent();var callback=false
+                vm.fork(BranchPoint("original",BranchMode.BEFORE_USER),""){callback=true};runCurrent()
+                assertEquals(listOf("copy"),deleted);assertEquals("source",vm.sessionId.value)
+                assertFalse(callback);assertFalse(vm.branching.value);assertTrue(vm.attachmentDrafts.value.isEmpty())
+                assertNotNull(vm.branchError.value);assertNull(vm.branchInput.value)
+            }finally{vm.viewModelScope.cancel()}
+        }finally{Dispatchers.resetMain()}
+    }
+
     @Test fun receivingALargeDeltaDoesNotDelayProviderOrToolStatus() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
