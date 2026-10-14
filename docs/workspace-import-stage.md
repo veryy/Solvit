@@ -69,3 +69,11 @@ f0d121f/38599238571 build实际失败在WorkspaceInstructionsHookTest四个旧�
 实际完整下载失败unit artifact11913212689，ZIP CRC通过，四个失败XML均明确expected1.4.0/actual1.5.0，支持版本断言修复。协议设备artifact11913297671完整ZIP CRC核对，原生产JNI二进制发布/Shell摘要/重名/撤权用例通过，整轮仍因PDF超时失败，不宣称整体绿。PDF用例日志没有解析/OCR错误，也没有当时画面；尾部emulator-logcat已覆盖测试时段，无法用其无错误反推成功。下一轮在原90秒等待失败时记录合成夹具页面的进度/错误/覆盖/文字节点状态和截图，保留原断言与超时，用于区分服务未完成和LazyColumn未显示。该日志只在诊断测试失败时出现，无生产代码改动。
 
 5c1e5c1远程生成38600208802通过；完整下载artifact11911249674，ZIP CRC核对后收回workspace/Git候选生成包，其他包不变。候选1.5.0/1.2.1均未公开，不替换任何已发布同版本文件。正式APK及全设备链继续等待。
+
+## 图片缩略图宿主候选
+
+独立分支保留正在运行的文本/导入候选，不取消其设备诊断。实际读取Operit ImageBitmapLimiter.decodeDownsampledBitmap的先读取尺寸再采样策略，以及AttachmentViewerDialog的MIME/20MiB边界、AttachmentInfoTest与MediaLinkParserImageOpsTest；后者只检查媒体链接，不是图像解码验收，未找到对应limiter单元测试。新实现自行编写，不复制LGPL代码/预编译库，不新增依赖。
+
+PageFilePictureRenderer只接受当前页持有的PageBinaryDocument，原生先尺寸探测、最大100,000,000像素/每边32768，再采样至640边；读取平台EXIF方向并在预览中旋转/翻转，透明图白底缩略JPEG最多64KiB。编码超过上限降质量/尺寸，失败明确拒绝，不截断图像字节；原文件始终不改动。解码/编码前后重验授权与取消，Bitmap与输入副本正常清理；同步native调用不能承诺即时打断。PNG/JPEG/WebP/GIF图像范围，动图仅首帧；其他格式仍待支持。
+
+新增核心副本/容量/关闭测试及三个实际Android用例：大PNG缩略后像素/尺寸与原文件一致、JPEG EXIF旋转保持原字节、坏数据/撤权无预览。当前只有可信宿主组件，尚未接到API22桥或HTML图片节点，不能宣称产品图片预览完成。完整范围仍包括PDF/原图界面、聊天附件导入、覆盖版本/进度/崩溃回收、Shell/Git完整设备链与正式APK。远程编译和这些设备用例尚待运行。
