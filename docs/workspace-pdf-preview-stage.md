@@ -31,3 +31,5 @@ HTML设备用例使用真实两页PDF、实际选中文件URI和生产renderer�
 原生bfd43c2/Android38614115299现已完整成功：实际下载11918424850单元及11920401437设备归档，两个ZIP CRC通过；XML为487单元与74设备，零失败/错误/跳过，明确包含两个PagePdfPreviewTest和全部五个PdfImportPreviewDeviceTest。原有聊天PDF与图像设备回归同轮执行。这是原生检查点证据，不等于后续API23 HTML验收。
 
 私有市场before/next实际校验完成，来自线上当前API22部署快照：API1..19完整目录相同，API20..22仅Git兼容补丁且API22仍选择workspace1.5.0；40个已公开版本全部下载字节保持，新API23包与远程生成SHA一致。staging路径.staging-api23-1792002855，尚未切换线上服务和客户端hostApi。
+
+候选7457b74/Android38616204223的build成功，实际下载11919662834并核对完整ZIP CRC/XML：490单元零失败/错误/跳过，明确包含选择/授权后图片关闭、API23声明门禁、真实1.5.0旧包迁移三个新增回归。Lint/APK/固定签名步骤成功，设备HTML任务116035044686仍在准备阶段；尚无候选HTML截图或正式0.35.0公开APK。HTTPS更新前22个旧API目录、40个历史下载已实际下载并SHA核对，记录public-before；私有API23服务尚未发布，客户端仍为hostApi22。
