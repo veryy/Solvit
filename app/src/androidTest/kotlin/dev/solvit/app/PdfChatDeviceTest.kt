@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.core.app.ActivityOptionsCompat
@@ -124,10 +125,10 @@ class PdfChatDeviceTest {
                         .joinToString(" | ") { it.text }.take(400)
                     android.util.Log.i("SolvitPdfFixture", "PDF_WAIT_STATE|$tag|${nodes.size}|$text")
                 }
-                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()?.let { bitmap ->
-                    val file = File(target.getExternalFilesDir(null), "pdf-fixture-wait-failure.png")
-                    try { file.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) } }
-                    finally { bitmap.recycle() }
+                runCatching {
+                    val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+                    android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
+                    android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/pdf-fixture-wait-failure.png")).use { it.readBytes() }
                 }
                 throw failure
             }
