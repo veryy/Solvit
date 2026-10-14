@@ -99,6 +99,29 @@ class WorkspaceInstructionsHookTest {
             market.uninstall(id);market.restore();assertFalse(file.exists())
         }
     }
+    @Test fun releasedApi25WorkspaceUpgradesWithoutResettingRulesGrantsOrCustomCode()=runBlocking<Unit> {
+        fixture { market,_,_,_ ->
+            val id="dev.solvit.workspace"
+            market.disable(id);market.configure(id,mapOf("projectRules" to "false"))
+            val original=javaClass.getResourceAsStream("/legacy/dev.solvit.workspace-1.8.0.solvit.json")!!.use { it.readBytes() }
+            assertEquals("e5ad26b643d323bd3b622094121316b94eaaf17400d62397c91243c5e7a3fe5d",
+                java.security.MessageDigest.getInstance("SHA-256").digest(original).joinToString("") { "%02x".format(it.toInt() and 255) })
+            val app=RuntimeEnvironment.getApplication()
+            val file=java.io.File(app.filesDir,"extensions/$id.solvit.json").apply { writeBytes(original) }
+            val prefs=app.getSharedPreferences("extension_permissions",0)
+            check(prefs.edit().putBoolean("seeded.$id.solvit.json",true).putBoolean("enabled.$id",true)
+                .putStringSet("grants.$id",setOf("workspace","shell")).commit())
+            market.restore()
+            assertEquals("1.9.0",market.installed.value.single { it.id==id }.version)
+            assertTrue(market.installed.value.single { it.id==id }.enabled)
+            assertEquals("false",market.configuration(id)["projectRules"])
+            assertEquals(setOf("workspace","shell"),prefs.getStringSet("grants.$id",emptySet()))
+            market.disable(id)
+            val modified=original+"\n".toByteArray();file.writeBytes(modified);market.restore()
+            assertContentEquals(modified,file.readBytes())
+            market.uninstall(id);market.restore();assertFalse(file.exists())
+        }
+    }
     @Test fun originalHtmlWorkspaceUpgradesAndModifiedOrUninstalledPackageIsPreserved() = runBlocking<Unit> {
         fixture { market, _, _, _ ->
             val original = javaClass.getResourceAsStream("/legacy/dev.solvit.workspace-1.1.0.solvit.json")!!.use { it.readBytes() }
@@ -179,7 +202,7 @@ class WorkspaceInstructionsHookTest {
             assertEquals("false", market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
             val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
-            assertEquals(25, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
+            assertEquals(26, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
             market.disable(id)
             val modified = original + "\n".toByteArray(); file.writeBytes(modified); market.restore()
             assertContentEquals(modified, file.readBytes())
@@ -203,7 +226,7 @@ class WorkspaceInstructionsHookTest {
             assertEquals("false", market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
             val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
-            assertEquals(25, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
+            assertEquals(26, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
             market.disable(id)
             val modified = original + "\n".toByteArray(); file.writeBytes(modified); market.restore()
             assertContentEquals(modified, file.readBytes())
@@ -227,7 +250,7 @@ class WorkspaceInstructionsHookTest {
             assertEquals("false", market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
             val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
-            assertEquals(25, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
+            assertEquals(26, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
             market.disable(id)
             val modified = original + "\n".toByteArray(); file.writeBytes(modified); market.restore()
             assertContentEquals(modified, file.readBytes())
