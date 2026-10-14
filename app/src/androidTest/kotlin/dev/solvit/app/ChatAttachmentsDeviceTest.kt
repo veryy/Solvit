@@ -171,6 +171,26 @@ class ChatAttachmentsDeviceTest {
             rule.onNodeWithTag("attachment_text_${document.id}").assertTextEquals("中文 fixture code 😀\nprint(42)")
             screenshot("chat-attachment-saved-text-preview")
             rule.onNodeWithTag("attachment_preview_close").performClick()
+            server.enqueue(MockResponse().setResponseCode(500).setBody("{\"error\":{\"message\":\"fixture temporary failure\"}}"))
+            rule.onNodeWithTag("chat_attach").performClick()
+            rule.waitUntil(10_000) { vm.attachmentDrafts.value[session].orEmpty().size == 2 && !vm.importingAttachment.value }
+            rule.onNodeWithTag("chat_send").performClick()
+            rule.waitUntil(15_000) { !vm.busy.value && vm.messages.value.lastOrNull()?.status == MessageStatus.FAILED }
+            val failed = vm.messages.value.last()
+            val originalUsers = vm.messages.value.filter { it.role == Role.USER }
+            assertEquals(2, originalUsers.size)
+            val failureHttp = server.takeRequest(5,TimeUnit.SECONDS) ?: error("missing failure request")
+            val failedBody = failureHttp.body.readUtf8()
+            server.enqueue(MockResponse().setHeader("Content-Type","text/event-stream")
+                .setBody("data: {\"choices\":[{\"delta\":{\"content\":\"retry answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"))
+            rule.onNodeWithTag("retry_reply_${failed.id}").performScrollTo().performClick()
+            rule.waitUntil(15_000) { !vm.busy.value && vm.messages.value.lastOrNull()?.content == "retry answer" }
+            val retryHttp = server.takeRequest(5,TimeUnit.SECONDS) ?: error("missing retry request")
+            assertEquals("Retry must send identical original user content, including image/text bytes",failedBody,retryHttp.body.readUtf8())
+            assertEquals(originalUsers,vm.messages.value.filter { it.role == Role.USER })
+            assertTrue(vm.messages.value.any { it.id == failed.id && it.status == MessageStatus.FAILED })
+            rule.onNodeWithTag("reply_attempts_reply-${originalUsers.last().id}").performScrollTo().assertExists()
+            rule.onAllNodesWithTag("retry_reply_${failed.id}").assertCountEquals(0)
             rule.runOnUiThread { vm.viewModelScope.cancel() }
             store.close()
             SqliteChatStore(context).use { reopened -> runBlocking {

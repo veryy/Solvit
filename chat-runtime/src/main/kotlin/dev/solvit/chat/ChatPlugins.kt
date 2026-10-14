@@ -40,6 +40,11 @@ class DefaultChatService(
         try { store.deleteSession(sessionId); roles?.select(sessionId, null); workspaces?.unbind(sessionId) } finally { turn.unlock() }
     }
 
+    override val supportsReplyRetry = true
+    override fun retryLatestReply(sessionId: String, replyId: String, config: ModelConfig,
+        authorization: ToolAuthorization): Flow<ModelChunk> =
+        sendTurn(sessionId, "", emptyList(), config, authorization, retryReplyId = replyId)
+
     override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization): Flow<ModelChunk> =
         sendAttachments(sessionId, text, emptyList(), config, authorization)
     override fun sendAttachments(sessionId: String, text: String, attachments: List<ChatAttachment>, config: ModelConfig,
@@ -48,8 +53,8 @@ class DefaultChatService(
         return sendTurn(sessionId, text, snapshot, config, authorization)
     }
     private fun sendTurn(sessionId: String, text: String, attachments: List<ChatAttachment>, config: ModelConfig,
-        authorization: ToolAuthorization): Flow<ModelChunk> = flow {
-        require(text.isNotBlank() || attachments.isNotEmpty())
+        authorization: ToolAuthorization, retryReplyId: String? = null): Flow<ModelChunk> = flow {
+        require(retryReplyId != null || text.isNotBlank() || attachments.isNotEmpty())
         require(attachments.isEmpty() || attachmentStore != null) { "附件服务未启用" }
         ChatMessage("validation", sessionId, Role.USER, text, attachments = attachments)
         config.validate()?.let { error(it) }
@@ -95,9 +100,19 @@ class DefaultChatService(
             sourceProfileId = modelProfiles?.state?.value?.profiles?.firstOrNull { it.config === config }?.id
             sourceTargets = if (store.supportsCompletedTurns) postTurnHooks?.admit(sourceRole).orEmpty() else emptyList()
             val conversation = workspaces?.bound(sessionId)?.let { ConversationContext(sessionId, it.id) }
-            val user = ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim(), attachments = attachments)
+            val user = if (retryReplyId == null) {
+                ChatMessage(UUID.randomUUID().toString(), sessionId, Role.USER, text.trim(), attachments = attachments)
+            } else {
+                val saved = store.history(sessionId)
+                val latest = requireNotNull(saved.lastOrNull()) { "原用户消息已不存在" }
+                require(latest.id == retryReplyId && latest.role == Role.ASSISTANT &&
+                    latest.status != MessageStatus.COMPLETE && latest.toolCalls.isEmpty()) { "只能重试当前最后一条失败或停止的回复" }
+                requireNotNull(saved.lastOrNull { it.role == Role.USER }) { "原用户消息已不存在" }.also {
+                    require(it.status == MessageStatus.COMPLETE) { "原用户消息已不存在" }
+                }
+            }
             sourceUserId = user.id
-            persist(user)
+            if (retryReplyId == null) persist(user)
             admitted = true
             if(store.supportsExecutionJournal) {
                 val run=ExecutionRun(UUID.randomUUID().toString(),sessionId,user.id,sourceRole?.id,conversation?.workspaceId,System.currentTimeMillis())

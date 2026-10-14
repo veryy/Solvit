@@ -5,21 +5,24 @@ import dev.solvit.core.*
 /** One assistant bubble per user turn, including every tool round and its final answer. */
 data class ChatRow(val id: String, val user: ChatMessage? = null,
     val messages: List<ChatMessage> = emptyList(), val activity: List<ModelChunk.ToolActivity> = emptyList(),
-    val generating: Boolean = false, val execution: ExecutionRun? = null)
+    val generating: Boolean = false, val execution: ExecutionRun? = null,
+    val previousAttempts: List<List<ChatMessage>> = emptyList(), val previousExecutions: List<ExecutionRun> = emptyList())
 
 /** Recovered observations belong to the same reply bubble, even if no reply was settled. */
 fun attachExecutions(rows: List<ChatRow>, runs: List<ExecutionRun>): List<ChatRow> {
-    val byUser=runs.associateBy { it.userMessageId }
+    val byUser=runs.groupBy { it.userMessageId }
     val result=mutableListOf<ChatRow>()
     rows.forEachIndexed { index,row ->
         if(row.user!=null) {
             result+=row
-            val run=byUser[row.user.id]
+            val run=byUser[row.user.id]?.lastOrNull()
             if(run!=null && run.eventCount>0 && rows.getOrNull(index+1)?.id!="reply-${row.user.id}")
                 result+=ChatRow("reply-${row.user.id}",execution=run)
         } else {
-            val run=byUser[row.id.removePrefix("reply-")]
-            result+=row.copy(execution=run?.takeIf { it.eventCount>0 && (it.workspaceId!=null || it.status!=ExecutionStatus.COMPLETE) })
+            val attempts=byUser[row.id.removePrefix("reply-")].orEmpty()
+            val run=attempts.lastOrNull()
+            result+=row.copy(execution=run?.takeIf { it.eventCount>0 && (it.workspaceId!=null || it.status!=ExecutionStatus.COMPLETE) },
+                previousExecutions=attempts.dropLast(1).filter { it.eventCount>0 })
         }
     }
     return result
@@ -28,11 +31,22 @@ fun attachExecutions(rows: List<ChatRow>, runs: List<ExecutionRun>): List<ChatRo
 fun presentChat(history: List<ChatMessage>, busy: Boolean = false, baseline: String? = null,
     sendingText: String = "", transcript: List<ModelMessage> = emptyList(), draft: String = "",
     reasoning: String = "", activity: List<ModelChunk.ToolActivity> = emptyList(),
-    holdSettlement: Boolean = false, sendingAttachments: List<ChatAttachment> = emptyList()): List<ChatRow> {
+    holdSettlement: Boolean = false, sendingAttachments: List<ChatAttachment> = emptyList(), retryUserId: String? = null): List<ChatRow> {
     val rows = mutableListOf<ChatRow>()
     var anchor = "orphan"
     var pending = mutableListOf<ChatMessage>()
-    fun flush() { if (pending.isNotEmpty()) { rows += ChatRow("reply-$anchor", messages = pending.toList()); pending = mutableListOf() } }
+    fun flush() {
+        if (pending.isEmpty()) return
+        val attempts = mutableListOf<List<ChatMessage>>()
+        var start = 0
+        pending.forEachIndexed { index, message ->
+            if (message.role == Role.ASSISTANT && message.toolCalls.isEmpty() && message.status != MessageStatus.COMPLETE && index < pending.lastIndex) {
+                attempts += pending.subList(start, index + 1).toList(); start = index + 1
+            }
+        }
+        rows += ChatRow("reply-$anchor", messages = pending.drop(start), previousAttempts = attempts)
+        pending = mutableListOf()
+    }
     for (message in history) when (message.role) {
         Role.USER -> { flush(); anchor = message.id; rows += ChatRow(message.id, user = message) }
         Role.ASSISTANT, Role.TOOL -> { if (anchor == "orphan" && pending.isEmpty()) anchor = message.id; pending += message }
@@ -41,18 +55,23 @@ fun presentChat(history: List<ChatMessage>, busy: Boolean = false, baseline: Str
     flush()
     if (!busy) return rows
     val baselineIndex = baseline?.let { id -> history.indexOfFirst { it.id == id } } ?: -1
-    val userIndex = history.indexOfLast { it.role == Role.USER }.takeIf { it > baselineIndex }
+    val userIndex = if (retryUserId != null) history.indexOfFirst { it.id == retryUserId && it.role == Role.USER }.takeIf { it >= 0 }
+        else history.indexOfLast { it.role == Role.USER }.takeIf { it > baselineIndex }
+    val retryRow = retryUserId?.let { id -> rows.firstOrNull { it.id == "reply-$id" } }
+    val retrySettled = retryUserId != null && history.drop(baselineIndex + 1).any { it.role == Role.ASSISTANT }
     // Atomic settlement can reach the history Flow before the Done event reaches the UI.
-    if (userIndex != null && history.drop(userIndex + 1).any { it.role == Role.ASSISTANT }) {
+    if (userIndex != null && (if (retryUserId == null) history.drop(userIndex + 1).any { it.role == Role.ASSISTANT } else retrySettled)) {
         if (!holdSettlement) return rows
         rows.removeAll { it.id == "reply-${history[userIndex].id}" }
     }
+    if (retryUserId != null) rows.removeAll { it.id == "reply-$retryUserId" }
     val userId = userIndex?.let { history[it].id } ?: "pending-user"
     if (userIndex == null) rows += ChatRow(userId, user = ChatMessage(userId, "", Role.USER, sendingText, attachments = sendingAttachments))
     val live = transcript.mapIndexed { index, message -> ChatMessage("live-$index", "", message.role, message.content,
         toolCalls = message.toolCalls, toolCallId = message.toolCallId, reasoning = message.reasoning, toolStage = message.toolStage, providerTranscript = message.providerTranscript) } +
         ChatMessage("live-answer", "", Role.ASSISTANT, draft, reasoning = reasoning)
-    rows += ChatRow("reply-$userId", messages = live, activity = activity, generating = true)
+    rows += ChatRow("reply-$userId", messages = live, activity = activity, generating = true,
+        previousAttempts = retryRow?.let { it.previousAttempts + if (!retrySettled) listOf(it.messages) else emptyList() }.orEmpty())
     return rows
 }
 

@@ -197,6 +197,11 @@ interface AgentRuntime {
     fun run(request: ModelRequest): Flow<ModelChunk>
 }
 interface ChatService {
+    val supportsReplyRetry: Boolean get() = false
+    /** Retry the latest incomplete reply using its existing user message, preserving prior attempts. */
+    fun retryLatestReply(sessionId: String, replyId: String, config: ModelConfig,
+        authorization: ToolAuthorization = DenyTools): Flow<ModelChunk> = error("聊天服务尚未支持重试")
+
     fun executionRuns(sessionId: String): Flow<List<ExecutionRun>> = kotlinx.coroutines.flow.flowOf(emptyList())
     suspend fun executionEvents(sessionId: String, runId: String): List<RecordedExecutionEvent> = emptyList()
     suspend fun executionFileContent(sessionId: String, runId: String, sequence: Int, path: String,

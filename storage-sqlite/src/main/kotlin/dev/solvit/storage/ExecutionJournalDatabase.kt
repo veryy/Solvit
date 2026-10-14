@@ -9,18 +9,29 @@ import java.io.ByteArrayOutputStream
 /** Called under SqliteChatStore's transaction and mutex; no callbacks or suspensions here. */
 internal object ExecutionJournalDatabase {
     fun create(db: SQLiteDatabase) {
-        db.execSQL("CREATE TABLE execution_runs (id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, user_message_id TEXT NOT NULL UNIQUE REFERENCES messages(id) ON DELETE CASCADE, role_id TEXT, workspace_id TEXT, started_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, status TEXT NOT NULL)")
+        db.execSQL("CREATE TABLE execution_runs (id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, user_message_id TEXT NOT NULL REFERENCES messages(id) ON DELETE CASCADE, role_id TEXT, workspace_id TEXT, started_at INTEGER NOT NULL, updated_at INTEGER NOT NULL, status TEXT NOT NULL)")
         db.execSQL("CREATE INDEX execution_runs_session ON execution_runs(session_id, started_at)")
         db.execSQL("CREATE UNIQUE INDEX execution_runs_active ON execution_runs(session_id) WHERE status='RUNNING'")
         db.execSQL("CREATE TABLE execution_events (run_id TEXT NOT NULL REFERENCES execution_runs(id) ON DELETE CASCADE, sequence INTEGER NOT NULL, recorded_at INTEGER NOT NULL, payload TEXT NOT NULL, PRIMARY KEY(run_id, sequence))")
         ExecutionFileCaptureDatabase.create(db)
+    }
+    /** Rebuild the owning tables transactionally; preserve events and immutable file references. */
+    fun migrateReplyAttempts(db: SQLiteDatabase) {
+        val tables = listOf("execution_runs", "execution_events", "execution_file_refs")
+        tables.forEach { db.execSQL("CREATE TEMP TABLE retry_backup_$it AS SELECT * FROM $it") }
+        tables.asReversed().forEach { db.execSQL("DROP TABLE $it") }
+        create(db)
+        tables.forEach {
+            db.execSQL("INSERT INTO $it SELECT * FROM retry_backup_$it")
+            db.execSQL("DROP TABLE retry_backup_$it")
+        }
     }
     fun begin(db: SQLiteDatabase, run: ExecutionRun): Boolean {
         run.validate(); require(run.status == ExecutionStatus.RUNNING && run.eventCount == 0)
         val source = db.rawQuery("SELECT id FROM messages WHERE session_id=? AND role='USER' AND status='COMPLETE' ORDER BY sequence DESC LIMIT 1", arrayOf(run.sessionId)).use {
             it.moveToFirst() && it.getString(0) == run.userMessageId
         }
-        if (!source || runs(db, run.sessionId).any { it.id == run.id || it.status == ExecutionStatus.RUNNING || it.userMessageId == run.userMessageId }) return false
+        if (!source || runs(db, run.sessionId).any { it.id == run.id || it.status == ExecutionStatus.RUNNING || (it.userMessageId == run.userMessageId && it.status == ExecutionStatus.COMPLETE) }) return false
         db.insertOrThrow("execution_runs", null, ContentValues().apply {
             put("id",run.id);put("session_id",run.sessionId);put("user_message_id",run.userMessageId)
             put("role_id",run.roleId);put("workspace_id",run.workspaceId);put("started_at",run.startedAt)
@@ -28,7 +39,7 @@ internal object ExecutionJournalDatabase {
         });return true
     }
     fun runs(db: SQLiteDatabase, sessionId: String): List<ExecutionRun> =
-        db.rawQuery("SELECT id,user_message_id,role_id,workspace_id,started_at,updated_at,status,(SELECT COUNT(*) FROM execution_events WHERE run_id=execution_runs.id) FROM execution_runs WHERE session_id=? ORDER BY started_at,id", arrayOf(sessionId)).use { c ->
+        db.rawQuery("SELECT id,user_message_id,role_id,workspace_id,started_at,updated_at,status,(SELECT COUNT(*) FROM execution_events WHERE run_id=execution_runs.id) FROM execution_runs WHERE session_id=? ORDER BY started_at,rowid", arrayOf(sessionId)).use { c ->
             buildList { while(c.moveToNext()) add(ExecutionRun(c.getString(0),sessionId,c.getString(1),
                 if(c.isNull(2)) null else c.getString(2),if(c.isNull(3)) null else c.getString(3),c.getLong(4),c.getLong(5),ExecutionStatus.valueOf(c.getString(6)),c.getInt(7))) }
         }

@@ -149,7 +149,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
     val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
     val executionRuns by vm.executionRuns.collectAsStateWithLifecycle()
-    val chatRows = attachExecutions(presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity,holdSettlement=busy, sendingAttachments=vm.sendingAttachments),
+    val chatRows = attachExecutions(presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity,holdSettlement=busy, sendingAttachments=vm.sendingAttachments, retryUserId=vm.retryingUserId),
         executionRuns.filter { it.sessionId==selected })
     val activeRole by agents.activeRole.collectAsStateWithLifecycle()
     val roleName = activeRole?.name ?: "Solvit"
@@ -316,6 +316,8 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
             } else {
                 CompositionLocalProvider(LocalChatAppearance provides chatAppearance) {
                 ChatTimeline(chatRows, selected, modifier=Modifier.weight(1f), assistantName=roleName,
+                    retryableReplyId=messages.lastOrNull()?.id,
+                    onRetry=if (!busy && !branching && !switching && vm.supportsReplyRetry) ({ reply -> if (reply.id == messages.lastOrNull()?.id) vm.retryReply(reply.id) }) else null,
                     onBranch = if (busy || branching) null else { message, mode ->
                         hideInput(); vm.branchError.value = null; branchTarget = message to mode
                     }, footer = if (workspaceId == null && !busy) ({

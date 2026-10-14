@@ -20,7 +20,7 @@ import java.io.ByteArrayOutputStream
 class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = ExecutionFileCaptureDatabase.MAX_QUOTA_BYTES) : ChatStore, AutoCloseable {
     init { require(captureQuotaBytes in 0..ExecutionFileCaptureDatabase.MAX_QUOTA_BYTES) }
     internal val attachmentFiles = AttachmentFiles(java.io.File(context.applicationContext.filesDir, "chat-attachments"))
-    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 10) {
+    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 11) {
         override fun onConfigure(db: SQLiteDatabase) { db.setForeignKeyConstraintsEnabled(true) }
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT NOT NULL, updated_at INTEGER NOT NULL, origin_session_id TEXT, origin_message_id TEXT)")
@@ -41,6 +41,7 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
             }
             if (oldVersion < 8) ExecutionJournalDatabase.create(db)
             if (oldVersion < 9) ExecutionFileCaptureDatabase.create(db)
+            if (oldVersion in 8..10) ExecutionJournalDatabase.migrateReplyAttempts(db)
             if (oldVersion < 7) createTurnTable(db)
             if (oldVersion < 6) createSummaryTable(db)
             if (oldVersion < 5) db.execSQL("ALTER TABLE messages ADD COLUMN provider_transcript TEXT")

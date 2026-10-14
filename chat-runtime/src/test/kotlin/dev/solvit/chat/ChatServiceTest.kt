@@ -24,6 +24,46 @@ private class MemoryStore : ChatStore {
 }
 
 class ChatServiceTest {
+    @Test fun retriesReuseOneUserAndAttachmentWithoutSendingFailedRepliesToModel() = runTest {
+        val store = MemoryStore()
+        val image = ChatAttachment(java.util.UUID.randomUUID().toString(), "image.png", "image/png", 4, "a".repeat(64))
+        var reads = 0
+        val files = object : ChatAttachmentStore {
+            override suspend fun import(sessionId: String, name: String, mimeType: String, input: java.io.InputStream,
+                authorize: suspend () -> Unit): ChatAttachment = error("unused")
+            override suspend fun read(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit): ByteArray {
+                assertEquals(image, attachment); reads++; return byteArrayOf(1, 2, 3, 4)
+            }
+            override suspend fun remove(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit) = error("must preserve original")
+        }
+        var calls = 0
+        val agent = object : AgentRuntime {
+            override fun run(request: ModelRequest) = flow {
+                assertEquals(listOf(Role.USER), request.messages.map { it.role })
+                assertEquals("AQIDBA==", request.messages.single().images.single().base64)
+                calls++
+                emit(ModelChunk.Text(if (calls < 3) "partial" else "success"))
+                if (calls < 3) throw ModelException("fixture failure")
+                emit(ModelChunk.Done)
+            }
+        }
+        val chat = DefaultChatService(store, agent, EventBus(), attachmentStore=files)
+        val config = ModelConfig(systemPrompt="")
+        assertFailsWith<ModelException> { chat.sendAttachments("session", "", listOf(image), config).toList() }
+        val firstFailure = store.saved.last()
+        assertFailsWith<ModelException> { chat.retryLatestReply("session", firstFailure.id, config).toList() }
+        val secondFailure = store.saved.last()
+        val before = store.saved.toList()
+        assertFailsWith<IllegalArgumentException> { chat.retryLatestReply("session", firstFailure.id, config).toList() }
+        assertEquals(before, store.saved)
+        chat.retryLatestReply("session", secondFailure.id, config).toList()
+        assertEquals(3, calls); assertEquals(3, reads)
+        assertEquals(1, store.saved.count { it.role == Role.USER })
+        assertEquals(listOf(image), store.saved.first().attachments)
+        assertEquals(listOf(MessageStatus.FAILED,MessageStatus.FAILED,MessageStatus.COMPLETE),store.saved.drop(1).map { it.status })
+        assertEquals(store.saved.first().id, store.turns.single().userMessageId)
+        assertFailsWith<IllegalArgumentException> { chat.retryLatestReply("session", store.saved.last().id, config).toList() }
+    }
     @Test fun oversizedHistoryAttachmentBudgetFailsBeforeReadingAnyBlobAndPreservesMessages() = runTest {
         val store = MemoryStore()
         val first = ChatAttachment(java.util.UUID.randomUUID().toString(), "one.png", "image/png", 12L * 1024 * 1024, "a".repeat(64))

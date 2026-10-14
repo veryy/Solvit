@@ -217,6 +217,18 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         try { persistConfiguration(value); config.value = value; configurationProblem = null; modelConfigured.value = true; error.value = null }
         finally { saving.value = false }
     }
+    var retryingUserId: String? = null
+        private set
+    val supportsReplyRetry get() = chat.supportsReplyRetry
+    fun retryReply(replyId: String): Boolean {
+        if (!chat.supportsReplyRetry || busy.value || switching.value || branching.value || !ready.value || importingAttachment.value) return false
+        val id = selected.value ?: return false
+        val latest = messages.value.lastOrNull() ?: return false
+        if (latest.id != replyId || latest.role != Role.ASSISTANT || latest.status == MessageStatus.COMPLETE) return false
+        val user = messages.value.lastOrNull { it.role == Role.USER } ?: return false
+        pauseQueue(id, true)
+        return startTurn(id, user.content, user.attachments, retryReplyId = replyId, retryUserId = user.id)
+    }
     fun send(text: String, attachments: List<ChatAttachment> = emptyList()): Boolean {
         val id = selected.value ?: return false
         if (branching.value || !ready.value || (text.isBlank() && attachments.isEmpty())) return false
@@ -280,7 +292,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         }
         return true
     }
-    private fun startTurn(id: String, text: String, attachments: List<ChatAttachment> = emptyList()): Boolean {
+    private fun startTurn(id: String, text: String, attachments: List<ChatAttachment> = emptyList(), retryReplyId: String? = null, retryUserId: String? = null): Boolean {
         if (selected.value != id || busy.value || branching.value || !ready.value || (text.isBlank() && attachments.isEmpty())) return false
         if (!configurationAvailable()) return false
         dismissError()
@@ -289,6 +301,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         reasoning.value = ""; liveTranscript.value = emptyList()
         turnBaseline = messages.value.lastOrNull { it.sessionId == id }?.id; sendingText = text.trim(); sendingAttachments = attachments.toList()
         toolActivity.value = emptyList()
+        retryingUserId = retryUserId
         busy.value = true
         val snapshot = config.value
         val started = nowMillis()
@@ -320,7 +333,9 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                     else -> error("Unexpected presentation event")
                 } }
                 try {
-                chat.sendAttachments(id, text, attachments, snapshot, gate).collect { chunk -> when (chunk) {
+                val response = if (retryReplyId == null) chat.sendAttachments(id, text, attachments, snapshot, gate)
+                    else chat.retryLatestReply(id, retryReplyId, snapshot, gate)
+                response.collect { chunk -> when (chunk) {
                     is ModelChunk.NativeTranscript -> Unit
                     is ModelChunk.Text -> {
                         if (chunk.value.isNotEmpty()) replyTiming.update { it?.copy(firstTextMs = it.firstTextMs ?: elapsed(),
@@ -348,7 +363,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             catch (e: IOException) { replyTiming.update { it?.copy(outcome = "failed") }; error.value = "网络连接失败，请检查 API 地址和网络" }
             catch (e: Exception) { replyTiming.update { it?.copy(outcome = "failed") }; error.value = "发送失败，请检查模型配置或缩短对话后重试" }
             finally {
-                busy.value = false; draft.value = ""; reasoning.value = ""; liveTranscript.value = emptyList(); toolApproval.value = null
+                busy.value = false; retryingUserId = null; draft.value = ""; reasoning.value = ""; liveTranscript.value = emptyList(); toolApproval.value = null
                 if (!completed) pauseQueue(id,true)
                 if (completed && !switching.value && !queuePaused.value) {
                     val finished = currentCoroutineContext()[Job]

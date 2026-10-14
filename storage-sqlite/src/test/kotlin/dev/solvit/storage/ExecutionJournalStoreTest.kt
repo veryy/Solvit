@@ -21,6 +21,26 @@ class ExecutionJournalStoreTest {
         val session=store.createSession();store.append(ChatMessage("user",session.id,Role.USER,"create a project"))
         return ExecutionRun("run",session.id,"user","coder","workspace",10).also { assertTrue(store.beginExecutionRun(it)) }
     }
+    @Test fun versionTenUpgradePreservesFailedFactsAndAdmitsNewAttemptForSameUser() = runBlocking<Unit> {
+        lateinit var run: ExecutionRun
+        SqliteChatStore(context).use { store ->
+            run=start(store)
+            assertTrue(store.appendExecutionEvents(run.id,0,listOf(ExecutionEvent(1,ExecutionKind.STEP_STARTED)),11))
+            assertTrue(store.finishExecutionRun(run.id,ExecutionStatus.FAILED,12))
+        }
+        SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path,null,SQLiteDatabase.OPEN_READWRITE).use { it.version=10 }
+        SqliteChatStore(context).use { store ->
+            assertEquals(1,store.executionEvents(run.sessionId,run.id).size)
+            assertEquals("create a project",store.history(run.sessionId).single().content)
+            val retry=run.copy(id="retry",startedAt=20,updatedAt=20)
+            assertTrue(store.beginExecutionRun(retry))
+            assertFalse(store.beginExecutionRun(retry.copy(id="concurrent")))
+            assertTrue(store.finishExecutionRun(retry.id,ExecutionStatus.COMPLETE,21))
+            assertEquals(listOf(ExecutionStatus.FAILED,ExecutionStatus.COMPLETE),store.executionRuns(run.sessionId).first().map { it.status })
+            assertFalse(store.beginExecutionRun(retry.copy(id="after-success",startedAt=30,updatedAt=30)))
+            assertEquals(1,store.executionEvents(run.sessionId,run.id).size)
+        }
+    }
     @Test fun factsAreDurableBeforeTurnSettlementAndWritesAreOrderedAndScoped() = runBlocking<Unit> {
         SqliteChatStore(context).use { store ->
             val run=start(store)

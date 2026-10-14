@@ -4,6 +4,22 @@ import dev.solvit.core.*
 import kotlin.test.*
 
 class ChatPresentationTest {
+    @Test fun retryStreamsInOriginalBubbleAndCollapsesFailedAttemptsAfterSettlement() {
+        val user=message("u",Role.USER,"question")
+        val failed=message("failed",Role.ASSISTANT,"old partial").copy(status=MessageStatus.FAILED)
+        val live=presentChat(listOf(user,failed),busy=true,baseline=failed.id,draft="new",retryUserId=user.id)
+        assertEquals(listOf("u","reply-u"),live.map { it.id })
+        assertEquals("new",live.last().messages.single().content)
+        assertEquals(listOf(listOf(failed)),live.last().previousAttempts)
+        val complete=message("success",Role.ASSISTANT,"new answer")
+        val waiting=presentChat(listOf(user,failed,complete),busy=true,baseline=failed.id,draft="new",holdSettlement=true,retryUserId=user.id)
+        assertEquals("new",waiting.last().messages.single().content)
+        assertEquals(listOf(listOf(failed)),waiting.last().previousAttempts)
+        val settled=presentChat(listOf(user,failed,complete))
+        assertEquals(listOf("u","reply-u"),settled.map { it.id })
+        assertEquals("new answer",settled.last().messages.single().content)
+        assertEquals(listOf(listOf(failed)),settled.last().previousAttempts)
+    }
     @Test fun recoveredExecutionUsesOriginalReplyBubbleWithoutInventingChatMessages() {
         val history=listOf(message("first",Role.USER,"task one"),message("answer",Role.ASSISTANT,"reply"),message("second",Role.USER,"run"))
         val first=ExecutionRun("r1","s","first",null,"workspace",1,status=ExecutionStatus.COMPLETE,eventCount=5)

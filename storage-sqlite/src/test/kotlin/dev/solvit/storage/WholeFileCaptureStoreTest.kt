@@ -37,10 +37,11 @@ class WholeFileCaptureStoreTest {
     private fun blobCount():Int=SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path,null,SQLiteDatabase.OPEN_READONLY).use { db ->
         db.rawQuery("SELECT COUNT(*) FROM execution_file_captures",null).use { c -> c.moveToFirst();c.getInt(0) }
     }
-    @Test fun fullUnicodeSurvivesReopenAndForeignChatEventPathCannotReadIt()=runBlocking<Unit> {
+    @Test fun fullUnicodeSurvivesVersionTenUpgradeAndForeignChatEventPathCannotReadIt()=runBlocking<Unit> {
         val text="完整代码🙂\n".repeat(10000)+"TAIL"
         lateinit var run:ExecutionRun
         SqliteChatStore(context).use { run=save(it,"first",text) }
+        SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path,null,SQLiteDatabase.OPEN_READWRITE).use { it.version=10 }
         SqliteChatStore(context).use { store ->
             assertEquals(text,store.executionFileContent(run.sessionId,run.id,2,"src/code.txt"))
             assertNull(store.executionFileContent("another-chat",run.id,2,"src/code.txt"))

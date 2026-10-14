@@ -5046,5 +5046,45 @@
     "ko": "첨부 읽는 중…",
     "es": "Leyendo adjunto…",
     "fr": "Lecture de la pièce jointe…"
+  },
+  "此前未完成的回复": {
+    "zh": "此前未完成的回复",
+    "en": "Previous incomplete replies",
+    "ja": "以前の未完了の返信",
+    "ko": "이전 미완료 답변",
+    "es": "Respuestas anteriores incompletas",
+    "fr": "Réponses précédentes incomplètes"
+  },
+  "重试回复": {
+    "zh": "重试回复",
+    "en": "Retry reply",
+    "ja": "返信を再試行",
+    "ko": "답변 다시 시도",
+    "es": "Reintentar respuesta",
+    "fr": "Réessayer la réponse"
+  },
+  "只能重试当前最后一条失败或停止的回复": {
+    "zh": "只能重试当前最后一条失败或停止的回复",
+    "en": "Only the latest failed or stopped reply can be retried",
+    "ja": "最後の失敗または停止した返信のみ再試行できます",
+    "ko": "마지막 실패 또는 중단된 답변만 다시 시도할 수 있습니다",
+    "es": "Solo se puede reintentar la última respuesta fallida o detenida",
+    "fr": "Seule la dernière réponse échouée ou arrêtée peut être réessayée"
+  },
+  "原用户消息已不存在": {
+    "zh": "原用户消息已不存在",
+    "en": "The original user message no longer exists",
+    "ja": "元のユーザーメッセージがありません",
+    "ko": "원래 사용자 메시지가 없습니다",
+    "es": "El mensaje original ya no existe",
+    "fr": "Le message initial n’existe plus"
+  },
+  "聊天服务尚未支持重试": {
+    "zh": "聊天服务尚未支持重试",
+    "en": "This chat service does not support retry",
+    "ja": "このチャットサービスは再試行に未対応です",
+    "ko": "이 채팅 서비스는 다시 시도를 지원하지 않습니다",
+    "es": "Este servicio no admite reintentos",
+    "fr": "Ce service ne prend pas en charge les nouvelles tentatives"
   }
 }

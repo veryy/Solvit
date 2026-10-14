@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.conflate
 @Composable
 fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = null,
     loadExecutionEvents: (suspend (ExecutionRun) -> List<RecordedExecutionEvent>)? = null,
-    onOpenFileChanges: ((ExecutionRun) -> Unit)? = null, assistantName: String = "Solvit", attachmentsContent: (@Composable (ChatMessage) -> Unit)? = null) {
+    onOpenFileChanges: ((ExecutionRun) -> Unit)? = null, assistantName: String = "Solvit", attachmentsContent: (@Composable (ChatMessage) -> Unit)? = null, onRetry: ((ChatMessage) -> Unit)? = null) {
     val appearance=LocalChatAppearance.current
     val typography=MaterialTheme.typography
     MaterialTheme(typography=typography.copy(
@@ -67,7 +67,24 @@ fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = nu
                     if (user.content.isNotEmpty()) SelectionContainer { Text(user.content, style=MaterialTheme.typography.bodyLarge) }
                 }
                 else {
+                    if (row.previousAttempts.isNotEmpty() || row.previousExecutions.isNotEmpty()) {
+                        var expanded by rememberSaveable(row.id) { mutableStateOf(false) }
+                        TextButton(onClick={ expanded = !expanded }, modifier=Modifier.testTag("reply_attempts_${row.id}")) {
+                            UiText("此前未完成的回复")
+                            Icon(if (expanded) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowRight, null)
+                        }
+                        if (expanded) {
+                            row.previousAttempts.forEach { attempt ->
+                                AssistantContents(row.copy(messages=attempt, previousAttempts=emptyList(), generating=false, activity=emptyList()))
+                                HorizontalDivider()
+                            }
+                            row.previousExecutions.forEach { ExecutionDetails(it,loadExecutionEvents,onOpenFileChanges) }
+                        }
+                    }
                     AssistantContents(row)
+                    if (!row.generating) row.messages.lastOrNull()?.takeIf { it.role == Role.ASSISTANT && it.status != MessageStatus.COMPLETE }?.let { reply ->
+                        if (onRetry != null) TextButton(onClick={ onRetry(reply) }, modifier=Modifier.testTag("retry_reply_${reply.id}")) { UiText("重试回复") }
+                    }
                     row.execution?.let { ExecutionDetails(it,loadExecutionEvents,onOpenFileChanges) }
                 }
             }
