@@ -105,3 +105,9 @@ Git测试在异步点击git_remote后立刻设置尚未生成的输入框，eval
 ## 已保存附件预览生命周期修复候选
 
 38509856329独立诊断的实际失败推进到ChatAttachmentsDeviceTest.kt:155：发送完成、HTTP图片字节与文本正文断言已执行通过，等待已保存文本预览失败。读取固定Operit AttachmentViewerDialog.kt:76–90/169–189与BubbleUserMessageComposable.kt:679–687，其预览分离为独立组件、IO读取文本；未复制LGPL实现。Solvit当前viewer状态/加载协程位于LazyColumn用户行，自动尾部滚动/IME尺寸变化回收行时会连带销毁Dialog。将预览引用与窗口移到ChatScreen按聊天绑定，卡片只提交打开事件，切换聊天自然释放，不依赖行是否可见。原精确正文断言保留，新增稳定文本节点和失败时有限状态，用原链路远程回归；尚未证明修复通过。
+
+## 配置读取失败的默认模型发送门禁
+
+复核认证错误链路发现ChatViewModel捕获settings.load失败后仍ready，startTurn会清除错误并使用构造时默认OpenAI地址。MockWebServer4.12源码hostName会读取canonicalHostName（可能触发DNS）；预先在测试线程获取URL后，实际HTTP内容断言已经通过，但没有记录原异常类别，不能断言代理就是原因。
+
+修复生产VM在普通读取/解密失败或ModelProfiles载入错误时锁住发送/打断/排队，清除提示不能解除门禁；只有成功保存或恢复配置、或Profiles明确清除载入错误才恢复。保留可读取的旧模型地址/名称，聊天仍可打开。新增回归覆盖普通IO失败与有部分配置的解密失败，原服务收不到任何文字/队列，恢复后只收到实际保存的指定连接。该回归待GitHub Actions，不宣称已通过。参考只读取[MockWebServer官方实现](https://raw.githubusercontent.com/square/okhttp/parent-4.12.0/mockwebserver/src/main/kotlin/okhttp3/mockwebserver/MockWebServer.kt)，无源码复制。

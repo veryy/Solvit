@@ -9,6 +9,42 @@ import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModelTest {
+    @Test fun failedConfigurationLoadCannotSendOrQueueAndRecoveryUsesOnlyTheSavedEndpoint() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        try {
+            val received = mutableListOf<ModelConfig>()
+            val chat = object : ChatService {
+                override fun sessions() = flowOf(listOf(ChatSession("session", "Test", 0)))
+                override fun messages(sessionId: String) = flowOf(emptyList<ChatMessage>())
+                override suspend fun createSession() = ChatSession("session", "Test", 0)
+                override suspend fun deleteSession(sessionId: String) = Unit
+                override fun send(sessionId: String, text: String, config: ModelConfig, authorization: ToolAuthorization) = flow {
+                    received += config; emit(ModelChunk.Text("ok")); emit(ModelChunk.Done)
+                }
+            }
+            for (failure in listOf(java.io.IOException("fixture read failure"),
+                SettingsDecryptionException(ModelConfig("https://saved.example/v1", "saved-model"), java.io.IOException("fixture key failure")))) {
+                var saved: ModelConfig? = null
+                val settings = object : SettingsStore {
+                    override suspend fun load(): ModelConfig = throw failure
+                    override suspend fun save(config: ModelConfig) { saved = config }
+                }
+                val vm = ChatViewModel(chat, settings)
+                try {
+                    runCurrent(); assertTrue(vm.ready.value)
+                    val original = vm.error.value; assertNotNull(original)
+                    vm.dismissError(); assertFalse(vm.send("private text")); assertEquals(original, vm.error.value)
+                    assertFalse(vm.interruptAndSend("private text")); runCurrent()
+                    assertTrue(vm.queuedMessages.value.isEmpty()); assertTrue(received.isEmpty())
+                    val recovery = ModelConfig("https://chosen.example/v1", "chosen-model")
+                    vm.restoreConfig(recovery); assertSame(recovery, saved)
+                    assertTrue(vm.send("after recovery")); runCurrent()
+                    assertSame(recovery, received.single()); received.clear()
+                } finally { vm.viewModelScope.cancel() }
+            }
+        } finally { Dispatchers.resetMain() }
+    }
+
     @Test fun queuedAttachmentOnlyMessagesKeepAnImmutableSnapshotAndCanInterrupt() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {

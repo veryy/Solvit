@@ -16,6 +16,12 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
     val errorDetails = MutableStateFlow<ModelErrorDetails?>(null)
+    private var configurationProblem: String? = null
+    private fun configurationAvailable(): Boolean {
+        val problem = configurationProblem ?: return true
+        error.value = problem
+        return false
+    }
     fun dismissError() { error.value = null; errorDetails.value = null }
     private val selected = MutableStateFlow<String?>(null)
     val sessionId = selected.asStateFlow()
@@ -136,12 +142,11 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         if (profiles != null) viewModelScope.launch {
             profiles.state.collect { state -> config.value = state.selected(ModelTask.CHAT)!!.config; modelConfigured.value = state.configured }
         }
-        if (profiles != null) viewModelScope.launch { profiles.loadError.collect { if (it != null) error.value = it } }
+        if (profiles != null) viewModelScope.launch { profiles.loadError.collect { configurationProblem = it; if (it != null) error.value = it } }
         viewModelScope.launch {
-            try { if (profiles == null) config.value = settings.load() }
-            catch (e: SettingsDecryptionException) { config.value = e.partial; error.value = "API Key 无法解密；模型地址和提示词已保留，请恢复备份或重新填写密钥" }
-            catch (e: Exception) { error.value = "模型配置无法解密，请在设置中重新保存 API Key" }
-            if (profiles == null) modelConfigured.value = settings.isConfigured()
+            try { if (profiles == null) { config.value = settings.load(); modelConfigured.value = settings.isConfigured() } }
+            catch (e: SettingsDecryptionException) { config.value = e.partial; configurationProblem = "API Key 无法解密；模型地址和提示词已保留，请恢复备份或重新填写密钥"; error.value = configurationProblem }
+            catch (e: Exception) { configurationProblem = "模型配置无法解密，请在设置中重新保存 API Key"; error.value = configurationProblem }
             try {
                 chooseSession(chat.sessions().first().firstOrNull()?.id ?: createRoleSession(null).id)
                 ready.value = true
@@ -200,7 +205,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         value.validate()?.let { error.value = it; return }
         saving.value = true
         viewModelScope.launch {
-            try { persistConfiguration(value); config.value = value; modelConfigured.value = true; error.value = null; onSaved() }
+            try { persistConfiguration(value); config.value = value; configurationProblem = null; modelConfigured.value = true; error.value = null; onSaved() }
             catch (e: Exception) { error.value = "保存模型配置失败" }
             finally { saving.value = false }
         }
@@ -209,13 +214,13 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         check(!busy.value && !branching.value && !saving.value) { "请等待当前操作结束" }
         value.validate()?.let { error(it) }
         saving.value = true
-        try { persistConfiguration(value); config.value = value; modelConfigured.value = true; error.value = null }
+        try { persistConfiguration(value); config.value = value; configurationProblem = null; modelConfigured.value = true; error.value = null }
         finally { saving.value = false }
     }
     fun send(text: String, attachments: List<ChatAttachment> = emptyList()): Boolean {
         val id = selected.value ?: return false
         if (branching.value || !ready.value || (text.isBlank() && attachments.isEmpty())) return false
-        if (!validAttachments(attachments)) return false
+        if (!configurationAvailable() || !validAttachments(attachments)) return false
         config.value.validate()?.let { error.value = it; return false }
         if (queuedMessages.value.size >= 32) { error.value = "等待队列已满，请先发送或移除消息"; return false }
         if (busy.value || switching.value || queuedMessages.value.any { it.sessionId == id }) {
@@ -261,7 +266,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     fun interruptAndSend(text: String, attachments: List<ChatAttachment> = emptyList()): Boolean {
         val id = selected.value ?: return false
         if (switching.value || branching.value || !ready.value || (text.isBlank() && attachments.isEmpty())) return false
-        if (!validAttachments(attachments)) return false
+        if (!configurationAvailable() || !validAttachments(attachments)) return false
         config.value.validate()?.let { error.value = it; return false }
         if (queuedMessages.value.size >= 32) { error.value = "等待队列已满，请先发送或移除消息"; return false }
         val item = QueuedMessage(UUID.randomUUID().toString(), id, text.trim(), attachments.toList())
@@ -277,6 +282,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     }
     private fun startTurn(id: String, text: String, attachments: List<ChatAttachment> = emptyList()): Boolean {
         if (selected.value != id || busy.value || branching.value || !ready.value || (text.isBlank() && attachments.isEmpty())) return false
+        if (!configurationAvailable()) return false
         dismissError()
         config.value.validate()?.let { error.value = it; return false }
         draft.value = ""
