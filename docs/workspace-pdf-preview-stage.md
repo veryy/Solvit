@@ -33,3 +33,7 @@ HTML设备用例使用真实两页PDF、实际选中文件URI和生产renderer�
 私有市场before/next实际校验完成，来自线上当前API22部署快照：API1..19完整目录相同，API20..22仅Git兼容补丁且API22仍选择workspace1.5.0；40个已公开版本全部下载字节保持，新API23包与远程生成SHA一致。staging路径.staging-api23-1792002855，尚未切换线上服务和客户端hostApi。
 
 候选7457b74/Android38616204223的build成功，实际下载11919662834并核对完整ZIP CRC/XML：490单元零失败/错误/跳过，明确包含选择/授权后图片关闭、API23声明门禁、真实1.5.0旧包迁移三个新增回归。Lint/APK/固定签名步骤成功，设备HTML任务116035044686仍在准备阶段；尚无候选HTML截图或正式0.35.0公开APK。HTTPS更新前22个旧API目录、40个历史下载已实际下载并SHA核对，记录public-before；私有API23服务尚未发布，客户端仍为hostApi22。
+
+候选7457b74的Android38616204223已全通过。实际下载UI11920259565（5577055字节），完整ZIP CRC/XML为75设备零失败/错误/跳过；WorkspacePdfHtmlTest通过真实两页PDF、生产选中文件/renderer/QuickJS/HTML，检查当前页文字、蓝色像素、页码越界不读取、取消选择/确认保留页与路径、确认导入磁盘原字节。实际查看截图，第二页PAGE2/蓝色矩形、上一页/查看页面/禁用下一页及底部确认按钮均完整可见；截图保存到screenshots/0.35.0/workspace-import-pdf-candidate.png。原有PDF、图片、Git/Shell及覆盖升级回归同轮保留通过。
+
+API23服务已从验证过的private staging更新，备份.backup-api23-1792004121872。更新后实际HTTPS校验23 API目录及40个历史下载SHA/字节；API1..19目录完全不变，API20..22仅Git兼容补丁，API22仍workspace1.5.0，API23当前workspace1.6.0/Git1.2.2下载与仓库一致。之后才将客户端catalog请求切换hostApi23并更新真实MockWebServer断言。候选完整设备与截图已通过，准备FF合入main及不可变v0.35.0标签；最终同源六项门禁与公开APK/源码仍需执行。

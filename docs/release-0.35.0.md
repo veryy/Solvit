@@ -1,6 +1,6 @@
 # Solvit 0.35.0：在工作区预览 PDF
 
-候选版本，尚未公开发布。当前公开下载仍为 [0.34.0](https://github.com/veryy/Solvit/releases/tag/v0.34.0)。正式 APK 必须等待同源标签的完整测试、设备界面、Linux 环境、固定签名和覆盖升级通过。
+本版给工作区加入 PDF 原页和文字预览。发布流程只有在同源标签的完整测试、设备界面、Linux 环境、固定签名和覆盖升级通过后才公开 APK；下载核对结果会记录在下方。
 
 在聊天绑定的工作区文件页选择 PDF，点「预览 PDF」，就能查看原页和当前页文字。可以前后翻页，也可以输入页码；扫描页显示原页，并说明当前页没有可提取文字。预览不会写文件，确认导入才将完整原 PDF 放入 AI、终端与 Git 共用的工作目录。
 
@@ -18,6 +18,10 @@ PDF文字提取与渲染使用现有PDFBox和Android PdfRenderer，不新增库�
 
 原生检查点bfd43c2的[Android38614115299](https://github.com/veryy/Solvit/actions/runs/38614115299)全部成功，报告ZIP CRC/XML为487单元、74设备，零失败/错误/跳过。包含真实PDF第二页文字/蓝色像素、扫描页、截断、坏文件/密码/撤权与取消清理，以及原聊天PDF/图片回归。
 
-候选7457b74的[Android38616204223](https://github.com/veryy/Solvit/actions/runs/38616204223)build成功；实际下载单元报告核对490/0/0/0，Lint/APK/固定签名门禁成功，HTML设备任务仍运行。[TypeScript38615928135](https://github.com/veryy/Solvit/actions/runs/38615928135)的生成、typecheck、118 SDK/5市场、公网搜索/MCP/Skills检查通过；生成包下载ZIP CRC已核对。API23私有市场检查40历史下载及旧API兼容通过，更新前公开HTTPS下载也已核对，尚未切换线上服务和客户端hostApi。
+候选7457b74的[Android38616204223](https://github.com/veryy/Solvit/actions/runs/38616204223)build成功；实际下载单元报告核对490/0/0/0，Lint/APK/固定签名门禁成功，HTML设备任务已通过；完整下载UI归档并核对75设备零失败/错误/跳过，实际查看第二页截图正常。[TypeScript38615928135](https://github.com/veryy/Solvit/actions/runs/38615928135)的生成、typecheck、118 SDK/5市场、公网搜索/MCP/Skills检查通过；生成包下载ZIP CRC已核对。API23私有市场检查40历史下载及旧API兼容通过，更新前后公开HTTPS下载都已核对：API1..19目录不变，API20..22仅Git兼容补丁，API22继续workspace1.5.0；40历史下载保持，API23新包与仓库字节一致。服务更新完成后客户端才切换hostApi23，原生执行器仍来自锁定源码。
 
-正式截图、同源标签与公开APK/源码下载核对随后补充。本记录不代表整个Agent项目或完整文件导入范围完成。
+候选真实页面截图：
+
+![工作区PDF第二页与导入操作](screenshots/0.35.0/workspace-import-pdf-candidate.png)
+
+正式同源标签门禁与公开APK/源码下载核对随后补充。本记录不代表整个Agent项目或完整文件导入范围完成。
