@@ -29,3 +29,11 @@ Root 可以操作整个设备；普通文件 API 仍限定在工作区内。不�
 工作区概念参考 [VS Code](https://code.visualstudio.com/docs/editing/workspaces/workspaces)：目录与运行上下文。终端会话接口参考 [Operit Terminal](https://github.com/AAswordman/OperitTerminal)；PTY 实现为独立编写的 POSIX/JNI 后端，未复制其代码。目前尚未提供其 Ubuntu 环境。
 
 API13离线终端包1.1.0与APK一致，API5–12市场继续提供原始1.0.0。仅字节匹配的旧内置包自动升级并保留启用与授权；修改包和卸载状态不覆盖。接口见[插件终端页面](plugin-terminal-pages.md)，验证与未完成范围见[0.22.3候选](release-0.22.3.md)。
+
+## Linux 开发环境（0.31 候选）
+
+打开「工作区 → Linux」下载 Ubuntu。安装结束后点「新建 Ubuntu Shell」，该 Shell 会持久保存 `UBUNTU` 运行环境。Python/venv、Node24/npm 随基础安装提供，Python/pip 和 Java17 可以继续安装。新建的 Ubuntu Shell 与 Android Shell 使用同一个工作目录；终端和 AI 命令都映射到 `/workspace`，文件管理立即看到脚本输出的文件。
+
+没有工作区时也能安装全局环境，但必须先创建/绑定工作区才能添加 Ubuntu Shell。原有 Android Shell 不自动改名或切换运行环境。Linux 页面提供进度、近期日志、停止和重试；失败的初次安装保持未安装，重装失败保留已启用环境。
+
+该环境使用 Android 内核和应用身份，不获得 root 或额外 Android 权限。当前 ARM64/x86_64 提供程序，API35 x86_64 设备测试与 ARM64 真机状态请看 [验收记录](linux-environment-stage.md)。Node24 的官方 Linux 支持基线为内核4.18以上；旧手机的兼容性须实际验证。公开版本与下载以 Release 为准。

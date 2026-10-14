@@ -99,3 +99,13 @@ sources包含path、TEXT/ABSENT/BINARY/OVERSIZED/UNAVAILABLE状态；TEXT有完�
 此接口仅供beforeModel，不可从工具、页面或activate/deactivate调用；不会开放普通workspace.read/write或Shell。内置工作区1.2.0默认自动读取（用户启用并授予workspace/shell后），配置projectRules=false可关闭。每个模型步骤重新读取，修改/删除后旧Hook投影不会写入持久聊天历史或继续使用。包内TS按12KiB UTF-8预算渲染并优先保留local来源，省略/截断明确标记，资料不提升为角色/系统指令。受控Provider测试不代表真实模型遵守规则。
 
 当前最新可安装APK仍是0.24.1，候选包及桥接在feat/workspace-instructions完整验收中。实际证据与边界见[阶段记录](workspace-instructions-stage.md)。
+
+## API21：Linux 环境页面
+
+`dev.solvit.environment` 展示一份独立的 JS/HTML 环境管理页面；下载、解包、软件安装和子进程由原生 `environment.linux` 服务承担。第三方页面若使用这些能力，需要 `apiVersion: 21`、`nativeServices: ["environment.linux"]`，以及 `workspace`、`shell`、`network` 三项权限。
+
+页面通过 `ctx.workspacePage.query('environmentStatus')` 获取 `supported`、`installed`、`stage`、`bytes`、`total`、`output`、`failure`。`output` 是有界近期日志，不能当作全部安装记录。`snapshot` 返回当前工作区和 Shell 的 `runtime`（`ANDROID` 或 `UBUNTU`）。
+
+管理控件声明 `kind: 'workspace.perform'`，操作包括 `installEnvironment`、`cancelEnvironment`、`installSoftware`（`software` 只允许 `PYTHON`、`NODE`、`JAVA`）、`createLinuxShell`（当前工作区及名称）。执行仅接受当前页面已显示、由用户确认的单次原生操作；脚本不能提供进程参数、安装命令、下载地址、归档哈希或宿主私有目录。没有 API21、服务声明或完整权限时拒绝调用。
+
+安装环境不会把 QuickJS 变成 Node，也不会为 MCP 自动启动本地进程。AI 使用已创建的 Ubuntu Shell，通过现有工作区工具和对话内授权执行命令。安装本身属于人类环境管理页面，不向模型添加一个可随意安装系统环境的工具。
