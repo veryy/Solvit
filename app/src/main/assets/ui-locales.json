@@ -5086,5 +5086,29 @@
     "ko": "이 채팅 서비스는 다시 시도를 지원하지 않습니다",
     "es": "Este servicio no admite reintentos",
     "fr": "Ce service ne prend pas en charge les nouvelles tentatives"
+  },
+  "复制这条问题之前的记录，编辑后的问题和附件会放入新分支的输入框，由你发送。": {
+    "zh": "复制这条问题之前的记录，编辑后的问题和附件会放入新分支的输入框，由你发送。",
+    "en": "Copy the history before this question. The edited question and attachments go into the new branch composer for you to send.",
+    "ja": "この質問より前の履歴をコピーします。編集した質問と添付ファイルは新しい分岐の入力欄に入り、送信できます。",
+    "ko": "이 질문 이전의 기록을 복사합니다. 수정한 질문과 첨부 파일은 새 분기의 입력란에서 보낼 수 있습니다.",
+    "es": "Copia el historial anterior a esta pregunta. La pregunta editada y sus adjuntos aparecerán en la nueva rama para que los envíes.",
+    "fr": "Copiez l’historique avant cette question. La question modifiée et ses pièces jointes seront prêtes à envoyer dans la nouvelle branche."
+  },
+  "附件将带回输入框，可以预览、移除或添加。": {
+    "zh": "附件将带回输入框，可以预览、移除或添加。",
+    "en": "Attachments return to the composer. Preview, remove, or add files before sending.",
+    "ja": "添付ファイルを入力欄に戻します。送信前にプレビュー、削除、追加できます。",
+    "ko": "첨부 파일을 입력란으로 가져옵니다. 보내기 전에 미리 보기, 삭제 또는 추가할 수 있습니다.",
+    "es": "Los adjuntos vuelven al cuadro de entrada. Puedes verlos, quitarlos o añadir archivos antes de enviar.",
+    "fr": "Les pièces jointes reviennent dans la zone de saisie. Vous pouvez les consulter, les retirer ou en ajouter avant l’envoi."
+  },
+  "附件清理失败": {
+    "zh": "附件清理失败",
+    "en": "Attachment cleanup failed",
+    "ja": "添付ファイルの削除に失敗しました",
+    "ko": "첨부 파일 정리에 실패했습니다",
+    "es": "No se pudieron limpiar los adjuntos",
+    "fr": "Échec du nettoyage des pièces jointes"
   }
 }
