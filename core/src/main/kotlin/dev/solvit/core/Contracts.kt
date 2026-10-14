@@ -17,7 +17,13 @@ data class ChatMessage(
     val reasoning: String = "",
     val toolStage: ToolStage? = null,
     val providerTranscript: ProviderTranscript? = null,
-)
+    val attachments: List<ChatAttachment> = emptyList(),
+) {
+    init {
+        require(attachments.size <= 8 && attachments.map { it.id }.distinct().size == attachments.size) { "附件数量或标识无效" }
+        require(attachments.isEmpty() || role == Role.USER) { "附件只能属于用户消息" }
+    }
+}
 data class ChatSession(val id: String, val title: String, val updatedAt: Long,
     val originSessionId: String? = null, val originMessageId: String? = null)
 data class ToolCall(val id: String, val name: String, val argumentsJson: String)
@@ -30,6 +36,7 @@ data class ModelMessage(
     val toolStage: ToolStage? = null,
     val providerTranscript: ProviderTranscript? = null,
     val sourceMessageId: String? = null,
+    val attachments: List<ChatAttachment> = emptyList(),
 )
 
 const val DEFAULT_SYSTEM_PROMPT = "你是 Solvit，一个认真、可靠的 AI 助手。"

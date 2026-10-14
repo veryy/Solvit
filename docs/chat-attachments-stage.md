@@ -25,3 +25,7 @@ Solvit目前ChatMessage/ModelMessage只有文本，ChatService.send和ChatViewMo
 5. 视觉能力选择/错误提示、Token预算及摘要保留附件来源；不声称所有OpenAI兼容模型支持视觉。
 6. 文件导入工作区和预览共用当前目录权限；用户取消或切换聊天不得落入其他目录。
 7. GitHub Actions验证原测试、真实HTTP模型请求、数据库迁移及Android选择/预览/保存/重开；固定签名APK和覆盖更新后发布。真实模型和真机验收单独记录。
+
+## 消息与数据库引用
+
+ChatMessage新增默认空附件列表，限定用户消息/最多8个且ID不能重复；ModelMessage保留引用，completeContext投影不丢弃用户附件。SQLite版本9→10添加默认空attachments列，保存元数据而非图片字节；读取完整引用并校验。新增实际数据库重开及真实v9消息表迁移回归，保留已有文字历史。此项待远程验证；模型图像编码、摘要/分支文件归属、选择器和App接入仍待完成，不将数据库字段视为可上传。

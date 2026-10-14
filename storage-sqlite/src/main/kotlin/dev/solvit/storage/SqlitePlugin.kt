@@ -19,17 +19,18 @@ import java.io.ByteArrayOutputStream
 
 class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = ExecutionFileCaptureDatabase.MAX_QUOTA_BYTES) : ChatStore, AutoCloseable {
     init { require(captureQuotaBytes in 0..ExecutionFileCaptureDatabase.MAX_QUOTA_BYTES) }
-    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 9) {
+    private val helper = object : SQLiteOpenHelper(context.applicationContext, "solvit.db", null, 10) {
         override fun onConfigure(db: SQLiteDatabase) { db.setForeignKeyConstraintsEnabled(true) }
         override fun onCreate(db: SQLiteDatabase) {
             db.execSQL("CREATE TABLE sessions (id TEXT PRIMARY KEY, title TEXT NOT NULL, updated_at INTEGER NOT NULL, origin_session_id TEXT, origin_message_id TEXT)")
-            db.execSQL("CREATE TABLE messages (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, role TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL, tool_calls TEXT NOT NULL DEFAULT '[]', tool_call_id TEXT, reasoning TEXT NOT NULL DEFAULT '', tool_stage TEXT, provider_transcript TEXT)")
+            db.execSQL("CREATE TABLE messages (sequence INTEGER PRIMARY KEY AUTOINCREMENT, id TEXT UNIQUE NOT NULL, session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE, role TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL, tool_calls TEXT NOT NULL DEFAULT '[]', tool_call_id TEXT, reasoning TEXT NOT NULL DEFAULT '', tool_stage TEXT, provider_transcript TEXT, attachments TEXT NOT NULL DEFAULT '[]')")
             db.execSQL("CREATE INDEX messages_session ON messages(session_id, sequence)")
             createSummaryTable(db)
             createTurnTable(db)
             ExecutionJournalDatabase.create(db)
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+            if (oldVersion < 10) db.execSQL("ALTER TABLE messages ADD COLUMN attachments TEXT NOT NULL DEFAULT '[]'")
             if (oldVersion < 8) ExecutionJournalDatabase.create(db)
             if (oldVersion < 9) ExecutionFileCaptureDatabase.create(db)
             if (oldVersion < 7) createTurnTable(db)
@@ -133,7 +134,7 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
             substr(CAST(reasoning AS BLOB),1,$READ_CHUNK),tool_stage,
             substr(CAST(provider_transcript AS BLOB),1,$READ_CHUNK),
             length(CAST(content AS BLOB)),length(CAST(tool_calls AS BLOB)),
-            length(CAST(reasoning AS BLOB)),length(CAST(provider_transcript AS BLOB))
+            length(CAST(reasoning AS BLOB)),length(CAST(provider_transcript AS BLOB)),attachments
             FROM messages WHERE session_id=? ${if (ids == null) "" else "AND id IN (${ids.joinToString(",") { "?" }})"} ORDER BY sequence""", (listOf(sessionId) + ids.orEmpty()).toTypedArray()).use { c ->
             buildList { while (c.moveToNext()) {
                 val id=c.getString(0)
@@ -141,7 +142,8 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
                     MessageStatus.valueOf(c.getString(3)),decodeCalls(readText(db,c,id,"tool_calls",4,10)),
                     if(c.isNull(5)) null else c.getString(5),readText(db,c,id,"reasoning",6,11),
                     if(c.isNull(7)) null else ToolStage.valueOf(c.getString(7)),
-                    if(c.isNull(8)) null else decodeTranscript(readText(db,c,id,"provider_transcript",8,12))))
+                    if(c.isNull(8)) null else decodeTranscript(readText(db,c,id,"provider_transcript",8,12)),
+                    attachments = decodeAttachments(c.getString(13))))
             } }
         }
     /** Read UTF-8 as bytes, so chunk boundaries and embedded NULs do not alter text. */
@@ -350,11 +352,24 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
             put("tool_call_id", message.toolCallId)
             put("reasoning", message.reasoning); put("tool_stage", message.toolStage?.name)
             put("provider_transcript", message.providerTranscript?.let { encodeTranscript(it) })
+            put("attachments", JSONArray(message.attachments.map { attachment -> JSONObject().apply {
+                put("id", attachment.id); put("name", attachment.name); put("mime_type", attachment.mimeType)
+                put("size_bytes", attachment.sizeBytes); put("sha256", attachment.sha256)
+            } }).toString())
         })
     }
     override suspend fun deleteSession(sessionId: String) { write {
         it.delete("sessions", "id=?", arrayOf(sessionId)); ExecutionFileCaptureDatabase.collect(it)
     } }
+    private fun decodeAttachments(value: String): List<ChatAttachment> {
+        val array = JSONArray(value)
+        check(array.length() <= 8) { "附件记录无效" }
+        return (0 until array.length()).map { index ->
+            val item = array.getJSONObject(index)
+            ChatAttachment(item.getString("id"), item.getString("name"), item.getString("mime_type"),
+                item.getLong("size_bytes"), item.getString("sha256"))
+        }
+    }
     private fun decodeCalls(value: String): List<ToolCall> {
         val array = JSONArray(value)
         return (0 until array.length()).map { index ->

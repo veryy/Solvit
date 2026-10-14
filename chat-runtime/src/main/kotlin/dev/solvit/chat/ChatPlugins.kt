@@ -146,13 +146,13 @@ internal fun completeContext(history: List<ChatMessage>, trackSources: Boolean =
         val message = history[index++]
         if (message.role == Role.TOOL) continue
         if (message.toolCalls.isEmpty()) { result += ModelMessage(message.role, message.content, providerTranscript=message.providerTranscript,
-            sourceMessageId = message.id.takeIf { trackSources }); continue }
+            sourceMessageId = message.id.takeIf { trackSources }, attachments = message.attachments); continue }
         val batch = history.drop(index).takeWhile { it.role == Role.TOOL }
         index += batch.size
         val ids = message.toolCalls.map { it.id }
         if (ids.toSet().size != ids.size || batch.size != ids.size || batch.map { it.toolCallId }.toSet() != ids.toSet()) continue
         result += ModelMessage(message.role, message.content, message.toolCalls, providerTranscript=message.providerTranscript,
-            sourceMessageId = message.id.takeIf { trackSources })
+            sourceMessageId = message.id.takeIf { trackSources }, attachments = message.attachments)
         result += batch.map { ModelMessage(Role.TOOL, it.content, toolCallId = it.toolCallId, toolStage = it.toolStage,
             sourceMessageId = it.id.takeIf { trackSources }) }
     }
