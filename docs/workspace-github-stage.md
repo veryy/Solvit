@@ -67,7 +67,7 @@ FileRepository.java、HttpAuthMethod.java与实际PushCommandTest/PullCommandTes
 Android实现依赖已包内JGit，自行实现HttpConnection适配，不复制上游代码。
 CI夹具运行真正git http-backend，临时TLS证书仅用于原生测试；插件无跳过TLS设置。
 原生测试覆盖HTTP下载/提交/重新读取/非快进拒绝、双仓库冲突与双父提交、认证/重定向失败、
-实际TLS等待期间取消及工作区文件保留。尚未运行，结果待核对；当前原语尚未接到
+实际TLS等待期间取消及工作区文件保留。首次结果及修复记录如下，两个API尚未全部通过；当前原语尚未接到
 BoundWorkspaceGit、插件页面或AI工具，克隆与pull的工作区安装/审阅流程继续实现。
 
 首轮源5f839c8的38491692812，API26实际产物11861798360检查CRC/XML：
@@ -81,3 +81,10 @@ InputStream.transferTo，在Android26抛NoSuchMethodError。固定JGit另一chec
 位于1568，同型PatchApplier:790也使用此方法。已有ASM兼容转换新增该签名到
 AndroidInputStreams.transferTo，读取短块/零字节、写错误及不关闭任一流增加回归。
 保持原始HTTP双仓库/冲突/非快进场景及两个API级别，修复结果待远程核对。
+
+
+源e601d1f报告已实际下载并核对ZIP CRC/XML：API35产物11862033525的14项全通过，
+四项RepositoryRemoteTransportTest均执行成功，包括真实HTTP引用更新/非快进拒绝、
+冲突双父提交、认证/重定向与TLS取消。API26产物11862098565为14项/2失败：
+仅checkout缺transferTo，认证与TLS取消均通过。修复源c358e95的38492680947正在
+复验原HTTP场景与新增流语义回归，不以API35通过代替Android26兼容验收。
