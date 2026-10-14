@@ -117,7 +117,8 @@ export function workspacePage(importsEnabled=true){
    returnMode=mode;pending={kind:'workspace.perform',operation,arguments:args};mode='preview';
   };
   if(event){
-   message='';try{
+   // Passive tree fetches follow writes automatically; keep their result/backup visible.
+   if(event.action!=='treeLoad')message='';try{
     const action=event.action;
     if(action==='chatFiles'){chatReturnMode=mode;chatFileOffset=0;await loadChatFiles();mode='chatFiles'}
     else if(action==='chatFilesPrev'||action==='chatFilesNext'||action==='chatFilesRefresh'){chatFileOffset=action==='chatFilesRefresh'?0:action==='chatFilesPrev'?Math.max(0,chatFileOffset-20):chatFileOffset+20;await loadChatFiles()}
