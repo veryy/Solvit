@@ -42,8 +42,8 @@ class ChatLayoutTest {
     }
 
     private fun scrollSettingsToLanguage() {
-        // Use real swipes; the 1.7.6 scroll helper recursively dumps lazy-list semantics
-        // from the instrumentation thread while Android is measuring the next frame.
+        // Use the list's public scroll action on the UI thread, without 1.7.6's
+        // off-thread diagnostic traversal or a system swipe's asynchronous fling.
         repeat(12) {
             rule.waitForIdle()
             val list = geometry("settings_list")
@@ -55,13 +55,11 @@ class ChatLayoutTest {
                 } == true
             }
             if (visible) return
-            val x = list.bounds.center.x.toInt()
-            val start = (list.bounds.top + list.bounds.height * .8f).toInt()
-            val end = (list.bounds.top + list.bounds.height * .2f).toInt()
-            val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
-            ParcelFileDescriptor.AutoCloseInputStream(
-                automation.executeShellCommand("input swipe $x $start $x $end 300")
-            ).use { it.readBytes() }
+            val container = rule.onAllNodesWithTag("settings_list").fetchSemanticsNodes().single()
+            rule.runOnUiThread {
+                val action = container.config[androidx.compose.ui.semantics.SemanticsActions.ScrollBy].action
+                check(action?.invoke(0f, list.bounds.height * .7f) == true) { "Settings did not accept scrolling" }
+            }
         }
         fail("Language settings were not fully visible after scrolling")
     }
@@ -999,11 +997,13 @@ class ChatLayoutTest {
             scrollSettingsToLanguage()
             rule.onNodeWithTag("language_en").assertDoesNotExist()
             rule.onNodeWithTag("language_settings").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("language_en").fetchSemanticsNodes().size == 1 }
             rule.onNodeWithTag("language_en").performClick()
             rule.onNodeWithTag("settings_title").assertTextEquals("Settings").assertIsDisplayed()
             rule.onNodeWithContentDescription("Back to chat").assertExists()
             assertEquals("en", LanguageStore(app).language.value)
             rule.onNodeWithTag("language_settings").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("language_ja").fetchSemanticsNodes().size == 1 }
             rule.onNodeWithTag("language_ja").performClick()
             rule.onNodeWithTag("settings_title").assertTextEquals("設定").assertIsDisplayed()
             rule.activityRule.scenario.recreate()

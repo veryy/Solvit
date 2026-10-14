@@ -34,3 +34,8 @@ Linux环境保留无需root的Ubuntu、Python/venv、Node24/npm和Java17；新�
 正式build116110310763成功；unit11930200875（375640字节）完整ZIP CRC/XML为499/0/0/0，Lint/APK和固定证书f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3实际日志通过。正式插件121 SDK/5市场、公网搜索/MCP/Skills已核对通过；Linux设备任务116110311369成功，详细版本日志待核对。页面任务116113570739仍运行，release未执行。
 
 正式Linux完整日志已核对原3个Android用例及生产版本门禁：Python3.12.3、Node24.21.0/npm11.19.0、Java17成功；完整35MB探针归档未下载，不声称其CRC。APK11930320598已完整下载、外层/内层ZIP CRC通过，内部58122130字节、SHA256 12e2c03f5b99be53251f8f914d205a7f44e2cf60cb0dbfe5fc1a0ef0dfbd835c。页面仍执行，以上为正式产物证据，尚非公开下载核对。
+
+
+## 本标签未发布
+
+正式38639262884最终失败于页面门禁，release跳过，0.36.1没有公开APK。实际下载UI11929913543（5726776字节）完整ZIP CRC/XML为78/1/0/0。唯一失败是ChatLayoutTest.languageSwitchesImmediatelyAndSurvivesRecreation调用AndroidX1.7.6 performScrollToNode时，在instrumentation线程递归生成语义诊断树导致SnapshotStateObserver跨线程异常；尚未执行后续语言切换断言。原目录、新附件/Git/Shell、聊天权限/队列及三项WebView均通过。保留本标签，修复测试的滚动读取方式并独立复验后使用后续版本重新跑完整门禁，不将本轮称为发布成功。[详细诊断](chat-attachment-workspace-stage.md)。
