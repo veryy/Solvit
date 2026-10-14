@@ -185,6 +185,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                     try {
                         // Fresh identities keep removing the edited draft from deleting a saved prefix/original.
                         java.io.ByteArrayInputStream(bytes).use { files.import(branch.id, attachment.name, attachment.mimeType, it) }
+                            .copy(documentSelection = attachment.documentSelection)
                     } finally { bytes.fill(0) }
                 }
                 attachmentDrafts.value = attachmentDrafts.value + (branch.id to copies)

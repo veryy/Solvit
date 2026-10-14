@@ -19,6 +19,8 @@ import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import com.tom_roush.pdfbox.text.PDFTextStripper
 import dev.solvit.core.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
@@ -35,8 +37,6 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 /** Bundled OCR models work offline; script selection does not depend on Google Play downloads. */
-enum class DocumentOcrScript { LATIN, CHINESE, JAPANESE, KOREAN }
-
 class AndroidDocumentTextService(context: Context, private val attachments: ChatAttachmentStore,
     private val script: DocumentOcrScript = DocumentOcrScript.CHINESE) : DocumentTextService {
     private val cache = File(context.applicationContext.cacheDir, "document-reader")
@@ -46,7 +46,16 @@ class AndroidDocumentTextService(context: Context, private val attachments: Chat
     init { PDFBoxResourceLoader.init(context.applicationContext) }
 
     override suspend fun readPdf(sessionId: String, attachment: ChatAttachment,
-        authorize: suspend () -> Unit): DocumentText = reads.withLock {
+        authorize: suspend () -> Unit): DocumentText = read(sessionId, attachment, authorize) {}
+
+    override fun readPdfEvents(sessionId: String, attachment: ChatAttachment,
+        authorize: suspend () -> Unit): Flow<DocumentReadEvent> = channelFlow {
+        val document = read(sessionId, attachment, authorize) { trySend(it) }
+        send(DocumentReadEvent.Complete(document))
+    }
+
+    private suspend fun read(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit,
+        progress: (DocumentReadEvent.Progress) -> Unit): DocumentText = reads.withLock {
         withContext(Dispatchers.IO) {
             require(attachment.mimeType == "application/pdf") { "文档读取仅支持PDF" }
             authorize(); currentCoroutineContext().ensureActive()
@@ -69,14 +78,20 @@ class AndroidDocumentTextService(context: Context, private val attachments: Chat
                     if (document.isEncrypted) throw ModelException("PDF受密码保护，请先导出未加密副本")
                     if (!document.currentAccessPermission.canExtractContent()) throw ModelException("PDF禁止文字提取，请使用允许读取的副本")
                     val count = document.numberOfPages
-                    if (count !in 1..DocumentText.MAX_PAGES) throw ModelException("PDF为空或超过40页读取限制，请选择或拆分需要的页面")
+                    if (count !in 1..DocumentText.MAX_TOTAL_PAGES) throw ModelException("PDF为空或超过5000页文件限制")
+                    val selection = attachment.documentSelection ?: DocumentSelection(ocrScript=script)
+                    val first = selection.firstPage
+                    val last = selection.lastPage ?: count
+                    if (first > count || last > count || last - first >= DocumentText.MAX_PAGES)
+                        throw ModelException("PDF选取范围超出文件或超过40页，请调整读取页范围")
                     val pages = mutableListOf<DocumentTextPage>()
                     var total = 0
                     var renderer: PdfRenderer? = null
                     var descriptor: ParcelFileDescriptor? = null
                     try {
-                        for (number in 1..count) {
+                        for (number in first..last) {
                             authorize(); currentCoroutineContext().ensureActive()
+                            progress(DocumentReadEvent.Progress(number, count, first, last))
                             val writer = BoundedTextWriter(DocumentText.MAX_TEXT_BYTES - total)
                             PDFTextStripper().apply { startPage=number; endPage=number; sortByPosition=true }.writeText(document, writer)
                             var text = writer.value().trim()
@@ -88,16 +103,18 @@ class AndroidDocumentTextService(context: Context, private val attachments: Chat
                                     renderer = PdfRenderer(checkNotNull(descriptor))
                                     check(renderer.pageCount == count) { "PDF页面读取结果不一致" }
                                 }
-                                text = renderAndRecognize(checkNotNull(renderer), number - 1).trim()
+                                progress(DocumentReadEvent.Progress(number, count, first, last, DocumentPageMethod.OCR))
+                                text = renderAndRecognize(checkNotNull(renderer), number - 1, selection.ocrScript).trim()
                                 method = if (text.isBlank()) DocumentPageMethod.EMPTY else DocumentPageMethod.OCR
                             }
                             currentCoroutineContext().ensureActive(); authorize()
                             total += text.toByteArray(Charsets.UTF_8).size
                             if (total > DocumentText.MAX_TEXT_BYTES) throw ModelException("PDF文字超过256KiB读取限制，请选择或拆分需要的页面")
                             pages += DocumentTextPage(number, text, method)
+                            progress(DocumentReadEvent.Progress(number, count, first, last, method))
                         }
                     } finally { renderer?.close(); descriptor?.close() }
-                    DocumentText(attachment.id, attachment.sha256, count, pages)
+                    DocumentText(attachment.id, attachment.sha256, count, pages, first, last, selection.ocrScript)
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: InvalidPasswordException) { throw ModelException("PDF受密码保护，请先导出未加密副本") }
@@ -107,13 +124,13 @@ class AndroidDocumentTextService(context: Context, private val attachments: Chat
         }
     }
 
-    private fun recognizer(): TextRecognizer = when (script) {
+    private fun recognizer(script: DocumentOcrScript): TextRecognizer = when (script) {
         DocumentOcrScript.LATIN -> TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         DocumentOcrScript.CHINESE -> TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
         DocumentOcrScript.JAPANESE -> TextRecognition.getClient(JapaneseTextRecognizerOptions.Builder().build())
         DocumentOcrScript.KOREAN -> TextRecognition.getClient(KoreanTextRecognizerOptions.Builder().build())
     }
-    private suspend fun renderAndRecognize(renderer: PdfRenderer, index: Int): String {
+    private suspend fun renderAndRecognize(renderer: PdfRenderer, index: Int, script: DocumentOcrScript): String {
         ocrSlot.acquire()
         var bitmap: Bitmap? = null
         var client: TextRecognizer? = null
@@ -128,7 +145,7 @@ class AndroidDocumentTextService(context: Context, private val attachments: Chat
                 page.render(checkNotNull(bitmap), null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
             }
             currentCoroutineContext().ensureActive()
-            client = recognizer()
+            client = recognizer(script)
             val pixels = checkNotNull(bitmap)
             val recognizer = checkNotNull(client)
             val task = recognizer.process(InputImage.fromBitmap(pixels, 0))

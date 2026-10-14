@@ -40,6 +40,10 @@ fun contextPrefixDigest(messages: List<ChatMessage>): String {
             field("chat-attachments-v1"); field(message.attachments.size.toString())
             message.attachments.forEach {
                 field(it.id); field(it.name); field(it.mimeType); field(it.sizeBytes.toString()); field(it.sha256)
+                it.documentSelection?.let { selection ->
+                    field("document-selection-v1"); field(selection.firstPage.toString())
+                    field(selection.lastPage?.toString().orEmpty()); field(selection.ocrScript.name)
+                }
             }
         }
         field(message.toolCalls.size.toString())

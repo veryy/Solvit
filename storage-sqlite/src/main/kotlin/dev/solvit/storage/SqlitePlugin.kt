@@ -365,6 +365,10 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
             put("attachments", JSONArray(message.attachments.map { attachment -> JSONObject().apply {
                 put("id", attachment.id); put("name", attachment.name); put("mime_type", attachment.mimeType)
                 put("size_bytes", attachment.sizeBytes); put("sha256", attachment.sha256)
+                attachment.documentSelection?.let { selection -> put("document_selection", JSONObject().apply {
+                    put("first_page", selection.firstPage); put("last_page", selection.lastPage ?: JSONObject.NULL)
+                    put("ocr_script", selection.ocrScript.name)
+                }) }
             } }).toString())
         })
     }
@@ -379,7 +383,10 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
         return (0 until array.length()).map { index ->
             val item = array.getJSONObject(index)
             ChatAttachment(item.getString("id"), item.getString("name"), item.getString("mime_type"),
-                item.getLong("size_bytes"), item.getString("sha256"))
+                item.getLong("size_bytes"), item.getString("sha256"), (if (item.isNull("document_selection")) null else item.getJSONObject("document_selection"))?.let { selection ->
+                    DocumentSelection(selection.getInt("first_page"), if (selection.isNull("last_page")) null else selection.getInt("last_page"),
+                        DocumentOcrScript.valueOf(selection.getString("ocr_script")))
+                })
         }
     }
     private fun decodeCalls(value: String): List<ToolCall> {

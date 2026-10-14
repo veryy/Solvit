@@ -34,4 +34,19 @@ class DocumentTextTest {
         assertFailsWith<IllegalArgumentException> { DocumentTextPage(1, "x\u0000", DocumentPageMethod.OCR) }
         assertFailsWith<IllegalArgumentException> { DocumentText(id, hash, 1, listOf(DocumentTextPage(1, "", DocumentPageMethod.EMPTY))) }
     }
+    @Test fun selectedPagesKeepOriginalNumbersAndInvalidatePreviousContextCoverage() {
+        val selection = DocumentSelection(100, 139, DocumentOcrScript.JAPANESE)
+        val document = DocumentText(id, hash, 200, (100..139).map { DocumentTextPage(it, "page $it", DocumentPageMethod.TEXT) },
+            selection.firstPage, selection.lastPage!!, selection.ocrScript)
+        assertEquals(100, document.pages.first().number)
+        assertEquals(139, document.pages.last().number)
+        assertFailsWith<IllegalArgumentException> { DocumentSelection(100, 140) }
+        assertFailsWith<IllegalArgumentException> { DocumentText(id, hash, 200, document.pages.drop(1), 100, 139) }
+        val attachment = ChatAttachment(id, "report.pdf", "application/pdf", 10, hash, selection)
+        val message = ChatMessage("question", "chat", Role.USER, "read", attachments=listOf(attachment))
+        assertNotEquals(contextPrefixDigest(listOf(message)), contextPrefixDigest(listOf(message.copy(
+            attachments=listOf(attachment.copy(documentSelection=selection.copy(ocrScript=DocumentOcrScript.KOREAN)))))))
+        assertNotEquals(contextPrefixDigest(listOf(message)), contextPrefixDigest(listOf(message.copy(
+            attachments=listOf(attachment.copy(documentSelection=DocumentSelection(101,139,selection.ocrScript)))))))
+    }
 }

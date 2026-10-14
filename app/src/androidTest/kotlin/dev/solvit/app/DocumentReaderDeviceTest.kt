@@ -18,6 +18,7 @@ import com.tom_roush.pdfbox.pdmodel.graphics.image.LosslessFactory
 import dev.solvit.core.*
 import dev.solvit.documents.AndroidDocumentTextService
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.toList
 import org.junit.Rule
 import org.junit.Test
 import org.junit.Assert.*
@@ -77,6 +78,13 @@ class DocumentReaderDeviceTest {
             assertEquals(DocumentPageMethod.OCR,result.pages[1].method)
             val scan=result.pages[1].text.replace(Regex("\\s"),"")
             assertTrue("scan text was not recovered",scan.contains("2026") && scan.contains("扫描测试"))
+            val selected=ref.copy(documentSelection=DocumentSelection(2,2,DocumentOcrScript.CHINESE))
+            val events=AndroidDocumentTextService(app,app.attachments).readPdfEvents(session,selected).toList()
+            val selectedResult=(events.last() as DocumentReadEvent.Complete).document
+            assertEquals(listOf(2),selectedResult.pages.map { it.number })
+            assertEquals(2,selectedResult.pageCount)
+            assertTrue(events.filterIsInstance<DocumentReadEvent.Progress>().all { it.page == 2 && it.firstPage == 2 && it.lastPage == 2 })
+            assertTrue(events.filterIsInstance<DocumentReadEvent.Progress>().any { it.method == DocumentPageMethod.OCR })
             assertNoTemporarySources(app)
         } finally { chat.deleteSession(session) }
     }

@@ -10,6 +10,7 @@ data class ChatAttachment(
     val mimeType: String,
     val sizeBytes: Long,
     val sha256: String,
+    val documentSelection: DocumentSelection? = null,
 ) {
     init {
         require(UUID.fromString(id).toString() == id) { "附件标识无效" }
@@ -17,6 +18,7 @@ data class ChatAttachment(
         require(mimeType.matches(Regex("[a-z0-9!#$&^_.+-]+/[a-z0-9!#$&^_.+-]+"))) { "附件类型无效" }
         require(sizeBytes in 0..MAX_ATTACHMENT_BYTES) { "附件超过大小限制" }
         require(sha256.matches(Regex("[0-9a-f]{64}"))) { "附件内容版本无效" }
+        require(documentSelection == null || mimeType == "application/pdf") { "页范围只能用于PDF附件" }
     }
     companion object { const val MAX_ATTACHMENT_BYTES = 20L * 1024 * 1024 }
 }

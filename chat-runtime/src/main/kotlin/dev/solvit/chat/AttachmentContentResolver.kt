@@ -24,6 +24,9 @@ class AttachmentContentResolver(private val store: ChatAttachmentStore, private 
                     .readPdf(sessionId, attachment, authorize)
                 authorize()
                 require(document.attachmentId == attachment.id && document.sha256 == attachment.sha256) { "文档读取结果与附件内容版本不一致" }
+                val selection = attachment.documentSelection ?: DocumentSelection()
+                require(document.firstPage == selection.firstPage && document.lastPage == (selection.lastPage ?: document.pageCount) &&
+                    document.ocrScript == selection.ocrScript) { "文档读取结果与所选页范围或识别语言不一致" }
                 val content = document.pages.joinToString("\n\n") { page ->
                     val method = when (page.method) {
                         DocumentPageMethod.TEXT -> "文字提取"
@@ -32,7 +35,8 @@ class AttachmentContentResolver(private val store: ChatAttachmentStore, private 
                     }
                     "[第${page.number}/${document.pageCount}页；$method]\n${page.text}"
                 }
-                documents += "[用户附件资料：${attachment.name}；ID：${attachment.id}；内容版本：${attachment.sha256}]\n$content\n[附件资料结束]"
+                val coverage = "[PDF共${document.pageCount}页；本次读取第${document.firstPage}至${document.lastPage}页；识别语言：${document.ocrScript.name}；范围外页面未读取]"
+                documents += "[用户附件资料：${attachment.name}；ID：${attachment.id}；内容版本：${attachment.sha256}]\n$coverage\n$content\n[附件资料结束]"
                 continue
             }
             val image = attachment.mimeType in setOf("image/png", "image/jpeg", "image/webp", "image/gif")

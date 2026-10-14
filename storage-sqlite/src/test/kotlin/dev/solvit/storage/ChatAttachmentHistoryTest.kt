@@ -59,6 +59,28 @@ class ChatAttachmentHistoryTest {
             assertFailsWith<IllegalStateException> { reopened.attachmentFiles.read(branch, attachment) }
         }
     }
+    @Test fun pdfSelectionReopensAndBranchesWithTheSameOriginalBytes() = runBlocking<Unit> {
+        val bytes = "%PDF-1.7 fixture".toByteArray()
+        lateinit var reference: ChatAttachment
+        val sessions = SqliteChatStore(context).use { store ->
+            val source=store.createSession()
+            reference=store.attachmentFiles.import(source.id,"report.pdf","application/pdf",java.io.ByteArrayInputStream(bytes))
+                .copy(documentSelection=DocumentSelection(100,120,DocumentOcrScript.KOREAN))
+            store.append(ChatMessage("pdf-user",source.id,Role.USER,"read",attachments=listOf(reference)))
+            store.append(ChatMessage("pdf-answer",source.id,Role.ASSISTANT,"answer"))
+            source.id to store.forkSession(source.id,BranchPoint("pdf-answer",BranchMode.AFTER_REPLY)).id
+        }
+        SqliteChatStore(context).use { store ->
+            for (session in listOf(sessions.first,sessions.second)) {
+                val reopened=store.history(session).first().attachments.single()
+                assertEquals(reference,reopened)
+                assertContentEquals(bytes,store.attachmentFiles.read(session,reopened))
+            }
+            store.deleteSession(sessions.first)
+            assertContentEquals(bytes,store.attachmentFiles.read(sessions.second,reference))
+            store.deleteSession(sessions.second)
+        }
+    }
     @Test fun startupRecoveryRetainsSavedAndBranchBytesAndReclaimsDraftPartialAndDeletedSessionFiles() = runBlocking<Unit> {
         val sessionId: String
         val branchId: String

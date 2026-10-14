@@ -61,4 +61,23 @@ class DocumentContentResolverTest {
             AttachmentContentResolver(store, reader).resolve("chat", ModelMessage(Role.USER, "", attachments=listOf(attachment))) { check(allowed) { "revoked" } }
         }
     }
+    @Test fun selectedPageCoverageIsExplicitAndWrongRangeOrScriptIsRejected() = runTest {
+        val selected = attachment.copy(documentSelection=DocumentSelection(100, 101, DocumentOcrScript.JAPANESE))
+        val document = DocumentText(selected.id, selected.sha256, 200,
+            listOf(DocumentTextPage(100,"included A",DocumentPageMethod.TEXT),DocumentTextPage(101,"included B",DocumentPageMethod.OCR)),
+            100,101,DocumentOcrScript.JAPANESE)
+        val message = ModelMessage(Role.USER,"read",attachments=listOf(selected))
+        val resolved = AttachmentContentResolver(store,service { _,_,_->document }).resolve("chat",message)
+        assertTrue(resolved.content.contains("本次读取第100至101页"))
+        assertTrue(resolved.content.contains("范围外页面未读取"))
+        assertTrue(resolved.content.contains("第100/200页"))
+        assertFailsWith<IllegalArgumentException> {
+            AttachmentContentResolver(store,service { _,_,_->document }).resolve("chat",message.copy(
+                attachments=listOf(selected.copy(documentSelection=DocumentSelection(99,101,DocumentOcrScript.JAPANESE)))))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            AttachmentContentResolver(store,service { _,_,_->document }).resolve("chat",message.copy(
+                attachments=listOf(selected.copy(documentSelection=DocumentSelection(100,101,DocumentOcrScript.KOREAN)))))
+        }
+    }
 }

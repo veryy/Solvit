@@ -1,8 +1,19 @@
 package dev.solvit.core
 
 import java.util.UUID
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 enum class DocumentPageMethod { TEXT, OCR, EMPTY }
+enum class DocumentOcrScript { LATIN, CHINESE, JAPANESE, KOREAN }
+
+data class DocumentSelection(val firstPage: Int = 1, val lastPage: Int? = null,
+    val ocrScript: DocumentOcrScript = DocumentOcrScript.CHINESE) {
+    init {
+        require(firstPage in 1..DocumentText.MAX_TOTAL_PAGES && (lastPage == null ||
+            lastPage in firstPage..DocumentText.MAX_TOTAL_PAGES && lastPage - firstPage < DocumentText.MAX_PAGES)) { "PDF选取页范围无效，每次最多40页" }
+    }
+}
 
 /** Page numbers are one-based; reading mode stays visible alongside extracted content. */
 class DocumentTextPage(val number: Int, val text: String, val method: DocumentPageMethod) {
@@ -15,20 +26,30 @@ class DocumentTextPage(val number: Int, val text: String, val method: DocumentPa
 }
 
 /** Complete, bounded document text. A missing page must never silently become model input. */
-class DocumentText(val attachmentId: String, val sha256: String, val pageCount: Int, pages: List<DocumentTextPage>) {
+class DocumentText(val attachmentId: String, val sha256: String, val pageCount: Int, pages: List<DocumentTextPage>,
+    val firstPage: Int = 1, val lastPage: Int = pageCount, val ocrScript: DocumentOcrScript = DocumentOcrScript.CHINESE) {
     val pages: List<DocumentTextPage> = pages.toList()
     init {
         require(UUID.fromString(attachmentId).toString() == attachmentId) { "文档附件标识无效" }
         require(sha256.matches(Regex("[0-9a-f]{64}"))) { "文档内容版本无效" }
-        require(pageCount in 1..MAX_PAGES && this.pages.size == pageCount &&
-            this.pages.map { it.number } == (1..pageCount).toList()) { "文档超过页数限制或读取结果不完整" }
+        require(pageCount in 1..MAX_TOTAL_PAGES && firstPage in 1..pageCount && lastPage in firstPage..pageCount &&
+            lastPage - firstPage < MAX_PAGES && this.pages.map { it.number } == (firstPage..lastPage).toList()) { "文档超过页数限制或读取结果不完整" }
         require(this.pages.sumOf { it.text.toByteArray(Charsets.UTF_8).size.toLong() } <= MAX_TEXT_BYTES) { "文档文字超过256KiB读取限制" }
         require(this.pages.any { it.method != DocumentPageMethod.EMPTY }) { "文档没有可读取文字，请检查扫描质量" }
     }
-    override fun toString() = "DocumentText(attachmentId=$attachmentId, pageCount=$pageCount, text=<redacted>)"
+    override fun toString() = "DocumentText(attachmentId=$attachmentId, pageCount=$pageCount, selected=$firstPage..$lastPage, text=<redacted>)"
     companion object {
         const val MAX_PAGES = 40
+        const val MAX_TOTAL_PAGES = 5000
         const val MAX_TEXT_BYTES = 256 * 1024
+    }
+}
+
+sealed interface DocumentReadEvent {
+    data class Progress(val page: Int, val pageCount: Int, val firstPage: Int, val lastPage: Int,
+        val method: DocumentPageMethod? = null) : DocumentReadEvent
+    class Complete(val document: DocumentText) : DocumentReadEvent {
+        override fun toString() = "DocumentReadEvent.Complete($document)"
     }
 }
 
@@ -36,5 +57,9 @@ class DocumentText(val attachmentId: String, val sha256: String, val pageCount: 
 interface DocumentTextService {
     suspend fun readPdf(sessionId: String, attachment: ChatAttachment,
         authorize: suspend () -> Unit = {}): DocumentText
+    fun readPdfEvents(sessionId: String, attachment: ChatAttachment,
+        authorize: suspend () -> Unit = {}): Flow<DocumentReadEvent> = flow {
+        emit(DocumentReadEvent.Complete(readPdf(sessionId, attachment, authorize)))
+    }
 }
 val DocumentTextServiceKey = ServiceKey("document.text", DocumentTextService::class)
