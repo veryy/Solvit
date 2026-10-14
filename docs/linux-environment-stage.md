@@ -98,3 +98,5 @@ ARM64官方归档已下载并做静态内容核对：25,545,644字节，SHA256 8
 进一步实际下载38543491385的完整artifact11884271839（35,076,737字节），完整ZIP CRC/XML核对9个linux-runtime单元与3个API35 Android，零失败/错误/跳过；设备Java输出为OpenJDK17.0.20.1，原apt探针Python3.12.3/Node18.19.1/npm9.2.0。Node24首轮38545704994失败为误用Ubuntu归档前缀校验（Node目录含版本点号），4db4f4b分离Node Source类型，保持Ubuntu归档边界不变；随后清理仅属于宿主的中断Node下载，等待原生产执行门禁重跑。
 
 Node v24.21.0 官方BUILDING.md对Linux ARM64/x64的支持基线为kernel>=4.18、glibc>=2.28（旧内核可能可运行但不受其保证）。Ubuntu提供guest glibc，Android内核仍取决于手机；Android8可安装Solvit不等于所有旧手机均能运行这套开发环境。当前只验证API35模拟器，明确保留旧内核/OEM/ARM64真机边界，不使用降低targetSDK或系统root。
+
+9d5069e 的 [38546632425](https://github.com/veryy/Solvit/actions/runs/38546632425) 全通过。实际下载任务日志：3/3 API35 Android用例、零失败/跳过，原归档边界/事务单元门禁亦成功；严格设备版本解析得到生产Python3.12.3、Node v24.21.0、npm11.19.0，Java17日志门禁成功。包括生产HTTPS下载及哈希、Ubuntu安装、Node执行/写文件、Java17安装、Ubuntu PTY、已授权AI native工作区命令与重建管理器恢复Shell运行环境。旧apt探针仍单独记录Node18.19.1，不能与生产24混淆。该轮设备完整归档artifact11884868270尚未下载，结论来自已下载完整任务日志和其严格设备报告门禁；ARM64运行仍未验收。
