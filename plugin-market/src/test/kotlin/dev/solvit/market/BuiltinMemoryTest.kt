@@ -76,7 +76,7 @@ class BuiltinMemoryTest {
         try {
             val initial = setup(); manager = initial.first
             val market = initial.second
-            assertEquals(setOf("dev.solvit.memory", "dev.solvit.clock", "dev.solvit.mcp", "dev.solvit.skills", "dev.solvit.workspace", "dev.solvit.authoring", "dev.solvit.terminal", "dev.solvit.web-search", "dev.solvit.git"), market.installed.value.map { it.id }.toSet())
+            assertEquals(setOf("dev.solvit.memory", "dev.solvit.clock", "dev.solvit.mcp", "dev.solvit.skills", "dev.solvit.workspace", "dev.solvit.authoring", "dev.solvit.terminal", "dev.solvit.web-search", "dev.solvit.git", "dev.solvit.environment"), market.installed.value.map { it.id }.toSet())
             assertTrue(market.installed.value.none { it.enabled })
             // Installed, never-loaded packages have no PluginManager row to disable.
             market.disable("dev.solvit.memory")
