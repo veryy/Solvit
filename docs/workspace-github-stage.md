@@ -279,3 +279,7 @@ verify-ui仍在运行，不能用编译通过替代本阶段或页面交付。
 全部通过，包含新凭据入口场景。同步包后的正常38499078644源/包一致性与
 市场38499078666成功。完整Android38499078672仍在build，实际APK表单/HTML/安全窗口
 尚未通过，不以原生服务和SDK通过替代页面验收或真实GitHub写入。
+
+## 凭据文案构建失败修复
+
+完整Android38499078672在LanguageTest.catalogCoversSixLanguagesAndPreservesTemplateArguments失败，LanguageTest.kt:34抛JSONException。逐项检查实际目录后确认新增六条凭据文案缺少zh字段，其他五种语言代码及字符串类型完整。补齐六条中文字段，保留原六语言和占位符测试。参考Operit固定版本app/src/main/res/values/strings.xml默认中文资源行为，未复制代码。此修复待远程原场景验证，不将JSON检查当作Android通过。
