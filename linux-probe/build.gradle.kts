@@ -16,6 +16,7 @@ android {
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
 dependencies {
+    implementation(project(":core"))
     implementation(project(":linux-runtime"))
     implementation(project(":linux-android"))
     implementation(project(":terminal-android"))
