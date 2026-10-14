@@ -63,6 +63,37 @@ class WorkspaceExecutionDeviceTest {
         val app=InstrumentationRegistry.getInstrumentation().targetContext
         synchronized(preferences) { preferences.forEach(app::deleteSharedPreferences);preferences.clear() }
     }
+    @Test fun actualAndroidBinaryImportPublishesCompleteBytesToTheBoundShellWithoutOverwrite() = runBlocking<Unit> {
+        val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
+        val service=AndroidWorkspaces(context,scope)
+        try {
+            val workspace=service.create("binary import")
+            val shell=service.createShell(workspace.id,"import shell")
+            val bytes=ByteArray(300_000) { (it%256).toByte() }
+            val sha=java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
+            val result=service.importFile(workspace.id,"input scan.bin",bytes,sha)
+            assertEquals(WorkspaceImportedFile(workspace.id,"input scan.bin",bytes.size.toLong(),sha),result)
+            val root=File(service.location(workspace.id))
+            assertArrayEquals(bytes,File(root,"input scan.bin").readBytes())
+            assertEquals(1,service.list(workspace.id).size)
+            val job=service.run(workspace.id,shell.id,"/system/bin/toybox sha256sum 'input scan.bin'",10_000)
+            val completed=withTimeout(15_000) { service.jobs.first { jobs -> jobs.any { it.id==job.id && it.stage==ShellStage.COMPLETED } } }.single { it.id==job.id }
+            assertEquals(0,completed.exitCode)
+            assertTrue(completed.output.joinToString("") { it.text }.contains(sha))
+            try { service.importFile(workspace.id,"input scan.bin",byteArrayOf(1),"a".repeat(64));fail("conflict was accepted") }
+            catch(expected:IllegalArgumentException) { assertTrue(expected.message!!.isNotBlank()) }
+            assertArrayEquals(bytes,File(root,"input scan.bin").readBytes())
+            var checks=0
+            withContext(WorkspacePageAuthority { target,_ ->
+                assertEquals(workspace.id,target);checks++;check(checks<3) { "fixture revoke" }
+            }) {
+                try { service.importFile(workspace.id,"revoked.bin",bytes,sha);fail("revoked import committed") }
+                catch(expected:IllegalStateException) { assertEquals("fixture revoke",expected.message) }
+            }
+            assertEquals(3,checks)
+            assertEquals(listOf("input scan.bin"),root.listFiles()!!.map { it.name })
+        } finally { service.close();scope.cancel() }
+    }
     @Test fun createRunFailFixAndVerifyPreservesRealExitCodesAndObservationsAcrossReopen() = runBlocking<Unit> {
         val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
         val manager=PluginManager(scope=scope);val client=OkHttpClient()

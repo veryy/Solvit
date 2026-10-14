@@ -13,3 +13,5 @@ WorkspaceService增加独立importFile：来源字节上限20MiB，指定SHA256�
 新增4个生产服务单元用例：30万字节二进制不经过UTF8、现有列表与重建服务可见；已有/提交前并发文件名冲突不覆盖；错误摘要/越界/内部路径/符号链接拒绝；最后授权撤销不留下部分文件。只做diff静态检查，远程未运行。不把JVM文件系统上的硬链接成功代替API35和ARM64设备兼容性；真实Android执行还需加同源用例。
 
 宿主同UID的并发Shell仍能在观察之间改变目录或文件；当前逐阶段重验不构成跨进程文件系统快照，也不声称能防御同UID恶意进程的所有TOCTOU。进程被杀时可能遗留`.solvit-import-*.partial`，启动回收待实现。系统文件选择器、私有URI生命周期、聊天附件来源授权、JS页面/宿主桥、确认/重名处理、原图与PDF预览、进度取消、多语言、真实Shell/Git/设备截图和正式APK均须继续完成。
+
+追加真实API35设备用例到现有隔离WorkspaceExecutionDeviceTest：通过生产AndroidWorkspaces实际导入30万字节二进制，文件列表与原字节核对，经生产ShellJobEngine启动同目录Android Shell调用toybox sha256sum核对摘要/退出码，再检查错误来源版本拒绝及最后授权撤销无暂存残留。尚待远程执行；不将它当作JS插件导入UI或真实AI选择工具证明。
