@@ -1,6 +1,6 @@
 # 无需 root 的 Linux 工作环境
 
-2026-10-14 用户新增要求：在手机上安装 Python、Node.js 等开发工具，在没有 root 的情况下让 AI 与工作区终端执行脚本。现有 Android PTY 只运行系统 shell，没有 Linux 发行版，也不提供 Node/Python；不能把终端界面当作该需求已经完成。当前状态：底层 Android Ubuntu/Python/Node 实测通过，产品安装界面与工作区接入尚未完成，尚未提供可下载的 Linux 环境版 APK。
+2026-10-14 用户新增要求：在手机上安装 Python、Node.js 等开发工具，在没有 root 的情况下让 AI 与工作区终端执行脚本。现有 Android PTY 只运行系统 shell，没有 Linux 发行版，也不提供 Node/Python；不能把终端界面当作该需求已经完成。当前状态：底层和生产 Ubuntu/Python/Node18/Java17、工作区命令与 PTY 已在 API35 Android 实测通过；产品 JS/HTML 页面与工作区已接入候选，Node24 升级及完整应用发布门禁仍在验证，尚未公开 Linux 环境版 APK。
 
 ## 实际 upstream 链路
 
@@ -90,3 +90,7 @@ ARM64官方归档已下载并做静态内容核对：25,545,644字节，SHA256 8
 候选APK实际检查发现Commons Compress引入的Maven Codec 1.19.0与JGit转换配置中的文件依赖Codec 1.22.1重复；6feeec5仅将已有1.22.1放回正常依赖解析图，保留JGit原引擎及Android字节码适配。另显式声明环境操作Unit返回类型，避免Job.start的Boolean影响接口。远程Java扩展探针还发现测试局部变量java遮蔽java.io包，改名javaResult，不删除Java安装/版本断言。最终以原完整门禁为准。
 
 8d9154c 的生产下载/Java17/PTY/已授权 AI 工作区路径由 [38543491385](https://github.com/veryy/Solvit/actions/runs/38543491385) 实际通过。该轮生产 Node 仍是 apt 的18，不据此宣称现代 Node 工具兼容。Operit 锁定 SetupScreen 明确用 NodeSource setup_24.x；Solvit 改用 Node 官方 v24.21.0 LTS 的 ARM64/x64 固定归档和 SHASUMS256 哈希，宿主先 HTTPS 下载/校验，再由 guest 解包到版本目录并实际执行，成功后公开 node/npm/npx 链接。无需执行可变第三方安装脚本。Node 文件及 LICENSE 保留在 guest 目录，不进入 APK。参考 Node v24.21.0 BUILDING.md（Linux glibc/libstdc++ 支持）和官方发布说明；生产精确版本增加独立设备日志门禁，旧 apt 兼容探针继续保留。新版尚待远程执行，不提前声称通过。
+
+线上市场已经部署 API21 加法支持及 environment1.0.0：HTTPS 实际下载17,745字节，SHA256 4d5d07cc8c8ed309ccc918b05cf3517a82c76bc80d3febce4506958d4c6f01b7，与提交的生成包一致；API20目录仍不含新环境插件，API21包含。使用部署前服务源码、保留的旧包目录和新服务逐个比较 API1..20 的目录选择结果，全部一致。随后客户端才切换 hostApi21。未删除或替换历史版本包。
+
+03823a7 的候选整包 build 任务已成功（单元/Lint/APK/固定签名），界面任务因下一次功能提交而取消，不能当作全应用验证通过。实际下载原生 artifact11883907390，ZIP CRC 通过；ARM64/x86_64 的 PRoot 与 loader 所有 PT_LOAD 的 ELF alignment 为16,384，offset/vaddr同余验证通过。这只是构建产物静态检查，不宣称16KiB页 Android 真机执行通过。
