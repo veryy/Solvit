@@ -25,7 +25,14 @@ anchor = '$(ROSEGMENT),-z,noexecstack'
 assert s.count(anchor) == 1
 p.write_text(s.replace(anchor, anchor + ',-z,max-page-size=16384 # Solvit: align loader LOAD segments for 16 KiB pages'))
 PY_LOADER
-curl --fail --location --silent --show-error --retry 2 https://www.samba.org/ftp/talloc/talloc-2.5.0.tar.gz --output "$build_dir/talloc.tar.gz"
+if ! curl --fail --location --silent --show-error --connect-timeout 20 --max-time 120 \
+    --retry 2 --retry-all-errors --retry-delay 2 \
+    https://www.samba.org/ftp/talloc/talloc-2.5.0.tar.gz --output "$build_dir/talloc.tar.gz"; then
+    # Official Samba archive mirror; the original pinned digest remains mandatory below.
+    curl --fail --location --silent --show-error --connect-timeout 20 --max-time 120 \
+        --retry 2 --retry-all-errors --retry-delay 2 \
+        https://download.samba.org/pub/talloc/talloc-2.5.0.tar.gz --output "$build_dir/talloc.tar.gz"
+fi
 printf '%s\n' "912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007  $build_dir/talloc.tar.gz" | sha256sum --check
 for abi in arm64-v8a x86_64; do
     case "$abi" in arm64-v8a) target=aarch64-linux-android;; x86_64) target=x86_64-linux-android;; esac
