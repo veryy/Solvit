@@ -17,3 +17,11 @@ WorkspaceService增加独立importFile：来源字节上限20MiB，指定SHA256�
 追加真实API35设备用例到现有隔离WorkspaceExecutionDeviceTest：通过生产AndroidWorkspaces实际导入30万字节二进制，文件列表与原字节核对，经生产ShellJobEngine启动同目录Android Shell调用toybox sha256sum核对摘要/退出码，再检查错误来源版本拒绝及最后授权撤销无暂存残留。尚待远程执行；不将它当作JS插件导入UI或真实AI选择工具证明。
 
 源ecbc163的远程38588341397 build成功；实际完整下载unit artifact11907380409，ZIP CRC/XML核对469单元零失败/错误/跳过，其中WorkspaceFileImportTest四项均通过。该轮设备任务仍在运行，不能提前宣称Android硬链接或Shell摘要验证通过。0.33.1安装交接修复在另一分支独立验证，本分支未混入当前发布标签。
+
+## 真实Android否决硬链接发布
+
+38588341397/verify-ui实际失败：`WorkspaceExecutionDeviceTest.actualAndroidBinaryImportPublishesCompleteBytesToTheBoundShellWithoutOverwrite`在`UnixFileSystemProvider.createLink`抛AccessDeniedException，52个应用设备用例中仅此项失败。源与暂存已实际创建并完成SHA检查，证明JVM硬链接策略不能充当Android发布实现。先排序检查Android链接限制、目录权限、暂存状态；日志明确失败位置在link，先前写入/读取成功，不调整系统权限或直接普通rename覆盖。具体SELinux拒绝原因尚未取回AVC，不笼统宣称所有Android文件系统禁止硬链接。
+
+改为独立workspace原生适配器，以同一打开目录fd调用renameat2(RENAME_NOREPLACE)，目标已存在返回EEXIST，旧文件不变；临时完整文件在发布前仍sync与SHA核对，发布后重新核对实际字节。目录O_DIRECTORY/NOFOLLOW与来源regular-file检查保留，ABI沿用ARM64/ARMv7/x86_64/x86，NDK28，不改变SDK或root权限。核对[Linux man-pages官方rename说明](https://www.man7.org/linux/man-pages/man2/renameat2.2.html)：此标记要求内核/文件系统支持，缺失时明确失败，不降级成可能覆盖的rename。没有复制外部实现代码。
+
+JVM边界用例显式注入create-only发布适配器，只验证宿主事务和授权，不把它当JNI通过。生产Android用例仍使用默认JNI，并追加最后授权检查时并发Shell创建同名文件，要求FileAlreadyExistsException且内容不变。原Shell摘要/完整二进制/撤权用例保留，等待远程再次执行。当前不发布工作区导入APK，0.33.1安装交接回归已通过，独立进入正式发布门禁。

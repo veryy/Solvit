@@ -11,7 +11,7 @@ import java.nio.file.Files
 import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.security.MessageDigest
 
-/** Create-only publication: a hard link fails atomically if a concurrent Shell creates the name. */
+/** Complete-file staging with platform-specific atomic, create-only publication. */
 internal object WorkspaceFileImports {
     private fun target(root: File, path: String): File {
         require(path.length in 1..1024 && '\u0000' !in path && !File(path).isAbsolute) { "导入路径无效" }
@@ -40,7 +40,7 @@ internal object WorkspaceFileImports {
         }
         return digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
     }
-    suspend fun create(root: File, path: String, bytes: ByteArray, expected: String,
+    suspend fun create(root: File, path: String, bytes: ByteArray, expected: String, publisher: WorkspaceImportPublisher,
         authorize: suspend () -> Unit): Pair<Long,String> {
         require(bytes.size <= MAX_WORKSPACE_IMPORT_BYTES && expected.matches(Regex("[a-f0-9]{64}"))) { "导入文件超过20MiB或版本无效" }
         val content=bytes.copyOf()
@@ -65,8 +65,8 @@ internal object WorkspaceFileImports {
                     Files.isRegularFile(staged.toPath(),NOFOLLOW_LINKS)) { "导入目标目录已改变" }
                 check(fileDigest(staged)==expected) { "导入暂存文件已改变" }
                 // No replace option: do not turn a create conflict into an overwrite.
-                Files.createLink(destination.toPath(),staged.toPath())
-                check(target(root,path)==destination && Files.isSameFile(destination.toPath(),staged.toPath()) && fileDigest(destination)==expected) { "文件导入结果已改变，请刷新工作区" }
+                publisher.publish(staged,destination)
+                check(target(root,path)==destination && Files.isRegularFile(destination.toPath(),NOFOLLOW_LINKS) && destination.length()==content.size.toLong() && fileDigest(destination)==expected) { "文件导入结果已改变，请刷新工作区" }
                 return content.size.toLong() to expected
             } finally { Files.deleteIfExists(staged.toPath()) }
         } finally { content.fill(0) }

@@ -18,7 +18,8 @@ class WorkspaceFileImportTest {
     private fun digest(bytes:ByteArray)=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it.toInt() and 255) }
     private fun fixture(block:suspend (AndroidWorkspaces,String,File)->Unit)=runBlocking<Unit> {
         val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
-        val service=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope)
+        val service=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope,
+            importPublisher=WorkspaceImportPublisher { source,destination -> Files.createLink(destination.toPath(),source.toPath()) })
         try {
             val workspace=service.create("file import fixture")
             block(service,workspace.id,File(service.location(workspace.id)))
@@ -32,7 +33,8 @@ class WorkspaceFileImportTest {
         assertEquals(bytes.size.toLong(),service.list(id).single().bytes)
         assertEquals(1,root.listFiles()!!.size)
         val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
-        val reopened=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope)
+        val reopened=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope,
+            importPublisher=WorkspaceImportPublisher { source,destination -> Files.createLink(destination.toPath(),source.toPath()) })
         try { assertEquals("scan.pdf",reopened.list(id).single().name) }
         finally { reopened.close();scope.cancel() }
     }

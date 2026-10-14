@@ -17,7 +17,8 @@ import java.util.UUID
 class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     launcher: ShellLauncher = ShellLauncher(ShellPaths("/system/bin/sh", "/system/bin/toybox", setsidArguments = listOf("setsid"))),
     rootAccess: RootAccess = AndroidRootAccess(),
-    private val linux: LinuxEnvironmentService? = null) : WorkspaceService {
+    private val linux: LinuxEnvironmentService? = null,
+    private val importPublisher: WorkspaceImportPublisher = WorkspaceImportPublisher { source,destination -> AndroidWorkspaceImportPublisher.publish(source,destination) }) : WorkspaceService {
     private val root = File(context.filesDir, "workspaces").apply { check(mkdirs() || isDirectory) }
     private val prefs = context.getSharedPreferences("workspaces", Context.MODE_PRIVATE)
     private val lock = Mutex()
@@ -245,7 +246,7 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         expectedSha256: String): WorkspaceImportedFile = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         val base=directory(workspaceId).canonicalFile
-        val result=WorkspaceFileImports.create(base,path,bytes,expectedSha256) { verifyPage(workspaceId) }
+        val result=WorkspaceFileImports.create(base,path,bytes,expectedSha256,importPublisher) { verifyPage(workspaceId) }
         WorkspaceImportedFile(workspaceId,path,result.first,result.second)
     } }
     override suspend fun write(workspaceId: String, path: String, text: String) { writeObserved(workspaceId,path,text) }

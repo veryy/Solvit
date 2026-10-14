@@ -83,6 +83,16 @@ class WorkspaceExecutionDeviceTest {
             try { service.importFile(workspace.id,"input scan.bin",byteArrayOf(1),"a".repeat(64));fail("conflict was accepted") }
             catch(expected:IllegalArgumentException) { assertTrue(expected.message!!.isNotBlank()) }
             assertArrayEquals(bytes,File(root,"input scan.bin").readBytes())
+            var publicationChecks=0
+            withContext(WorkspacePageAuthority { _,_ ->
+                publicationChecks++
+                if(publicationChecks==3) File(root,"raced.bin").writeText("concurrent shell")
+            }) {
+                try { service.importFile(workspace.id,"raced.bin",bytes,sha);fail("concurrent file was replaced") }
+                catch(expected:java.nio.file.FileAlreadyExistsException) { assertTrue(expected.message!!.isNotBlank()) }
+            }
+            assertEquals(3,publicationChecks)
+            assertEquals("concurrent shell",File(root,"raced.bin").readText())
             var checks=0
             withContext(WorkspacePageAuthority { target,_ ->
                 assertEquals(workspace.id,target);checks++;check(checks<3) { "fixture revoke" }
@@ -91,7 +101,7 @@ class WorkspaceExecutionDeviceTest {
                 catch(expected:IllegalStateException) { assertEquals("fixture revoke",expected.message) }
             }
             assertEquals(3,checks)
-            assertEquals(listOf("input scan.bin"),root.listFiles()!!.map { it.name })
+            assertEquals(setOf("input scan.bin","raced.bin"),root.listFiles()!!.map { it.name }.toSet())
         } finally { service.close();scope.cancel() }
     }
     @Test fun createRunFailFixAndVerifyPreservesRealExitCodesAndObservationsAcrossReopen() = runBlocking<Unit> {
