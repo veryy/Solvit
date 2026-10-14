@@ -9,6 +9,8 @@ import dev.solvit.linux.RootfsDownload
 import dev.solvit.linux.UbuntuCatalog
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -18,6 +20,36 @@ import java.util.concurrent.TimeUnit
 /** Real Android userland installation and package execution, not a desktop simulation. */
 @RunWith(AndroidJUnit4::class)
 class UbuntuProbeTest {
+    @Test fun productionDownloaderAndManagedJobsInstallUsableSharedEnvironment(): Unit = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        assertTrue(Process.myUid() >= 10_000)
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val service = dev.solvit.environment.AndroidLinuxEnvironment(context, scope)
+        try {
+            assertTrue("APK must provide the emulator ABI runtime", service.state.value.supported)
+            service.install()
+            val result = withTimeout(12 * 60_000L) {
+                service.state.first { it.stage in setOf("READY", "FAILED", "CANCELLED") }
+            }
+            assertEquals("${result.failure}\n${result.output}", "READY", result.stage)
+            assertTrue(result.installed)
+            val workspace = File(context.filesDir, "production shared workspace").apply { mkdirs() }
+            val plan = service.command(workspace.absolutePath,
+                "python3 -c \"from pathlib import Path; Path('production-python.txt').write_text('python-ok')\" && node -e \"require('fs').writeFileSync('production-node.txt','node-ok')\"")
+            val log = File(context.cacheDir, "production-check.log")
+            val child = ProcessBuilder(plan.arguments).apply {
+                plan.environment.forEach { (key, value) -> if (value == null) environment().remove(key) else environment()[key] = value }
+                redirectErrorStream(true); redirectOutput(log)
+            }.start()
+            try {
+                assertTrue(child.waitFor(30, TimeUnit.SECONDS))
+                assertEquals(log.readText(), 0, child.exitValue())
+                assertEquals("python-ok", File(workspace, "production-python.txt").readText())
+                assertEquals("node-ok", File(workspace, "production-node.txt").readText())
+            } finally { child.destroyForcibly() }
+        } finally { service.close(); scope.cancel() }
+    }
+
     @Test fun ubuntuInstallsPythonAndNodeAndUsesSharedWorkspaceWithoutRoot(): Unit = runBlocking {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         assertTrue(Process.myUid() >= 10_000)
