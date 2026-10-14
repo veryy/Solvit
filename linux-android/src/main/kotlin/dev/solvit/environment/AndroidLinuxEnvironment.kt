@@ -125,6 +125,14 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
     }
     private suspend fun installNode(root: File) {
         val catalog = checkNotNull(Build.SUPPORTED_ABIS.firstNotNullOfOrNull(NodeCatalog::forAbi))
+        // Process death bypasses finally: remove only our prior downloads, without following links.
+        withContext(Dispatchers.IO) {
+            workspace.listFiles().orEmpty().filter { it.name.matches(Regex("\\.solvit-node-[a-f0-9-]{36}\\.tar\\.xz")) }.forEach {
+                ensureActive()
+                if (!java.nio.file.Files.isDirectory(it.toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS))
+                    java.nio.file.Files.deleteIfExists(it.toPath())
+            }
+        }
         // A host-owned download is checksum-verified before extraction inside the guest.
         val archive = File(workspace, ".solvit-node-${java.util.UUID.randomUUID()}.tar.xz")
         try {
