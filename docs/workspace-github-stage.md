@@ -14,7 +14,7 @@
 `RepositoryCredentials` 是单次传输宿主持有的 JGit CredentialsProvider，拒绝其他仓库、
 重定向目标、URL内凭据和关闭TLS的交互，close清除内部及已交出的密码副本。
 这部分尚未连接克隆/拉取/推送，不能算GitHub功能已交付。纯JVM URL输入/诊断回归及
-实际Android JGit认证类型回归将由GitHub Actions运行，当前未验证通过。
+实际Android JGit认证类型回归由GitHub Actions验证，结果如下。
 参考固定JGit CredentialItem.java 的setValue复制/clear语义、CredentialsProvider.java、
 TransportHttp.java和HttpConfig.java；沿用已有依赖，不复制上游实现。完整传输、加密
 存储、页面、进度取消、冲突恢复与AI写入仍按下列范围继续。
@@ -24,6 +24,12 @@ TransportHttp.java和HttpConfig.java；沿用已有依赖，不复制上游实�
 各8项、无失败/错误/跳过，新增RepositoryCredentialsTest两项均执行。
 这只证明真实JGit认证类型的仓库限制、拒绝交互及关闭清理，尚未证明HTTP传输或GitHub写入。
 工作流的core:test执行通过；完整App分支门禁另行核对。
+
+下一检查点加入原生GitCredentialVault：Android Keystore AES-GCM、每仓库AAD绑定、
+存储键为仓库地址摘要，宿主仅公开是否配置；borrow为每次传输创建独立凭据提供器。
+加解密临时字节/字符缓冲在finally清理，错误不包含密钥、密文或原输入异常。
+实际Keystore重开、移除保持其他仓库，以及跨仓库密文复制拒绝回归待远程验证。
+尚未接到页面和传输，不表示克隆/推送已可用。
 
 1. 共享远程Git服务：归属当前对话/目录，明确仓库URL、远程名和分支；页面、AI调用同一服务，停用/关闭收回会话与网络任务。
 2. GitHub认证：宿主加密保存凭据，插件页面可配置并查看已配置状态；JS/模型拿凭据引用和遮蔽状态，传输时由宿主注入，错误/日志/URL不包含密钥。默认不继承系统全局凭据或任意仓库helper。
