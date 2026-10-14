@@ -112,11 +112,17 @@ class ChatInteractionDeviceTest {
             fun send(text:String) {
                 rule.onNodeWithTag("chat_input").performTextReplacement(text)
                 rule.waitUntil(10_000) {
-                    val decor=rule.activity.window.decorView
-                    val insets=decor.rootWindowInsets
-                    val ime=insets?.getInsets(WindowInsets.Type.ime())?.bottom ?: 0
-                    val composer=rule.onNodeWithTag("chat_composer").fetchSemanticsNode().boundsInRoot
-                    insets?.isVisible(WindowInsets.Type.ime())==true && ime>0 && composer.bottom<=decor.height-ime+1
+                    // Collection lookup avoids diagnostic tree traversal on the test thread.
+                    val node=rule.onAllNodesWithTag("chat_composer").fetchSemanticsNodes().singleOrNull()
+                        ?: return@waitUntil false
+                    rule.runOnUiThread {
+                        val decor=rule.activity.window.decorView
+                        val insets=decor.rootWindowInsets
+                        val ime=insets?.getInsets(WindowInsets.Type.ime())?.bottom ?: 0
+                        val composer=node.boundsInRoot
+                        insets?.isVisible(WindowInsets.Type.ime())==true && ime>0 &&
+                            composer.width>0 && composer.height>0 && composer.bottom<=decor.height-ime+1
+                    }
                 }
                 rule.waitForIdle();rule.onNodeWithTag("chat_send").assertIsEnabled().performClick()
             }

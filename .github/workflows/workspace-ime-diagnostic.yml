@@ -1,4 +1,4 @@
-name: Workspace editor page diagnostic
+name: Android page diagnostic
 on:
   workflow_dispatch:
     inputs:
@@ -6,6 +6,15 @@ on:
         description: Android run with identical production sources and APK/native artifacts
         required: true
         default: '38624928283'
+      test_case:
+        description: Existing full device scenario to repeat, stopping at first failure
+        type: choice
+        default: workspace-editor
+        options: [workspace-editor, chat-interaction]
+      repetitions:
+        description: Number of repetitions (1 through 8)
+        type: string
+        default: '8'
 permissions:
   contents: read
   actions: read
@@ -13,6 +22,9 @@ jobs:
   diagnose:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      SOLVIT_DIAGNOSTIC_CASE: ${{ inputs.test_case || 'workspace-editor' }}
+      SOLVIT_DIAGNOSTIC_REPETITIONS: ${{ inputs.repetitions || '8' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -78,5 +90,5 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: workspace-ime-diagnostic
+          name: android-page-diagnostic
           path: ui-screenshots/
