@@ -20,13 +20,14 @@ class WorkspaceImportPageBridgeTest {
         val app=RuntimeEnvironment.getApplication()
         app.deleteDatabase("solvit.db")
         dev.solvit.storage.SqliteChatStore(app).use { chats ->
+            val files=dev.solvit.storage.AttachmentFiles(File(app.filesDir,"chat-attachments"))
             val chat=chats.createSession().id
             val workspace=service.forChat(chat)
             val bytes=byteArrayOf(0,-1,-2,65)+ByteArray(300_000) { it.toByte() }
-            val attachment=chats.attachmentFiles.import(chat,"original.bin","application/octet-stream",java.io.ByteArrayInputStream(bytes))
+            val attachment=files.import(chat,"original.bin","application/octet-stream",java.io.ByteArrayInputStream(bytes))
             chats.append(ChatMessage("saved-binary",chat,Role.USER,"private body must not enter metadata",attachments=listOf(attachment)))
             var active=chat
-            val source=SavedChatAttachmentSource(chats,chats.attachmentFiles,chat) { active }
+            val source=SavedChatAttachmentSource(chats,files,chat) { active }
             val bridge=WorkspacePageBridge(service,null,chat,chatAttachments=source) { active }
             try {
                 val listing=Json.parseToJsonElement(bridge.query("chatAttachments","{\"offset\":0}") {}).jsonObject
@@ -47,7 +48,7 @@ class WorkspaceImportPageBridgeTest {
                 assertEquals(JsonPrimitive("OVERSIZED"),preview["kind"])
                 bridge.perform(control(selected,"original.bin")) {}
                 assertContentEquals(bytes,File(service.location(workspace.id),"original.bin").readBytes())
-                assertContentEquals(bytes,chats.attachmentFiles.read(chat,attachment))
+                assertContentEquals(bytes,files.read(chat,attachment))
                 assertEquals("null",bridge.query("importSelection","{}") {})
                 active="another-chat"
                 assertFails { bridge.query("chatAttachments","{\"offset\":0}") {} }
@@ -57,10 +58,11 @@ class WorkspaceImportPageBridgeTest {
     @Test fun deletedChatSourceCannotBeConfirmedAndReplacingWithSystemSelectionClearsProvenance()=fixture { service ->
         val app=RuntimeEnvironment.getApplication();app.deleteDatabase("solvit.db")
         dev.solvit.storage.SqliteChatStore(app).use { chats ->
+            val files=dev.solvit.storage.AttachmentFiles(File(app.filesDir,"chat-attachments"))
             val chat=chats.createSession().id;val workspace=service.forChat(chat)
-            val attachment=chats.attachmentFiles.import(chat,"note.txt","text/plain",java.io.ByteArrayInputStream("saved".toByteArray()))
+            val attachment=files.import(chat,"note.txt","text/plain",java.io.ByteArrayInputStream("saved".toByteArray()))
             chats.append(ChatMessage("saved-note",chat,Role.USER,"",attachments=listOf(attachment)))
-            val bridge=WorkspacePageBridge(service,null,chat,chatAttachments=SavedChatAttachmentSource(chats,chats.attachmentFiles,chat) { chat })
+            val bridge=WorkspacePageBridge(service,null,chat,chatAttachments=SavedChatAttachmentSource(chats,files,chat) { chat })
             try {
                 bridge.perform(PageWorkspaceControl("selectChatAttachment",buildJsonObject {
                     put("messageId","saved-note");put("attachmentId",attachment.id);put("sha256",attachment.sha256)
