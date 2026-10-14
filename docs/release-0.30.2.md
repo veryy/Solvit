@@ -17,3 +17,14 @@
 完整记录见[重试阶段](https://github.com/veryy/Solvit/blob/v0.30.2/docs/chat-retry-stage.md)，后续优先级见[产品路线](https://github.com/veryy/Solvit/blob/v0.30.2/docs/product-roadmap.md)。
 
 0.30.1 的正式验收遇到键盘页面测试跨线程观察错误，未发布。本版修复测试线程读取，保留原键盘位置和焦点断言；原用例连续3次及完整模拟器验收通过。Linux/PRoot 环境和 Python、Node.js 安装已列入后续工作，本 APK 尚不包含该环境。
+
+## 正式发布证据
+
+源提交 c21b8bea（v0.30.2），[正式 Actions](https://github.com/veryy/Solvit/actions/runs/38525081179)全部通过。实际 ZIP CRC/XML 已核对：435单元、57模拟器，零失败、错误和跳过；112 SDK、4市场用例及公网 MCP/Skills、搜索门禁通过。附件500→重试成功和键盘焦点/位置用例都通过。
+
+- 单元报告：11874494807；模拟器报告：11875997581；APK artifact：11874699568。
+- 公开 asset：639567855，26,201,189字节；实际下载与正式 artifact 中 APK 逐字节一致。
+- APK SHA256：`f26156c8f224f44968dad17c381f1e9bea7209daeb19f679c8139a2d2b000a14`。
+- 固定签名 SHA256：`f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`；覆盖升级门禁通过，未进行真机或真实模型任务验收。
+
+[下载 APK](https://github.com/veryy/Solvit/releases/download/v0.30.2/solvit-debug.apk)。本地下载副本：Solvit-0.30.2-build62.apk。0.30.1 未发布，不替换其失败标签或创建旧版 APK。
