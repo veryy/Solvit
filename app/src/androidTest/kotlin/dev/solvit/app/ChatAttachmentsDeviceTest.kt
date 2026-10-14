@@ -212,8 +212,14 @@ class ChatAttachmentsDeviceTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("attachment_text_${copiedText.id}").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("attachment_text_${copiedText.id}").assertTextEquals("中文 fixture code 😀\nprint(42)")
             rule.onNodeWithTag("attachment_preview_close").performClick()
-            rule.onNodeWithTag("attachment_remove_${copiedText.id}").performClick()
-            rule.waitUntil(10_000) { vm.attachmentDrafts.value[branch].orEmpty().size == 1 }
+            // The second card can be clipped by the horizontal row; bring its actual button into view.
+            rule.onNodeWithTag("attachment_remove_${copiedText.id}").performScrollTo().assertIsDisplayed().performClick()
+            try {
+                rule.waitUntil(10_000) { vm.attachmentDrafts.value[branch].orEmpty().size == 1 }
+            } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+                screenshot("chat-edit-attachment-remove-failure")
+                throw AssertionError("Edited draft removal: selected=${vm.sessionId.value}, branch=$branch, importing=${vm.importingAttachment.value}, refs=${vm.attachmentDrafts.value[branch].orEmpty().map { it.id }}, error=${vm.error.value}", timeout)
+            }
             assertEquals("中文 fixture code 😀\nprint(42)", runBlocking { files.read(session, document).toString(Charsets.UTF_8) })
             screenshot("chat-edit-attachment-draft")
             server.enqueue(MockResponse().setHeader("Content-Type","text/event-stream")
