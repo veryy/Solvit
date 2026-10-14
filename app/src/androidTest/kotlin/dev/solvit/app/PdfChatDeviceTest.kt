@@ -114,7 +114,23 @@ class PdfChatDeviceTest {
             rule.waitUntil(15_000) { vm.attachmentDrafts.value[session].orEmpty().size==1 && !vm.importingAttachment.value }
             val ref=vm.attachmentDrafts.value.getValue(session).single();assertEquals("application/pdf",ref.mimeType)
             rule.onNodeWithTag("attachment_${ref.id}").performClick()
-            rule.waitUntil(90_000) { rule.onAllNodesWithTag("pdf_text_1").fetchSemanticsNodes().isNotEmpty() }
+            try {
+                rule.waitUntil(90_000) { rule.onAllNodesWithTag("pdf_text_1").fetchSemanticsNodes().isNotEmpty() }
+            } catch (failure: Throwable) {
+                // Synthetic PDF fixture only: distinguish parser/OCR failure from lazy layout.
+                for (tag in listOf("pdf_preview", "pdf_progress", "pdf_error", "pdf_coverage", "pdf_text_1", "pdf_text_2")) {
+                    val nodes = rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes()
+                    val text = nodes.flatMap { it.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text).orEmpty() }
+                        .joinToString(" | ") { it.text }.take(400)
+                    android.util.Log.i("SolvitPdfFixture", "PDF_WAIT_STATE|$tag|${nodes.size}|$text")
+                }
+                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()?.let { bitmap ->
+                    val file = File(target.getExternalFilesDir(null), "pdf-fixture-wait-failure.png")
+                    try { file.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) } }
+                    finally { bitmap.recycle() }
+                }
+                throw failure
+            }
             rule.onNodeWithTag("pdf_text_1").assertTextEquals("SHORT")
             rule.onNodeWithTag("pdf_settings").performScrollTo().performClick()
             rule.onNodeWithTag("pdf_first_page").performTextReplacement("2")
