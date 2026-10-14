@@ -80,3 +80,7 @@
 环境管理作为独立 dev.solvit.environment JS/HTML 插件接入，包含安装阶段/下载容量、可停止的 apt 日志、Python/pip、Node/npm、Java17 安装入口和当前工作区 Ubuntu Shell 创建。管理动作只能来自当前页面显示并确认的原生控件，JS 不能提供 rootfs URL、哈希、命令或宿主私有路径。新增 API21 的 environment.linux 声明，必须同时声明 workspace/shell/network；旧 API1..20 仍保留，市场不向旧宿主提供这个插件。软件版本及实际可用性以设备执行日志为准，Java尚未实测。
 
 5678e59修复了宿主cancel方法推导成Unit?的编译错误；9ddb339的生产探针实际失败于缺少core显式编译依赖，8072aa0补齐后重新跑原生产HTTPS下载/DNS/apt/PTY断言。既有 f1d871f/cfd0102 的底层安装结论不等同于这轮产品provider通过。
+
+8072aa0 的 [38537813294](https://github.com/veryy/Solvit/actions/runs/38537813294) 生产路径已通过：3 个真实 API35 Android 用例，生产 HTTPS 下载、网络 DNS、受 ShellJobEngine 管理的 apt 安装、Python/Node 文件写入、Ubuntu 交互 PTY、TTY 与工作区可见均通过；版本保持 Python 3.12.3、Node 18.19.1、npm 9.2.0。本轮日志已实际下载；报告成员精确计数待归档核对。
+
+7958dbe 的远程 JS 生成任务 [38538716444](https://github.com/veryy/Solvit/actions/runs/38538716444) 已通过 typecheck、SDK/市场及公开搜索检查。实际下载 artifact11881048160，ZIP CRC 和 environment API21/服务声明核对后写入 APK/市场的生成包。应用候选0.31.0/build63接入 Linux 插件、工作区 Linux 页签及按 Shell 选择运行环境；native binaries 不进入 Git，由锁定源码远程编译并随 APK 提供对应源码包。该候选尚未发布，完整回归/界面/许可/正式 APK 门禁仍需通过。

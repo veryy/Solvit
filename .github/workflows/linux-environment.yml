@@ -1,6 +1,7 @@
 name: Linux environment compatibility
 on:
   workflow_dispatch:
+  workflow_call:
   push:
     branches: [feat/linux-environment]
     paths:
@@ -82,6 +83,8 @@ jobs:
             linux-runtime/build/test-results/
             linux-probe/build-inputs/
             linux-probe/src/main/jniLibs/
+            linux-android/src/main/jniLibs/
+            linux-android/build/solvit-linux-sources.zip
             linux-probe/build/outputs/apk/
             linux-probe/build/outputs/androidTest-results/
             linux-probe/build/reports/androidTests/

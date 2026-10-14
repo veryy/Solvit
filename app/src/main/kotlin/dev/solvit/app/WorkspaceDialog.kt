@@ -26,6 +26,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     val directoryManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context) }
     val gitManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context, "dev.solvit.git") }
     val terminalManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context, "dev.solvit.terminal") }
+    val environmentManager = remember(context) { dev.solvit.market.BuiltinWorkspaceManager(context, "dev.solvit.environment") }
     val locale = LocalUiLanguage.current
     val executionModes by system.modes.collectAsStateWithLifecycle()
     val state by vm.state.collectAsStateWithLifecycle()
@@ -49,11 +50,12 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
             IconButton(onClick = onDismiss) { UiIcon(Icons.Default.Close, "关闭工作区") }
         }) }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
-                if (id == null) {
+                if (id == null && tab != 3) {
                     Column(Modifier.weight(1f).fillMaxWidth(), horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally, verticalArrangement=Arrangement.Center) {
                         UiText("此对话尚未绑定工作区")
                         TextButton(onClick = { creating = true }) { UiText("新建工作区") }
                         TextButton(onClick = { chooser = true }) { UiText("绑定已有工作区") }
+                        TextButton(onClick = { tab = 3 }, modifier = Modifier.testTag("workspace_environment_open")) { Text("Linux") }
                         error?.let { UiText(it, color=MaterialTheme.colorScheme.error) }
                     }
                 } else {
@@ -67,6 +69,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                     Tab(selected = tab == 0, onClick = { tab = 0 }, text = { UiText("Shell") })
                     Tab(selected = tab == 1, onClick = { tab = 1 }, text = { UiText("工作目录") })
                     Tab(selected = tab == 2, onClick = { tab = 2 }, modifier = Modifier.testTag("workspace_git_tab"), text = { Text("Git") })
+                    Tab(selected = tab == 3, onClick = { tab = 3 }, modifier = Modifier.testTag("workspace_environment_tab"), text = { Text("Linux") })
                 }
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                 error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
@@ -109,6 +112,10 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                             command = ""
                         } }, enabled = !busy && activeShell != null && command.isNotBlank()) { UiText("运行") }
                     }
+                    }
+                } else if (tab == 3) {
+                    Box(Modifier.weight(1f).fillMaxWidth()) {
+                        key(locale) { PluginPageScreen("Linux", { vm.environmentPage(environmentManager, locale) }, embedded = true) {} }
                     }
                 } else if (tab == 2) {
                     Box(Modifier.weight(1f).fillMaxWidth()) {

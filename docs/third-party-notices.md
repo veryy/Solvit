@@ -39,3 +39,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+## Linux 环境
+
+PRoot Android fork b8c1f5c5（GPL-2.0-or-later）和 talloc/libreplace 2.5.0（LGPL-3.0-or-later）从锁定源码构建。静态包含后独立 PRoot 可执行文件按 GPL-3.0-or-later 分发。发布 APK 同页必须包含 solvit-linux-sources.zip，保留完整源码、窄补丁、许可、构建脚本和 cross answers。APK 的 linux-notices 资产包含完整许可；不使用 Operit 的预编译程序或 Kotlin 源码。
+
+Commons Compress 1.28.0（Apache-2.0）、XZ for Java 1.10（0BSD）仅调用库接口，其许可随 APK 的 linux-notices 资产分发。Ubuntu/apt 包按需从官方归档/源下载，不嵌入产品 APK；包内许可保留在 guest /usr/share/doc。

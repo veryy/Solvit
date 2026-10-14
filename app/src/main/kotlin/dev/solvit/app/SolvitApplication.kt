@@ -15,6 +15,7 @@ import dev.solvit.market.PluginDraftsPlugin
 import dev.solvit.workspace.WorkspacePlugin
 import dev.solvit.git.WorkspaceGitPlugin
 import dev.solvit.terminal.TerminalPlugin
+import dev.solvit.environment.LinuxEnvironmentPlugin
 import dev.solvit.web.WebPagesPlugin
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -60,6 +61,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var terminals: TerminalService
         private set
+    lateinit var linuxEnvironment: LinuxEnvironmentService
+        private set
     lateinit var pluginDrafts: PluginDraftService
         private set
     lateinit var contextPreparation: ContextPreparationService
@@ -82,7 +85,7 @@ class SolvitApplication : Application() {
             val marketPlugin = MarketplacePlugin(this@SolvitApplication, manager, useWorkspaces = true, drafts = { pluginDrafts }, useWebPages = true, useGit = true)
             try {
                 // Deliberately unordered: dependency declarations control activation.
-                listOf(PostTurnWorkerPlugin(), PostTurnHooksPlugin(), ContextBudgetPlugin(), ContextPreparationPlugin(), WebPagesPlugin(this@SolvitApplication), RequestInspectionPlugin(), ModelProvidersPlugin(), ModelRoutingPlugin(), ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), WorkspaceGitPlugin(this@SolvitApplication), TerminalPlugin(), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true, useAttachments = true), WorkspacePlugin(this@SolvitApplication), ScriptAgentDriverPlugin(assets.open("agent/chat-driver.js").bufferedReader().use { it.readText() }), ChatAgentPlugin(requireDriver = true), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
+                listOf(LinuxEnvironmentPlugin(this@SolvitApplication), PostTurnWorkerPlugin(), PostTurnHooksPlugin(), ContextBudgetPlugin(), ContextPreparationPlugin(), WebPagesPlugin(this@SolvitApplication), RequestInspectionPlugin(), ModelProvidersPlugin(), ModelRoutingPlugin(), ModelProfilesPlugin(modelProfiles), ToolApprovalsPlugin(toolApprovals), ChatBranchPlugin(), WorkspaceGitPlugin(this@SolvitApplication), TerminalPlugin(useLinux = true), PluginDraftsPlugin(this@SolvitApplication), ChatServicePlugin(useWorkspaces = true, useAttachments = true), WorkspacePlugin(this@SolvitApplication, useLinux = true), ScriptAgentDriverPlugin(assets.open("agent/chat-driver.js").bufferedReader().use { it.readText() }), ChatAgentPlugin(requireDriver = true), ToolsPlugin(enforcePolicies = true, enforceSystem = true), ContextHooksPlugin(), RolesPlugin(this@SolvitApplication), SkillLibraryPlugin(),
                     OpenAiPlugin(), AnthropicPlugin(), SqliteStoragePlugin(this@SolvitApplication), ReleaseUpdatesPlugin(), marketPlugin).forEach { manager.load(it) }
                 manager.enableAll()
                 branches = manager.registry.require(ChatBranchServiceKey)
@@ -100,6 +103,7 @@ class SolvitApplication : Application() {
                 workspaceGit = manager.registry.require(WorkspaceGitServiceKey)
                 systemExecution = manager.registry.require(SystemExecutionServiceKey)
                 terminals = manager.registry.require(TerminalServiceKey)
+                linuxEnvironment = manager.registry.require(LinuxEnvironmentServiceKey)
                 pluginDrafts = manager.registry.require(PluginDraftServiceKey)
                 marketPlugin.service.restore()
                 postTurnWorker.start()

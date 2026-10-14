@@ -13,3 +13,5 @@ plugin-sdk/node_modules/
 /linux-probe/build-inputs/
 
 /linux-probe/src/main/assets/ubuntu-x86_64.tar.xz
+
+/linux-android/src/main/jniLibs/

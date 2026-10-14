@@ -6,7 +6,8 @@ import dev.solvit.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 
-class WorkspaceViewModel(val service: WorkspaceService, private val plugins: PluginDraftService, val terminals: TerminalService, private val git: WorkspaceGitService? = null) : ViewModel() {
+class WorkspaceViewModel(val service: WorkspaceService, private val plugins: PluginDraftService, val terminals: TerminalService,
+    private val git: WorkspaceGitService? = null, private val linux: LinuxEnvironmentService? = null) : ViewModel() {
     val state = service.state
     val jobs = service.jobs
     val terminalSessions = terminals.sessions
@@ -24,7 +25,9 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
     fun directoryPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
         manager.openPage(locale, pageAccess(canInstallDrafts = true))
     fun pageAccess(canInstallDrafts: Boolean = false): PageWorkspaceAccess =
-        dev.solvit.market.WorkspacePageBridge(service, plugins, checkNotNull(chatId), canInstallDrafts) { chatId }
+        dev.solvit.market.WorkspacePageBridge(service, plugins, checkNotNull(chatId), canInstallDrafts, linux) { chatId }
+    fun environmentPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
+        manager.openPage(locale, access = pageAccess())
     fun gitPage(manager: dev.solvit.market.BuiltinWorkspaceManager, locale: String): ExtensionPageSession =
         manager.openPage(locale, access = pageAccess(), git = gitPageAccess())
     fun gitPageAccess(): PageGitAccess =

@@ -447,7 +447,7 @@ class AndroidMarketplace(
                 "workspace.info" -> buildJsonObject {
                     put("workspaceId", workspace)
                     put("name", service.state.value.workspaces.first { it.id == workspace }.name)
-                    put("shells", JsonArray(service.state.value.shells.filter { it.workspaceId == workspace }.map { buildJsonObject { put("id", it.id); put("name", it.name) } }))
+                    put("shells", JsonArray(service.state.value.shells.filter { it.workspaceId == workspace }.map { buildJsonObject { put("id", it.id); put("name", it.name); put("runtime", it.runtime.name) } }))
                 }
                 "workspace.read" -> JsonPrimitive(service.read(workspace, string("path")))
                 "workspace.write" -> writeEvidenceJson(service.writeObserved(workspace, string("path"), string("text")))

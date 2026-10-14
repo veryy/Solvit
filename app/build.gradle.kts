@@ -7,8 +7,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 62
-        versionName = "0.30.2"
+        versionCode = 63
+        versionName = "0.31.0"
     }
     // setup-android can change ANDROID_USER_HOME. Never rely on AGP's implicit
     // debug-keystore path: CI restores and uses this exact file.
@@ -22,6 +22,7 @@ android {
         }
     }
     buildFeatures { compose = true; buildConfig = true }
+    packaging { jniLibs { useLegacyPackaging = true; keepDebugSymbols += "**/libsolvit_loader.so" } }
     testOptions { unitTests.isIncludeAndroidResources = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -32,6 +33,7 @@ android {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
     implementation(project(":core"))
+    implementation(project(":linux-android"))
     implementation(project(":workspace-android"))
     implementation(project(":git-android"))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")

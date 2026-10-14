@@ -1,0 +1,27 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
+const pkg=JSON.parse(await readFile('../market-server/packages/dev.solvit.environment.solvit.json','utf8'));
+test('environment page needs API21 and does not install during render or progress refresh',async()=>{
+ assert.equal(pkg.manifest.apiVersion,21);assert.deepEqual(pkg.manifest.nativeServices,['environment.linux']);
+ assert.ok(pkg.resources['ui/main.js']);assert.ok(pkg.resources['ui/style.css']);
+ const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
+ let installs=0;
+ const env={supported:true,installed:false,stage:'IDLE',bytes:0,total:null,output:'',failure:null};
+ const snapshot={workspaceId:null,shells:[]};
+ const ctx={workspacePage:{query:async op=>op==='environmentStatus'?env:snapshot,perform:async()=>{installs++}}};
+ const render=event=>sandbox.solvitPlugin.pages.main({locale:'zh',event},ctx);
+ let view=await render(null);assert.equal(installs,0);assert.ok(view.nodes.some(n=>n.id==='install'));
+ env.stage='DOWNLOADING';env.bytes=100;env.total=200;
+ view=await render({nodeId:'refresh',action:'refresh',fields:{}});assert.equal(installs,0);
+ assert.ok(view.nodes.some(n=>n.id==='progress'&&n.text.includes('50%')));assert.ok(view.nodes.some(n=>n.id==='stop'));
+ assert.equal(view.nodes.some(n=>n.id==='install'),false);
+ env.installed=true;env.stage='READY';view=await render(null);
+ assert.equal(view.nodes.some(n=>n.id==='newShell'),false);
+ snapshot.workspaceId='current';view=await render(null);
+ const shell=view.nodes.find(n=>n.id==='newShell');assert.equal(shell.hostAction.operation,'createLinuxShell');
+ assert.deepEqual(JSON.parse(JSON.stringify(shell.hostAction.arguments)),{name:'Ubuntu 1'});
+ env.supported=false;view=await render(null);assert.ok(view.nodes.some(n=>n.id==='unsupported'));
+ assert.equal(view.nodes.some(n=>n.hostAction),false);assert.equal(installs,0);
+});

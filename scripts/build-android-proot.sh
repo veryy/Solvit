@@ -15,8 +15,16 @@ p = Path(sys.argv[1])
 s = p.read_text()
 anchor = '#include "tracee/seccomp.h"'
 assert s.count(anchor) == 1 and '#include <string.h>' not in s
-p.write_text(s.replace(anchor, '#include <string.h>\n' + anchor))
+p.write_text(s.replace(anchor, '/* Solvit: declare strcmp/memset for NDK Clang. */\n#include <string.h>\n' + anchor))
 PY_PATCH
+python3 - "$build_dir/proot-source/src/GNUmakefile" <<'PY_LOADER'
+import sys
+from pathlib import Path
+p = Path(sys.argv[1]); s = p.read_text()
+anchor = '$(ROSEGMENT),-z,noexecstack'
+assert s.count(anchor) == 1
+p.write_text(s.replace(anchor, anchor + ',-z,max-page-size=16384 # Solvit: align loader LOAD segments for 16 KiB pages'))
+PY_LOADER
 curl --fail --location --silent --show-error --retry 2 https://www.samba.org/ftp/talloc/talloc-2.5.0.tar.gz --output "$build_dir/talloc.tar.gz"
 printf '%s\n' "912afa237510ae542a7733998eb18a12bcda35ab6729c8e2ddb43e8d0ebab007  $build_dir/talloc.tar.gz" | sha256sum --check
 for abi in arm64-v8a x86_64; do
@@ -65,11 +73,12 @@ ANSWERS
         HAS_LOADER_32BIT= PROOT_UNBUNDLE_LOADER=/not-used \
         CPPFLAGS="-D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -DARG_MAX=131072 -I. -I$abi_dir/proot/src -I$abi_dir/talloc-2.5.0" \
         LDFLAGS="$abi_dir/libtalloc.a -Wl,-z,noexecstack -Wl,-z,max-page-size=16384"
-    destination="linux-probe/src/main/jniLibs/$abi"
+    destination="linux-android/src/main/jniLibs/$abi"
     mkdir -p "$destination"
     cp "$abi_dir/proot/src/proot" "$destination/libsolvit_proot.so"
     cp "$abi_dir/proot/src/loader/loader" "$destination/libsolvit_loader.so"
-    "$ndk/bin/llvm-readelf" -h "$destination/libsolvit_proot.so"
+    "$ndk/bin/llvm-readelf" -l "$destination/libsolvit_proot.so"
+    "$ndk/bin/llvm-readelf" -l "$destination/libsolvit_loader.so"
     sha256sum "$destination/"*.so
     # GPL source, license and build inputs accompany diagnostic artifacts.
     mkdir -p "linux-probe/build-inputs/$abi"
@@ -80,3 +89,16 @@ cp "$build_dir/proot-source/COPYING" linux-probe/build-inputs/PROOT-COPYING
 cp "$build_dir/talloc.tar.gz" linux-probe/build-inputs/
 git -C "$build_dir/proot-source" archive --format=tar.gz HEAD > linux-probe/build-inputs/proot-source.tar.gz
 cp scripts/build-android-proot.sh linux-probe/build-inputs/
+
+# Full corresponding source and build inputs accompany every distributed native executable.
+mkdir -p linux-android/build
+python3 - <<'PY_SOURCE'
+from pathlib import Path
+import zipfile
+root = Path('linux-probe/build-inputs')
+with zipfile.ZipFile('linux-android/build/solvit-linux-sources.zip','w',zipfile.ZIP_DEFLATED) as archive:
+    for p in sorted(root.rglob('*')):
+        if p.is_file(): archive.write(p, 'build-inputs/' + str(p.relative_to(root)))
+    for p in sorted(Path('linux-android/src/main/assets/linux-notices').glob('*')):
+        archive.write(p, 'licenses/' + p.name)
+PY_SOURCE

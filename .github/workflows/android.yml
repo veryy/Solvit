@@ -35,6 +35,16 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Install Android SDK
         run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
+      - name: Build Linux executables from pinned source
+        run: bash scripts/build-android-proot.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solvit-linux-native
+          path: linux-android/src/main/jniLibs/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solvit-linux-sources
+          path: linux-android/build/solvit-linux-sources.zip
       - name: Restore stable APK signing key
         env:
           SOLVIT_KEYSTORE: ${{ secrets.SOLVIT_DEBUG_KEYSTORE }}
@@ -48,7 +58,7 @@ jobs:
             exit 1
           fi
       - name: Tests, lint and APK
-        run: ./gradlew :core:test :system-runtime:test :workspace-android:testDebugUnitTest :web-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest :web-android:assembleDebugAndroidTest --stacktrace
+        run: ./gradlew :core:test :linux-runtime:test :system-runtime:test :workspace-android:testDebugUnitTest :web-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest :web-android:assembleDebugAndroidTest --stacktrace
       - name: Verify published APK signing identity
         if: github.event_name != 'pull_request'
         run: |
@@ -97,6 +107,10 @@ jobs:
         with:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: solvit-linux-native
+          path: linux-android/src/main/jniLibs/
       - name: Prepare UI APKs outside emulator
         timeout-minutes: 15
         run: |
@@ -141,9 +155,12 @@ jobs:
   verify-search:
     if: startsWith(github.ref, 'refs/tags/v')
     uses: ./.github/workflows/search-quality.yml
+  verify-linux:
+    if: startsWith(github.ref, 'refs/tags/v')
+    uses: ./.github/workflows/linux-environment.yml
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build, verify-ui, verify-plugins, verify-search]
+    needs: [build, verify-ui, verify-plugins, verify-search, verify-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -153,6 +170,10 @@ jobs:
         with:
           name: solvit-debug-apk
           path: apk
+      - uses: actions/download-artifact@v4
+        with:
+          name: solvit-linux-sources
+          path: linux-sources
       - uses: actions/github-script@v7
         with:
           script: |
@@ -178,4 +199,11 @@ jobs:
             await github.rest.repos.uploadReleaseAsset({...context.repo, release_id: release.id,
               name: 'solvit-debug.apk', data: bytes,
               headers: {'content-type': 'application/vnd.android.package-archive', 'content-length': bytes.length}});
+            const sources = fs.readFileSync('linux-sources/solvit-linux-sources.zip');
+            if (assets.some(asset => asset.name === 'solvit-linux-sources.zip')) {
+              throw new Error('Linux source asset already exists; refusing to replace it');
+            }
+            await github.rest.repos.uploadReleaseAsset({...context.repo, release_id: release.id,
+              name: 'solvit-linux-sources.zip', data: sources,
+              headers: {'content-type': 'application/zip', 'content-length': sources.length}});
             await github.rest.repos.updateRelease({...context.repo, release_id: release.id, draft: false, make_latest: 'true'});

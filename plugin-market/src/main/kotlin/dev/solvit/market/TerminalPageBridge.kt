@@ -39,7 +39,7 @@ class TerminalPageBridge(private val workspace: WorkspaceService, private val te
         val result = withContext(context) {
             when (operation) {
                 "snapshot" -> JSONObject().put("shells", JSONArray(workspace.state.value.shells.filter { it.workspaceId == binding }
-                    .map { JSONObject().put("id",it.id).put("name",it.name) }))
+                    .map { JSONObject().put("id",it.id).put("name",it.name).put("runtime",it.runtime.name) }))
                     .put("terminals", JSONArray(terminals.sessions.value.filter { session -> session.active && session.chatId == chatId &&
                         session.workspaceId == binding && (allowModelSessions || session.owner == owner) }
                         .map { JSONObject().put("id",it.id).put("shellId",it.shellId).put("owner",it.owner)

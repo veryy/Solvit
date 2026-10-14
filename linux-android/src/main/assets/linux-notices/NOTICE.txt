@@ -1,0 +1,17 @@
+Solvit Linux runtime components
+
+PRoot Android fork: termux/proot b8c1f5c5c6730dc9d521d5bd5ce1cfeedecde087.
+Copyright notices are retained in the accompanying corresponding source.
+PRoot is GPL-2.0-or-later; talloc 2.5.0 and libreplace are LGPL-3.0-or-later.
+The standalone PRoot executable statically includes talloc/libreplace and is
+redistributed under GPL-3.0-or-later. It communicates with Solvit via process I/O.
+The loader and PRoot are built from source; no Operit binaries or Kotlin code are copied.
+Solvit changes: NDK string.h declaration; 16 KiB loader segment alignment.
+Source, licenses, patches, cross answers and build script accompany the APK as
+solvit-linux-sources.zip in the same release. Build recipe:
+https://github.com/veryy/Solvit/blob/main/scripts/build-android-proot.sh
+
+Apache Commons Compress 1.28.0: Apache License 2.0.
+XZ for Java 1.10: Zero-Clause BSD License (0BSD).
+Ubuntu is downloaded on demand from the fixed proot-distro official release;
+it is not bundled in the Solvit APK. Guest package licenses remain in Ubuntu.
