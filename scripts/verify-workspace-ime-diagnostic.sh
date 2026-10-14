@@ -4,6 +4,7 @@ set -euo pipefail
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
   workspace-editor) solvit_diagnostic_test='dev.solvit.app.WorkspaceHtmlPageTest#htmlCreatesBindsBrowsesAndSavesThroughActualNativeConfirmationAndRejectsStaleFiles' ;;
   chat-interaction) solvit_diagnostic_test='dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole' ;;
+  language-settings) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#languageSwitchesImmediatelyAndSurvivesRecreation' ;;
   *) echo 'Unknown diagnostic scenario'; exit 1 ;;
 esac
 solvit_diagnostic_repetitions=${SOLVIT_DIAGNOSTIC_REPETITIONS:-8}

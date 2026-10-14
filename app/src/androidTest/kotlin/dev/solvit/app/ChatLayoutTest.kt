@@ -41,6 +41,31 @@ class ChatLayoutTest {
         }
     }
 
+    private fun scrollSettingsToLanguage() {
+        // Use real swipes; the 1.7.6 scroll helper recursively dumps lazy-list semantics
+        // from the instrumentation thread while Android is measuring the next frame.
+        repeat(12) {
+            rule.waitForIdle()
+            val list = geometry("settings_list")
+            val target = rule.onAllNodesWithTag("language_settings").fetchSemanticsNodes().singleOrNull()
+            val visible = rule.runOnUiThread {
+                target?.boundsInRoot?.let { bounds ->
+                    bounds.width > 0 && bounds.height > 0 && bounds.top >= list.bounds.top &&
+                        bounds.bottom <= list.bounds.bottom
+                } == true
+            }
+            if (visible) return
+            val x = list.bounds.center.x.toInt()
+            val start = (list.bounds.top + list.bounds.height * .8f).toInt()
+            val end = (list.bounds.top + list.bounds.height * .2f).toInt()
+            val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+            ParcelFileDescriptor.AutoCloseInputStream(
+                automation.executeShellCommand("input swipe $x $start $x $end 300")
+            ).use { it.readBytes() }
+        }
+        fail("Language settings were not fully visible after scrolling")
+    }
+
     @Test fun actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat() {
         ready()
         val app = rule.activity.application as SolvitApplication
@@ -971,7 +996,7 @@ class ChatLayoutTest {
         val app = rule.activity.application as SolvitApplication
         try {
             rule.onNodeWithContentDescription("设置").performClick()
-            rule.onNodeWithTag("settings_list").performScrollToNode(hasTestTag("language_settings"))
+            scrollSettingsToLanguage()
             rule.onNodeWithTag("language_en").assertDoesNotExist()
             rule.onNodeWithTag("language_settings").performClick()
             rule.onNodeWithTag("language_en").performClick()

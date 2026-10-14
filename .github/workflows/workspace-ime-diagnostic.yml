@@ -10,7 +10,7 @@ on:
         description: Existing full device scenario to repeat, stopping at first failure
         type: choice
         default: workspace-editor
-        options: [workspace-editor, chat-interaction]
+        options: [workspace-editor, chat-interaction, language-settings]
       repetitions:
         description: Number of repetitions (1 through 8)
         type: string
