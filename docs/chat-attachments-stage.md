@@ -29,3 +29,7 @@ Solvit目前ChatMessage/ModelMessage只有文本，ChatService.send和ChatViewMo
 ## 消息与数据库引用
 
 ChatMessage新增默认空附件列表，限定用户消息/最多8个且ID不能重复；ModelMessage保留引用，completeContext投影不丢弃用户附件。SQLite版本9→10添加默认空attachments列，保存元数据而非图片字节；读取完整引用并校验。新增实际数据库重开及真实v9消息表迁移回归，保留已有文字历史。此项待远程验证；模型图像编码、摘要/分支文件归属、选择器和App接入仍待完成，不将数据库字段视为可上传。
+
+## 首轮远程失败与修复
+
+350aaf9的Android38501256335失败，实际产物11865677764取回检查CRC/XML：新测试初始化错误为方法必须void；三个既有迁移场景明确duplicate column name: attachments。前者显式runBlocking<Unit>，后者升级前检查真实列，避免低版本号但已存在附件列时重复添加。真实v9消息表迁移仍独立验证新增列及旧内容。附件文件回归没有失败；本次完整测试尚未通过，不宣称新APK交付。

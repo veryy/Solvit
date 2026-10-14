@@ -18,7 +18,7 @@ import kotlin.test.*
 class ChatAttachmentHistoryTest {
     private val context get() = RuntimeEnvironment.getApplication()
     @Before fun reset() { context.deleteDatabase("solvit.db") }
-    @Test fun attachmentReferencesReopenAndRejectDuplicateIds() = runBlocking {
+    @Test fun attachmentReferencesReopenAndRejectDuplicateIds() = runBlocking<Unit> {
         val attachment = ChatAttachment(UUID.randomUUID().toString(), "图片.png", "image/png", 8, "a".repeat(64))
         val session = SqliteChatStore(context).use { store ->
             val session = store.createSession()
@@ -34,7 +34,7 @@ class ChatAttachmentHistoryTest {
             }
         }
     }
-    @Test fun versionNineUpgradeRetainsTextAndDefaultsAttachmentsToEmpty() = runBlocking {
+    @Test fun versionNineUpgradeRetainsTextAndDefaultsAttachmentsToEmpty() = runBlocking<Unit> {
         val session = SqliteChatStore(context).use { store ->
             val session = store.createSession()
             store.append(ChatMessage("old", session.id, Role.USER, "existing history"))

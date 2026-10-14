@@ -30,7 +30,14 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
             ExecutionJournalDatabase.create(db)
         }
         override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-            if (oldVersion < 10) db.execSQL("ALTER TABLE messages ADD COLUMN attachments TEXT NOT NULL DEFAULT '[]'")
+            if (oldVersion < 10) {
+                val hasAttachments = db.rawQuery("PRAGMA table_info(messages)", null).use { columns ->
+                    var found = false
+                    while (columns.moveToNext()) if (columns.getString(columns.getColumnIndexOrThrow("name")) == "attachments") found = true
+                    found
+                }
+                if (!hasAttachments) db.execSQL("ALTER TABLE messages ADD COLUMN attachments TEXT NOT NULL DEFAULT '[]'")
+            }
             if (oldVersion < 8) ExecutionJournalDatabase.create(db)
             if (oldVersion < 9) ExecutionFileCaptureDatabase.create(db)
             if (oldVersion < 7) createTurnTable(db)
