@@ -164,6 +164,30 @@ class WorkspaceInstructionsHookTest {
         }
     }
 
+    @Test fun originalApi22WorkspaceUpgradesToPdfPreviewsAndKeepsUserSettingsOrModifiedBytes() = runBlocking<Unit> {
+        fixture { market, _, _, _ ->
+            val id = "dev.solvit.workspace"
+            market.disable(id); market.configure(id, mapOf("projectRules" to "false"))
+            val original = javaClass.getResourceAsStream("/legacy/dev.solvit.workspace-1.5.0.solvit.json")!!.use { it.readBytes() }
+            val app = RuntimeEnvironment.getApplication()
+            val file = java.io.File(app.filesDir, "extensions/$id.solvit.json").apply { writeBytes(original) }
+            val prefs = app.getSharedPreferences("extension_permissions", 0)
+            check(prefs.edit().putBoolean("seeded.$id.solvit.json", true).putBoolean("enabled.$id", true)
+                .putStringSet("grants.$id", setOf("workspace", "shell")).commit())
+            market.restore()
+            val upgraded = market.installed.value.single { it.id == id }
+            assertEquals("1.6.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals("false", market.configuration(id)["projectRules"])
+            assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
+            val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
+            assertEquals(23, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
+            market.disable(id)
+            val modified = original + "\n".toByteArray(); file.writeBytes(modified); market.restore()
+            assertContentEquals(modified, file.readBytes())
+            market.uninstall(id); market.restore(); assertFalse(file.exists())
+        }
+    }
+
     @Test fun originalApi17WorkspaceUpgradesWithoutLosingItsSavedRuleSwitchOrGrants() = runBlocking<Unit> {
         fixture { market, _, _, _ ->
             val id="dev.solvit.workspace"
