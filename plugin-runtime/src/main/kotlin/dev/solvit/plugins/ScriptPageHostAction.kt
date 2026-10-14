@@ -19,6 +19,12 @@ object ScriptPageHostAction {
             require(it.isString && it.content.isNotBlank() && it.content.length <= max && '\u0000' !in it.content)
         }.content
         val keys = when (operation) {
+            "startRemote" -> {
+                val target = text("operation", 32)
+                require(target in setOf("fetch", "reviewPush", "reviewPull", "push", "merge"))
+                git(buildJsonObject { put("kind", "git.perform"); put("operation", target); put("arguments", args.getValue("arguments").jsonObject) })
+                setOf("operation", "arguments")
+            }
             "initialize" -> emptySet()
             "stage", "unstage" -> { text("reviewId", 128); setOf("reviewId") }
             "fetch", "reviewPush", "reviewPull" -> {

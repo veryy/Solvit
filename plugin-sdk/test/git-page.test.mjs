@@ -82,3 +82,35 @@ test('Git AI tools forward the exact approved JSON to the shared host query capa
   }
  }finally{await h.close()}
 });
+
+test('Remote Git starts confirmed jobs, polls without blocking and sends only retained review handles',async()=>{
+ const h=await harness();try{
+  let starts=0,state={status:'RUNNING',progress:{task:'Receiving objects',completed:4,total:10}};
+  const query=h.ctx.gitPage.query;
+  h.ctx.gitPage.query=async(op,args)=>op==='remoteOperation'?(assert.equal(args.operationId,'native-job'),state):query(op,args);
+  h.ctx.gitPage.perform=async()=>{starts++;return {operationId:'native-job'}};
+  await h.page(h.input(),h.ctx);
+  const remote=await h.page(h.input(h.event('git_remote','gitRemote')),h.ctx);
+  assert.ok(remote.nodes.some(n=>n.id==='git_remote_url'));
+  const confirm=await h.page(h.input(h.event('git_push','gitPush',{git_remote_url:'https://github.com/veryy/Solvit.git',git_remote_branch:'main'})),h.ctx);
+  assert.equal(starts,0);
+  assert.deepEqual(JSON.parse(JSON.stringify(confirm.footer.find(n=>n.id==='git_confirm').hostAction)),
+   {kind:'git.perform',operation:'startRemote',arguments:{operation:'reviewPush',arguments:{url:'https://github.com/veryy/Solvit.git',branch:'main'}}});
+  let running=await h.page(h.input(h.event('git_confirm','gitConfirm')),h.ctx);
+  assert.equal(starts,1);assert.ok(running.nodes.some(n=>n.id==='git_transfer'));
+  running=await h.page(h.input(h.event('git_remote_poll','gitRemotePoll')),h.ctx);
+  assert.ok(running.nodes.find(n=>n.id==='git_transfer').text.includes('4/10'));
+  assert.equal(running.footer.find(n=>n.id==='git_remote_cancel').hostAction.operation,'cancelTransfer');
+  state={status:'SUCCEEDED',result:{reviewId:'native-push-review',localHead:'local-head',remoteHead:'remote-head'}};
+  const reviewed=await h.page(h.input(h.event('git_remote_poll','gitRemotePoll')),h.ctx);
+  assert.ok(reviewed.nodes.find(n=>n.id==='git_remote_head').text.includes('remote-head'));
+  const push=await h.page(h.input(h.event('git_remote_apply','gitRemoteApply')),h.ctx);
+  assert.deepEqual(JSON.parse(JSON.stringify(push.footer.find(n=>n.id==='git_confirm').hostAction)),
+   {kind:'git.perform',operation:'startRemote',arguments:{operation:'push',arguments:{reviewId:'native-push-review'}}});
+  await h.page(h.input(h.event('git_confirm','gitConfirm')),h.ctx);
+  state={status:'SUCCEEDED',result:{status:'REJECTED_NONFASTFORWARD'}};
+  const rejected=await h.page(h.input(h.event('git_remote_poll','gitRemotePoll')),h.ctx);
+  assert.equal(rejected.nodes.find(n=>n.id==='git_error').text,'REJECTED_NONFASTFORWARD');
+  assert.ok(h.pkg.resources['ui/main.js'].includes('git_remote_poll'));
+ }finally{await h.close()}
+});

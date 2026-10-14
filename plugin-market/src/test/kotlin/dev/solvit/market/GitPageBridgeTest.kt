@@ -10,6 +10,9 @@ class GitPageBridgeTest {
         val local = Fixture()
         var fetches = 0
         var pushes = 0
+        var blockFetch = false
+        val entered = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val release = kotlinx.coroutines.CompletableDeferred<Unit>()
         var received: WorkspaceRemoteGitSession.PushReview? = null
         lateinit var retained: WorkspaceRemoteGitSession.PushReview
         val service = object : WorkspaceRemoteGitService {
@@ -24,6 +27,7 @@ class GitPageBridgeTest {
                     override suspend fun transferProgress(): WorkspaceRemoteGitSession.Progress? { authorizeRead(); return progress.value }
                     override suspend fun fetch(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.Fetch {
                         authorizeRead(); authorizeWrite(); authorizeNetwork(endpoint); fetches++
+                        if (blockFetch) { entered.complete(Unit); release.await() }
                         return WorkspaceRemoteGitSession.Fetch(branch, "remote", emptyMap())
                     }
                     override suspend fun reviewPush(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.PushReview {
@@ -63,6 +67,19 @@ class GitPageBridgeTest {
         assertEquals("OK", Json.parseToJsonElement(result).jsonObject["status"]!!.jsonPrimitive.content)
         assertSame(retained, received)
         assertFails { page.perform(PageWorkspaceControl("push", """{"reviewId":"$id"}""")) {} }
+        assertEquals(1, pushes)
+        blockFetch = true
+        val started = page.perform(PageWorkspaceControl("startRemote", """{"operation":"reviewPush","arguments":$address}""")) {}
+        val operationId = Json.parseToJsonElement(started).jsonObject.getValue("operationId").jsonPrimitive.content
+        kotlinx.coroutines.withTimeout(2_000) { entered.await() }
+        suspend fun state() = Json.parseToJsonElement(page.query("remoteOperation", """{"operationId":"$operationId"}""") {}).jsonObject
+        assertEquals("RUNNING", state().getValue("status").jsonPrimitive.content)
+        assertFails { page.perform(PageWorkspaceControl("startRemote", """{"operation":"fetch","arguments":$address}""")) {} }
+        page.perform(PageWorkspaceControl("cancelTransfer", "{}")) {}
+        kotlinx.coroutines.withTimeout(2_000) {
+            while (state().getValue("status").jsonPrimitive.content == "RUNNING") kotlinx.coroutines.delay(10)
+        }
+        assertEquals("CANCELLED", state().getValue("status").jsonPrimitive.content)
         assertEquals(1, pushes)
         page.close()
         assertTrue(local.closed)

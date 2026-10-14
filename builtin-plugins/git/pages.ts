@@ -6,6 +6,14 @@ type Review={reviewId:string;path:string;staged:boolean;total:number};
 type Chunk={text:string;offset:number;nextOffset:number;total:number};
 type Commit={id:string;message:string;author:string;timeSeconds:number};
 type Button=Extract<PageNode,{kind:'button'}>;
+const remoteLabels={
+ zh:['远程仓库','HTTPS 仓库地址','分支','下载远端对象','审阅拉取','审阅推送','正在传输','更新进度','取消传输','应用合并','推送审阅的提交','本地提交','远端提交','请先提交本地变化，再拉取；冲突解决后需暂存并提交。'],
+ en:['Remote','HTTPS repository URL','Branch','Fetch objects','Review pull','Review push','Transferring','Update progress','Cancel transfer','Apply merge','Push reviewed commit','Local commit','Remote commit','Commit local changes before pulling. Stage and commit resolved conflicts.'],
+ ja:['リモート','HTTPSリポジトリURL','ブランチ','取得','プルを確認','プッシュを確認','転送中','進捗更新','転送取消','マージ適用','確認済みコミットを送信','ローカル','リモート','プル前に変更をコミット。競合解決後はステージしてコミット。'],
+ ko:['원격 저장소','HTTPS 저장소 URL','브랜치','가져오기','풀 검토','푸시 검토','전송 중','진행 확인','전송 취소','병합 적용','검토한 커밋 푸시','로컬 커밋','원격 커밋','풀 전에 변경을 커밋하세요. 충돌 해결 후 스테이지 및 커밋하세요.'],
+ es:['Remoto','URL HTTPS','Rama','Descargar objetos','Revisar pull','Revisar push','Transfiriendo','Ver progreso','Cancelar','Aplicar merge','Enviar commit revisado','Commit local','Commit remoto','Confirma cambios antes de pull. Resuelve conflictos, prepara y confirma.'],
+ fr:['Distant','URL HTTPS','Branche','Récupérer les objets','Vérifier pull','Vérifier push','Transfert','Actualiser','Annuler','Appliquer merge','Envoyer le commit vérifié','Commit local','Commit distant','Committez avant pull. Résolvez les conflits, puis indexez et committez.']
+};
 const labels={
  zh:['Git 工作区','Changes','文件管理','历史','刷新','初始化仓库','未暂存','已暂存','冲突','查看差异','暂存此文件','取消暂存','提交暂存区','提交说明','作者','邮箱','审阅提交','确认','返回','上一页','下一页','无文件变化','读取中','操作失败：','操作已完成','原始文件字节暂存；不支持LFS过滤器。文件或暂存区变化时须重新审阅。'],
  en:['Git workspace','Changes','Files','History','Refresh','Initialize repository','Working tree','Staged','Conflict','View diff','Stage this file','Unstage','Commit staged files','Message','Author','Email','Review commit','Confirm','Back','Previous','Next','No changes','Loading','Operation failed: ','Completed','Stages raw bytes; LFS filters are unsupported. Re-review if files or the index change.'],
@@ -17,9 +25,12 @@ const labels={
 export function gitPage(){
  let mode='changes',offset=0,status:Status|null=null,message='',review:Review|null=null,chunk:Chunk|null=null;
  let commits:Commit[]=[],pending:Extract<PageHostAction,{kind:'git.perform'}>|null=null,author='',email='',commitMessage='';
+ let remoteUrl='',remoteBranch='main',operationId='',remoteTarget='',remoteReview:{reviewId:string;localHead:string;remoteHead:string}|null=null;
+ let remoteProgress='';
  const files=workspacePage();
  return async(input:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
   const t=labels[input.locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en,api=ctx.gitPage!,event=input.event;
+  const rt=remoteLabels[input.locale.split(/[-_]/)[0] as keyof typeof remoteLabels]??remoteLabels.en;
   const renderFiles=async(value:PluginPageInput)=>{
    const view=await files(value,ctx);
    if(!view.nodes.some(n=>n.id==='document_meta')&&!view.footer?.some(n=>n.hostAction))
@@ -44,12 +55,37 @@ export function gitPage(){
     else if(action==='gitStage'&&review){pending={kind:'git.perform',operation:review.staged?'unstage':'stage',arguments:{reviewId:review.reviewId}};mode='confirm'}
     else if(action==='gitInitialize'){pending={kind:'git.perform',operation:'initialize',arguments:{}};mode='confirm'}
     else if(action==='gitCommit'){mode='commit';pending=null}
+    else if(action==='gitRemote'){mode='remote';pending=null}
+    else if(action==='gitFetch'||action==='gitPull'||action==='gitPush'){
+     remoteUrl=(event.fields.git_remote_url??remoteUrl).trim();remoteBranch=(event.fields.git_remote_branch??remoteBranch).trim();
+     if(!remoteUrl||!remoteBranch)throw Error(rt[1]+' / '+rt[2]);
+     remoteTarget=action==='gitFetch'?'fetch':action==='gitPull'?'reviewPull':'reviewPush';
+     pending={kind:'git.perform',operation:'startRemote',arguments:{operation:remoteTarget,arguments:{url:remoteUrl,branch:remoteBranch}}};mode='confirm';
+    }else if(action==='gitRemoteApply'&&remoteReview){
+     remoteTarget=remoteTarget==='reviewPush'?'push':'merge';
+     pending={kind:'git.perform',operation:'startRemote',arguments:{operation:remoteTarget,arguments:{reviewId:remoteReview.reviewId}}};mode='confirm';
+    }else if(action==='gitRemotePoll'&&operationId){
+     const state=await api.query('remoteOperation',{operationId}) as unknown as {status:string;result?:{reviewId?:string;localHead?:string;remoteHead?:string;status?:string};error?:string;progress?:{task:string;completed:number;total:number}};
+     remoteProgress=state.progress?`${state.progress.task} · ${state.progress.completed}${state.progress.total>0?'/'+state.progress.total:''}`:rt[6];
+     if(state.status==='SUCCEEDED'){
+      if(remoteTarget==='reviewPush'||remoteTarget==='reviewPull'){
+       if(!state.result?.reviewId||!state.result.localHead||!state.result.remoteHead)throw Error('Incomplete remote review');
+       remoteReview=state.result as {reviewId:string;localHead:string;remoteHead:string};mode='remote-review';
+      }else {message=state.result?.status??t[24];mode='changes';await refresh()}
+      operationId='';
+     }else if(state.status==='FAILED'||state.status==='CANCELLED'){operationId='';mode='remote';message=state.error??state.status}
+    }else if(action==='gitRemoteCancel'){await api.perform();message=rt[8]}
     else if(action==='gitReviewCommit'){
      commitMessage=(event.fields.git_message??'').trim();author=(event.fields.git_author??'').trim();email=(event.fields.git_email??'').trim();
      if(!commitMessage||commitMessage.length>4096||!author||author.length>80||!email||email.length>254)throw Error('Message, author and email are required');
      const value=await api.query('reviewCommit',{}) as unknown as {revisionId:string};
      pending={kind:'git.perform',operation:'commit',arguments:{revisionId:value.revisionId,message:commitMessage,author,email}};mode='confirm';
-    }else if(action==='gitConfirm'&&pending){await api.perform();pending=null;review=null;chunk=null;mode='changes';await refresh();message=t[24]}
+    }else if(action==='gitConfirm'&&pending){
+     const asyncRemote=pending.operation==='startRemote',result=await api.perform() as unknown as {operationId?:string};
+     pending=null;review=null;chunk=null;
+     if(asyncRemote){if(!result.operationId)throw Error('Missing operation ID');operationId=result.operationId;remoteProgress=rt[6];mode='remote-running'}
+     else{mode='changes';await refresh();message=t[24]}
+    }
     else if(action==='gitHistory'){commits=await api.query('history',{limit:5}) as unknown as Commit[];mode='history'}
     else if(action==='gitBack'){pending=null;mode='changes';await refresh()}
    }else await refresh();
@@ -59,6 +95,7 @@ export function gitPage(){
   if(message)nodes.push(text('git_error',Array.from(message).slice(0,1000).join('')));
   if(mode==='changes'){
    nodes.push(text('git_branch',`${status?.branch??'—'} · ${status?.head?.slice(0,8)??'—'}`));
+   nodes.push(button('git_remote',rt[0],'gitRemote'));
    for(const [i,entry]of (status?.entries??[]).entries())nodes.push({id:`git_file_${i}`,kind:'card',children:[text(`git_path_${i}`,entry.path),
     text(`git_state_${i}`,[entry.staged?t[7]:null,entry.working?t[6]:null,entry.conflict?t[8]:null].filter(Boolean).join(' · ')),
     ...(entry.working||entry.conflict?[button(`git_working_${i}`,t[9]+' · '+t[6],'gitDiffWorking')]:[]),
@@ -69,6 +106,19 @@ export function gitPage(){
    footer.push(button('git_files',t[2],'gitFiles'),button('git_history',t[3],'gitHistory'),button('git_refresh',t[4],'gitRefresh'),
     button('git_commit',t[12],'gitCommit'));
    if(!status)nodes.push(button('git_initialize',t[5],'gitInitialize'));
+  }else if(mode==='remote'){
+   nodes.push({id:'git_remote_url',kind:'field',label:rt[1],value:remoteUrl},
+    {id:'git_remote_branch',kind:'field',label:rt[2],value:remoteBranch},text('git_remote_help',rt[13]),
+    button('git_fetch',rt[3],'gitFetch'),button('git_pull',rt[4],'gitPull'),button('git_push',rt[5],'gitPush'));
+   footer.push(button('git_back',t[18],'gitBack'));
+  }else if(mode==='remote-running'){
+   nodes.push(text('git_transfer',remoteProgress));
+   footer.push(button('git_remote_poll',rt[7],'gitRemotePoll'),
+    {...button('git_remote_cancel',rt[8],'gitRemoteCancel'),hostAction:{kind:'git.perform',operation:'cancelTransfer',arguments:{}}});
+  }else if(mode==='remote-review'&&remoteReview){
+   nodes.push(text('git_remote_address',remoteUrl+' · '+remoteBranch),text('git_local_head',rt[11]+' · '+remoteReview.localHead),
+    text('git_remote_head',rt[12]+' · '+remoteReview.remoteHead),text('git_remote_help',rt[13]));
+   footer.push(button('git_back',t[18],'gitBack'),button('git_remote_apply',remoteTarget==='reviewPush'?rt[10]:rt[9],'gitRemoteApply'));
   }else if(mode==='diff'&&review&&chunk){
    nodes.push(text('git_selected',`${review.path} · ${review.staged?t[7]:t[6]}`),
     text('git_diff_meta',JSON.stringify({...review,...chunk,text:undefined})),text('git_patch_chunk',chunk.text),

@@ -16,7 +16,7 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     val documentInvocation: Boolean get() = approvedAction?.get("kind")?.toString()?.trim('"')?.startsWith("document.") == true
     suspend fun ensureAuthorized() = verify()
     private fun verifyRemoteGit(operation: String, apiVersion: Int, networkDeclared: Boolean) {
-        if (operation in setOf("fetch", "reviewPush", "push", "reviewPull", "merge", "cancelTransfer", "transferProgress"))
+        if (operation in setOf("fetch", "reviewPush", "push", "reviewPull", "merge", "cancelTransfer", "transferProgress", "startRemote", "remoteOperation"))
             check(apiVersion >= 20 && networkDeclared) { "远程Git页面需要API20及network权限" }
     }
     suspend fun queryGit(operation: String, args: JsonObject, apiVersion: Int = 19, networkDeclared: Boolean = false): String {

@@ -2,8 +2,13 @@
 import '../../workspace/ui/main.mjs';
 const update=window.solvitPageUpdate;
 let reviewId=null,nextOffset=0,patch=null;
+let progressTimer=null;
+window.addEventListener('pagehide',()=>{clearTimeout(progressTimer);progressTimer=null});
 window.solvitPageUpdate=state=>{
+ clearTimeout(progressTimer);progressTimer=null;
  update(state);
+ if(!state.busy&&state.view.nodes.some(n=>n.id==='git_transfer'))
+  progressTimer=setTimeout(()=>{progressTimer=null;document.querySelector('[data-node="git_remote_poll"]')?.click()},750);
  if(!state.view.nodes.some(n=>n.id==='tree_meta')){
   const tree=document.getElementById('file-tree');tree.hidden=true;tree.classList.remove('open');
  }

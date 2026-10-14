@@ -2,6 +2,14 @@ package dev.solvit.market
 
 import dev.solvit.core.*
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -17,6 +25,12 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
         companion object Key : CoroutineContext.Key<Authority>
     }
     private val mutex = Mutex()
+    private val operationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val operationLock = Any()
+    private data class Operation(val id: String, val operation: String, val status: String,
+        val result: JsonElement? = null, val error: String? = null)
+    private var operation: Operation? = null
+    private var operationJob: Job? = null
     @Volatile private var closed = false
     private var review: Pair<String, WorkspaceGitSession.Diff>? = null
     private var index: Pair<String, WorkspaceGitSession.Revision>? = null
@@ -63,6 +77,24 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
     }
 
     override suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit): String {
+        if (operation == "remoteOperation") return withContext(Authority(authorize, false)) {
+            verify(false)
+            val args = arguments(argumentsJson)
+            require(args.keys == setOf("operationId"))
+            remote().transferProgress() // Checks binding without waiting behind the repository lock.
+            val retained = synchronized(operationLock) { checkNotNull(this@GitPageBridge.operation) }
+            check(retained.id == args.text("operationId")) { "远程操作记录已变化" }
+            val progress = remote().transferProgress()
+            verify(false)
+            buildJsonObject {
+                put("operationId", retained.id); put("operation", retained.operation); put("status", retained.status)
+                retained.result?.let { put("result", it) }
+                retained.error?.let { put("error", it) }
+                progress?.let { put("progress", buildJsonObject {
+                    put("task", it.task); put("completed", it.completed); put("total", it.total)
+                }) }
+            }.toString()
+        }
         if (operation == "transferProgress") return withContext(Authority(authorize, false)) {
             verify(false); require(arguments(argumentsJson).isEmpty())
             val value = remote().transferProgress()
@@ -115,8 +147,41 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
     }
 
     override suspend fun perform(control: PageWorkspaceControl, authorize: suspend () -> Unit): String {
+        if (control.operation == "startRemote") return withContext(Authority(authorize, true)) {
+            verify(true)
+            val args = arguments(control.argumentsJson)
+            require(args.keys == setOf("operation", "arguments"))
+            val target = args.text("operation", 32)
+            require(target in setOf("fetch", "reviewPush", "reviewPull", "push", "merge"))
+            val metadata = buildJsonObject {
+                put("kind", "git.perform"); put("operation", target); put("arguments", args.getValue("arguments").jsonObject)
+            }
+            val native = dev.solvit.plugins.ScriptPageHostAction.git(metadata)
+            remote().transferProgress()
+            val id = UUID.randomUUID().toString()
+            val job = operationScope.launch(start = CoroutineStart.LAZY) {
+                try {
+                    val result = Json.parseToJsonElement(perform(native, authorize))
+                    synchronized(operationLock) { operation = Operation(id, target, "SUCCEEDED", result) }
+                } catch (_: CancellationException) {
+                    synchronized(operationLock) { operation = Operation(id, target, "CANCELLED") }
+                } catch (error: Exception) {
+                    // Host messages only; credentials never enter this adapter.
+                    synchronized(operationLock) { operation = Operation(id, target, "FAILED", error = error.message?.take(1000) ?: "Git操作失败") }
+                }
+            }
+            try { synchronized(operationLock) {
+                check(!closed) { "Git页面已关闭" }
+                check(operationJob?.isCompleted != false) { "远程Git操作仍在进行" }
+                operation = Operation(id, target, "RUNNING")
+                operationJob = job
+                job.start()
+            } } catch (error: Exception) { job.cancel(); throw error }
+            buildJsonObject { put("operationId", id) }.toString()
+        }
         if (control.operation == "cancelTransfer") return withContext(Authority(authorize, true)) {
             verify(true); require(arguments(control.argumentsJson).isEmpty())
+            synchronized(operationLock) { operationJob?.cancel() }
             remote().cancelTransfer()
             verify(true)
             buildJsonObject { put("cancelRequested", true) }.toString()
@@ -205,7 +270,11 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
 
     override suspend fun close() = withContext(NonCancellable) {
         closed = true
+        operationScope.cancel()
         session.close() // Cancels native transport before waiting behind the page operation.
+        val owned = synchronized(operationLock) { operationJob }
+        owned?.join()
         mutex.withLock { review = null; index = null; pushReview = null; pullReview = null }
+        synchronized(operationLock) { operation = null; operationJob = null }
     }
 }

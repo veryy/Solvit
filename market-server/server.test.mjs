@@ -152,3 +152,17 @@ test('MCP demo negotiates read-only tools and rejects unknown calls and origins'
     assert.equal((await fetch(endpoint)).status,405);
   } finally { await new Promise(resolve => server.close(resolve)); }
 });
+
+test('API19 keeps the exact released Git bytes while API20 selects remote Git',async()=>{
+ const server=createMarketServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const base=`http://127.0.0.1:${server.address().port}`;
+ try{
+  const old=(await(await fetch(base+'/api/v1/plugins?hostApi=19')).json()).plugins.find(p=>p.id==='dev.solvit.git');
+  assert.equal(old.version,'1.1.1');assert.equal(old.apiVersion,19);
+  const oldBytes=Buffer.from(await(await fetch(base+old.downloadPath)).arrayBuffer());
+  assert.deepEqual(oldBytes,await readFile(new URL('./packages/legacy/dev.solvit.git-1.1.1.solvit.json',import.meta.url)));
+  assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd');
+  const next=(await(await fetch(base+'/api/v1/plugins?hostApi=20')).json()).plugins.find(p=>p.id==='dev.solvit.git');
+  assert.equal(next.version,'1.2.0');assert.equal(next.apiVersion,20);
+ }finally{await new Promise(resolve=>server.close(resolve))}
+});
