@@ -90,3 +90,10 @@ PageFilePictureRenderer只接受当前页持有的PageBinaryDocument，原生先
 源bd58c94的[Android38601350681](https://github.com/veryy/Solvit/actions/runs/38601350681) build/verify-ui均成功。完整下载UI artifact11914623641（5,295,956字节），ZIP CRC/XML核对65设备零失败/错误/跳过；此前unit归档为483单元零失败。实际WorkspaceImportHtmlTest通过选择、信息预览、确认取消、重名保留原文件、改名导入、生产Git untracked、生产Shell SHA/退出码与重开文件树整链。实际查看workspace-import-selected.png及workspace-import-directory.png，信息、路径输入、确认按钮与导入的300000字节文件可见。注册器提供真实URI，不宣称自动点击系统DocumentsUI。PDF原用例也通过，但没有PDF生产修复，间歇性超时的原因仍未确认，不将本轮成功称为已修复。
 
 图片候选cd423f4的[Android38603796081](https://github.com/veryy/Solvit/actions/runs/38603796081) build成功。完整下载unit artifact11914368368（370,356字节），ZIP CRC/XML核对485单元零失败/错误/跳过。合并已发布main文档后的8eacf7d推送触发分支并发规则，取消了旧verify-ui；取消归档11915428637完整ZIP CRC通过，只有部分设备执行记录，不能支持图片全链成功。继续观察新[Android38606210921](https://github.com/veryy/Solvit/actions/runs/38606210921)，不通过再次推送打断它。图片原生解码/EXIF/撤权与实际HTML可见截图仍以该完整设备结果为准，当前不公开候选APK。
+
+
+## 线上服务器私有暂存兼容验证
+
+在现有市场服务器建立独立before/next快照，仅替换候选server.mjs、workspace1.5.0、Git1.2.1并补入原1.4.0/1.2.0完整legacy包；其他线上包与自定义catalog-order保留。通过远程Node在127.0.0.1随机端口实际调用两个HTTP服务，逐个比较API1..19目录完全一致；API20/21除了Git兼容补丁1.2.1外其他条目及顺序一致，工作区仍为1.4.0。遍历38个历史版本下载，旧/新服务字节均与部署前快照相同。API22工作区1.5.0/API22、workspace.files及Git1.2.1/API20选择和下载摘要通过。
+
+候选工作区754032字节，SHA256 `399e6a23148c4043903788adeb2eb7203504710c3fe95b6af9a39d89b38bc72a`；Git736820字节，SHA256 `77454f4db363a764fafd507dc00a695dedb4fdc09f8f420d262d3b4d653d83f9`。这只是服务器私有暂存验证，尚未更新公开服务或客户端hostApi；必须等实际图片设备链及截图验收再公开，不用兼容检查代替图片可用性。
