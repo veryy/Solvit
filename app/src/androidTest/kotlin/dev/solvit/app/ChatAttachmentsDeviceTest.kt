@@ -47,6 +47,12 @@ import java.util.concurrent.TimeUnit
 /** Real picker contract/URI, Compose, private files, SQLite, and actual HTTP payload. */
 class ChatAttachmentsDeviceTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    private fun screenshot(name: String) {
+        require(name.matches(Regex("[a-z-]+")))
+        val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
+    }
     @Test fun pickerImportsImagesAndTextThenHttpSendAndReopenPreserveTheirContent() {
         val app = rule.activity.application as SolvitApplication
         rule.waitUntil(15_000) { app.ready.value != null }
@@ -132,8 +138,10 @@ class ChatAttachmentsDeviceTest {
             val attachments = vm.attachmentDrafts.value.getValue(session)
             val image = attachments.single { it.mimeType == "image/png" }
             val document = attachments.single { it.mimeType == "text/plain" }
+            screenshot("chat-attachment-drafts")
             rule.onNodeWithTag("attachment_${image.id}").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("attachment_image_${image.id}").fetchSemanticsNodes().isNotEmpty() }
+            screenshot("chat-attachment-image-preview")
             rule.onNodeWithTag("attachment_preview_close").performClick()
             rule.onNodeWithTag("chat_send").assertIsEnabled().performClick()
             try {
@@ -161,6 +169,7 @@ class ChatAttachmentsDeviceTest {
                 throw AssertionError("Saved attachment viewer: body=$body, close controls=${rule.onAllNodesWithTag("attachment_preview_close").fetchSemanticsNodes().size}", timeout)
             }
             rule.onNodeWithTag("attachment_text_${document.id}").assertTextEquals("中文 fixture code 😀\nprint(42)")
+            screenshot("chat-attachment-saved-text-preview")
             rule.onNodeWithTag("attachment_preview_close").performClick()
             rule.runOnUiThread { vm.viewModelScope.cancel() }
             store.close()

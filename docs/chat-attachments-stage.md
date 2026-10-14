@@ -111,3 +111,9 @@ Git测试在异步点击git_remote后立刻设置尚未生成的输入框，eval
 复核认证错误链路发现ChatViewModel捕获settings.load失败后仍ready，startTurn会清除错误并使用构造时默认OpenAI地址。MockWebServer4.12源码hostName会读取canonicalHostName（可能触发DNS）；预先在测试线程获取URL后，实际HTTP内容断言已经通过，但没有记录原异常类别，不能断言代理就是原因。
 
 修复生产VM在普通读取/解密失败或ModelProfiles载入错误时锁住发送/打断/排队，清除提示不能解除门禁；只有成功保存或恢复配置、或Profiles明确清除载入错误才恢复。保留可读取的旧模型地址/名称，聊天仍可打开。新增回归覆盖普通IO失败与有部分配置的解密失败，原服务收不到任何文字/队列，恢复后只收到实际保存的指定连接。该回归待GitHub Actions，不宣称已通过。参考只读取[MockWebServer官方实现](https://raw.githubusercontent.com/square/okhttp/parent-4.12.0/mockwebserver/src/main/kotlin/okhttp3/mockwebserver/MockWebServer.kt)，无源码复制。
+
+## 原页面回归通过
+
+73b752e的独立附件38511144750（115679701153）与凭据38511147617（115679710185）都成功。附件保留原选择取消、PNG/文档导入、大图、实际HTTP同用户内容块、精确字节/UTF-8正文、保存后文本预览和SQLite重开检查；没有提高超时或删除断言。该源码中的预览独立于列表行后，原已保存文本预览用例通过。凭据仍检查原生安全窗口、加密、JS没有令牌、移除和取消。
+
+完整cd3341e门禁新增配置读取失败回归，不能用73b752e的专项成功代替完整门禁。增加同一附件用例的草稿/大图/已保存文本截图，用于核对实际页面观感；无新增测试或模型网络访问。正式Release尚未发布。
