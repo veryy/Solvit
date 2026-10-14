@@ -13,3 +13,11 @@
 验证包含单元、实际Android附件编辑/预览/移除/HTTP字节检查、清理保留边界、完整界面、Lint、固定签名与覆盖升级。结果和公开文件摘要在正式门禁完成后补充；当前说明不替代构建证明。
 
 候选源码28df383的[38566195895第二轮](https://github.com/veryy/Solvit/actions/runs/38566195895)build/UI通过；已完整下载报告并核对452单元、59设备零失败/错误/跳过，实际截图确认移除后只保留图片卡片、文字和发送按钮可见。正式标签还须完成插件、公开搜索、生产Linux及完整应用发布门禁；此候选证据不替代正式发布结果。
+
+## 正式验证进度（尚未公开）
+
+正式源码[f690c5f](https://github.com/veryy/Solvit/commit/f690c5f)，[Actions38569876572](https://github.com/veryy/Solvit/actions/runs/38569876572)的build、verify-plugins、verify-search、verify-linux成功；完整应用界面回归仍在运行，尚未公开APK。
+
+实际完整下载正式unit artifact11897437426，ZIP CRC/XML核对452单元，零失败/错误/跳过。下载正式插件任务日志核对113 SDK、5市场测试零失败，线上HTTPS MCP/Skills成功；独立公开搜索日志确认中英文/版本查询正文和主引擎故障区域回退成功，模型回答引用未验收。生产Linux任务日志为3/3 API35 Android用例成功、零失败/跳过，严格设备日志门禁确认Python3.12.3、Node24.21.0/npm11.19.0及Java17，执行与共享PTY通过；未在此下载完整Linux探针归档。
+
+实际完整下载正式APK artifact11897667310，artifact/APK ZIP CRC通过，提取APK为25,296,932字节，SHA256 `4b396a4f60471df96695bf11c3287e5726fb8eecd665dfdf60950f086de72e58`。正式构建日志的apksigner核对固定证书SHA256 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。对应源码artifact11897546234及其中源码ZIP的CRC通过，源码ZIP为1,072,439字节，SHA256 `cf0d9767a71e8a52199f9039a86843fa9b14f4b539dce388733e235469359a8e`。这些是正式构建产物摘要，公开下载文件仍须发布后实际下载比较，不能提前冒称已核对公开文件。
