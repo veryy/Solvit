@@ -67,3 +67,7 @@ SQLite存储与插件注册共用同一个AttachmentFiles实例。创建分支�
 附件草稿按对话保留，发送/排队成功后移交消息并清空草稿引用；输入框支持仅附件发送、导入进度和附件移除。聊天用户框显示附件卡片，图片缩略图/最大2048采样大图、文本独立全页可复制查看；图片预览从校验后的私有字节解码，不能直接使用外部URI。实时用户行同样携带附件，避免存储回调到达前只出现空白文字行。新增六语言文案与Robolectric真实PNG/MIME伪装/文本编码/不支持文件回归。
 
 尚未Actions通过，实际Android选择器/导入/发送HTTP/重开/分支/移除和页面截图仍待验收；无视觉模型配置、重试、PDF/其他文档、文件导入工作区及总磁盘配额仍未完成。本次不将源码UI接通视为可下载APK交付。
+
+## 旧聊天删除失败修复
+
+495de45的完整38502934494失败在原SqliteChatStoreTest.migratesOldMessagesAndPersistsToolCallsAcrossReopening：旧v1聊天ID为s，附件清理的UUID限定抛IllegalArgumentException。保留原旧聊天/工具回传/删除断言，将非UUID旧ID映射为固定SHA-256目录名；UUID仍原目录兼容，原始旧ID不作为路径拼接。31项存储测试仅此项失败，修复仍待完整Actions验证。

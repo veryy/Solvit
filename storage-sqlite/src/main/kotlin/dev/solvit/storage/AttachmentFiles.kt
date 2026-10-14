@@ -27,9 +27,12 @@ class AttachmentFiles(private val directory: File) : ChatAttachmentStore {
         root = directory.canonicalFile
     }
     private fun session(sessionId: String, create: Boolean): File {
-        require(UUID.fromString(sessionId).toString() == sessionId) { "对话标识无效" }
+        require(sessionId.isNotBlank() && sessionId.length <= 4096) { "对话标识无效" }
+        // Older stores can contain non-UUID session IDs. Never use those IDs as paths.
+        val key = runCatching { UUID.fromString(sessionId).toString().takeIf { it == sessionId } }.getOrNull()
+            ?: ("legacy-" + MessageDigest.getInstance("SHA-256").digest(sessionId.toByteArray(Charsets.UTF_8)).hex())
         check(directory.canonicalFile == root && !Files.isSymbolicLink(directory.toPath())) { "附件目录已改变" }
-        val target = File(root, sessionId)
+        val target = File(root, key)
         check(!Files.isSymbolicLink(target.toPath()) && target.canonicalFile == target.absoluteFile) { "附件目录无效" }
         if (create) check(target.isDirectory || target.mkdir()) { "无法创建附件目录" }
         return target
