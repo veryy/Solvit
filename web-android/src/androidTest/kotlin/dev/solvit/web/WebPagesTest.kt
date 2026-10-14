@@ -9,6 +9,28 @@ import org.junit.runner.RunWith
 
 @RunWith(AndroidJUnit4::class)
 class WebPagesTest {
+    @Test fun emptyArticleWaitsForDelayedScriptContentWithoutReturningNavigationAsBody() = runBlocking {
+        val service = AndroidWebPages(ApplicationProvider.getApplicationContext())
+        val page = service.observeFixture("https://example.org/delayed", """
+            <html><head><title>Delayed source</title></head><body><main>
+            <article id="article"></article><footer>Navigation only</footer>
+            <script>setTimeout(() => document.getElementById('article').textContent='Delayed Kotlin source body',1500);</script>
+            </main></body></html>
+        """.trimIndent())
+        assertEquals("Delayed Kotlin source body", page.text)
+        assertFalse(page.text.contains("Navigation only"))
+    }
+
+    @Test fun permanentlyEmptyArticleFailsExplicitlyInsteadOfReportingSuccessfulEmptyBody() = runBlocking {
+        val service = AndroidWebPages(ApplicationProvider.getApplicationContext())
+        val result = runCatching { service.observeFixture("https://example.org/empty", """
+            <html><head><title>Empty source</title></head><body><main><article></article>
+            <footer>Navigation only</footer></main></body></html>
+        """.trimIndent()) }
+        assertTrue(result.exceptionOrNull() is IllegalStateException)
+        assertTrue(result.exceptionOrNull()?.message?.contains("正文") == true)
+    }
+
     @Test fun actualWebViewLoadsScriptGeneratedTextAndExtractsLinks() = runBlocking {
         val service = AndroidWebPages(ApplicationProvider.getApplicationContext())
         val page = service.observeFixture("https://example.org/reference", """
