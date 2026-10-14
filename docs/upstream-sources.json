@@ -50,6 +50,22 @@
       "licenseFile": "LICENSE",
       "kind": "git-engine",
       "addedAt": "2026-10-14"
+    },
+    {
+      "name": "operit-terminal-core",
+      "url": "https://github.com/AAswordman/OperitTerminalCore.git",
+      "commit": "045868988e4091d613cb34b2941057703899b96e",
+      "licenseFile": "LICENSE",
+      "kind": "android-rootless-linux-reference",
+      "addedAt": "2026-10-14"
+    },
+    {
+      "name": "proot-android",
+      "url": "https://github.com/termux/proot.git",
+      "commit": "b8c1f5c5c6730dc9d521d5bd5ce1cfeedecde087",
+      "licenseFile": "COPYING",
+      "kind": "android-rootless-linux-executable",
+      "addedAt": "2026-10-14"
     }
   ]
 }
