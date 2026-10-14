@@ -34,4 +34,8 @@ interface WorkspaceRemoteGitSession : WorkspaceGitSession {
     /** Applies reviewed objects locally; a non-fast-forward merge waits for an explicit commit. */
     suspend fun merge(review: PullReview): Merge
     suspend fun cancelTransfer()
+    /** Host-only credential operations; never mapped to script/tool arguments. */
+    suspend fun credentialsConfigured(endpoint: GitRemoteEndpoint): Boolean { error("Git凭据管理不可用") }
+    suspend fun saveCredentials(endpoint: GitRemoteEndpoint, username: String, secret: CharArray) { error("Git凭据管理不可用") }
+    suspend fun removeCredentials(endpoint: GitRemoteEndpoint) { error("Git凭据管理不可用") }
 }

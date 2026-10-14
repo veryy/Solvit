@@ -9,7 +9,12 @@ object ScriptPageHostAction {
         if (value["kind"]?.jsonPrimitive?.content?.startsWith("document.") == true) document(value)
         else if (value["kind"] == JsonPrimitive("workspace.perform")) workspace(value)
         else if (value["kind"] == JsonPrimitive("git.perform")) git(value)
+        else if (value["kind"] == JsonPrimitive("git.credentials")) gitCredentials(value)
         else parse(value)
+    }
+    fun gitCredentials(value: JsonObject): GitRemoteEndpoint {
+        require(value.keys == setOf("kind", "url") && value["kind"] == JsonPrimitive("git.credentials"))
+        return GitRemoteEndpoint.parse(value.getValue("url").jsonPrimitive.also { require(it.isString) }.content)
     }
     fun git(value: JsonObject): PageWorkspaceControl {
         require(value.keys == setOf("kind", "operation", "arguments") && value["kind"] == JsonPrimitive("git.perform"))

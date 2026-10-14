@@ -26,12 +26,14 @@ fun PluginPageScreen(title: String, open: suspend () -> ExtensionPageSession, em
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val documents = rememberPluginPageDocuments()
+    val gitCredentials = rememberPluginPageGitCredentials()
     // LaunchedEffect owns lifetime, including a racing open during dismissal.
     LaunchedEffect(Unit) {
         var owned: ExtensionPageSession? = null
         try {
             val current = open(); owned = current; session = current
             current.attachDocuments(documents)
+            current.attachGitCredentialPrompt(gitCredentials)
             val initial = current.open()
             document = current.document()
             terminal = current.terminalAccess()

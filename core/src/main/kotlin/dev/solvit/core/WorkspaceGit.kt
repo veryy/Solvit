@@ -41,4 +41,7 @@ interface WorkspaceGitSession {
 val WorkspaceGitServiceKey = ServiceKey("workspace.git", WorkspaceGitService::class)
 
 /** Attached only to a host-owned page; perform is called after native confirmation. */
-interface PageGitAccess : PageWorkspaceAccess
+interface PageGitAccess : PageWorkspaceAccess {
+    suspend fun editCredentials(endpoint: GitRemoteEndpoint, prompt: PageGitCredentialPrompt,
+        authorize: suspend () -> Unit): GitCredentialOutcome { error("此Git页面未开放凭据管理") }
+}

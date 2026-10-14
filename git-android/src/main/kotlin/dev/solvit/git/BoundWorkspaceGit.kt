@@ -71,6 +71,30 @@ class BoundWorkspaceGit(
     internal var remoteTransport = RepositoryRemoteTransport()
     internal var borrowCredentials: (GitRemoteEndpoint) -> RepositoryCredentials? = { null }
     internal var cloneStagingDirectory: File? = null
+    internal var configuredCredentials: (GitRemoteEndpoint) -> Boolean = { false }
+    internal var storeCredentials: (GitRemoteEndpoint, String, CharArray) -> Unit = { _, _, _ -> error("Git凭据库尚未配置") }
+    internal var deleteCredentials: (GitRemoteEndpoint) -> Unit = { error("Git凭据库尚未配置") }
+
+    override suspend fun credentialsConfigured(endpoint: GitRemoteEndpoint): Boolean = withContext(Dispatchers.IO) {
+        verify(); resolveRoot()
+        configuredCredentials(endpoint).also { verify() }
+    }
+
+    override suspend fun saveCredentials(endpoint: GitRemoteEndpoint, username: String, secret: CharArray) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            verifyRemote(endpoint); resolveRoot()
+            storeCredentials(endpoint, username, secret)
+            verifyRemote(endpoint)
+        }
+    }
+
+    override suspend fun removeCredentials(endpoint: GitRemoteEndpoint) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            verifyRemote(endpoint); resolveRoot()
+            deleteCredentials(endpoint)
+            verifyRemote(endpoint)
+        }
+    }
 
     private suspend fun verifyRemote(endpoint: GitRemoteEndpoint) {
         verifyWrite()

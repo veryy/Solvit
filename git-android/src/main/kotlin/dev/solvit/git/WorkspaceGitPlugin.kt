@@ -36,6 +36,9 @@ class AndroidWorkspaceGit(private val workspaces: WorkspaceService, context: Con
             credentials?.let { if (it.configured(endpoint)) it.borrow(endpoint) else null }
         }
         session.cloneStagingDirectory = stagingDirectory
+        session.configuredCredentials = { endpoint -> verifyOpen(); credentials?.configured(endpoint) == true }
+        session.storeCredentials = { endpoint, username, secret -> verifyOpen(); checkNotNull(credentials).save(endpoint, username, secret) }
+        session.deleteCredentials = { endpoint -> verifyOpen(); checkNotNull(credentials).remove(endpoint) }
         sessions += session
         session
     }

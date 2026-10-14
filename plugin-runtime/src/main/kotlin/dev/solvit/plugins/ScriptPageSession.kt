@@ -10,6 +10,7 @@ import dev.solvit.core.PageDocumentAccess
 import dev.solvit.core.PageWorkspaceAccess
 import dev.solvit.core.PageTerminalAccess
 import dev.solvit.core.PageGitAccess
+import dev.solvit.core.PageGitCredentialPrompt
 
 /** One independent QuickJS instance per open page, owned and closed by the host UI. */
 class ScriptPageSession(
@@ -33,6 +34,11 @@ class ScriptPageSession(
     private var workspace: PageWorkspaceAccess? = null
     private var terminal: PageTerminalAccess? = null
     private var git: PageGitAccess? = null
+    private var gitCredentialPrompt: PageGitCredentialPrompt? = null
+    fun attachGitCredentialPrompt(prompt: PageGitCredentialPrompt) {
+        check(!opened && !closed && gitCredentialPrompt == null)
+        gitCredentialPrompt = prompt
+    }
     fun attachGit(access: PageGitAccess) {
         check(!opened && !closed && git == null)
         check(pkg.manifest.apiVersion >= 19 && "workspace.git" in pkg.manifest.nativeServices &&
@@ -110,7 +116,7 @@ class ScriptPageSession(
     private suspend fun render(event: kotlinx.serialization.json.JsonObject?, approvedAction: kotlinx.serialization.json.JsonObject? = null): ScriptPageView {
         check(!closed)
         ensureAuthorized()
-        val invocation = ScriptPageExecutionContext(authority.pluginId, { authorize() }, approvedAction, documents, workspace, git)
+        val invocation = ScriptPageExecutionContext(authority.pluginId, { authorize() }, approvedAction, documents, workspace, git, gitCredentialPrompt)
         val next = withContext(invocation) { executor.page(pageId, locale, event) }
         check(!closed)
         ensureAuthorized()
@@ -126,7 +132,7 @@ class ScriptPageSession(
             mutex.withLock {
                 try { executor.stop() } finally {
                     try { workspace?.close() } finally {
-                        try { git?.close() } finally { view = null; documents = null; workspace = null; terminal = null; git = null }
+                        try { git?.close() } finally { view = null; documents = null; workspace = null; terminal = null; git = null; gitCredentialPrompt = null }
                     }
                 }
             }

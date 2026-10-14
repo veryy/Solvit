@@ -47,6 +47,7 @@ class BuiltinWorkspaceManager(context: Context, private val pluginId: String = "
                 snapshot(engine.dispatch(checkNotNull(view), nodeId, value, fields, confirmed))
             }
             override suspend fun document() = engine.document()
+            override fun attachGitCredentialPrompt(prompt: PageGitCredentialPrompt) { engine.attachGitCredentialPrompt(prompt) }
             override suspend fun terminalAccess() = engine.terminalAccess()
             override suspend fun resource(path: String) = engine.resource(path)
             override suspend fun close() { mutableClosed.value = true; withContext(NonCancellable) { engine.close() } }

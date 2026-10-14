@@ -46,6 +46,17 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
     private fun remote(): WorkspaceRemoteGitSession = session as? WorkspaceRemoteGitSession
         ?: error("Git服务不支持远程操作")
 
+    override suspend fun editCredentials(endpoint: GitRemoteEndpoint, prompt: PageGitCredentialPrompt,
+        authorize: suspend () -> Unit): GitCredentialOutcome = withContext(Authority(authorize, true, true)) {
+        verify(true)
+        val authority = checkNotNull(currentCoroutineContext()[Authority])
+        check(synchronized(operationLock) { operationJob?.isCompleted != false }) { "请等待Git传输结束后修改凭据" }
+        val configured = remote().credentialsConfigured(endpoint)
+        prompt.edit(endpoint, configured, { withContext(authority) { verify(true) } },
+            save = { username, secret -> withContext(authority) { verify(true); remote().saveCredentials(endpoint, username, secret); verify(true) } },
+            remove = { withContext(authority) { verify(true); remote().removeCredentials(endpoint); verify(true) } }).also { verify(true) }
+    }
+
     private suspend fun verify(write: Boolean) {
         check(!closed) { "Git页面已关闭" }
         val authority = checkNotNull(currentCoroutineContext()[Authority]) { "缺少Git页面授权" }

@@ -6,6 +6,39 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class GitPageSessionTest {
+    @Test fun credentialControlPassesOnlyRepositoryToNativeFormAndReturnsOnlyOutcome() = runBlocking<Unit> {
+        val endpoint = "https://github.com/fixture/repository.git"
+        var edited = 0
+        val prompt = object : PageGitCredentialPrompt {
+            override suspend fun edit(endpoint: GitRemoteEndpoint, configured: Boolean, authorize: suspend () -> Unit,
+                save: suspend (String, CharArray) -> Unit, remove: suspend () -> Unit): GitCredentialOutcome {
+                error("Only the attached native access may open this form")
+            }
+        }
+        val access = object : PageGitAccess {
+            override suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit) = error("Not called")
+            override suspend fun perform(control: PageWorkspaceControl, authorize: suspend () -> Unit) = error("Not called")
+            override suspend fun editCredentials(endpoint: GitRemoteEndpoint, prompt: PageGitCredentialPrompt,
+                authorize: suspend () -> Unit): GitCredentialOutcome {
+                authorize(); assertEquals("https://github.com/fixture/repository.git", endpoint.url); edited++
+                return GitCredentialOutcome.SAVED
+            }
+        }
+        val metadata = buildJsonObject { put("kind", "git.credentials"); put("url", endpoint) }
+        fun invocation() = ScriptPageExecutionContext("test.git.page", {}, metadata, git = access, gitCredentialPrompt = prompt)
+        assertFails { invocation().editGitCredentials(19, true) }
+        assertFails { invocation().editGitCredentials(20, false) }
+        assertEquals(0, edited)
+        val allowed = invocation()
+        assertTrue(allowed.credentialInvocation)
+        assertEquals(GitCredentialOutcome.SAVED, allowed.editGitCredentials(20, true))
+        assertFails { allowed.editGitCredentials(20, true) }
+        assertEquals(1, edited)
+        assertFails { ScriptPageHostAction.gitCredentials(buildJsonObject {
+            put("kind", "git.credentials"); put("url", endpoint); put("secret", "must-not-be-accepted")
+        }) }
+    }
+
     @Test fun remoteGitControlsRequireNewApiNetworkPermissionAndConsumeOnlyConfirmedAction() = runBlocking<Unit> {
         var writes = 0
         var reads = 0

@@ -4966,5 +4966,47 @@
     "ko": "미리보기",
     "es": "Vista previa",
     "fr": "Aperçu"
+  },
+  "仓库凭据": {
+    "en": "Repository credentials",
+    "ja": "リポジトリ認証情報",
+    "ko": "저장소 자격 증명",
+    "es": "Credenciales del repositorio",
+    "fr": "Identifiants du dépôt"
+  },
+  "凭据仅加密保存在本机，插件和模型不能读取。": {
+    "en": "Credentials are encrypted on this device. Plugins and models cannot read them.",
+    "ja": "認証情報は端末内で暗号化され、プラグインやモデルには渡されません。",
+    "ko": "자격 증명은 기기에 암호화되어 저장되며 플러그인과 모델은 읽을 수 없습니다.",
+    "es": "Las credenciales se cifran en este dispositivo. Los plugins y modelos no pueden leerlas.",
+    "fr": "Les identifiants sont chiffrés sur cet appareil. Les plugins et modèles ne peuvent pas les lire."
+  },
+  "用户名": {
+    "en": "Username",
+    "ja": "ユーザー名",
+    "ko": "사용자 이름",
+    "es": "Usuario",
+    "fr": "Utilisateur"
+  },
+  "访问令牌或密码": {
+    "en": "Access token or password",
+    "ja": "アクセストークンまたはパスワード",
+    "ko": "액세스 토큰 또는 비밀번호",
+    "es": "Token de acceso o contraseña",
+    "fr": "Jeton d’accès ou mot de passe"
+  },
+  "凭据操作失败，请检查输入或重新打开工作区。": {
+    "en": "Credential operation failed. Check your input or reopen the workspace.",
+    "ja": "認証情報の操作に失敗しました。入力を確認するかワークスペースを開き直してください。",
+    "ko": "자격 증명 작업에 실패했습니다. 입력을 확인하거나 작업 공간을 다시 여세요.",
+    "es": "Error al gestionar credenciales. Revisa los datos o vuelve a abrir el espacio.",
+    "fr": "Échec de l’opération. Vérifiez les données ou rouvrez l’espace de travail."
+  },
+  "移除凭据": {
+    "en": "Remove credentials",
+    "ja": "認証情報を削除",
+    "ko": "자격 증명 삭제",
+    "es": "Eliminar credenciales",
+    "fr": "Supprimer les identifiants"
   }
 }

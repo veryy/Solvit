@@ -9,12 +9,23 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Carries live page authority all the way to the actual native storage write lock. */
 class ScriptPageExecutionContext(val pluginId: String, private val verify: suspend () -> Unit,
     private val approvedAction: JsonObject? = null, private val documents: PageDocumentAccess? = null,
-    private val workspace: PageWorkspaceAccess? = null, private val git: PageGitAccess? = null) :
+    private val workspace: PageWorkspaceAccess? = null, private val git: PageGitAccess? = null,
+    private val gitCredentialPrompt: PageGitCredentialPrompt? = null) :
     AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<ScriptPageExecutionContext>
     private val consumed = AtomicBoolean(false)
     val documentInvocation: Boolean get() = approvedAction?.get("kind")?.toString()?.trim('"')?.startsWith("document.") == true
+    val credentialInvocation: Boolean get() = approvedAction?.get("kind")?.toString()?.trim('"') == "git.credentials"
     suspend fun ensureAuthorized() = verify()
+    suspend fun editGitCredentials(apiVersion: Int, networkDeclared: Boolean): GitCredentialOutcome {
+        ensureAuthorized()
+        check(apiVersion >= 20 && networkDeclared) { "Git凭据管理需要API20及network权限" }
+        val endpoint = ScriptPageHostAction.gitCredentials(checkNotNull(approvedAction))
+        val access = checkNotNull(git) { "此页面没有Git授权" }
+        val prompt = checkNotNull(gitCredentialPrompt) { "此页面没有宿主凭据表单" }
+        check(consumed.compareAndSet(false, true)) { "Native page control already consumed" }
+        return access.editCredentials(endpoint, prompt, ::ensureAuthorized).also { ensureAuthorized() }
+    }
     private fun verifyRemoteGit(operation: String, apiVersion: Int, networkDeclared: Boolean) {
         if (operation in setOf("clone", "fetch", "reviewPush", "push", "reviewPull", "merge", "cancelTransfer", "transferProgress", "startRemote", "remoteOperation"))
             check(apiVersion >= 20 && networkDeclared) { "远程Git页面需要API20及network权限" }

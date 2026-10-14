@@ -245,3 +245,27 @@ clone-cancel仓库和观测/释放接口，未用固定延迟断言进入网络�
 此证据未覆盖安装中途故障恢复、App HTML端到端或真实GitHub账号推送。
 包含当前生成包的完整Android38497391571仍在build，不宣称新APK或正式Release已完成。
 正常SDK源/包一致性38497391608与市场38497391573均成功。
+
+## 原生凭据输入候选
+
+读取固定Operit的data/preferences/GitHubAuthPreferences.kt与GitHubAccountScreen.kt，
+参考其宿主账号状态/表单入口，但未复制OAuth/令牌偏好实现；当前HTTPS Git仍采用
+已验证的仓库级Keystore AES-GCM保存，JS/模型不持有字段。新增git.credentials控件
+只包含公开仓库URL，API20/network/页面服务与单次消费检查后请求宿主表单，调用参数
+必须为空，不能传用户名、令牌或密码。插件收到SAVED/REMOVED/CANCELLED结果。
+
+PageGitCredentialPrompt由页面UI拥有，Callback跨协程恢复宿主Authority后复核绑定；
+保存/移除使用原生IO服务并复核网络/写入授权，服务关闭或切换聊天后拒绝旧调用。
+表单以FullScreenPage安全窗口呈现，使用密码键盘/隐藏文本，不把secret置入HTML字段，
+关闭、取消与晚到请求隔离。CharArray在保存完成/失败后清空；Compose内部String不能
+保证物理内存抹除，不宣称所有内存副本已清零。明确显示仓库地址，保存/移除由用户
+在表单点击，打开表单无需额外授权弹窗。手工输入沿用180秒有界等待，不放宽工具期限。
+
+新增实际APK HTML→原生输入→生产Git服务/Keystore配置→重开不回显→移除/取消场景，
+同时检查FLAG_SECURE、HTML无secret和偏好无明文。原生模块新增仓库绑定权限、
+服务重开持久保存与旧服务拒绝写入；运行时新增URL-only元数据/单次消费/API20权限，
+SDK新增凭据入口不接受字段的场景。六语言表单/插件文案保持。
+
+本阶段尚未远程验证，生成包待Actions同步；真实GitHub账号推送、克隆安装中断恢复、
+完整页面与APK正式发布仍未完成。之前完整444b43d的38497391571 build已成功，
+verify-ui仍在运行，不能用编译通过替代本阶段或页面交付。

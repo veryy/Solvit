@@ -15,6 +15,7 @@ const remoteLabels={
  fr:['Distant','URL HTTPS','Branche','Récupérer les objets','Vérifier pull','Vérifier push','Transfert','Actualiser','Annuler','Appliquer merge','Envoyer le commit vérifié','Commit local','Commit distant','Committez avant pull. Résolvez les conflits, puis indexez et committez.']
 };
 const cloneLabels={zh:'克隆到空工作目录',en:'Clone into empty directory',ja:'空の作業フォルダにクローン',ko:'빈 작업 폴더에 복제',es:'Clonar en carpeta vacía',fr:'Cloner dans un dossier vide'};
+const credentialLabels={zh:'仓库凭据',en:'Repository credentials',ja:'リポジトリ認証情報',ko:'저장소 자격 증명',es:'Credenciales del repositorio',fr:'Identifiants du dépôt'};
 const labels={
  zh:['Git 工作区','Changes','文件管理','历史','刷新','初始化仓库','未暂存','已暂存','冲突','查看差异','暂存此文件','取消暂存','提交暂存区','提交说明','作者','邮箱','审阅提交','确认','返回','上一页','下一页','无文件变化','读取中','操作失败：','操作已完成','原始文件字节暂存；不支持LFS过滤器。文件或暂存区变化时须重新审阅。'],
  en:['Git workspace','Changes','Files','History','Refresh','Initialize repository','Working tree','Staged','Conflict','View diff','Stage this file','Unstage','Commit staged files','Message','Author','Email','Review commit','Confirm','Back','Previous','Next','No changes','Loading','Operation failed: ','Completed','Stages raw bytes; LFS filters are unsupported. Re-review if files or the index change.'],
@@ -33,6 +34,7 @@ export function gitPage(){
   const t=labels[input.locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en,api=ctx.gitPage!,event=input.event;
   const rt=remoteLabels[input.locale.split(/[-_]/)[0] as keyof typeof remoteLabels]??remoteLabels.en;
   const cloneLabel=cloneLabels[input.locale.split(/[-_]/)[0] as keyof typeof cloneLabels]??cloneLabels.en;
+  const credentialLabel=credentialLabels[input.locale.split(/[-_]/)[0] as keyof typeof credentialLabels]??credentialLabels.en;
   const renderFiles=async(value:PluginPageInput)=>{
    const view=await files(value,ctx);
    if(!view.nodes.some(n=>n.id==='document_meta')&&!view.footer?.some(n=>n.hostAction))
@@ -58,6 +60,12 @@ export function gitPage(){
     else if(action==='gitInitialize'){pending={kind:'git.perform',operation:'initialize',arguments:{}};mode='confirm'}
     else if(action==='gitCommit'){mode='commit';pending=null}
     else if(action==='gitRemote'){mode='remote';pending=null}
+    else if(action==='gitCredentials'){
+     remoteUrl=(event.fields.git_remote_url??remoteUrl).trim();
+     if(!remoteUrl)throw Error(rt[1]);mode='credentials';
+    }else if(action==='gitCredentialsConfirm'){
+     const outcome=await api.credentials();mode='remote';message=outcome==='CANCELLED'?'':t[24];
+    }
     else if(action==='gitClone'||action==='gitFetch'||action==='gitPull'||action==='gitPush'){
      remoteUrl=(event.fields.git_remote_url??remoteUrl).trim();remoteBranch=(event.fields.git_remote_branch??remoteBranch).trim();
      if(!remoteUrl||!remoteBranch)throw Error(rt[1]+' / '+rt[2]);
@@ -111,8 +119,12 @@ export function gitPage(){
   }else if(mode==='remote'){
    nodes.push({id:'git_remote_url',kind:'field',label:rt[1],value:remoteUrl},
     {id:'git_remote_branch',kind:'field',label:rt[2],value:remoteBranch},text('git_remote_help',rt[13]),
-    button('git_clone',cloneLabel,'gitClone'),button('git_fetch',rt[3],'gitFetch'),button('git_pull',rt[4],'gitPull'),button('git_push',rt[5],'gitPush'));
+    button('git_clone',cloneLabel,'gitClone'),button('git_fetch',rt[3],'gitFetch'),button('git_pull',rt[4],'gitPull'),button('git_push',rt[5],'gitPush'),
+    button('git_credentials',credentialLabel,'gitCredentials'));
    footer.push(button('git_back',t[18],'gitBack'));
+  }else if(mode==='credentials'){
+   nodes.push(text('git_credential_repository',remoteUrl));
+   footer.push(button('git_back',t[18],'gitBack'),{...button('git_credentials_confirm',credentialLabel,'gitCredentialsConfirm'),hostAction:{kind:'git.credentials',url:remoteUrl}});
   }else if(mode==='remote-running'){
    nodes.push(text('git_transfer',remoteProgress));
    footer.push(button('git_remote_poll',rt[7],'gitRemotePoll'),

@@ -20,6 +20,72 @@ import java.util.UUID
 
 class GitHtmlPageTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    @Test fun actualHtmlCredentialControlSavesOnlyNativeEncryptedFieldsAndSupportsRemoveAndCancel() {
+        val app = rule.activity.application as SolvitApplication
+        runBlocking { withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() } }
+        val chat = "git-credential-html-${UUID.randomUUID()}"
+        val workspace = runBlocking { app.workspaces.forChat(chat) }
+        val root = File(runBlocking { app.workspaces.location(workspace.id) })
+        val endpoint = dev.solvit.core.GitRemoteEndpoint.parse("https://github.com/fixture/${UUID.randomUUID()}.git")
+        val probe = (app.workspaceGit as dev.solvit.core.WorkspaceRemoteGitService).bindRemote(chat, { chat }, {}, {}, {})
+        val html = HtmlPageProbe(rule.activity)
+        val manager = BuiltinWorkspaceManager(app, "dev.solvit.git")
+        var visible by mutableStateOf(true)
+        fun waitDom(expression: String) { rule.waitUntil(15_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+        fun click(id: String) {
+            waitDom("!!document.querySelector('[data-node=$id]') && !document.querySelector('[data-node=$id]').disabled")
+            html.js("document.querySelector('[data-node=$id]').click()")
+        }
+        fun openForm() {
+            click("git_credentials"); click("git_credentials_confirm")
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("git_credential_secret").fetchSemanticsNodes().isNotEmpty() }
+        }
+        try {
+            rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
+                if (visible) PluginPageScreen("Git", open = {
+                    manager.openPage("zh", WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat, false) { chat },
+                        git = GitPageBridge(app.workspaceGit, chat) { chat })
+                }, onDismiss = { visible = false })
+            } } }
+            click("git_remote")
+            html.js("(()=>{const field=document.getElementById('field-git_remote_url');field.value=${kotlinx.serialization.json.JsonPrimitive(endpoint.url)};field.dispatchEvent(new Event('input'))})()")
+            openForm()
+            rule.onNodeWithTag("git_credential_endpoint").assertTextEquals(endpoint.url)
+            rule.runOnIdle {
+                assertTrue(android.view.inspector.WindowInspector.getGlobalWindowViews().any { view ->
+                    (view.layoutParams as? android.view.WindowManager.LayoutParams)?.flags?.let {
+                        it and android.view.WindowManager.LayoutParams.FLAG_SECURE != 0
+                    } == true
+                })
+            }
+            rule.onNodeWithTag("git_credential_secret").performTextInput("solvit-ui-fixture-secret")
+            assertEquals("false", html.js("document.body.innerHTML.includes('solvit-ui-fixture-secret')"))
+            rule.onNodeWithTag("git_credential_save").performScrollTo().performClick()
+            waitDom("!!document.querySelector('[data-node=git_credentials]') && !document.querySelector('[data-node=git_credentials]').disabled")
+            assertTrue(runBlocking { probe.credentialsConfigured(endpoint) })
+            assertFalse(app.getSharedPreferences("git_credentials", android.content.Context.MODE_PRIVATE)
+                .all.values.any { it.toString().contains("solvit-ui-fixture-secret") })
+            openForm()
+            rule.onNodeWithTag("git_credential_secret").assert(SemanticsMatcher.expectValue(
+                androidx.compose.ui.semantics.SemanticsProperties.EditableText, androidx.compose.ui.text.AnnotatedString("")))
+            rule.onNodeWithTag("git_credential_remove").performScrollTo().performClick()
+            waitDom("!!document.querySelector('[data-node=git_credentials]') && !document.querySelector('[data-node=git_credentials]').disabled")
+            assertFalse(runBlocking { probe.credentialsConfigured(endpoint) })
+            openForm()
+            rule.onNodeWithTag("git_credential_secret").performTextInput("cancelled-ui-fixture")
+            rule.onNodeWithTag("git_credential_cancel").performScrollTo().performClick()
+            waitDom("!!document.querySelector('[data-node=git_credentials]') && !document.querySelector('[data-node=git_credentials]').disabled")
+            assertFalse(runBlocking { probe.credentialsConfigured(endpoint) })
+            assertEquals("false", html.js("document.body.innerHTML.includes('cancelled-ui-fixture')"))
+        } finally {
+            visible = false; rule.waitForIdle()
+            runBlocking {
+                probe.removeCredentials(endpoint); probe.close(); app.workspaces.unbind(chat)
+                root.deleteRecursively()
+            }
+        }
+    }
+
     @Test fun actualQuickJsGitToolsReadBoundRepositoryAndDenyUnapprovedOrReboundCalls() {
         val app = rule.activity.application as SolvitApplication
         runBlocking {

@@ -51,7 +51,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     val permission = when (operation) {
                         "storage.get", "storage.set", "storage.compareAndSet", "jobs.list", "jobs.perform" -> "storage"
                         "model.complete" -> "model"
-                        "gitPage.query", "gitPage.perform", "git.status", "git.diff", "git.history" -> "git"
+                        "gitPage.query", "gitPage.perform", "gitPage.credentials", "git.status", "git.diff", "git.history" -> "git"
                         "http.request", "web.visit" -> "network"
                         "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions", "workspacePage.query", "workspacePage.perform" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
@@ -119,7 +119,10 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         } else if (operation.startsWith("gitPage.")) {
                             val page = checkNotNull(currentCoroutineContext()[ScriptPageExecutionContext]) { "Git页面缺少授权" }
                             check(page.pluginId == pkg.manifest.id)
-                            if (operation == "gitPage.perform") {
+                            if (operation == "gitPage.credentials") {
+                                require(arguments.isEmpty()) { "凭据输入只能来自宿主表单" }
+                                JsonPrimitive(page.editGitCredentials(pkg.manifest.apiVersion, "network" in pkg.manifest.permissions).name).toString()
+                            } else if (operation == "gitPage.perform") {
                                 require(arguments.isEmpty()) { "Git原生操作只能来自已确认的页面控件" }
                                 page.performGit(pkg.manifest.apiVersion, "network" in pkg.manifest.permissions)
                             } else {
@@ -151,7 +154,8 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                           git: Object.freeze({call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('git.' + operation, JSON.stringify(args)))}),
                           gitPage: Object.freeze({
                             query: async (operation,args = {}) => JSON.parse(await __solvitHostCall('gitPage.query', JSON.stringify({operation,arguments:args}))),
-                            perform: async () => JSON.parse(await __solvitHostCall('gitPage.perform', '{}'))
+                            perform: async () => JSON.parse(await __solvitHostCall('gitPage.perform', '{}')),
+                            credentials: async () => JSON.parse(await __solvitHostCall('gitPage.credentials', '{}'))
                           }),
                           workspacePage: Object.freeze({
                             query: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspacePage.query', JSON.stringify({operation,arguments:args}))),
@@ -272,10 +276,10 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
     private suspend fun invoke(expression: String, readOnly: Boolean): String = mutex.withLock {
         val js = engine ?: error("插件未启用")
         withContext(Dispatchers.Default) {
-            // Human file selection may take longer than a model/tool invocation.
-            // Only a confirmed document control receives this bounded allowance.
-            val deadline = if (pkg.manifest.apiVersion >= 11 && !invokeLifecycle &&
-                currentCoroutineContext()[ScriptPageExecutionContext]?.documentInvocation == true) 180_000L else timeoutMs
+            // Confirmed human file selection or native credential entry gets a bounded input allowance.
+            val page = currentCoroutineContext()[ScriptPageExecutionContext]
+            val deadline = if (!invokeLifecycle && (pkg.manifest.apiVersion >= 11 && page?.documentInvocation == true ||
+                pkg.manifest.apiVersion >= 20 && page?.credentialInvocation == true)) 180_000L else timeoutMs
             // Let the native execution deadline fire first; this also bounds
             // promises waiting on asynchronous host operations.
             withTimeout(deadline + 1_000) {

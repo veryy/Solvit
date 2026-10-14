@@ -60,7 +60,10 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
         if (!latestBusy) {
             keyboardController?.hide()
             focusManager.clearFocus()
-            if (node["confirm"] != null || node["hostAction"] != null) confirmation = PageConfirmation(displayed, node, value, snapshot)
+            if (node["hostAction"]?.jsonObject?.get("kind") == JsonPrimitive("git.credentials")) {
+                ScriptPageHostAction.gitCredentials(node.getValue("hostAction").jsonObject)
+                latestEvent(PluginPageInteraction(displayed, node.getValue("id").jsonPrimitive.content, value, snapshot, confirmed = true))
+            } else if (node["confirm"] != null || node["hostAction"] != null) confirmation = PageConfirmation(displayed, node, value, snapshot)
             else latestEvent(PluginPageInteraction(displayed, node.getValue("id").jsonPrimitive.content, value, snapshot))
         }
     }

@@ -114,3 +114,17 @@ test('Remote Git starts confirmed jobs, polls without blocking and sends only re
   assert.ok(h.pkg.resources['ui/main.js'].includes('git_remote_poll'));
  }finally{await h.close()}
 });
+
+test('Credentials page declares only the repository and delegates input to the native form',async()=>{
+ const h=await harness();try{
+  let inputs=0;h.ctx.gitPage.credentials=async(...args)=>{assert.equal(args.length,0);inputs++;return 'SAVED'};
+  await h.page(h.input(),h.ctx);await h.page(h.input(h.event('git_remote','gitRemote')),h.ctx);
+  const form=await h.page(h.input(h.event('git_credentials','gitCredentials',{git_remote_url:'https://github.com/veryy/Solvit.git'})),h.ctx);
+  assert.equal(inputs,0);
+  assert.deepEqual(JSON.parse(JSON.stringify(form.footer.find(n=>n.id==='git_credentials_confirm').hostAction)),
+   {kind:'git.credentials',url:'https://github.com/veryy/Solvit.git'});
+  assert.ok(form.nodes.every(n=>n.kind!=='field'));
+  const saved=await h.page(h.input(h.event('git_credentials_confirm','gitCredentialsConfirm')),h.ctx);
+  assert.equal(inputs,1);assert.ok(saved.nodes.some(n=>n.id==='git_remote_url'));
+ }finally{await h.close()}
+});
