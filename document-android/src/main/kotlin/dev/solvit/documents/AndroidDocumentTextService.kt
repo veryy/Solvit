@@ -231,6 +231,9 @@ class DocumentTextPlugin(private val context: Context) : SolvitPlugin {
     override val requires = setOf(ChatAttachmentStoreKey)
     override val provides = setOf(DocumentTextServiceKey)
     override suspend fun enable(context: PluginContext) {
+        withContext(Dispatchers.IO) {
+            DocumentSourceCache(File(this@DocumentTextPlugin.context.applicationContext.cacheDir, "document-reader")).removeInterruptedReads()
+        }
         context.register(DocumentTextServiceKey, AndroidDocumentTextService(this.context, context.require(ChatAttachmentStoreKey)))
     }
 }
