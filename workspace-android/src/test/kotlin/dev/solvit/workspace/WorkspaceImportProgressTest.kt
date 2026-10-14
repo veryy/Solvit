@@ -63,6 +63,11 @@ class WorkspaceImportProgressTest {
         }
         assertContentEquals(bytes,File(root,"complete").readBytes())
     }
+    @Test fun reservedLookingUserFileWithoutHostProvenanceMustNotBeDeleted()=fixture { root,_ ->
+        val userFile=File(root,".solvit-import-123456.partial").apply { writeText("Shell user data") }
+        assertEquals(0,WorkspaceFileImports.cleanup(root))
+        assertEquals("Shell user data",userFile.readText())
+    }
     @Test fun cleanupRemovesOnlyOrphanRegularReservedFilesAndProtectsActiveImports()=fixture { root,bytes ->
         val orphan=File(root,"nested/.solvit-import-123456.partial").apply { parentFile!!.mkdir();writeText("orphan") }
         val original=File(root,"solvit-backup-preserve").apply { writeText("original") }
