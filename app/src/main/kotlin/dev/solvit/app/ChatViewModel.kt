@@ -11,7 +11,7 @@ import java.util.UUID
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatViewModel(private val chat: ChatService, private val settings: SettingsStore, private val roles: RoleService? = null,
     private val catalog: ModelCatalogService? = null, private val branches: ChatBranchService? = null, private val approvals: ToolPolicyService? = null, private val profiles: ModelProfilesService? = null,
-    private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 }, private val displaySpeed: () -> Int = { 0 }) : ViewModel() {
+    private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 }, private val displaySpeed: () -> Int = { 0 }, private val attachmentStore: ChatAttachmentStore? = null) : ViewModel() {
     suspend fun discoverModels(candidate: ModelConfig): List<AvailableModel> =
         (catalog ?: error("模型列表服务不可用")).models(candidate)
     val error = MutableStateFlow<String?>(null)
@@ -41,10 +41,51 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     val ready = MutableStateFlow(false)
     val modelConfigured = MutableStateFlow(false)
     val busy = MutableStateFlow(false)
+    val attachmentDrafts = MutableStateFlow<Map<String, List<ChatAttachment>>>(emptyMap())
+    val importingAttachment = MutableStateFlow(false)
+    suspend fun importAttachment(session: String, name: String, mime: String, input: java.io.InputStream) {
+        check(selected.value == session && ready.value && !importingAttachment.value) { "附件选择已失效" }
+        val store = attachmentStore ?: error("附件服务未启用")
+        val current = attachmentDrafts.value[session].orEmpty()
+        check(current.size < 8) { "附件数量超过限制" }
+        importingAttachment.value = true
+        var imported: ChatAttachment? = null
+        try {
+            val reference = store.import(session, name, mime, input) { check(selected.value == session && ready.value) { "对话已改变" } }
+            imported = reference
+            check(current.sumOf { it.sizeBytes } + reference.sizeBytes <= ChatAttachment.MAX_ATTACHMENT_BYTES) { "附件总大小超过限制" }
+            val bytes = store.read(session, reference)
+            try { withContext(Dispatchers.IO) { validateChatAttachment(reference, bytes) } }
+            finally { bytes.fill(0) }
+            check(selected.value == session) { "对话已改变" }
+            attachmentDrafts.value = attachmentDrafts.value + (session to (current + reference))
+            imported = null
+        } finally {
+            imported?.let { withContext(NonCancellable) { store.remove(session, it) } }
+            importingAttachment.value = false
+        }
+    }
+    fun removeDraftAttachment(session: String, attachment: ChatAttachment) {
+        if (importingAttachment.value || selected.value != session) return
+        val current = attachmentDrafts.value[session].orEmpty()
+        if (attachment !in current) return
+        attachmentDrafts.value = attachmentDrafts.value + (session to current.filterNot { it.id == attachment.id })
+        viewModelScope.launch {
+            try { attachmentStore?.remove(session, attachment) }
+            catch (_: Exception) { error.value = "附件清理失败" }
+        }
+    }
+    fun clearSentAttachments(session: String) { attachmentDrafts.value = attachmentDrafts.value - session }
+    suspend fun readAttachment(session: String, attachment: ChatAttachment): ByteArray {
+        check(selected.value == session) { "对话已改变" }
+        return (attachmentStore ?: error("附件服务未启用")).read(session, attachment) { check(selected.value == session) { "对话已改变" } }
+    }
     val draft = MutableStateFlow("")
     val reasoning = MutableStateFlow("")
     val liveTranscript = MutableStateFlow<List<ModelMessage>>(emptyList())
     var turnBaseline: String? = null
+        private set
+    var sendingAttachments: List<ChatAttachment> = emptyList()
         private set
     var sendingText: String = ""
         private set
@@ -240,7 +281,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         config.value.validate()?.let { error.value = it; return false }
         draft.value = ""
         reasoning.value = ""; liveTranscript.value = emptyList()
-        turnBaseline = messages.value.lastOrNull { it.sessionId == id }?.id; sendingText = text.trim()
+        turnBaseline = messages.value.lastOrNull { it.sessionId == id }?.id; sendingText = text.trim(); sendingAttachments = attachments.toList()
         toolActivity.value = emptyList()
         busy.value = true
         val snapshot = config.value

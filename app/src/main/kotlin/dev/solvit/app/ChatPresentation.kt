@@ -28,7 +28,7 @@ fun attachExecutions(rows: List<ChatRow>, runs: List<ExecutionRun>): List<ChatRo
 fun presentChat(history: List<ChatMessage>, busy: Boolean = false, baseline: String? = null,
     sendingText: String = "", transcript: List<ModelMessage> = emptyList(), draft: String = "",
     reasoning: String = "", activity: List<ModelChunk.ToolActivity> = emptyList(),
-    holdSettlement: Boolean = false): List<ChatRow> {
+    holdSettlement: Boolean = false, sendingAttachments: List<ChatAttachment> = emptyList()): List<ChatRow> {
     val rows = mutableListOf<ChatRow>()
     var anchor = "orphan"
     var pending = mutableListOf<ChatMessage>()
@@ -48,7 +48,7 @@ fun presentChat(history: List<ChatMessage>, busy: Boolean = false, baseline: Str
         rows.removeAll { it.id == "reply-${history[userIndex].id}" }
     }
     val userId = userIndex?.let { history[it].id } ?: "pending-user"
-    if (userIndex == null) rows += ChatRow(userId, user = ChatMessage(userId, "", Role.USER, sendingText))
+    if (userIndex == null) rows += ChatRow(userId, user = ChatMessage(userId, "", Role.USER, sendingText, attachments = sendingAttachments))
     val live = transcript.mapIndexed { index, message -> ChatMessage("live-$index", "", message.role, message.content,
         toolCalls = message.toolCalls, toolCallId = message.toolCallId, reasoning = message.reasoning, toolStage = message.toolStage, providerTranscript = message.providerTranscript) } +
         ChatMessage("live-answer", "", Role.ASSISTANT, draft, reasoning = reasoning)

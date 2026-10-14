@@ -5014,5 +5014,37 @@
     "ko": "자격 증명 삭제",
     "es": "Eliminar credenciales",
     "fr": "Supprimer les identifiants"
+  },
+  "添加图片或文件": {
+    "zh": "添加图片或文件",
+    "en": "Add images or files",
+    "ja": "画像やファイルを追加",
+    "ko": "이미지 또는 파일 추가",
+    "es": "Añadir imágenes o archivos",
+    "fr": "Ajouter des images ou fichiers"
+  },
+  "移除附件": {
+    "zh": "移除附件",
+    "en": "Remove attachment",
+    "ja": "添付を削除",
+    "ko": "첨부 삭제",
+    "es": "Eliminar adjunto",
+    "fr": "Retirer la pièce jointe"
+  },
+  "附件预览失败": {
+    "zh": "附件预览失败",
+    "en": "Attachment preview failed",
+    "ja": "添付のプレビューに失敗しました",
+    "ko": "첨부 미리보기 실패",
+    "es": "Error al previsualizar el adjunto",
+    "fr": "Échec de l’aperçu de la pièce jointe"
+  },
+  "正在读取附件…": {
+    "zh": "正在读取附件…",
+    "en": "Reading attachment…",
+    "ja": "添付を読み込み中…",
+    "ko": "첨부 읽는 중…",
+    "es": "Leyendo adjunto…",
+    "fr": "Lecture de la pièce jointe…"
   }
 }

@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.conflate
 @Composable
 fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = null,
     loadExecutionEvents: (suspend (ExecutionRun) -> List<RecordedExecutionEvent>)? = null,
-    onOpenFileChanges: ((ExecutionRun) -> Unit)? = null, assistantName: String = "Solvit") {
+    onOpenFileChanges: ((ExecutionRun) -> Unit)? = null, assistantName: String = "Solvit", attachmentsContent: (@Composable (ChatMessage) -> Unit)? = null) {
     val appearance=LocalChatAppearance.current
     val typography=MaterialTheme.typography
     MaterialTheme(typography=typography.copy(
@@ -62,7 +62,10 @@ fun ChatBubble(row: ChatRow, onBranch: ((ChatMessage, BranchMode) -> Unit)? = nu
             else RoundedCornerShape(topStart=2.dp,topEnd=10.dp,bottomEnd=10.dp,bottomStart=10.dp),
             color = if(appearance.style=="plain")Color.Transparent else if (user != null) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow) {
             Column(Modifier.padding(if(appearance.style=="compact")8.dp else if(appearance.style=="plain")4.dp else 14.dp), verticalArrangement=Arrangement.spacedBy(8.dp)) {
-                if (user != null) SelectionContainer { Text(user.content, style=MaterialTheme.typography.bodyLarge) }
+                if (user != null) {
+                    if (user.attachments.isNotEmpty()) attachmentsContent?.invoke(user)
+                    if (user.content.isNotEmpty()) SelectionContainer { Text(user.content, style=MaterialTheme.typography.bodyLarge) }
+                }
                 else {
                     AssistantContents(row)
                     row.execution?.let { ExecutionDetails(it,loadExecutionEvents,onOpenFileChanges) }

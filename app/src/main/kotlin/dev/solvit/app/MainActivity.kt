@@ -61,7 +61,7 @@ class MainActivity : ComponentActivity() {
                             val service = result!!.getOrThrow()
                             val factory = remember(service) { object : ViewModelProvider.Factory {
                                 @Suppress("UNCHECKED_CAST")
-                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches, app.toolApprovals, app.modelProfiles, displaySpeed={ app.appearance.chat.value.replySpeed }) as T
+                                override fun <T : ViewModel> create(modelClass: Class<T>): T = ChatViewModel(service, app.settings, app.roles, app.modelCatalog, app.branches, app.toolApprovals, app.modelProfiles, displaySpeed={ app.appearance.chat.value.replySpeed }, attachmentStore=app.attachments) as T
                             } }
                             val vm: ChatViewModel = viewModel(factory = factory)
                             val updateFactory = remember(app.updates) { object : ViewModelProvider.Factory {
@@ -131,6 +131,9 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val config by vm.config.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val ready by vm.ready.collectAsStateWithLifecycle()
+    val attachmentDrafts by vm.attachmentDrafts.collectAsStateWithLifecycle()
+    val importingAttachment by vm.importingAttachment.collectAsStateWithLifecycle()
+    val selectedAttachments = attachmentDrafts[selected].orEmpty()
     val modelConfigured by vm.modelConfigured.collectAsStateWithLifecycle()
     val draft by vm.draft.collectAsStateWithLifecycle()
     val reasoning by vm.reasoning.collectAsStateWithLifecycle()
@@ -145,7 +148,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val toolApproval by vm.toolApproval.collectAsStateWithLifecycle()
     val toolActivity by vm.toolActivity.collectAsStateWithLifecycle()
     val executionRuns by vm.executionRuns.collectAsStateWithLifecycle()
-    val chatRows = attachExecutions(presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity,holdSettlement=busy),
+    val chatRows = attachExecutions(presentChat(messages,busy,vm.turnBaseline,vm.sendingText,transcript,draft,reasoning,toolActivity,holdSettlement=busy, sendingAttachments=vm.sendingAttachments),
         executionRuns.filter { it.sessionId==selected })
     val activeRole by agents.activeRole.collectAsStateWithLifecycle()
     val roleName = activeRole?.name ?: "Solvit"
@@ -256,7 +259,10 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                             }
                             if (errorDetails != null) TextButton(onClick = { showErrorDetails = true }) { UiText("查看详细信息") }
                         }
+                        if (selected != null && selectedAttachments.isNotEmpty()) ChatAttachmentCards(vm, selected!!, selectedAttachments, removable = true)
+                        if (importingAttachment) LinearProgressIndicator(Modifier.fillMaxWidth())
                         Row(verticalAlignment = Alignment.Bottom) {
+                            ChatAttachmentPicker(vm, selected, ready && !importingAttachment && !branching && !switching)
                             TextField(value = input, onValueChange = { input = it },
                                 placeholder = { UiText("和${roleName}聊聊…") },
                                 modifier = Modifier.weight(1f).testTag("chat_input").focusRequester(inputFocus).onGloballyPositioned { inputPlaced = true }, maxLines = 5, enabled = ready,
@@ -268,12 +274,12 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                             Spacer(Modifier.width(8.dp))
                             if(busy)IconButton(onClick=vm::stop,enabled=!switching,modifier=Modifier.testTag("chat_stop")) { UiIcon(Icons.Default.Stop,"停止生成") }
                             FilledIconButton(
-                                onClick = { if (vm.send(input)) input = "" },
-                                enabled = ready && !branching && input.isNotBlank() && !missingRole && !agentBusy,
+                                onClick = { if (vm.send(input, selectedAttachments)) { selected?.let(vm::clearSentAttachments); input = "" } },
+                                enabled = ready && !branching && !importingAttachment && (input.isNotBlank() || selectedAttachments.isNotEmpty()) && !missingRole && !agentBusy,
                                 modifier = Modifier.size(52.dp).testTag("chat_send"),
                             ) { UiIcon(Icons.AutoMirrored.Filled.Send,if(busy) "加入等待队列" else "发送") }
                         }
-                        if(busy && input.isNotBlank())TextButton(onClick={if(vm.interruptAndSend(input))input=""},enabled=!switching&&!missingRole&&!agentBusy,
+                        if(busy && (input.isNotBlank() || selectedAttachments.isNotEmpty()))TextButton(onClick={if(vm.interruptAndSend(input,selectedAttachments)){selected?.let(vm::clearSentAttachments);input=""}},enabled=!switching&&!missingRole&&!agentBusy,
                             modifier=Modifier.align(Alignment.End).testTag("chat_interrupt_send")) { UiText("立即发送并打断") }
                     }
                     }
@@ -314,7 +320,9 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                     }, footer = if (workspaceId == null && !busy) ({
                         TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { UiText("新建工作区") }
                     }) else null, loadExecutionEvents=vm::executionEvents,
-                    onOpenFileChanges={ run -> hideInput(); fileChangesRun=run })
+                    onOpenFileChanges={ run -> hideInput(); fileChangesRun=run }, attachmentsContent={ message ->
+                        if (selected != null) ChatAttachmentCards(vm, selected!!, message.attachments)
+                    })
                 }
 
             }

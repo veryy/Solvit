@@ -48,6 +48,8 @@ class SolvitApplication : Application() {
         private set
     lateinit var modelProviders: ModelProviderRegistry
         private set
+    lateinit var attachments: ChatAttachmentStore
+        private set
     lateinit var modelCatalog: ModelCatalogService
         private set
     lateinit var workspaces: WorkspaceService
@@ -93,6 +95,7 @@ class SolvitApplication : Application() {
                 skills = manager.registry.require(SkillLibraryServiceKey)
                 modelProviders = manager.registry.require(ModelProvidersServiceKey)
                 modelCatalog = manager.registry.require(ModelCatalogServiceKey)
+                attachments = manager.registry.require(ChatAttachmentStoreKey)
                 workspaces = manager.registry.require(WorkspaceServiceKey)
                 workspaceGit = manager.registry.require(WorkspaceGitServiceKey)
                 systemExecution = manager.registry.require(SystemExecutionServiceKey)
