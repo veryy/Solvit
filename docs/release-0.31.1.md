@@ -16,3 +16,15 @@
 发布门禁包含单元、Lint、API35 Android 环境安装/实际执行、JS 插件检查、完整应用界面、固定签名和覆盖升级。设备测试覆盖生产 HTTPS 下载、DNS、Python/Node/npm、Java17、交互 PTY、授权后的 AI 工具执行路径和工作区运行环境恢复。原生程序来自锁定源码，随版本提供 `solvit-linux-sources.zip`（源码、补丁、编译输入及许可）。
 
 尚未验收：ARM64 真机、OEM 后台限制、16 KiB 页设备执行，以及真实模型自行选择 Ubuntu Shell 并完成完整开发任务。Node 原生扩展和大型工程也需要单独验证；本次不把运行几条脚本当作所有工具兼容。QuickJS 插件不会自动变成 Node.js；本地 stdio MCP 进程接入是后续工作。
+
+## 实际发布验证
+
+源码 [60114d2](https://github.com/veryy/Solvit/commit/60114d2219a016d07b7a42182210c03fd95dc226)，[正式 Actions38555594514](https://github.com/veryy/Solvit/actions/runs/38555594514) 的 build、verify-ui、verify-plugins、verify-search、verify-linux、release 六项全部成功。实际下载报告并核对完整ZIP CRC/XML：447个单元、59个应用/Web/PTY设备测试零失败/错误/跳过；113个SDK、5个市场测试零失败/跳过。另Linux设备门禁实际执行生产HTTPS安装、Python3.12.3/Node24.21.0/npm11.19.0/Java17、工作区及交互PTY。稳定签名和旧版覆盖升级通过。
+
+正式页面实际截图核对说明、安装按钮和刷新完整可见；真实触摸安装确认及拒绝不写入通过。环境包1.0.2线上下载哈希 e0e2c433cde60f34147178c50e9c51748a6ff445c067dcd1753e861621e43783，旧1.0.0/1.0.1与旧宿主目录保留。
+
+公开APK与Actions artifact11889917692下载后逐字节一致，25,285,128字节，SHA256 `2e4650f07ca547d5bc4829861c4c624b207b2326d646353715ee70943f79950a`。证书SHA256 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。APK内ARM64/x86_64的PRoot/loader所有PT_LOAD为16KiB对齐静态检查通过，不冒充16KiB设备运行验证。
+
+公开源码附件与正式artifact逐字节一致，1,072,439字节，SHA256 `9ecd313ce0525ac1808a38e33a6a43e49a006ecff5324c19d069b599b13f3121`，完整ZIP CRC核对，含对应源码、补丁、编译输入和许可。
+
+[下载APK](https://github.com/veryy/Solvit/releases/download/v0.31.1/solvit-debug.apk) · [对应源码](https://github.com/veryy/Solvit/releases/download/v0.31.1/solvit-linux-sources.zip)。原0.31.0标签因实际截图发现页面空白主动取消，未公开发布；不移动该历史标签。

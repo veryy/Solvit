@@ -12,7 +12,7 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The latest public release is [0.30.2](https://github.com/veryy/Solvit/releases/tag/v0.30.2). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The latest public release is [0.31.1](https://github.com/veryy/Solvit/releases/tag/v0.31.1). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 
@@ -23,6 +23,7 @@ The latest public release is [0.30.2](https://github.com/veryy/Solvit/releases/t
 - **Search and memory:** default public web search with source links, local memory retrieval and relationship graphs, editing, deletion, and optional background saving. Public search can encounter network restrictions or challenges; real-model memory quality still needs validation.
 - **MCP and Skills:** multiple named HTTPS MCP connections with independent sessions and encrypted credentials; import SKILL.md and text resources. [MCP](docs/mcp.md) · [Skills](docs/skills.md)
 - **Workspace:** one directory per conversation and multiple Shell sessions. File tree, directory creation, rename and delete, CodeMirror text/code preview and editing, and an xterm.js / Android PTY terminal share the same directory.
+- **Linux environment:** install Ubuntu 24.04 without root, with Python/venv and Node24/npm; add Python/pip or Java17. Open Workspace → Linux, install it, then create an Ubuntu Shell. AI commands, the terminal, and file management share the same directory. [Verification](docs/linux-environment-stage.md)
 - **Git workspace:** Changes, diffs, staging, commits, and history, plus HTTPS clone, fetch, pull/push reviews, merge conflicts, progress, and cancellation. Credentials are entered through a native secure form and stored encrypted. AI Git tools are currently read-only.
 - **Updates:** release notes, APK downloads with progress, and an installation entry inside the app. API keys are encrypted with Android Keystore.
 
@@ -30,11 +31,10 @@ The latest public release is [0.30.2](https://github.com/veryy/Solvit/releases/t
 
 Image, text, and code attachments are now available. Next priorities:
 
-1. A rootless PRoot/Ubuntu environment with Python/Node installation and shared workspace execution. This is in development and is not part of the public APK yet.
-2. Carry attachments when editing older messages and clean up unsent files.
-3. Read PDFs and other documents; connect workspace imports with chat and file previews.
-4. Recover interrupted Git clone installation and verify plugin operations with a real GitHub account.
-5. Validate roles, visible streaming, tool selection, and complete tasks with real models; improve plugins and memory.
+1. Carry attachments when editing older messages and clean up unsent files.
+2. Read PDFs and other documents; connect workspace imports with chat and file previews.
+3. Recover interrupted Git clone installation and verify plugin operations with a real GitHub account.
+4. Validate roles, visible streaming, tool selection, and complete tasks with real models; improve plugins and memory.
 
 **Screen control is deferred.** Larger-file editing, AI Git writes, and autonomous project tasks remain on the [roadmap](docs/product-roadmap.md).
 
@@ -42,9 +42,11 @@ Image, text, and code attachments are now available. Next priorities:
 
 Text editing is limited to 256KiB UTF-8 and checks for external changes before saving. MCP currently supports HTTPS Streamable HTTP; OAuth, stdio, and full resource/prompt support are unfinished. JS plugins do not have process isolation.
 
+The Linux environment shares the Android kernel and app identity and grants no extra system permissions. ARM64/x86_64 binaries are included; Node24 officially targets kernel 4.18+. Older phones and ARM64 physical devices still need validation. QuickJS does not become Node, and local stdio MCP support remains unfinished.
+
 Configuration backups include model connections, API keys, roles, prompts, language, and appearance, but exclude chats, plugin packages, plugin credentials, and memories. Keep backups outside the app. Conversation context is sent to your configured model service.
 
-The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38525081179) passed remote build, tests, lint, signing, and upgrade gates; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.30.2.md)
+The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38555594514) passed remote build, tests, lint, signing, and upgrade gates; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.31.1.md)
 
 ## Development
 

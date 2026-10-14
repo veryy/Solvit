@@ -110,3 +110,5 @@ Node v24.21.0 官方BUILDING.md对Linux ARM64/x64的支持基线为kernel>=4.18�
 38550289681的build通过但新可见性断言失败于LinuxEnvironmentHtmlTest行42。完整下载UI artifact11887750071（4,554,864字节）并核对ZIP CRC，设备日志明确viewport596/body0/main32，安装按钮DOM范围173.58..222.35、dvh支持true。因此“dvh不支持”的猜测被证伪；CSS百分比替换也没解决真实高度0。改为环境JS页面使用innerHeight明确设置body高度，初始化/宿主更新/窗口resize时同步，并在下一帧再次同步；保留原可见性/elementFromPoint/真实触摸断言，不增加超时或绕过失败。新包1.0.2由远程Node生成，旧1.0.0/1.0.1保存在legacy；仍不发布，等待真实设备复验。
 
 修复源6c58e27的[38552946405](https://github.com/veryy/Solvit/actions/runs/38552946405) build/UI全成功。实际完整下载artifact11890490065（4,611,754字节），完整ZIP CRC/XML核对59个应用/Web/终端测试，零失败/错误/跳过。Linux页面设备布局viewport596/body596/main527.24，按钮完全位于可见范围且elementFromPoint命中；真实屏幕触摸打开包含本地化网络/空间说明的确认框，取消不启动下载、不创建工作区。实际查看PNG确认说明、安装按钮与底部刷新均正常，正文不再空白。Native运行时沿用已验证的Python3.12.3/Node24.21.0/npm11.19.0/Java17代码；正式0.31.1仍须全标签门禁与产物核对。
+
+正式0.31.1全部门禁成功并公开：[Release](https://github.com/veryy/Solvit/releases/tag/v0.31.1)、[Actions38555594514](https://github.com/veryy/Solvit/actions/runs/38555594514)。正式unit/UI归档完整ZIP CRC/XML为447单元及59设备，零失败/错误/跳过；公开APK和对应源码已实际下载并与正式产物逐字节比较一致，正式截图确认页面完整可見。准确大小、SHA、签名和限制见release-0.31.1.md。此交付完成环境功能阶段，不代表ARM64真机、真实模型项目任务、所有Node扩展或stdio MCP已完成；继续原路线。
