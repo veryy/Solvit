@@ -44,3 +44,9 @@
 已下载静态核对官方 proot-distro v4.17.3 的 Ubuntu Noble x86_64 归档：27,629,072 字节，SHA256 1680d024bf47d2414a36759af528ca3569a73b70682daa3d9693ba63157cb5a8，5185 条目/105,463,427 展开文件字节，单一 ubuntu-noble-x86_64 前缀。该核对不等于安装或执行证明。
 
 第二轮38526158279进入 PRoot 链接，实际失败是静态 talloc 包含未链接的 rep_memset_explicit（其 libreplace 实现）。将同一已校验源码构建的 replace.c 对象纳入静态归档，不编写替代函数。另静态核对 Ubuntu 的 etc/os-release 是 guest 符号链接，安装完成检查接受 usr/lib/os-release 的真实文件，并使用 API26 已提供的 Paths.get，避免依赖较新 Path.of。
+
+## 首个 Android 执行证明
+
+源5bb4860，[远程38526852717](https://github.com/veryy/Solvit/actions/runs/38526852717)通过：ARM64/x86_64从源码编译，实际artifact11876157015的ZIP CRC与XML核对为4安装边界单元和1 API35 Android PRoot用例，零失败/错误/跳过。普通应用 UID、guest伪root、带空格工作目录与双向文件可见通过。此时尚未安装Ubuntu/Python/Node。
+
+下一轮新增UbuntuProbeTest，使用官方校验归档与同一个RootfsArchive，在API35应用私有目录安装Ubuntu，普通UID启动guest bash，经apt安装Python/venv、Node/npm并实际读写同一个工作区。rootfs只进入诊断APK，不进入Solvit产品APK；记录精确版本，不宣称发行版自带Node版本支持所有现代MCP。等待实际结果，仍未提供产品环境入口。

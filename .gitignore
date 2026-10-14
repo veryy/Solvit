@@ -11,3 +11,5 @@ plugin-sdk/node_modules/
 .signing/
 /linux-probe/src/main/jniLibs/
 /linux-probe/build-inputs/
+
+/linux-probe/src/main/assets/ubuntu-x86_64.tar.xz

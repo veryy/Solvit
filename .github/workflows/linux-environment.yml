@@ -34,6 +34,11 @@ jobs:
           bash scripts/build-android-proot.sh
       - name: Validate rootfs installation boundaries
         run: ./gradlew :linux-runtime:test --stacktrace
+      - name: Prepare checksum-verified Ubuntu fixture
+        run: |
+          mkdir -p linux-probe/src/main/assets
+          curl --fail --location --silent --show-error --retry 2 https://github.com/termux/proot-distro/releases/download/v4.17.3/ubuntu-noble-x86_64-pd-v4.17.3.tar.xz --output linux-probe/src/main/assets/ubuntu-x86_64.tar.xz
+          printf '%s\n' '1680d024bf47d2414a36759af528ca3569a73b70682daa3d9693ba63157cb5a8  linux-probe/src/main/assets/ubuntu-x86_64.tar.xz' | sha256sum --check
       - name: Build compatibility probe APKs
         run: ./gradlew -PlinuxProbe=true :linux-probe:assembleDebug :linux-probe:assembleDebugAndroidTest --stacktrace
       - name: Enable emulator acceleration
@@ -47,12 +52,16 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: ./gradlew -PlinuxProbe=true :linux-probe:connectedDebugAndroidTest --stacktrace
+          script: |
+            ./gradlew -PlinuxProbe=true :linux-probe:connectedDebugAndroidTest --stacktrace
+            adb exec-out run-as dev.solvit.linuxprobe cat files/ubuntu-probe.log > linux-probe/build/ubuntu-probe.log
+            adb exec-out run-as dev.solvit.linuxprobe cat files/ubuntu-probe-versions.txt > linux-probe/build/ubuntu-probe-versions.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-proot-compatibility
           path: |
+            linux-probe/build/ubuntu-probe*
             linux-runtime/build/test-results/
             linux-probe/build-inputs/
             linux-probe/src/main/jniLibs/
