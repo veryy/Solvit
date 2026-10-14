@@ -5,6 +5,7 @@ on:
     branches: [feat/linux-environment]
     paths:
       - 'linux-probe/**'
+      - 'linux-runtime/**'
       - 'scripts/build-android-proot.sh'
       - '.github/workflows/linux-environment.yml'
 permissions:
@@ -31,6 +32,8 @@ jobs:
         run: |
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
           bash scripts/build-android-proot.sh
+      - name: Validate rootfs installation boundaries
+        run: ./gradlew :linux-runtime:test --stacktrace
       - name: Build compatibility probe APKs
         run: ./gradlew -PlinuxProbe=true :linux-probe:assembleDebug :linux-probe:assembleDebugAndroidTest --stacktrace
       - name: Enable emulator acceleration
@@ -50,6 +53,7 @@ jobs:
         with:
           name: android-proot-compatibility
           path: |
+            linux-runtime/build/test-results/
             linux-probe/build-inputs/
             linux-probe/src/main/jniLibs/
             linux-probe/build/outputs/apk/

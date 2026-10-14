@@ -36,3 +36,9 @@
 `Linux environment compatibility` 工作流从锁定源码交叉编译 ARM64/x86_64 PRoot 与外置 loader，静态链接经过 SHA256 校验的 talloc 2.5.0，输出源码、许可和构建输入。`linux-probe` 仅在 `-PlinuxProbe=true` 时加入构建，未依赖到应用、没有产品入口。API35 模拟器用普通应用 UID 启动 APK 安装的 PRoot，核对伪 uid、带空格工作目录映射与双向文件可见。此探针使用 Android shell，不能替代 Ubuntu/Python/Node 安装运行验收；结果尚待实际工作流证明。未发布 Linux 功能 APK。
 
 第一轮38525788048实际失败在ARM64的NDK Clang编译：上游 ashmem_memfd.c 调用 strcmp/memset 却没有包含 string.h。talloc配置和静态编译已成功；失败尚未进入模拟器。修复仅给该文件加入标准声明头，不关闭编译错误或改变运行行为，补丁随构建输入上传，再按原探针验收。
+
+## 私有 rootfs 安装基础
+
+新增 linux-runtime 的 RootfsArchive：先流式 SHA256 检查，再仅写入全新私有 staging，限制压缩/展开容量与条目数、拒绝路径越界/重复项，延后创建 guest 符号链接，失败清理 staging 而保留现有安装。不复制宿主所有权/setuid，dev 设备节点由运行时绑定提供。新增4个边界单元用例，远程工作流负责运行，尚未验收。使用 Apache Commons Compress 1.28.0（Apache-2.0）和 XZ for Java 1.10（0BSD），只调用 API；发布前补齐随 APK 分发的通知。
+
+已下载静态核对官方 proot-distro v4.17.3 的 Ubuntu Noble x86_64 归档：27,629,072 字节，SHA256 1680d024bf47d2414a36759af528ca3569a73b70682daa3d9693ba63157cb5a8，5185 条目/105,463,427 展开文件字节，单一 ubuntu-noble-x86_64 前缀。该核对不等于安装或执行证明。
