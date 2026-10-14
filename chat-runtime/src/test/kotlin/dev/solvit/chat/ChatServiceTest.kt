@@ -39,8 +39,8 @@ class ChatServiceTest {
         var calls = 0
         val agent = object : AgentRuntime {
             override fun run(request: ModelRequest) = flow {
-                assertEquals(listOf(Role.USER), request.messages.map { it.role })
-                assertEquals("AQIDBA==", request.messages.single().images.single().base64)
+                assertEquals(listOf(Role.SYSTEM, Role.USER), request.messages.map { it.role })
+                assertEquals("AQIDBA==", request.messages.single { it.role == Role.USER }.images.single().base64)
                 calls++
                 emit(ModelChunk.Text(if (calls < 3) "partial" else "success"))
                 if (calls < 3) throw ModelException("fixture failure")
