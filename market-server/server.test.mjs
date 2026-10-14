@@ -93,6 +93,16 @@ test('catalog downloads match their declared integrity and expose no write API',
     const api25=await(await fetch(base+'/api/v1/plugins?hostApi=25')).json();
     const reviewedWorkspace=api25.plugins.find(p=>p.id==='dev.solvit.workspace');
     assert.equal(reviewedWorkspace.version,'1.8.0');assert.equal(reviewedWorkspace.apiVersion,25);
+    const api26=await(await fetch(base+'/api/v1/plugins?hostApi=26')).json();
+    const transferWorkspace=api26.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
+    assert.equal(transferWorkspace.version,'1.9.0');assert.equal(transferWorkspace.apiVersion,26);
+    for(const [id,version,sha] of [
+      ['workspace','1.8.0','e5ad26b643d323bd3b622094121316b94eaaf17400d62397c91243c5e7a3fe5d'],
+      ['git','1.2.4','c7c771112dbd15eea56144802306d4f9432e9061ea7047e2ceb765e5141e3da0']]) {
+      const original=Buffer.from(await(await fetch(base+`/api/v1/packages/dev.solvit.${id}/${version}`)).arrayBuffer());
+      assert.deepEqual(original,await readFile(new URL(`./packages/legacy/dev.solvit.${id}-${version}.solvit.json`,import.meta.url)));
+      assert.equal(createHash('sha256').update(original).digest('hex'),sha);
+    }
     for(const [id,version,sha] of [['workspace','1.7.0','d212d6741bde9a5db30a9d307c506389343d9c705f66011d4c0a50e54c041360'],['git','1.2.3','f35a229cf891a942e6e099a4fd13cacc7367c09c0ce2f77e0fa1c293249a9e65']]){
       const original=Buffer.from(await(await fetch(base+`/api/v1/packages/dev.solvit.${id}/${version}`)).arrayBuffer());
       assert.equal(createHash('sha256').update(original).digest('hex'),sha);
@@ -197,7 +207,7 @@ test('API19 keeps the exact released Git bytes while API20 selects remote Git',a
   assert.deepEqual(oldBytes,await readFile(new URL('./packages/legacy/dev.solvit.git-1.1.1.solvit.json',import.meta.url)));
   assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd');
   const next=(await(await fetch(base+'/api/v1/plugins?hostApi=20')).json()).plugins.find(p=>p.id==='dev.solvit.git');
-  assert.equal(next.version,'1.2.4');assert.equal(next.apiVersion,20);
+  assert.equal(next.version,'1.2.5');assert.equal(next.apiVersion,20);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
 

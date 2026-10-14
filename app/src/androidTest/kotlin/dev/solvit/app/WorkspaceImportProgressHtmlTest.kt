@@ -1,0 +1,79 @@
+package dev.solvit.app
+
+import androidx.activity.compose.setContent
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.*
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import dev.solvit.core.*
+import dev.solvit.market.BuiltinWorkspaceManager
+import dev.solvit.market.WorkspacePageBridge
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
+import org.junit.Assert.*
+import org.junit.Rule
+import org.junit.Test
+import java.io.File
+
+/** Real QuickJS/HTML and JNI publication. Only a native progress checkpoint is paused so a
+ * fast local copy still allows deterministic user cancellation; no fake files or outcomes. */
+class WorkspaceImportProgressHtmlTest {
+    @get:Rule val rule=createAndroidComposeRule<MainActivity>()
+    @Test fun actualImportProgressCancelsRestoresOriginalAndRetriesThroughTheSamePage() {
+        val app=rule.activity.application as SolvitApplication
+        runBlocking { withTimeout(30_000){app.ready.filterNotNull().first().getOrThrow()} }
+        val chat="import-progress-${java.util.UUID.randomUUID()}"
+        val workspace=runBlocking { app.workspaces.create("Import progress").also { app.workspaces.bind(chat,it.id) } }
+        val shell=runBlocking { app.workspaces.createShell(workspace.id,"Import progress Shell") }
+        val root=File(runBlocking { app.workspaces.location(workspace.id) })
+        val original="original file before cancellation".toByteArray()
+        File(root,"data.bin").writeBytes(original)
+        val bytes=ByteArray(300_000) { (it%251).toByte() }
+        val document=PageBinaryDocument("data.bin","application/octet-stream",bytes)
+        val entered=CompletableDeferred<Unit>();val release=CompletableDeferred<Unit>()
+        val service=object:WorkspaceService by app.workspaces {
+            override suspend fun replaceImportedFile(workspaceId:String,path:String,bytes:ByteArray,sourceSha256:String,targetSha256:String):WorkspaceImportedFile {
+                val monitor=currentCoroutineContext()[WorkspaceImportMonitor]
+                return withContext(WorkspaceImportMonitor { progress ->
+                    monitor?.update?.invoke(progress)
+                    if(progress.stage=="WRITING"&&!entered.isCompleted){entered.complete(Unit);release.await()}
+                }) { app.workspaces.replaceImportedFile(workspaceId,path,bytes,sourceSha256,targetSha256) }
+            }
+        }
+        val bridge=WorkspacePageBridge(service,null,chat)
+        runBlocking { bridge.stageImport(document) {} }
+        val manager=BuiltinWorkspaceManager(app);val html=HtmlPageProbe(rule.activity)
+        var visible by mutableStateOf(true)
+        fun waitDom(code:String){rule.waitUntil(10_000){runCatching { html.js(code)=="true" }.getOrDefault(false)}}
+        fun click(id:String){waitDom("!!document.querySelector('[data-node=$id]')&&!document.querySelector('[data-node=$id]').disabled");html.js("document.querySelector('[data-node=$id]').click()")}
+        fun confirm(){rule.waitUntil(10_000){rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty()};rule.onNodeWithTag("plugin_page_confirm").performClick();rule.waitUntil(10_000){rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isEmpty()}}
+        try {
+            rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
+                if(visible)PluginPageScreen("工作区",{manager.openPage("zh",bridge)}){visible=false}
+            } } }
+            waitDom("window.pluginPageReady===true&&!!document.querySelector('[data-node=showImport]')")
+            click("showImport");click("prepareImport");click("confirm");confirm()
+            rule.waitUntil(10_000){entered.isCompleted}
+            waitDom("(()=>{const p=document.getElementById('workspace-import-progress');return !!p&&p.value===65536&&p.max===300000&&p.getBoundingClientRect().height>0})()")
+            waitDom("document.querySelector('[data-node=transfer_bytes]')?.textContent==='65536 / 300000 B'")
+            html.screenshot("workspace-import-progress").recycle()
+            click("cancelImport");confirm()
+            waitDom("!!document.querySelector('[data-node=transfer_cancel_wait]')")
+            release.complete(Unit)
+            waitDom("!!document.getElementById('field-importPath')&&document.querySelector('[data-node=message]')?.textContent.includes('已取消')===true")
+            assertArrayEquals(original,File(root,"data.bin").readBytes())
+            assertTrue(root.listFiles()!!.none { it.name.startsWith(".solvit-import-")||it.name.startsWith("solvit-backup-") })
+            click("prepareImport");click("confirm");confirm()
+            waitDom("document.querySelector('[data-node=message]')?.textContent.includes('solvit-backup-')===true")
+            assertArrayEquals(bytes,File(root,"data.bin").readBytes())
+            assertArrayEquals(original,root.listFiles()!!.single { it.name.startsWith("solvit-backup-") }.readBytes())
+            val result=runBlocking {
+                val job=app.workspaces.run(workspace.id,shell.id,"/system/bin/toybox sha256sum data.bin",10_000)
+                withTimeout(15_000){app.workspaces.jobs.first { jobs->jobs.any { it.id==job.id&&it.stage==ShellStage.COMPLETED } }.first { it.id==job.id }}
+            }
+            assertEquals(0,result.exitCode);assertTrue(result.output.joinToString(""){it.text}.contains(document.sha256))
+            html.screenshot("workspace-import-progress-completed").recycle()
+        }finally{release.complete(Unit);rule.runOnUiThread { visible=false };runBlocking { bridge.close() }}
+    }
+}
