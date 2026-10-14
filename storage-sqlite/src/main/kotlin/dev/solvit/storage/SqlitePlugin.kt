@@ -397,6 +397,17 @@ class SqliteChatStore(context: Context, private val captureQuotaBytes: Long = Ex
         return ProviderTranscript(root.getString("provider"),root.getString("model"),root.getString("blocks"),
             options.keys().asSequence().associateWith { options.getString(it) },root.optString("prefix",""),root.optString("request_prefix",""))
     }
+    /** Call before registering the store: unfinished drafts/queues are not durable messages. */
+    internal suspend fun recoverAttachmentFiles() = withContext(Dispatchers.IO) {
+        lock.withLock {
+            val retained = mutableMapOf<String, MutableSet<String>>()
+            helper.readableDatabase.rawQuery("SELECT session_id,attachments FROM messages", null).use { c ->
+                while (c.moveToNext()) retained.getOrPut(c.getString(0)) { mutableSetOf() }.addAll(decodeAttachments(c.getString(1)).map { it.id })
+            }
+            // Read every reference successfully before deleting anything. A corrupt DB fails closed.
+            attachmentFiles.removeUnreferenced(retained)
+        }
+    }
     override fun close() { helper.close() }
     private companion object { const val READ_CHUNK=16*1024 }
 }
@@ -408,6 +419,7 @@ class SqliteStoragePlugin(private val androidContext: Context) : SolvitPlugin {
         val store = SqliteChatStore(androidContext)
         context.own { store.close() }
         store.recoverInterruptedExecutions(System.currentTimeMillis())
+        store.recoverAttachmentFiles()
         context.register(Services.Storage, store)
         context.register(ChatAttachmentStoreKey, store.attachmentFiles)
     }

@@ -175,5 +175,24 @@ class AttachmentFiles(private val directory: File) : ChatAttachmentStore {
         files.forEach { check(it.delete()) { "无法删除附件文件" } }
         check(folder.delete()) { "无法删除附件目录" }
     }
+    /** Startup only, before attachment/chat services are exposed. No live draft is collected. */
+    internal fun removeUnreferenced(saved: Map<String, Set<String>>) {
+        check(directory.canonicalFile == root && !Files.isSymbolicLink(directory.toPath()))
+        val retained = saved.mapKeys { (sessionId, _) -> session(sessionId, false).name }
+        val uuid = "[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}"
+        root.listFiles().orEmpty().forEach { folder ->
+            if (!folder.name.matches(Regex("($uuid|legacy-[a-f0-9]{64})")) ||
+                !Files.isDirectory(folder.toPath(), NOFOLLOW_LINKS)) return@forEach
+            folder.listFiles().orEmpty().forEach { file ->
+                if (file.name.matches(Regex("$uuid\\.(partial|blob)")) &&
+                    !Files.isDirectory(file.toPath(), NOFOLLOW_LINKS) &&
+                    (file.extension == "partial" || file.name.removeSuffix(".blob") !in retained[folder.name].orEmpty())) {
+                    check(Files.deleteIfExists(file.toPath())) { "无法清理未发送附件" }
+                }
+            }
+            // Unknown files/directories are left untouched, and symlinks are never followed.
+            if (folder.listFiles()?.isEmpty() == true) Files.deleteIfExists(folder.toPath())
+        }
+    }
     private fun ByteArray.hex() = joinToString("") { "%02x".format(it.toInt() and 255) }
 }

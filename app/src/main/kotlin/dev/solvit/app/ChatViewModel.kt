@@ -166,12 +166,29 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     }
     fun fork(point: BranchPoint, editedText: String, onForked: () -> Unit) {
         val source = selected.value ?: return
-        if (busy.value || switching.value || branching.value) return
+        if (busy.value || switching.value || branching.value || importingAttachment.value) return
         val service = branches ?: run { branchError.value = "当前存储不支持聊天分支"; return }
         branching.value = true; branchError.value = null
         viewModelScope.launch {
+            var created: ChatSession? = null
+            var adopted = false
             try {
+                val original = if (point.mode == BranchMode.BEFORE_USER)
+                    chat.messages(source).first().firstOrNull { it.id == point.messageId && it.role == Role.USER }
+                        ?: error("原问题已不存在") else null
+                val originals = original?.attachments.orEmpty()
+                val files = if (originals.isNotEmpty()) checkNotNull(attachmentStore) { "附件服务未启用" } else null
                 val branch = service.fork(source, point)
+                created = branch
+                val copies = originals.map { attachment ->
+                    val bytes = checkNotNull(files).read(source, attachment)
+                    try {
+                        // Fresh identities keep removing the edited draft from deleting a saved prefix/original.
+                        java.io.ByteArrayInputStream(bytes).use { files.import(branch.id, attachment.name, attachment.mimeType, it) }
+                    } finally { bytes.fill(0) }
+                }
+                attachmentDrafts.value = attachmentDrafts.value + (branch.id to copies)
+                adopted = true
                 branchInput.value = branch.id to editedText
                 chooseSession(branch.id)
                 draft.value = ""; reasoning.value = ""; liveTranscript.value = emptyList(); toolActivity.value = emptyList()
@@ -179,7 +196,10 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                 onForked()
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) { branchError.value = "创建分支失败，请重试；原对话已保留" }
-            finally { branching.value = false }
+            finally {
+                if (!adopted) created?.let { branch -> withContext(NonCancellable) { runCatching { chat.deleteSession(branch.id) } } }
+                branching.value = false
+            }
         }
     }
     fun delete(id: String) {
@@ -188,6 +208,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             try {
                 chat.deleteSession(id)
                 queuedMessages.value = queuedMessages.value.filterNot { it.sessionId == id }
+                attachmentDrafts.value = attachmentDrafts.value - id
                 pausedChats.remove(id)
                 if (selected.value == id) chooseSession(chat.sessions().first().firstOrNull()?.id ?: createRoleSession(null).id)
             } catch (e: Exception) { error.value = "删除对话失败" }
@@ -243,7 +264,23 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         pauseQueue(id,false)
         return startTurn(id, text.trim(), attachments.toList())
     }
-    fun removeQueued(itemId: String) { if (!switching.value) queuedMessages.value = queuedMessages.value.filterNot { it.id == itemId } }
+    fun removeQueued(itemId: String) {
+        if (switching.value) return
+        val item = queuedMessages.value.firstOrNull { it.id == itemId && it.sessionId == selected.value } ?: return
+        queuedMessages.value = queuedMessages.value.filterNot { it.id == itemId }
+        viewModelScope.launch {
+            try {
+                val savedIds = chat.messages(item.sessionId).first().flatMap { it.attachments }.map { it.id }.toSet()
+                val retainedIds = attachmentDrafts.value[item.sessionId].orEmpty().map { it.id }.toSet() +
+                    queuedMessages.value.filter { it.sessionId == item.sessionId }.flatMap { it.attachments }.map { it.id } +
+                    if (sessionId.value == item.sessionId && busy.value) sendingAttachments.map { it.id } else emptyList()
+                for (attachment in item.attachments.distinctBy { it.id }) {
+                    if (attachment.id !in savedIds && attachment.id !in retainedIds) attachmentStore?.remove(item.sessionId, attachment)
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { error.value = "附件清理失败" }
+        }
+    }
     fun editQueued(itemId: String, text: String): Boolean {
         if (switching.value) return false
         val item = queuedMessages.value.firstOrNull { it.id == itemId && it.sessionId == selected.value } ?: return false
