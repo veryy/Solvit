@@ -38,8 +38,8 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         installer?.let { manager -> scope.launch {
             manager.state.collect { next ->
                 // Rootfs replay must not mark a later software job as already ready.
-                if (!installingRootfs) return@collect
-                if (next.stage == InstallationStage.IDLE && operation?.isActive == true) return@collect
+                if (!installingRootfs || next.stage !in setOf(InstallationStage.DOWNLOADING, InstallationStage.EXTRACTING, InstallationStage.INITIALIZING)) return@collect
+                if (manager.state.value != next) return@collect
                 mutableState.update { old -> old.copy(installed = manager.activeRoot() != null,
                     stage = next.stage.name, bytes = next.bytes, total = next.total, failure = next.details) }
             }

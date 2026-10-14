@@ -84,3 +84,7 @@
 8072aa0 的 [38537813294](https://github.com/veryy/Solvit/actions/runs/38537813294) 生产路径已通过：3 个真实 API35 Android 用例，生产 HTTPS 下载、网络 DNS、受 ShellJobEngine 管理的 apt 安装、Python/Node 文件写入、Ubuntu 交互 PTY、TTY 与工作区可见均通过；版本保持 Python 3.12.3、Node 18.19.1、npm 9.2.0。本轮日志已实际下载；报告成员精确计数待归档核对。
 
 7958dbe 的远程 JS 生成任务 [38538716444](https://github.com/veryy/Solvit/actions/runs/38538716444) 已通过 typecheck、SDK/市场及公开搜索检查。实际下载 artifact11881048160，ZIP CRC 和 environment API21/服务声明核对后写入 APK/市场的生成包。应用候选0.31.0/build63接入 Linux 插件、工作区 Linux 页签及按 Shell 选择运行环境；native binaries 不进入 Git，由锁定源码远程编译并随 APK 提供对应源码包。该候选尚未发布，完整回归/界面/许可/正式 APK 门禁仍需通过。
+
+ARM64官方归档已下载并做静态内容核对：25,545,644字节，SHA256 81ac0fb0d16ded12ab11cede62f67b875ff56f9fa1aa9eb786415c3ec5c477d2，5180条目、126,240,490文件字节，单一ubuntu-noble-aarch64前缀，未发现硬链接。本机只读取归档元数据，没有运行Linux程序；ARM64运行仍未验收。
+
+候选APK实际检查发现Commons Compress引入的Maven Codec 1.19.0与JGit转换配置中的文件依赖Codec 1.22.1重复；6feeec5仅将已有1.22.1放回正常依赖解析图，保留JGit原引擎及Android字节码适配。另显式声明环境操作Unit返回类型，避免Job.start的Boolean影响接口。远程Java扩展探针还发现测试局部变量java遮蔽java.io包，改名javaResult，不删除Java安装/版本断言。最终以原完整门禁为准。
