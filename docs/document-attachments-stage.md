@@ -65,3 +65,5 @@ DocumentTextService增加读取事件Flow，Android宿主在文字提取/扫描�
 保留失败：原图6acd29e/38581841892的verify-ui在第21项旧`ChatLayoutTest.workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace`发生应用进程SIGSEGV，尚未执行PDF设备用例。实际下载job日志与artifact11904952168并核对ZIP CRC；设备栈`/product/app/webview/webview.apk!libwebviewchromium.so`，无Java OOM或PDF调用栈，之前出现模拟器ColorBuffer错误。不能据此确定为PRoot或PDF错误，也不据后续绿色宣称修复系统WebView崩溃。排序假设为WebView生命周期/渲染崩溃、模拟器图形异常、内存压力；当前仅第一层定位到WebView，尚不足以识别具体触发条件。
 
 包含相同原图实现及启动缓存回收的403ad38/38583010493完整build与verify-ui已成功，未调整原终端/PDF断言、跳过测试或拉长超时。最终UI归档11904952995正在下载核对；此前失败记录不删除。真实模型和ARM64真机范围保持，0.33.0尚未正式发布。
+
+最终候选403ad38/38583010493的UI artifact11904952995完整下载（一个分片TLS失败，仅补取该分片），整ZIP CRC/XML核对63设备零失败/错误/跳过。实际PNG查看原始第2页，扫描原文中英文2026与关闭按钮完整可见；对应聊天用例21.769秒、混合PDF/原图像素/范围拒绝7.572秒通过。候选465单元/63设备完成，准备保留历史FF合入main及不可变0.33.0标签；正式六项门禁、公开APK/源码字节核对仍待执行。
