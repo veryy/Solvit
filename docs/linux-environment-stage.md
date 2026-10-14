@@ -94,3 +94,7 @@ ARM64官方归档已下载并做静态内容核对：25,545,644字节，SHA256 8
 线上市场已经部署 API21 加法支持及 environment1.0.0：HTTPS 实际下载17,745字节，SHA256 4d5d07cc8c8ed309ccc918b05cf3517a82c76bc80d3febce4506958d4c6f01b7，与提交的生成包一致；API20目录仍不含新环境插件，API21包含。使用部署前服务源码、保留的旧包目录和新服务逐个比较 API1..20 的目录选择结果，全部一致。随后客户端才切换 hostApi21。未删除或替换历史版本包。
 
 03823a7 的候选整包 build 任务已成功（单元/Lint/APK/固定签名），界面任务因下一次功能提交而取消，不能当作全应用验证通过。实际下载原生 artifact11883907390，ZIP CRC 通过；ARM64/x86_64 的 PRoot 与 loader 所有 PT_LOAD 的 ELF alignment 为16,384，offset/vaddr同余验证通过。这只是构建产物静态检查，不宣称16KiB页 Android 真机执行通过。
+
+进一步实际下载38543491385的完整artifact11884271839（35,076,737字节），完整ZIP CRC/XML核对9个linux-runtime单元与3个API35 Android，零失败/错误/跳过；设备Java输出为OpenJDK17.0.20.1，原apt探针Python3.12.3/Node18.19.1/npm9.2.0。Node24首轮38545704994失败为误用Ubuntu归档前缀校验（Node目录含版本点号），4db4f4b分离Node Source类型，保持Ubuntu归档边界不变；随后清理仅属于宿主的中断Node下载，等待原生产执行门禁重跑。
+
+Node v24.21.0 官方BUILDING.md对Linux ARM64/x64的支持基线为kernel>=4.18、glibc>=2.28（旧内核可能可运行但不受其保证）。Ubuntu提供guest glibc，Android内核仍取决于手机；Android8可安装Solvit不等于所有旧手机均能运行这套开发环境。当前只验证API35模拟器，明确保留旧内核/OEM/ARM64真机边界，不使用降低targetSDK或系统root。

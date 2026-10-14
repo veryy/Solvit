@@ -11,7 +11,7 @@
 
 使用方法：在聊天中创建/绑定工作区，打开「工作区 → Linux」，下载 Ubuntu；安装结束后创建 Ubuntu Shell，再打开终端，或让 AI 在这个 Shell 执行命令。首次下载安装需要联网及至少 768 MiB 可用空间，安装更多开发包需要额外空间。
 
-这提供 Linux 用户空间，共用 Android 内核和应用身份，不额外授予 Android 权限。ARM64 与 x86_64 提供原生程序；其他架构仍可使用普通聊天及 Android Shell。它不是完整虚拟机，不承诺 Docker、内核模块或系统服务可用。
+这提供 Linux 用户空间，共用 Android 内核和应用身份，不额外授予 Android 权限。ARM64 与 x86_64 提供原生程序；其他架构仍可使用普通聊天及 Android Shell。它不是完整虚拟机，不承诺 Docker、内核模块或系统服务可用。Node24 官方 Linux 支持基线为内核4.18以上；Android8可安装应用不等于所有旧手机都能运行这套开发环境。
 
 发布门禁包含单元、Lint、API35 Android 环境安装/实际执行、JS 插件检查、完整应用界面、固定签名和覆盖升级。设备测试覆盖生产 HTTPS 下载、DNS、Python/Node/npm、Java17、交互 PTY、授权后的 AI 工具执行路径和工作区运行环境恢复。原生程序来自锁定源码，随版本提供 `solvit-linux-sources.zip`（源码、补丁、编译输入及许可）。
 
