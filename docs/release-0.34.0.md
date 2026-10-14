@@ -19,3 +19,10 @@ Linux环境保留PRoot/Ubuntu、Python3.12.3、Node24.21.0/npm11.19.0、Java17�
 文本候选[38601350681](https://github.com/veryy/Solvit/actions/runs/38601350681)通过483单元和65设备用例，完整报告ZIP CRC/XML及实际导入截图已核对。图片候选编译、485单元和Lint通过，但完整设备链/实际图片截图尚待[38606210921](https://github.com/veryy/Solvit/actions/runs/38606210921)。市场API22私有暂存比较通过，未公开新包。正式标签六项门禁、签名/覆盖升级、APK/源码公开下载核对均待完成。
 
 保留已知诊断历史：曾发生PDF读取设备等待超时，以及此前WebView原生SIGSEGV；后续候选通过不等于原因已修复。原断言和超时保留，PDF失败时增加合成夹具状态和截图诊断。详细证据见[阶段记录](workspace-import-stage.md)。
+
+
+以下是文本/二进制候选真实API35模拟器截图，使用测试文件；不是图片候选显示证明。
+
+![工作区选择文件后查看信息、路径并确认](screenshots/0.34.0/workspace-import-selected.png)
+
+![原始二进制导入后在同一工作区文件树可见](screenshots/0.34.0/workspace-import-directory.png)
