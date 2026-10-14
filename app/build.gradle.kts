@@ -7,8 +7,8 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 69
-        versionName = "0.35.0"
+        versionCode = 70
+        versionName = "0.36.0"
     }
     // setup-android can change ANDROID_USER_HOME. Never rely on AGP's implicit
     // debug-keystore path: CI restores and uses this exact file.

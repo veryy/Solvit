@@ -86,6 +86,15 @@ test('catalog downloads match their declared integrity and expose no write API',
     const api23=await(await fetch(base+'/api/v1/plugins?hostApi=23')).json();
     const pdfWorkspace=api23.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
     assert.equal(pdfWorkspace.version,'1.6.0');assert.equal(pdfWorkspace.apiVersion,23);
+    const api24=await(await fetch(base+'/api/v1/plugins?hostApi=24')).json();
+    const chatWorkspace=api24.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
+    assert.equal(chatWorkspace.version,'1.7.0');assert.equal(chatWorkspace.apiVersion,24);
+    assert.deepEqual(chatWorkspace.nativeServices,['workspace.files']);
+    for(const [id,version,sha] of [['workspace','1.6.0','7e365776b2df302b79d338980e5ce990f233d7f3a7762399a89c8fa3a50283b6'],['git','1.2.2','1d7aa4b3556104907dac7e29d7ea4fb5e35a7f6565d3a6bf668771e643b8130b']]){
+      const original=Buffer.from(await(await fetch(base+`/api/v1/packages/dev.solvit.${id}/${version}`)).arrayBuffer());
+      assert.deepEqual(original,await readFile(new URL(`./packages/legacy/dev.solvit.${id}-${version}.solvit.json`,import.meta.url)));
+      assert.equal(createHash('sha256').update(original).digest('hex'),sha);
+    }
     assert.deepEqual(pdfWorkspace.nativeServices,['workspace.files']);
     const originalImports=Buffer.from(await(await fetch(base+'/api/v1/packages/dev.solvit.workspace/1.5.0')).arrayBuffer());
     assert.deepEqual(originalImports,await readFile(new URL('./packages/legacy/dev.solvit.workspace-1.5.0.solvit.json',import.meta.url)));
@@ -181,7 +190,7 @@ test('API19 keeps the exact released Git bytes while API20 selects remote Git',a
   assert.deepEqual(oldBytes,await readFile(new URL('./packages/legacy/dev.solvit.git-1.1.1.solvit.json',import.meta.url)));
   assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd');
   const next=(await(await fetch(base+'/api/v1/plugins?hostApi=20')).json()).plugins.find(p=>p.id==='dev.solvit.git');
-  assert.equal(next.version,'1.2.2');assert.equal(next.apiVersion,20);
+  assert.equal(next.version,'1.2.3');assert.equal(next.apiVersion,20);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
 

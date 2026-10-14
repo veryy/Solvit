@@ -4,7 +4,16 @@ type FileEntry={name:string;path:string;directory:boolean;bytes:number};
 type Draft={id:string;name:string;pluginId:string;version:string;sha256:string;permissions:string[]};
 type Button=Extract<PageNode,{kind:'button'}>;
 type TextChunk={text:string;offset:number;nextOffset:number;total:number;sha256:string};
-type ImportSelection={id:string;name:string;mimeType:string;bytes:number;sha256:string};
+type ImportSelection={id:string;name:string;mimeType:string;bytes:number;sha256:string;source?:{kind:string;messageId:string;attachmentId:string}};
+type ChatFile={messageId:string;messageNumber:number;attachmentId:string;name:string;mimeType:string;bytes:number;sha256:string};
+const chatFileLabels={
+ zh:['从聊天附件导入','已保存的聊天附件','此对话还没有已保存附件','选择','来源消息'],
+ en:['Import chat attachment','Saved chat attachments','No saved attachments in this chat','Select','Source message'],
+ ja:['チャット添付をインポート','保存済み添付','この会話に保存済み添付はありません','選択','元メッセージ'],
+ ko:['채팅 첨부 가져오기','저장된 채팅 첨부','저장된 첨부가 없습니다','선택','출처 메시지'],
+ es:['Importar adjunto del chat','Adjuntos guardados','No hay adjuntos guardados','Elegir','Mensaje de origen'],
+ fr:['Importer une pièce jointe du chat','Pièces jointes enregistrées','Aucune pièce jointe enregistrée','Choisir','Message source']
+};
 const previewLabels={
  zh:['预览文本 / 代码','仅显示开头，导入仍保留完整文件。','此文件不是有效 UTF-8 文本，请使用对应格式预览。','文本预览上限256KiB，仍可导入原文件。'],
  en:['Preview text / code','Only the beginning is shown. Import keeps the complete file.','This is not valid UTF-8 text. Use a preview for its format.','Text previews support up to256KiB. Original file import remains available.'],
@@ -56,6 +65,7 @@ export function workspacePage(importsEnabled=true){
  let importPreview:{kind:string;text:string|null;truncated:boolean}|null=null;
  let importPicture:{width:number;height:number;source:string}|null=null;
  let importPdf:PdfPreview|null=null;
+ let chatFiles:ChatFile[]=[],chatFileOffset=0,chatFileTotal=0,chatReturnMode='home';
  let treeWorkspace:string|null=null,treeResult:JsonObject|null=null,treeRevision=0;
  const treeEntries=new Map<string,FileEntry>();
  return async({locale,event}:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
@@ -65,11 +75,13 @@ export function workspacePage(importsEnabled=true){
   const ip=previewLabels[locale.split(/[-_]/)[0] as keyof typeof previewLabels]??previewLabels.en;
   const pic=pictureLabels[locale.split(/[-_]/)[0] as keyof typeof pictureLabels]??pictureLabels.en;
   const pdf=pdfLabels[locale.split(/[-_]/)[0] as keyof typeof pdfLabels]??pdfLabels.en;
+  const cf=chatFileLabels[locale.split(/[-_]/)[0] as keyof typeof chatFileLabels]??chatFileLabels.en;
   const api=ctx.workspacePage;if(!api)throw Error('Workspace page needs API12');
   let snapshot=await api.query('snapshot') as unknown as Snapshot;
   if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear()}
   const refresh=async()=>{snapshot=await api.query('snapshot') as unknown as Snapshot};
   const list=async()=>{const result=await api.query('list',{path:directory,offset}) as unknown as {files:FileEntry[];total:number};files=result.files;total=result.total};
+  const loadChatFiles=async()=>{const page=await api.query('chatAttachments',{offset:chatFileOffset}) as unknown as {attachments:ChatFile[];total:number};chatFiles=page.attachments;chatFileTotal=page.total};
   const loadDrafts=async()=>{drafts=await api.query('drafts') as unknown as Draft[]};
   const loadDraft=async()=>{if(!selected)return;const result=await api.query('draft',{id:selected.id,offset:draftOffset}) as unknown as {text:string;total:number;sha256:string};if(result.sha256!==selected.sha256)throw Error('Draft changed');draftText=result.text;draftTotal=result.total};
   const readChunk=async(offset:number)=>{
@@ -96,7 +108,16 @@ export function workspacePage(importsEnabled=true){
   if(event){
    message='';try{
     const action=event.action;
-    if(action==='selectImport'){
+    if(action==='chatFiles'){chatReturnMode=mode;chatFileOffset=0;await loadChatFiles();mode='chatFiles'}
+    else if(action==='chatFilesPrev'||action==='chatFilesNext'||action==='chatFilesRefresh'){chatFileOffset=action==='chatFilesRefresh'?0:action==='chatFilesPrev'?Math.max(0,chatFileOffset-20):chatFileOffset+20;await loadChatFiles()}
+    else if(action==='chatFilesBack'){mode=chatReturnMode}
+    else if(action==='selectChatAttachment'){
+     await api.perform();
+     const chosen=await api.query('importSelection') as unknown as ImportSelection|null;
+     if(!chosen||chosen.source?.kind!=='chatAttachment')throw Error('Chat attachment selection failed');
+     importSelection=chosen;importPreview=null;importPicture=null;importPdf=null;importPath=(directory?directory+'/':'')+chosen.name;mode='import';
+    }
+    else if(action==='selectImport'){
      const chosen=await api.perform() as unknown as ImportSelection|null;
      // Cancellation keeps the previous selection; only the host can supply metadata.
      if(chosen){importSelection=chosen;importPreview=null;importPicture=null;importPdf=null;importPath=(directory?directory+'/':'')+chosen.name;mode='import'}
@@ -180,7 +201,7 @@ export function workspacePage(importsEnabled=true){
      prepare('writeDraft',{draftId:draft.draftId,path:draft.path,sha256:draft.sha256});phase='review';
     }else if(action==='confirm'&&mode==='preview'&&pending){
      snapshot=await api.perform() as unknown as Snapshot;const operation=pending.operation;pending=null;message=t[28];
-     if(operation==='importFile'){importSelection=null;importPreview=null;importPicture=null}
+     if(operation==='importFile'){importSelection=null;importPreview=null;importPicture=null;importPdf=null}
      if(['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importFile'].includes(operation)){treeRevision++;treeResult=null;treeEntries.clear()}
      mode=['write','writeDraft','makeDirectory','moveEntry','deleteEntry','importFile'].includes(operation)?'list':operation==='installDraft'?'drafts':'home';
      if(mode==='list')await list();if(mode==='drafts')await loadDrafts();
@@ -207,6 +228,7 @@ export function workspacePage(importsEnabled=true){
   const nodes:PageNode[]=[];const footer:Button[]=[];
   const text=(id:string,value:string,tone:'body'|'title'|'caption'='body'):PageNode=>({id,kind:'text',text:value,tone});
   const button=(id:string,label:string,action=id):Button=>({id,kind:'button',text:label,action});
+  const fromChat=():Button=>button('chatFiles',cf[0]);
   const selectImport=():Button=>({...button('selectImport',importSelection?im[5]:im[0]),hostAction:{kind:'workspace.perform',operation:'selectImport',arguments:{}}});
   if(message)nodes.push(text('message',Array.from(message).slice(0,1000).join('')));
   const current=snapshot.workspaces.find(w=>w.id===snapshot.workspaceId);
@@ -218,7 +240,7 @@ export function workspacePage(importsEnabled=true){
   if(mode==='home'){
    nodes.push(text('name',current?.name??t[20],'title'));
    nodes.push(button('create',t[1]),button('choose',t[2]));
-   if(current){nodes.push(button('directory',t[7]),...(importsEnabled?[selectImport()]:[]),button('shell',t[31]),text('shells',snapshot.shells.map(s=>s.name).join(' · ')),button('drafts',t[23]),button('prepareUnbind',t[6]));if(importSelection)nodes.push(button('showImport',im[2]))}
+   if(current){nodes.push(button('directory',t[7]),...(importsEnabled?[selectImport(),fromChat()]:[]),button('shell',t[31]),text('shells',snapshot.shells.map(s=>s.name).join(' · ')),button('drafts',t[23]),button('prepareUnbind',t[6]));if(importSelection)nodes.push(button('showImport',im[2]))}
   }else if(mode==='create'||mode==='shell'){
    nodes.push({id:'name',kind:'field',label:mode==='create'?t[3]:t[30],value:mode==='create'?'':`Shell ${snapshot.shells.length+1}`});
    footer.push(button('home',t[8]),button(mode==='create'?'prepareCreate':'prepareShell',t[4]));
@@ -229,10 +251,14 @@ export function workspacePage(importsEnabled=true){
    nodes.push(text('directory',directory||'/','title'));if(!files.length)nodes.push(text('empty',t[19]));
    files.forEach((entry,i)=>nodes.push({id:`entry_${i}`,kind:'card',children:[text(`file_name_${i}`,(entry.directory?'▸ ':'')+entry.name),text(`file_size_${i}`,entry.directory?t[7]:`${entry.bytes} B`,'caption'),button(`file_${i}`,t[24],'file'),
     button(`rename_${i}`,f[1],'renameEntry'),button(`delete_${i}`,f[2],'deleteEntry')]}));
-   footer.push(button('home',t[8]),...(importsEnabled?[selectImport()]:[]),button('new',t[10]),button('mkdir',f[0]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
+   footer.push(button('home',t[8]),...(importsEnabled?[selectImport(),fromChat()]:[]),button('new',t[10]),button('mkdir',f[0]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
+  }else if(mode==='chatFiles'){
+   nodes.push(text('chat_files_title',cf[1],'title'));if(!chatFiles.length)nodes.push(text('chat_files_empty',cf[2]));
+   chatFiles.forEach((entry,i)=>nodes.push({id:`chat_file_${i}`,kind:'card',children:[text(`chat_file_name_${i}`,entry.name),text(`chat_file_info_${i}`,`${entry.mimeType} · ${entry.bytes} B`,'caption'),text(`chat_file_source_${i}`,`${cf[4]} ${entry.messageNumber} · ${entry.messageId}`,'caption'),{...button(`chat_file_select_${i}`,cf[3],'selectChatAttachment'),hostAction:{kind:'workspace.perform',operation:'selectChatAttachment',arguments:{messageId:entry.messageId,attachmentId:entry.attachmentId,sha256:entry.sha256}}}]}));
+   footer.push(button('chatFilesBack',t[8]),button('chatFilesRefresh',t[9]));if(chatFileOffset>0)footer.push(button('chatFilesPrev',t[17]));if(chatFileOffset+20<chatFileTotal)footer.push(button('chatFilesNext',t[18]));
   }else if(mode==='import'&&importSelection){
    nodes.push(text('import_name',importSelection.name,'title'),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),
-    text('import_source',im[6],'caption'),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]),
+    text('import_source',importSelection.source?.kind==='chatAttachment'?`${cf[4]} · ${importSelection.source.messageId}`:im[6],'caption'),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]),
     {id:'importPath',kind:'field',label:im[1],value:importPath});
    if(importSelection.mimeType.startsWith('image/'))nodes.push(button('importPicture',pic[0]));
    else if(importSelection.mimeType==='application/pdf')nodes.push(button('importPdf',pdf[0]));
@@ -252,7 +278,7 @@ export function workspacePage(importsEnabled=true){
      if(importPreview.truncated)nodes.push(text('import_truncated',ip[1],'caption'));
     }else nodes.push(text('import_preview_unavailable',importPreview.kind==='OVERSIZED'?ip[3]:ip[2]));
    }
-   footer.push(selectImport(),{...button('dropImport',im[3]),hostAction:{kind:'workspace.perform',operation:'dropImport',arguments:{id:importSelection.id}}},button('prepareImport',im[2]));
+   footer.push(selectImport(),fromChat(),{...button('dropImport',im[3]),hostAction:{kind:'workspace.perform',operation:'dropImport',arguments:{id:importSelection.id}}},button('prepareImport',im[2]));
   }else if(mode==='mkdir'||mode==='rename'){
    nodes.push({id:'destination',kind:'field',label:f[3],value:managementPath});
    footer.push(button('backToList',t[8]),button(mode==='mkdir'?'prepareDirectory':'prepareMove',t[14]));

@@ -16,7 +16,7 @@ test('workspace package forwards approved parameters unchanged and keeps native 
     assert.equal(await sandbox.solvitPlugin.tools[tool](args, ctx), 'host-result');
     assert.equal(seen.at(-1)[0], operation); assert.equal(seen.at(-1)[1], args);
   }
-  assert.equal(pkg.manifest.apiVersion, 23);
+  assert.equal(pkg.manifest.apiVersion, 24);
 });
 
 test('authoring package only submits drafts and exposes no install or enable tool', async () => {

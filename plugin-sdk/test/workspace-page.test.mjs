@@ -9,6 +9,7 @@ function harness(bound=true,directories=null){
  const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
  let view,approved,created=0,writes=0,draft=null,document='old',importSelection=null,nextSelection=null,importConflict=false;
  const imports=[];
+ const savedFiles=Array.from({length:25},(_,i)=>({messageId:`message-${25-i}`,messageNumber:25-i,attachmentId:`attachment-${i}`,name:`saved-${i}.txt`,mimeType:'text/plain',bytes:2048,sha256:'f'.repeat(64)}));
  const snapshot={workspaceId:bound?'ws':null,workspaces:bound?[{id:'ws',name:'Project'}]:[],shells:bound?[{id:'s',name:'Shell 1'}]:[],draftInstallAllowed:false};
  const files=Array.from({length:45},(_,i)=>({name:`file-${i}.txt`,path:`file-${i}.txt`,directory:false,bytes:3}));
  const queries=[];
@@ -17,6 +18,7 @@ function harness(bound=true,directories=null){
   queries.push([op,clone(args)]);
   if(op==='snapshot')return clone(snapshot);
   if(op==='importSelection')return clone(importSelection);
+  if(op==='chatAttachments')return {attachments:clone(savedFiles.slice(args.offset,args.offset+20)),total:savedFiles.length};
   if(op==='importText'){
    assert.equal(args.id,importSelection.id);assert.equal(args.sha256,importSelection.sha256);
    return {kind:'TEXT',text:'<script>window.executed=true</script>\n代码🙂',truncated:true};
@@ -53,6 +55,12 @@ function harness(bound=true,directories=null){
   throw Error('unsupported');
  },perform:async()=>{
   assert.ok(approved);
+  if(approved.operation==='selectChatAttachment'){
+   const args=approved.arguments,entry=savedFiles.find(e=>e.messageId===args.messageId&&e.attachmentId===args.attachmentId);
+   assert.ok(entry);assert.equal(args.sha256,entry.sha256);
+   importSelection={id:'saved-choice',name:entry.name,mimeType:entry.mimeType,bytes:entry.bytes,sha256:entry.sha256,source:{kind:'chatAttachment',messageId:entry.messageId,attachmentId:entry.attachmentId}};
+   return clone(snapshot);
+  }
   if(approved.operation==='selectImport'){if(nextSelection)importSelection=clone(nextSelection);return clone(nextSelection)}
   if(approved.operation==='dropImport'){assert.equal(approved.arguments.id,importSelection.id);importSelection=null;return clone(snapshot)}
   if(approved.operation==='importFile'){
@@ -71,7 +79,7 @@ function harness(bound=true,directories=null){
  const nodes=()=>{const result=[];const visit=n=>{result.push(n);(n.children??[]).forEach(visit)};[...view.nodes,...view.footer??[]].forEach(visit);return result};
  const render=async(event=null)=>view=clone(await sandbox.solvitPlugin.pages.main({locale:'en',event},ctx));
  const event=async(id,fields={})=>{const node=nodes().find(n=>n.id===id);assert.ok(node,`missing ${id}`);assert.notEqual(node.enabled,false);approved=node.hostAction;return render({nodeId:id,action:node.action,fields:{...Object.fromEntries(nodes().filter(n=>n.kind==='field').map(n=>[n.id,n.value])),...fields}})};
- return {render,event,nodes,queries,entryActions,snapshot,imports,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
+ return {render,event,nodes,queries,entryActions,snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
 }
 test('file imports preserve metadata and require a separate reviewed create; conflicts stay renameable',async()=>{
  const h=harness();await h.render();
@@ -127,7 +135,7 @@ test('image preview remains separate from original import and preserves its dest
  assert.ok(!h.nodes().some(n=>n.id==='import_picture'));
 });
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
- assert.equal(pkg.manifest.apiVersion,23);assert.equal(pkg.manifest.version,'1.6.0');assert.ok(pkg.resources['ui/main.js']);
+ assert.equal(pkg.manifest.apiVersion,24);assert.equal(pkg.manifest.version,'1.7.0');assert.ok(pkg.resources['ui/main.js']);
  assert.ok(pkg.resources['ui/editor-NOTICE.txt'].includes('Permission is hereby granted'));
  const api17=await readFile('../market-server/packages/legacy/dev.solvit.workspace-1.3.0.solvit.json');
  assert.equal(createHash('sha256').update(api17).digest('hex'),'95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b');
@@ -209,4 +217,25 @@ test('tree pagination remains bounded and never creates an unbound workspace',as
  assert.equal(paths.length,45);assert.equal(new Set(paths).size,45);
  await h.event('directory');assert.ok(h.nodes().length<=256);
  const empty=harness(false);await empty.render();assert.equal(JSON.parse(empty.nodes().find(n=>n.id==='tree_meta').text).workspaceId,null);assert.equal(empty.created,0);
+});
+
+test('saved chat attachments paginate, show provenance and need a separate original import confirmation',async()=>{
+ const h=harness();await h.render();await h.event('chatFiles');
+ assert.equal(h.nodes().filter(n=>n.id.startsWith('chat_file_name_')).length,20);
+ await h.event('chatFilesNext');assert.equal(h.nodes().filter(n=>n.id.startsWith('chat_file_name_')).length,5);
+ await h.event('chatFilesPrev');await h.event('chat_file_select_0');
+ assert.deepEqual(h.approved.arguments,{messageId:'message-25',attachmentId:'attachment-0',sha256:'f'.repeat(64)});
+ assert.equal(h.imports.length,0);assert.ok(h.nodes().find(n=>n.id==='import_source').text.includes('message-25'));
+ await h.event('importPreview',{importPath:'kept.txt'});assert.equal(h.imports.length,0);
+ await h.event('prepareImport');await h.event('cancel');assert.equal(h.nodes().find(n=>n.id==='importPath').value,'kept.txt');
+ await h.event('chatFiles');await h.event('chatFilesBack');assert.equal(h.nodes().find(n=>n.id==='importPath').value,'kept.txt');
+ await h.event('prepareImport');await h.event('confirm');
+ assert.deepEqual(h.imports,[{id:'saved-choice',path:'kept.txt',sha256:'f'.repeat(64)}]);
+ for(const mimeType of ['image/png','application/pdf']){
+  const p=harness();p.savedFiles[0].mimeType=mimeType;await p.render();await p.event('chatFiles');await p.event('chat_file_select_0');
+  await p.event(mimeType==='application/pdf'?'importPdf':'importPicture');assert.equal(p.imports.length,0);
+  assert.ok(p.nodes().some(n=>n.id===(mimeType==='application/pdf'?'import_pdf_picture':'import_picture')));
+ }
+ const empty=harness();empty.savedFiles.splice(0);await empty.render();await empty.event('chatFiles');assert.ok(empty.nodes().some(n=>n.id==='chat_files_empty'));
+ const noWorkspace=harness(false);await noWorkspace.render();assert.ok(!noWorkspace.nodes().some(n=>n.id==='chatFiles'));
 });
