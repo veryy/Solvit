@@ -56,7 +56,7 @@ class RootfsArchive(private val maxBytes: Long = 512L * 1024 * 1024, private val
                             entry.isDirectory -> Files.createDirectories(path)
                             entry.isSymbolicLink -> {
                                 require(entry.linkName.isNotEmpty() && '\u0000' !in entry.linkName && '\\' !in entry.linkName)
-                                val target = Path.of(entry.linkName)
+                                val target = java.nio.file.Paths.get(entry.linkName)
                                 // Absolute links are guest paths; create them only AFTER all writes.
                                 if (!target.isAbsolute) require(path.parent.resolve(target).normalize().startsWith(root)) { "链接路径越界" }
                                 links.add(path to target)
@@ -93,7 +93,8 @@ class RootfsArchive(private val maxBytes: Long = 512L * 1024 * 1024, private val
             }
             context.ensureActive()
             check(Files.isRegularFile(root.resolve("usr/bin/bash"), NOFOLLOW_LINKS) &&
-                Files.isRegularFile(root.resolve("etc/os-release"), NOFOLLOW_LINKS)) { "归档缺少 Ubuntu 基础文件" }
+                (Files.isRegularFile(root.resolve("etc/os-release"), NOFOLLOW_LINKS) ||
+                Files.isRegularFile(root.resolve("usr/lib/os-release"), NOFOLLOW_LINKS))) { "归档缺少 Ubuntu 基础文件" }
             succeeded = true
         } finally {
             // Files.walk does not follow guest symlinks, including absolute links.

@@ -58,7 +58,7 @@ Checking getconf large file support flags work: OK
 ANSWERS
         ./configure --prefix="$abi_dir/prefix" --disable-rpath --disable-python --cross-compile --cross-answers=cross-answers.txt
         make -j2
-        "$AR" rcs "$abi_dir/libtalloc.a" bin/default/talloc*.o
+        "$AR" rcs "$abi_dir/libtalloc.a" bin/default/talloc*.o bin/default/lib/replace/replace.c*.o
     )
     make -C "$abi_dir/proot/src" -j2 CC="$CC" STRIP="$ndk/bin/llvm-strip" \
         OBJCOPY="$ndk/bin/llvm-objcopy" OBJDUMP="$ndk/bin/llvm-objdump" \

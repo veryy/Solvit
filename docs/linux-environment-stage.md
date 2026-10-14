@@ -42,3 +42,5 @@
 新增 linux-runtime 的 RootfsArchive：先流式 SHA256 检查，再仅写入全新私有 staging，限制压缩/展开容量与条目数、拒绝路径越界/重复项，延后创建 guest 符号链接，失败清理 staging 而保留现有安装。不复制宿主所有权/setuid，dev 设备节点由运行时绑定提供。新增4个边界单元用例，远程工作流负责运行，尚未验收。使用 Apache Commons Compress 1.28.0（Apache-2.0）和 XZ for Java 1.10（0BSD），只调用 API；发布前补齐随 APK 分发的通知。
 
 已下载静态核对官方 proot-distro v4.17.3 的 Ubuntu Noble x86_64 归档：27,629,072 字节，SHA256 1680d024bf47d2414a36759af528ca3569a73b70682daa3d9693ba63157cb5a8，5185 条目/105,463,427 展开文件字节，单一 ubuntu-noble-x86_64 前缀。该核对不等于安装或执行证明。
+
+第二轮38526158279进入 PRoot 链接，实际失败是静态 talloc 包含未链接的 rep_memset_explicit（其 libreplace 实现）。将同一已校验源码构建的 replace.c 对象纳入静态归档，不编写替代函数。另静态核对 Ubuntu 的 etc/os-release 是 guest 符号链接，安装完成检查接受 usr/lib/os-release 的真实文件，并使用 API26 已提供的 Paths.get，避免依赖较新 Path.of。
