@@ -15,6 +15,7 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 import java.io.File
+import java.io.ByteArrayInputStream
 
 /** Real QuickJS/HTML and JNI publication. Only a native progress checkpoint is paused so a
  * fast local copy still allows deterministic user cancellation; no fake files or outcomes. */
@@ -23,14 +24,15 @@ class WorkspaceImportProgressHtmlTest {
     @Test fun actualImportProgressCancelsRestoresOriginalAndRetriesThroughTheSamePage() {
         val app=rule.activity.application as SolvitApplication
         runBlocking { withTimeout(30_000){app.ready.filterNotNull().first().getOrThrow()} }
-        val chat="import-progress-${java.util.UUID.randomUUID()}"
+        val chat=runBlocking { app.chatStore.createSession().id }
         val workspace=runBlocking { app.workspaces.create("Import progress").also { app.workspaces.bind(chat,it.id) } }
         val shell=runBlocking { app.workspaces.createShell(workspace.id,"Import progress Shell") }
         val root=File(runBlocking { app.workspaces.location(workspace.id) })
         val original="original file before cancellation".toByteArray()
         File(root,"data.bin").writeBytes(original)
-        val bytes=ByteArray(300_000) { (it%251).toByte() }
-        val document=PageBinaryDocument("data.bin","application/octet-stream",bytes)
+        val bytes=ByteArray(200_000) { (65+it%26).toByte() }
+        val attachment=runBlocking { app.attachments.import(chat,"data.bin","text/plain",ByteArrayInputStream(bytes)) }
+        runBlocking { app.chatStore.append(ChatMessage("source-${java.util.UUID.randomUUID()}",chat,Role.USER,"file",attachments=listOf(attachment))) }
         val entered=CompletableDeferred<Unit>();val release=CompletableDeferred<Unit>()
         val service=object:WorkspaceService by app.workspaces {
             override suspend fun replaceImportedFile(workspaceId:String,path:String,bytes:ByteArray,sourceSha256:String,targetSha256:String):WorkspaceImportedFile {
@@ -41,8 +43,8 @@ class WorkspaceImportProgressHtmlTest {
                 }) { app.workspaces.replaceImportedFile(workspaceId,path,bytes,sourceSha256,targetSha256) }
             }
         }
-        val bridge=WorkspacePageBridge(service,null,chat)
-        runBlocking { bridge.stageImport(document) {} }
+        val bridge=WorkspacePageBridge(service,null,chat,
+            chatAttachments=SavedChatAttachmentSource(app.chatStore,app.attachments,chat){chat})
         val manager=BuiltinWorkspaceManager(app);val html=HtmlPageProbe(rule.activity)
         var visible by mutableStateOf(true)
         fun waitDom(code:String){rule.waitUntil(10_000){runCatching { html.js(code)=="true" }.getOrDefault(false)}}
@@ -52,11 +54,11 @@ class WorkspaceImportProgressHtmlTest {
             rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
                 if(visible)PluginPageScreen("工作区",{manager.openPage("zh",bridge)}){visible=false}
             } } }
-            waitDom("window.pluginPageReady===true&&!!document.querySelector('[data-node=showImport]')")
-            click("showImport");click("prepareImport");click("confirm");confirm()
+            waitDom("window.pluginPageReady===true&&!!document.querySelector('[data-node=chatFiles]')")
+            click("chatFiles");click("chat_file_select_0");confirm();click("prepareImport");click("confirm");confirm()
             rule.waitUntil(10_000){entered.isCompleted}
-            waitDom("(()=>{const p=document.getElementById('workspace-import-progress');return !!p&&p.value===65536&&p.max===300000&&p.getBoundingClientRect().height>0})()")
-            waitDom("document.querySelector('[data-node=transfer_bytes]')?.textContent==='65536 / 300000 B'")
+            waitDom("(()=>{const p=document.getElementById('workspace-import-progress');return !!p&&p.value===65536&&p.max===200000&&p.getBoundingClientRect().height>0})()")
+            waitDom("document.querySelector('[data-node=transfer_bytes]')?.textContent==='65536 / 200000 B'")
             html.screenshot("workspace-import-progress").recycle()
             click("cancelImport");confirm()
             waitDom("!!document.querySelector('[data-node=transfer_cancel_wait]')")
@@ -72,7 +74,7 @@ class WorkspaceImportProgressHtmlTest {
                 val job=app.workspaces.run(workspace.id,shell.id,"/system/bin/toybox sha256sum data.bin",10_000)
                 withTimeout(15_000){app.workspaces.jobs.first { jobs->jobs.any { it.id==job.id&&it.stage==ShellStage.COMPLETED } }.first { it.id==job.id }}
             }
-            assertEquals(0,result.exitCode);assertTrue(result.output.joinToString(""){it.text}.contains(document.sha256))
+            assertEquals(0,result.exitCode);assertTrue(result.output.joinToString(""){it.text}.contains(attachment.sha256))
             html.screenshot("workspace-import-progress-completed").recycle()
         }finally{release.complete(Unit);rule.runOnUiThread { visible=false };runBlocking { bridge.close() }}
     }
