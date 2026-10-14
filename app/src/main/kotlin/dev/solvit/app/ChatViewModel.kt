@@ -203,7 +203,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
         }
     }
     fun delete(id: String) {
-        if (busy.value || switching.value || branching.value) return
+        if (busy.value || switching.value || branching.value || importingAttachment.value) return
         viewModelScope.launch {
             try {
                 chat.deleteSession(id)

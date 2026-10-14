@@ -318,7 +318,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                 ChatTimeline(chatRows, selected, modifier=Modifier.weight(1f), assistantName=roleName,
                     retryableReplyId=messages.lastOrNull()?.id,
                     onRetry=if (!busy && !branching && !switching && vm.supportsReplyRetry) ({ reply -> if (reply.id == messages.lastOrNull()?.id) vm.retryReply(reply.id) }) else null,
-                    onBranch = if (busy || branching) null else { message, mode ->
+                    onBranch = if (busy || branching || importingAttachment) null else { message, mode ->
                         hideInput(); vm.branchError.value = null; branchTarget = message to mode
                     }, footer = if (workspaceId == null && !busy) ({
                         TextButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true }) { UiText("新建工作区") }
