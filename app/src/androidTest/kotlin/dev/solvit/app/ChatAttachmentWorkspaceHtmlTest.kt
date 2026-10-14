@@ -29,7 +29,7 @@ class ChatAttachmentWorkspaceHtmlTest {
             app.attachments.import(session.id,"saved.pdf","application/pdf",ByteArrayInputStream(bytes))
                 .copy(documentSelection=DocumentSelection(2,2))
         }
-        val message="saved-pdf-source"
+        val message="saved-pdf-source-${java.util.UUID.randomUUID()}"
         runBlocking { app.chatStore.append(ChatMessage(message,session.id,Role.USER,"private message body",attachments=listOf(attachment))) }
         val workspace=runBlocking { app.workspaces.create("Saved attachment fixture").also { app.workspaces.bind(session.id,it.id) } }
         val shell=runBlocking { app.workspaces.createShell(workspace.id,"Saved attachment Shell") }
@@ -126,6 +126,6 @@ class ChatAttachmentWorkspaceHtmlTest {
             assertEquals("untracked",status.entries.single { it.path=="saved.pdf" }.working)
             assertEquals("untracked",status.entries.single { it.path==backup.name }.working)
             assertArrayEquals(bytes,runBlocking { app.attachments.read(session.id,attachment) })
-        }finally{rule.runOnUiThread { visible=false }}
+        }finally{rule.runOnUiThread { visible=false };runBlocking { git.close() }}
     }
 }
