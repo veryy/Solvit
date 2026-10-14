@@ -31,8 +31,28 @@ sealed interface PageDocumentControl {
 data class PageTextDocument(val name: String, val text: String? = null, val files: Map<String, String>? = null)
 
 interface PageDocumentAccess {
+    /** User-selected binary file, bounded to 20MiB. The caller owns and closes the returned document. */
+    suspend fun selectFile(authorize: suspend () -> Unit): PageBinaryDocument? { error("此页面没有文件导入选择器") }
     /** A null result is an ordinary user cancellation. Recheck authorization before any I/O. */
     suspend fun open(control: PageDocumentControl.Open, authorize: suspend () -> Unit): PageTextDocument?
     /** Save only to a location selected by the user; no automatic overwrite or remembered grants. */
     suspend fun save(control: PageDocumentControl.Save, text: String, authorize: suspend () -> Unit): Boolean
+}
+
+/** A selected file owned by one human page. URI and host path never leave the picker. */
+class PageBinaryDocument(val name: String, val mimeType: String, bytes: ByteArray) : AutoCloseable {
+    private val content: ByteArray
+    val sizeBytes: Long = bytes.size.toLong()
+    val sha256: String
+    private var closed = false
+    init {
+        require(name.length in 1..256 && name.none(Char::isISOControl)) { "选择的文件名称无效" }
+        require(mimeType.matches(Regex("[a-z0-9][a-z0-9!#$&^_.+-]{0,63}/[a-z0-9][a-z0-9!#$&^_.+-]{0,63}"))) { "选择的文件类型无效" }
+        require(bytes.size <= MAX_WORKSPACE_IMPORT_BYTES) { "选择的文件超过20MiB导入限制" }
+        content=bytes.copyOf()
+        sha256=java.security.MessageDigest.getInstance("SHA-256").digest(content).joinToString("") { "%02x".format(it.toInt() and 255) }
+    }
+    @Synchronized fun readBytes(): ByteArray { check(!closed) { "选择的文件已失效，请重新选择" };return content.copyOf() }
+    @Synchronized override fun close() { closed=true;content.fill(0) }
+    override fun toString()="PageBinaryDocument(bytes=$sizeBytes, content=<redacted>)"
 }

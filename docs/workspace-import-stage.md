@@ -25,3 +25,9 @@ WorkspaceService增加独立importFile：来源字节上限20MiB，指定SHA256�
 改为独立workspace原生适配器，以同一打开目录fd调用renameat2(RENAME_NOREPLACE)，目标已存在返回EEXIST，旧文件不变；临时完整文件在发布前仍sync与SHA核对，发布后重新核对实际字节。目录O_DIRECTORY/NOFOLLOW与来源regular-file检查保留，ABI沿用ARM64/ARMv7/x86_64/x86，NDK28，不改变SDK或root权限。核对[Linux man-pages官方rename说明](https://www.man7.org/linux/man-pages/man2/renameat2.2.html)：此标记要求内核/文件系统支持，缺失时明确失败，不降级成可能覆盖的rename。没有复制外部实现代码。
 
 JVM边界用例显式注入create-only发布适配器，只验证宿主事务和授权，不把它当JNI通过。生产Android用例仍使用默认JNI，并追加最后授权检查时并发Shell创建同名文件，要求FileAlreadyExistsException且内容不变。原Shell摘要/完整二进制/撤权用例保留，等待远程再次执行。当前不发布工作区导入APK，0.33.1安装交接回归已通过，独立进入正式发布门禁。
+
+## 文件选择宿主候选
+
+UI候选分支保留历史merge了main的0.33.1安装收尾修复，版本准备0.34.0/build68；没有加入已启动的v0.33.1标签。PageDocumentAccess追加可选selectFile，旧文本/ZIP接口保持；宿主复用原OpenDocument选择器，同一页面只允许一个文件选择/保存等待，最多读取20MiB原始字节，不给JS URI或文件路径。PageBinaryDocument保存固定大小/SHA，防御复制，close清空并拒绝后续读取，诊断不输出名称/正文；不解码成UTF8、不把图片/PDF转成文本替代原文件。
+
+取消/关闭/授权失效后，未交接对象清空，延迟系统结果不转给新请求；同一Outstanding槽等旧选择器返回，避免旧URI污染下一次选择。追加2个核心用例核对二进制/摘要、输入与返回副本、日志和关闭失效、无效类型/名称/超容量。当前入口还未连到JS工作区页面，实际选择器、插件桥、预览/确认、进度取消及设备完整链继续实现；本候选仅静态diff检查，不提前宣称远程执行通过。
