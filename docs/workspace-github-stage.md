@@ -74,3 +74,10 @@ BoundWorkspaceGit、插件页面或AI工具，克隆与pull的工作区安装/�
 14项中4项HTTP场景失败，控制请求底层socket failed: EACCES。
 git-android独立目标APK清单没有INTERNET权限，主App的权限不会继承到独立模块测试。
 补模块清单权限后重跑原测试；不能将此轮网络未开始的失败当作Git协议已复现或通过。
+
+补权限源e601d1f的38492134732，API35全成功；API26实际HTTP已开始，认证/取消
+场景通过，两个需要checkout的场景失败：DirCacheCheckout.getContent:1504调用
+InputStream.transferTo，在Android26抛NoSuchMethodError。固定JGit另一checkout调用
+位于1568，同型PatchApplier:790也使用此方法。已有ASM兼容转换新增该签名到
+AndroidInputStreams.transferTo，读取短块/零字节、写错误及不关闭任一流增加回归。
+保持原始HTTP双仓库/冲突/非快进场景及两个API级别，修复结果待远程核对。

@@ -45,6 +45,8 @@ public abstract class AndroidJgitTransform implements TransformAction<TransformP
                                             replacement = "(Ljava/io/InputStream;[BII)I";
                                         else if (method.equals("readAllBytes") && desc.equals("()[B"))
                                             replacement = "(Ljava/io/InputStream;)[B";
+                                        else if (method.equals("transferTo") && desc.equals("(Ljava/io/OutputStream;)J"))
+                                            replacement = "(Ljava/io/InputStream;Ljava/io/OutputStream;)J";
                                     }
                                     if (replacement != null) {
                                         changed[0] = true;

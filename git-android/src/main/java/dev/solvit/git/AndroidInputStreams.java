@@ -3,6 +3,7 @@ package dev.solvit.git;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Objects;
 
 /** Java stream semantics implemented with APIs present on Android 26. Does not close the caller's stream. */
@@ -41,5 +42,22 @@ public final class AndroidInputStreams {
 
     public static byte[] readAllBytes(InputStream input) throws IOException {
         return readNBytes(input, Integer.MAX_VALUE);
+    }
+
+    public static long transferTo(InputStream input, OutputStream output) throws IOException {
+        Objects.requireNonNull(input); Objects.requireNonNull(output);
+        byte[] buffer = new byte[8192];
+        long total = 0;
+        while (true) {
+            int count = input.read(buffer, 0, buffer.length);
+            if (count < 0) return total;
+            if (count == 0) {
+                int value = input.read();
+                if (value < 0) return total;
+                output.write(value); total++;
+            } else {
+                output.write(buffer, 0, count); total += count;
+            }
+        }
     }
 }

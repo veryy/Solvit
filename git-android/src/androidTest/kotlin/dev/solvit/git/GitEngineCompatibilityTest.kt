@@ -9,6 +9,7 @@ import org.junit.runner.RunWith
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.io.OutputStream
 import java.io.IOException
 import java.io.File
 import java.util.UUID
@@ -16,6 +17,30 @@ import java.util.UUID
 /** Real Android storage and Git index/objects; no mocked repository or installed git executable. */
 @RunWith(AndroidJUnit4::class)
 class GitEngineCompatibilityTest {
+    @Test fun androidTransferPreservesShortAndZeroReadsAndErrorsWithoutClosingEitherStream() {
+        val bytes = ByteArray(17_000) { (it % 251).toByte() }
+        var inputClosed = false; var outputClosed = false
+        val input = object : ByteArrayInputStream(bytes) {
+            var reads = 0
+            override fun read(target: ByteArray, offset: Int, length: Int): Int =
+                if (++reads % 2 == 0) 0 else super.read(target, offset, minOf(length, 7))
+            override fun close() { inputClosed = true; super.close() }
+        }
+        val output = object : ByteArrayOutputStream() {
+            override fun close() { outputClosed = true; super.close() }
+        }
+        assertEquals(bytes.size.toLong(), AndroidInputStreams.transferTo(input, output))
+        assertArrayEquals(bytes, output.toByteArray())
+        assertFalse(inputClosed); assertFalse(outputClosed)
+        assertEquals(0L, AndroidInputStreams.transferTo(ByteArrayInputStream(byteArrayOf()), output))
+        val readError = object : InputStream() { override fun read(): Int = throw IOException("fixture read failure") }
+        try { AndroidInputStreams.transferTo(readError, output); fail("Read errors must propagate") }
+        catch (error: IOException) { assertEquals("fixture read failure", error.message) }
+        val writeError = object : OutputStream() { override fun write(value: Int) { throw IOException("fixture write failure") } }
+        try { AndroidInputStreams.transferTo(ByteArrayInputStream(bytes), writeError); fail("Write errors must propagate") }
+        catch (error: IOException) { assertEquals("fixture write failure", error.message) }
+    }
+
     @Test fun androidStreamReadsHonorBoundsShortReadsAndLeaveTheStreamOpen() {
         var closed = false
         val input = object : ByteArrayInputStream(byteArrayOf(1, 2, 3, 4, 5)) {
