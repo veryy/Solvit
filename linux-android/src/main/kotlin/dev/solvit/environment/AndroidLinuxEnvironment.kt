@@ -121,7 +121,7 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         }
         run(root, "apt-get -o Acquire::Retries=2 update && apt-get -o Acquire::Retries=2 install -y --no-install-recommends $packages")
     }
-    override suspend fun cancel() = mutex.withLock { operation?.cancelAndJoin() }
+    override suspend fun cancel() = mutex.withLock { operation?.cancelAndJoin(); Unit }
     private fun root() = checkNotNull(installer?.activeRoot()) { "请先在环境插件中完成 Ubuntu 安装" }
     override fun command(workspaceDirectory: String, command: String, cwd: String): HostProcessPlan =
         launcher.command(root(), File(workspaceDirectory), command, File(cwd)).let { HostProcessPlan(it.arguments, it.environment) }
