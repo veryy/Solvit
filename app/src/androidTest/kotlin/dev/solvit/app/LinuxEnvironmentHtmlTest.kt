@@ -43,6 +43,7 @@ class LinuxEnvironmentHtmlTest {
             html.screenshot("linux-plugin-before-install")
             html.tapElement("[data-node=install]")
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithText("下载和安装需要网络与手机存储空间。继续？").assertIsDisplayed()
             rule.onNodeWithText("取消").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isEmpty() }
             waitDom("!document.querySelector('[data-node=install]').disabled")

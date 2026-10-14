@@ -100,8 +100,13 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                 val directoryControl = workspace ?: git
                 if (directoryControl != null) {
                     Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(directoryControl.operation)
-                        SelectionContainer { Text(directoryControl.argumentsJson) }
+                        if (directoryControl.operation in setOf("installEnvironment", "cancelEnvironment", "installSoftware", "createLinuxShell")) {
+                            // Fixed host controls already constrain their inputs; show the page's localized explanation.
+                            Text(node["confirm"]?.jsonPrimitive?.content ?: node.getValue("text").jsonPrimitive.content)
+                        } else {
+                            Text(directoryControl.operation)
+                            SelectionContainer { Text(directoryControl.argumentsJson) }
+                        }
                     }
                 } else if (file != null) {
                     UiText(when(file) {
