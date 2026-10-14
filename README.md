@@ -1,83 +1,52 @@
 # Solvit
 
-轻量 Android AI 聊天 App，也是可组合 Agent 平台的第一步。Kotlin + Jetpack Compose + Material 3，Android 8.0+；Android 12+ 使用 Material You 动态配色，可选择跟随系统、浅色或深色主题。界面默认中文，可在设置中切换英文、日文、韩文、西班牙文和法文，立即生效并保存。
+把 AI 聊天、插件和项目工作区放进手机里。接上你自己的模型，聊一聊、查资料，也可以在同一个目录里看文件、改代码、开终端和查看 Git 修改。
 
-## 第一版功能
+AI chat, plugins, and a project workspace on your Android phone. Connect your own model to chat, search the web, browse and edit files, use a terminal, and review Git changes.
 
-- OpenAI 兼容 Chat Completions 与 Claude 原生 Messages：多组加密连接、按任务选择模型、流式文本/思考和工具回传。
-- SSE 流式回复，停止生成，网络与认证错误提示。
-- 本机多会话历史、新建与删除、文字选择复制；SQLite 持久化。
-- API Key 使用 Android Keystore AES-GCM 加密保存，禁用应用备份。
-- 简单插件生命周期、类型化服务注册、声明式依赖、失败回滚、Coroutine 资源回收。
-- 可替换 Provider、存储、Agent 与 ChatService；JS 插件工具发现、逐次或记住授权、执行进度、结果回传和有界连续调用。
+**中文** · [English](README.en.md) · [下载 APK](https://github.com/veryy/Solvit/releases/latest/download/solvit-debug.apk) · [版本说明](https://github.com/veryy/Solvit/releases/latest)
 
-## 开始使用
+## 先用起来
 
-[直接下载最新 APK](https://github.com/veryy/Solvit/releases/latest/download/solvit-debug.apk)，在 Android 手机上安装。版本说明见 [最新 Release](https://github.com/veryy/Solvit/releases/latest)。
+下载 APK 后，在「设置 → 模型配置」填写服务地址、API Key 和模型名。可以点「获取模型」拉取列表，也可以自己填名字。支持 OpenAI 兼容接口和 Claude 原生接口；需要你自己的模型服务和额度。
 
-完整版本列表：[所有 Releases](https://github.com/veryy/Solvit/releases)。当前发布的是 debug APK；真机安装与真实模型在 Android 上的完整交互尚未验证。
+Android 8.0 及以上可用。界面默认中文，也支持英文、日文、韩文、西班牙文和法文；有浅色、深色和跟随系统主题，Android 12 及以上支持动态配色。
 
-[0.29.1](https://github.com/veryy/Solvit/releases/tag/v0.29.1) 已正式发布：工作区提供同目录文件树、CodeMirror预览/编辑、Shell及真实本地Git Changes、暂存、提交和历史。Git插件业务页由HTML/JS绘制，AI可用经过授权的只读状态、差异及历史工具。修复HTTP请求取消时主线程关闭响应导致的崩溃，OpenAI/Anthropic流式与模型列表共用IO资源清理。范围见[版本说明](docs/release-0.29.1.md)。
+当前公开版是 [0.29.1](https://github.com/veryy/Solvit/releases/tag/v0.29.1)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
 
-当前版本build59/API19，保留角色默认、对话内授权、等待队列与打断、聊天外观、真实xterm.js/Android PTY、JS/TS Agent步骤策略、记忆图谱、多MCP和Skills。文件编辑上限256KiB UTF-8，保存检查外部修改；文件、终端和Git共用当前对话绑定目录。GitHub克隆/拉取/推送、加密凭据管理、冲突处理与AI Git写操作仍在开发。API1–18市场目录保持兼容。
+## 现在能做什么
 
-[正式Actions](https://github.com/veryy/Solvit/actions/runs/38488640678)五项任务全部成功，实际409单元、55模拟器均无失败/错误/跳过；Lint、固定签名、覆盖升级、110 SDK/2市场、公开搜索与线上MCP/Skills检查通过。[APK构建产物](https://github.com/veryy/Solvit/actions/runs/38488640678/artifacts/11860967509)需登录GitHub，也可[直接下载0.29.1 APK](https://github.com/veryy/Solvit/releases/download/v0.29.1/solvit-debug.apk)。
+- **聊天**：流式文字、折叠思考、Markdown、多会话历史、停止生成、等待队列和打断。工具调用放在对话里，点开看详情，授权也在对话里处理。
+- **角色和设置**：新对话继承当前角色，可绑定插件和 Skills；字体大小、文字显示速度、聊天样式、语言和主题都能调整。支持多组模型连接、模型列表获取、错误详情和加密配置备份。
+- **插件**：安装、启用、停用 JS/TS 插件。插件可以带自己的离线 HTML/JS 页面；权限、系统能力和资源清理由 Android 宿主管理。[开发说明](docs/plugins.md)
+- **联网搜索**：启用搜索插件即可使用默认公开搜索，也可以选配其他引擎。搜索和网页正文带来源链接；公网搜索仍可能受网络和人机验证影响。[使用说明](docs/web-search.md)
+- **记忆**：本地记录、检索、关系图谱、编辑和删除；可以开启自动检索和后台保存。真实模型的记忆质量仍需验证。[记忆说明](docs/memory.md)
+- **MCP 和 Skills**：多个具名 HTTPS MCP 连接、独立会话和加密凭据；导入 SKILL.md 及文本资源，让角色按需使用。[MCP](docs/mcp.md) · [Skills](docs/skills.md)
+- **工作区**：一个对话可绑定一个目录，多个 Shell 共用该目录。文件树、新建目录、重命名、删除、CodeMirror 文本/代码预览编辑，以及 xterm.js + Android PTY 交互终端。[工作区说明](docs/workspaces.md)
+- **本地 Git**：Changes、工作树和暂存区差异、暂存、提交、历史，与文件管理和终端使用同一目录。AI 已有授权后的只读 Git 工具。[Git 阶段记录](docs/workspace-git-stage.md)
+- **更新**：应用内查看版本说明、下载进度和安装入口。配置中的 API Key 使用 Android Keystore 加密保存。
 
-公开APK已下载并与Actions产物逐字节核对：26,032,689字节，SHA-256 `f6c7b3f5b82e609ce56fb7bb5c5f2370bb21093a740dc3038e97e7809c346cc3`。真实模型角色/流式/工具选择、自主项目任务和真机尚未验收；完整JS内核、Provider/存储替换、图片/PDF预览及超限编辑仍待实现或验收。见[真实模型验收](docs/real-model-acceptance.md)与[完整产品进度](docs/product-roadmap.md)。
+## 接下来先补齐日常功能
 
-后续阶段先对照实际源码再实施：已克隆 DSH、Operit、智谱 AutoGLM/ZCode/编码插件及 Claude Code 公开仓库，版本及恢复命令见 [源码参考](docs/upstream-reference.md)，产品方向见 [Agent 对照与实施顺序](docs/agent-direction.md)。
+当前还不能在聊天里上传图片和文件。下一阶段优先补齐这些基础体验，再继续扩展 Agent：
 
-**签名修正：**实际检查发现 0.1.1 与 0.6.0 发布 APK 的证书不同，之前恢复 CI 密钥却没有明确指定 AGP 签名路径，旧版“固定签名”的说明不准确。0.7.0 起明确使用固定密钥，CI 强制校验 SHA-256 证书指纹 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。旧版签名私钥未保存，无法生成能覆盖它的包；迁移前请记录旧 API 配置并导出需要的 Skills。以后同签名覆盖更新保留应用数据。
+1. 图片选择、聊天内缩略图和大图预览；把图片真正发送给支持视觉的模型。
+2. 文件选择、附件卡片、文本/代码内容读取及文档处理；支持发送前移除，显示不支持的格式和大小限制。
+3. 附件随消息保存，重开聊天仍可查看；发送失败、重试和排队时保留附件。
+4. 工作区文件导入与预览联动；完成 GitHub 克隆、拉取、推送、冲突处理和加密认证的整体验收。
+5. 用实际聊天和项目任务验证角色、流式、工具选择和结果，继续改善插件管理与记忆体验。
 
-“设置 → 配置备份与恢复”可使用密码加密导出全部模型/API Key、任务绑定、提示词、角色、语言和外观；在重装或换机后导入，密钥会重新加密到本机 Keystore。备份文件应保存在应用之外。聊天记录、插件包、插件密钥和记忆暂不包含；卸载会删除数据，无法恢复此前未备份的配置。应用仍禁用自动云备份。
+**屏幕操控暂缓。** 图片/PDF 预览、超限文件编辑、AI Git 写操作和真实模型自主项目任务尚未交付，不能把开发分支或测试通过当成公开版已支持。具体状态见[产品进度](docs/product-roadmap.md)。
 
-安装 debug APK 后，打开侧栏底部“设置 → 模型配置 → 模型与连接”，编辑默认配置或添加独立配置，再在任务模型中选择聊天与工具后续的连接：
+## 几个使用边界
 
-| 服务 | API 基础地址 | 模型示例 |
-| --- | --- | --- |
-| OpenAI | `https://api.openai.com/v1` | `gpt-4o-mini` |
-| DeepSeek | `https://api.deepseek.com/v1` | `deepseek-chat` |
-| 本机兼容服务 | `http://127.0.0.1:8080/v1` | 服务提供的模型名 |
+文件编辑目前最多 256KiB UTF-8，保存时检查外部修改。MCP 当前支持 HTTPS Streamable HTTP；OAuth、stdio 和完整资源/提示词能力尚未完成。JS 插件没有进程级隔离。
 
-不要在基础地址末尾填写 `/chat/completions`。HTTPS 远程服务可使用自定义路径；HTTP 仅允许 localhost、127.0.0.1、::1、模拟器宿主地址 10.0.2.2。无需认证的本地模型可以留空 API Key。模型名称和账户额度以实际服务为准。
+模型能否看图取决于所选模型及接口能力，图片上传会在功能实现后明确显示这一条件。聊天和相关上下文会发送到你配置的模型服务；API Key 不提供给业务插件。
 
-点击“获取模型”可从上述地址的 `/models` 拉取名称，搜索并选择后保存；供应商提供单独 JSON 订阅链接时，可填写“模型列表 / 订阅地址”。不提供列表接口的服务仍可手动填写模型名。支持格式、凭据规则及验证边界见 [获取模型列表](docs/model-discovery.md)。
+配置备份包含模型连接、API Key、角色、提示词、语言和外观等；不包含聊天、插件包、插件密钥和记忆。备份文件请保存在应用外。
 
-联网搜索见 [使用说明](docs/web-search.md)：独立 TS 插件默认访问公开 Bing，启用后无需配置；可选 Tavily、SearXNG 与智谱。搜索结果和浏览器/静态正文直接返回模型并包含来源链接。
-
-## 在聊天中使用插件工具
-
-安装插件后，在“已安装”页面启用并授予声明权限。默认角色可以使用全部已启用插件；自定义角色需在“设置 → 角色管理与 Skills”绑定相应插件。页面显示 AI 可发现的工具数量。配置的模型需支持 Chat Completions 工具调用，工具执行支持“允许这一次”或“允许且不再询问”；记住授权只适用于同一角色与工具代码和权限，可以在设置 → 权限与执行方式清除。
-
-时间插件 1.1.0 会在每轮聊天读取当前时间并加入模型上下文，因此模型不主动调用工具时也能回答时间。Solvit 0.7.0 提供 Android 真实时区；较旧 API 3 宿主回退到 JS UTC 时间。仅升级字节完全匹配原始离线包的时间插件，保留启用状态；修改过的插件不会被覆盖。禁用插件或角色未绑定时，不提供它的时间上下文。
-
-模型提出工具调用时，Solvit 显示工具描述和完整参数，点击“允许这一次”后执行。拒绝会回传拒绝结果；“停止生成”会取消等待和执行。工具状态与结果可以展开查看。默认整次回复最多 8 轮、16 次工具执行，每次执行有 60 秒上限，聊天工具的 JS 引擎期限为 30 秒；人工页面文件选择操作最多等待 3 分钟。
-
-成功回复的工具调用、结果和最终文本一起保存；失败或中断记录保留并从后续上下文排除。数据库升级保留已有聊天。尚未验证真实模型和真机上的完整调用体验。
-
-## 工作区、Shell 与 AI 插件开发
-
-当前源码已接入每个对话一个工作区、多 Shell 命令会话、工作区文本文件编辑，以及独立的 JS/TS 工作区与插件草稿工具。API13工作目录与交互PTY由插件HTML/JS绘制，普通有限命令历史保留原生兼容。使用方式见 [工作区与 Shell](docs/workspaces.md)。
-
-启用“插件开发”后，AI 可生成普通 JS 插件草稿，做清单及启动校验。你在“工作区 → 工作目录 → 插件草稿”查看代码和权限后安装，安装后保持停用，需单独启用。应用内尚无 TS 编译器，完整流程与边界见 [AI 插件开发](docs/plugin-authoring.md)。
-
-## 本地记忆与 TS 插件
-
-当前源码提供可离线安装的本地记忆插件：事实合并、用户画像、记忆关系、文本分块、关键词搜索和导出。1.1.0 启用后，每个模型步骤自动读取相关已保存记录；可在插件配置关闭自动检索。保存、修改、删除仍通过工具授权。旧版插件需在市场更新并重新启用。使用方式与限制见 [记忆插件](docs/memory.md)。Android 宿主集成测试已通过远程验证；[0.4.0 已发布 APK](https://github.com/veryy/Solvit/releases/tag/v0.4.0)。
-
-插件用 TS 编写后打包成 JS，开发接口与示例见 [TS SDK](plugin-sdk/README.md)。市场中的时间与记忆插件都可以独立更新。
-
-## MCP 连接
-
-当前 0.27.0 内置 TS MCP 插件和插件自绘 HTML 管理页。支持最多 8 个具名 HTTPS 连接、独立会话与启停、标准 HTTP mcpServers 配置导入及加密凭据。进入“插件 → 已安装 → MCP 连接”管理；启用 network 后，聊天可按服务器名称发现及调用工具，仍经过工具授权。管理界面由插件 HTML/JS 绘制。
-
-实际可测试的只读演示地址：`https://solvit.207.57.126.73.sslip.io/mcp-demo`，令牌留空，提供回显和服务器时间。协议支持与边界见 [MCP 插件说明](docs/mcp.md)。[0.5.1 APK 已发布](https://github.com/veryy/Solvit/releases/tag/v0.5.1)，[45 个 Android 测试、Lint、APK、TS、市场和实际 HTTPS MCP 验证通过](https://github.com/veryy/Solvit/actions/runs/38107628413)。角色绑定、OAuth、stdio 和完整服务接入继续实现。
-
-## Skills 与角色
-
-[0.6.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.6.0)，[完整远程验证与发布通过](https://github.com/veryy/Solvit/actions/runs/38109369009)。纯 TS Skills 技能库支持：SKILL.md、文本资源 ZIP 和 JSON 包导入，原生查看、删除、导出；每轮自动提供角色允许的元数据，正文及引用文件按需加载。使用入口是“设置 → 角色管理与 Skills”；先在插件页启用 Skills，再创建角色绑定插件和技能。详细格式、权限和当前边界见 [Skills 与角色](docs/skills.md)。
-
-角色提示词和插件绑定按对话保存，新对话继承当前角色。MCP、记忆和其他工具按插件绑定；模型工具支持逐次确认或记住当前角色与工具的授权。API 3 的 beforeModel Hook 只允许读插件存储和当前时间。
+当前发布的是 debug APK。[0.29.1 远程验证](https://github.com/veryy/Solvit/actions/runs/38488640678)通过了测试、Lint、APK、签名与覆盖升级等门禁；真实模型完整任务与真机体验尚未验收。构建证据和 APK 摘要见[版本记录](docs/release-0.29.1.md)。
 
 ## 构建
 
@@ -110,10 +79,5 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 
 后续完整产品目标与验证状态见 [产品进度](docs/product-roadmap.md)。更新检查是独立的 `release-updates` 内置插件。
 
-## 当前边界
 
-当前源码提供流式聊天、多会话、JS/TS 插件、[插件市场](https://solvit.207.57.126.73.sslip.io/)、有界工具循环、MCP/Skills、角色、模型列表获取、配置备份和应用内更新。测试、Lint 与 APK 构建已通过 GitHub Actions；版本发布由标签构建完成。插件开发方式见 [JS/TS 插件 API](docs/plugins.md)。
-
-当前源码 MCP 支持多个 HTTPS 服务器、工具发现、调用和按插件绑定角色；动态注册远程工具、每工具绑定、OAuth、stdio 及完整资源/提示词能力仍待实现。工作区与 Shell 已接入 Android 宿主和终端 UI，支持普通命令、真实 PTY 和同一进程的持久环境；Shizuku、Linux 发行版和 SSH/SFTP 仍待实现。Markdown 富文本和折叠思考已发布，聊天分支已接入；预算与持久历史摘要已有；手机控制、向量记忆、附件和后台 Agent 持续执行仍待实现，真实模型摘要质量未验收。JS 插件有独立引擎和宿主权限检查，目前没有进程级隔离。聊天记录在应用私有 SQLite 中，未做数据库加密。
-
-停止或失败后的助手回复保留并标记，但不进入后续模型上下文；用户输入仍保留。进程被系统杀死时，未结算的流式片段可能丢失，已写入的用户消息和完整回复保留。完整上下文发送给配置的模型服务，较长对话目前需要新建对话。
+更多设计和开发资料：[架构](docs/architecture.md) · [TS SDK](plugin-sdk/README.md) · [参考源码](docs/upstream-reference.md) · [完整路线](docs/product-roadmap.md)。
