@@ -7,12 +7,14 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.io.ByteArrayOutputStream
 import java.util.UUID
 import kotlin.test.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = Application::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ChatAttachmentValidationTest {
     private fun attachment(mime: String, bytes: ByteArray) = ChatAttachment(UUID.randomUUID().toString(), "fixture", mime,
         bytes.size.toLong(), "a".repeat(64))

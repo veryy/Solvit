@@ -77,3 +77,7 @@ SQLite存储与插件注册共用同一个AttachmentFiles实例。创建分支�
 新增ChatAttachmentsDeviceTest：实际OpenMultipleDocuments launch contract、取消后草稿不变、真实FileProvider图片/文本URI返回、Compose导入与预览、生产AttachmentFiles/SQLite/ChatService/ToolAgentRuntime/OpenAiProvider、真实MockWebServer HTTP请求、空文字发送、请求图片字节与选取PNG逐字节一致、文本正文包含中文/emoji、发送后查看文档、关闭SQLite重开保存引用与文件一致。选择器返回通过测试ActivityResultRegistry注入，未宣称系统DocumentsUI人工操作或真实模型视觉质量已验收。
 
 缩略图单独144像素采样，大图最多2048；选择器目标对话跨配置保留，application/octet-stream按已知文本扩展解析，其他二进制仍拒绝。队列的仅附件项显示文件名，编辑空文字仍可保存。新增Android测试依赖MockWebServer4.12.0（项目既有JVM测试版本），由Actions安装/运行，没有本地构建。当前代码和测试尚未远程通过，保留完整原Git/角色/插件/签名/覆盖安装门禁。
+
+## 图像测试环境失败修复
+
+f21af79的38504186035失败在ChatAttachmentValidationTest有效PNG，实际产物11867876290取回检查CRC/XML：失败为“图片内容与文件类型不匹配”，core62/chat-runtime60/provider-openai20/provider-anthropic16/storage-sqlite31全部无失败，App39项仅此项失败。核对Robolectric4.16.1实际ShadowBitmapFactory.java:183–206，legacy decodeByteArray没有给outMimeType赋值；不能把它作为Android原生解码器的MIME证据。测试改用GraphicsMode.NATIVE运行同一PNG/伪装MIME/坏图断言，生产校验不放宽。参考上游原生ShadowNativeBitmapFactory，未复制源码。远程验证仍待完成。
