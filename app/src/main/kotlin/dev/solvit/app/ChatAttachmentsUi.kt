@@ -82,7 +82,7 @@ internal fun ChatAttachmentCards(vm: ChatViewModel, session: String, attachments
                         }
                         Column(Modifier.weight(1f).padding(horizontal = 6.dp)) {
                             Text(attachment.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("${attachment.sizeBytes / 1024} KiB", style = MaterialTheme.typography.labelSmall)
+                            Text(if (attachment.sizeBytes < 1024) "${attachment.sizeBytes} B" else "${attachment.sizeBytes / 1024} KiB", style = MaterialTheme.typography.labelSmall)
                         }
                         if (removable) IconButton(onClick = { vm.removeDraftAttachment(session, attachment) }, modifier = Modifier.size(32.dp).testTag("attachment_remove_${attachment.id}")) {
                             UiIcon(Icons.Default.Close, "移除附件")
@@ -98,9 +98,9 @@ internal fun ChatAttachmentCards(vm: ChatViewModel, session: String, attachments
 @Composable
 internal fun ChatAttachmentPreview(vm: ChatViewModel, session: String, attachment: ChatAttachment, onDismiss: () -> Unit) {
     FullScreenPage(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Column(Modifier.fillMaxSize().statusBarsPadding().padding(16.dp)) {
             Row(Modifier.fillMaxWidth()) {
-                Text(attachment.name, modifier = Modifier.weight(1f))
+                Text(attachment.name, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
                 TextButton(onClick = onDismiss, modifier = Modifier.testTag("attachment_preview_close")) { UiText("关闭") }
             }
             if (attachment.mimeType.startsWith("image/")) AttachmentImage(vm, session, attachment, Modifier.fillMaxSize())
