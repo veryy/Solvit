@@ -1,6 +1,6 @@
 # GitHub 工作区阶段：后续实施与验收
 
-本文件记录下一阶段依据和完整验收范围，不表示功能已实现。当前0.29候选交付本地Git、同目录文件/终端与AI只读工具；远程GitHub、AI暂存/提交继续实现。完整方向保留在[产品路线](product-roadmap.md)。
+本文件记录下一阶段依据和完整验收范围，不表示功能已实现。0.29.1已正式交付本地Git、同目录文件/终端与AI只读工具；远程GitHub、AI暂存/提交继续实现。完整方向保留在[产品路线](product-roadmap.md)。
 
 ## 已阅读的实际参考
 
@@ -53,3 +53,19 @@ TransportHttp.java和HttpConfig.java；沿用已有依赖，不复制上游实�
 各10项、零失败/错误/跳过，两项GitCredentialVaultTest与两项RepositoryCredentialsTest
 均执行通过。真实Android Keystore写入/重开/移除、密文跨仓库AAD拒绝已验证。
 仍未接通HTTP克隆/拉取/推送或插件页面；不以凭据测试当作远程Git完成。
+
+## 实际HTTP传输检查点
+
+新增RepositoryRemoteTransport的fetch/push原语、IO拥有的HTTPS连接工厂与隔离配置。
+只用批准仓库的smart HTTPS路径，证书与主机名校验保持开启，重定向关闭，
+不继承仓库/全局认证头、Cookie文件、URL改写或credential helper。读写总量各限制128MiB。
+推送只采用宿主提供的本地HEAD和远端审阅HEAD，非force，返回实际远程引用状态。
+循环复核授权，取消立即断开本次连接，关闭传输和凭据；交付前取消也清理凭据。
+
+已再次阅读固定JGit HttpConnection.java、Transport.java、RemoteRefUpdate.java、
+FileRepository.java、HttpAuthMethod.java与实际PushCommandTest/PullCommandTest。
+Android实现依赖已包内JGit，自行实现HttpConnection适配，不复制上游代码。
+CI夹具运行真正git http-backend，临时TLS证书仅用于原生测试；插件无跳过TLS设置。
+原生测试覆盖HTTP下载/提交/重新读取/非快进拒绝、双仓库冲突与双父提交、认证/重定向失败、
+实际TLS等待期间取消及工作区文件保留。尚未运行，结果待核对；当前原语尚未接到
+BoundWorkspaceGit、插件页面或AI工具，克隆与pull的工作区安装/审阅流程继续实现。

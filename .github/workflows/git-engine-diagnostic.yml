@@ -2,7 +2,7 @@ name: Android Git engine compatibility
 on:
   push:
     branches: [feat/workspace-git, feat/workspace-github]
-    paths: ['core/**', 'git-android/**', 'buildSrc/**', 'settings.gradle.kts', '.github/workflows/git-engine-diagnostic.yml']
+    paths: ['core/**', 'git-android/**', 'buildSrc/**', 'settings.gradle.kts', 'scripts/git-http-fixture.py', '.github/workflows/git-engine-diagnostic.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -28,6 +28,18 @@ jobs:
           packages: platform-tools
           log-accepted-android-sdk-licenses: false
       - uses: gradle/actions/setup-gradle@v4
+      - name: Prepare actual TLS Git backend fixture
+        run: |
+          mkdir -p "$RUNNER_TEMP/solvit-git-http" git-android/src/androidTest/assets
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=localhost' -addext 'subjectAltName=DNS:localhost' -keyout "$RUNNER_TEMP/solvit-git-http/key.pem" -out "$RUNNER_TEMP/solvit-git-http/cert.pem" 2>/dev/null
+          chmod 600 "$RUNNER_TEMP/solvit-git-http/key.pem"
+          cp "$RUNNER_TEMP/solvit-git-http/cert.pem" git-android/src/androidTest/assets/git-fixture.crt
+          nohup python3 scripts/git-http-fixture.py --root "$RUNNER_TEMP/solvit-git-http/repositories" --cert "$RUNNER_TEMP/solvit-git-http/cert.pem" --key "$RUNNER_TEMP/solvit-git-http/key.pem" > "$RUNNER_TEMP/solvit-git-http/server.log" 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --cacert "$RUNNER_TEMP/solvit-git-http/cert.pem" https://localhost:19443/health; then exit 0; fi
+            sleep 1
+          done
+          exit 1
       - name: Prepare actual Android Git test APKs
         run: |
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
@@ -43,7 +55,7 @@ jobs:
           arch: x86_64
           profile: pixel_2
           disable-animations: true
-          script: ./gradlew :git-android:connectedDebugAndroidTest --stacktrace
+          script: adb reverse tcp:19443 tcp:19443 && ./gradlew :git-android:connectedDebugAndroidTest --stacktrace
       - uses: actions/upload-artifact@v4
         if: always()
         with:
