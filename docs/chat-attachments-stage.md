@@ -95,3 +95,9 @@ b3ea270的38505362217 build任务成功。取回11867923488（335276字节）检
 b3ea270的38505362217页面任务115663801353结束失败。产物11868191477（4184126字节）取回CRC正确，实际XML为App46项/4失败、Web1项通过、PTY10项通过，共57项/4失败，无跳过。附件失败在发送后等待HTTP回复；旧终端用例等待实际命令输出；Git安全表单等待HTML控件；旧只读Git工具测试仅给workspace/git权限，而新包还声明network，安装启用直接拒绝。未延长超时或删除断言。
 
 6664bf6修复旧Git启用测试所需network权限，仍验证工具实际只读capabilities；其他三项仅加入有界测试夹具状态（错误/HTTP次数/消息状态，公共DOM控件ID及disabled，作业退出状态）用于判断实际失败原因。该提交完整Android38507784923的build已成功，页面仍待结果，不能宣称通过。
+
+## 6664bf6诊断结果与下一次验证
+
+38507784923的57项实际页面用例3项失败：附件busy=false，认证失败，MockWebServer请求次数0，用户已保存/助手FAILED；GitHTML确认控件不出现，但公共控件状态显示仍在remote页，git_error存在；Git只读授权断言预期workspace/git，实际manifest声明workspace/git/network。终端此轮原检查通过，不因此删除原终端用例。
+
+Git测试在异步点击git_remote后立刻设置尚未生成的输入框，evaluateJavascript并不会把该JS失败当作Kotlin异常。c8d198b先等待字段生成/启用再填写；授权断言核对实际完整manifest权限。附件测试增加发送前本地配置核对、NO_PROXY及仅接受固定本地host/port的拦截器，防止验收请求意外访问外部模型。尚未证明认证错误的具体来源，不把测试约束当生产模型修复。c479e97增加独立chat-attachments/git-credentials复现入口，修正git-workbench现在3项的检查数量。完整38509835363与单独38509856329正在远程运行，等待真实报告。
