@@ -1,6 +1,6 @@
-# Solvit 0.29.1：Git 工作区与网络取消修复（候选）
+# Solvit 0.29.1：Git 工作区与网络取消修复
 
-版本build59，API19。共享HTTP处理明确持有响应资源，读取、关闭、取消在IO线程，覆盖恢复前取消与迟到响应；插件市场、OpenAI聊天/模型列表和既有Anthropic共用处理。三项实际远程回归已核对通过，完整构建及原模拟器场景正在验证；当前尚未发布。见[故障和红绿证据](http-response-cleanup-stage.md)。
+版本build59，API19。共享HTTP处理明确持有响应资源，读取、关闭、取消在IO线程，覆盖恢复前取消与迟到响应；插件市场、OpenAI聊天/模型列表和既有Anthropic共用处理。三项实际远程回归及完整候选已核对通过：409单元、55模拟器均无失败/错误/跳过，原Git场景、Lint、签名和覆盖升级通过。110 SDK/2市场与线上MCP/Skills检查通过。正式发布以本次标签Actions及Release结果为准。见[故障和红绿证据](http-response-cleanup-stage.md)。
 
 工作区增加 Git 入口，业务页面由插件自带 HTML/JS 绘制。文件树、CodeMirror 预览与编辑、Shell 和 Git 操作使用当前对话绑定的同一个目录。
 
