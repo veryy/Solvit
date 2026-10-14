@@ -1,6 +1,6 @@
 # 无需 root 的 Linux 工作环境
 
-2026-10-14 用户新增要求：在手机上安装 Python、Node.js 等开发工具，在没有 root 的情况下让 AI 与工作区终端执行脚本。现有 Android PTY 只运行系统 shell，没有 Linux 发行版，也不提供 Node/Python；不能把终端界面当作该需求已经完成。当前状态：底层和生产 Ubuntu/Python/Node18/Java17、工作区命令与 PTY 已在 API35 Android 实测通过；产品 JS/HTML 页面与工作区已接入候选，Node24 升级及完整应用发布门禁仍在验证，尚未公开 Linux 环境版 APK。
+2026-10-14 用户新增要求：在手机上安装 Python、Node.js 等开发工具，在没有 root 的情况下让 AI 与工作区终端执行脚本。现有 Android PTY 只运行系统 shell，没有 Linux 发行版，也不提供 Node/Python；不能把终端界面当作该需求已经完成。当前状态：已在 0.31.1 正式发布。生产 Ubuntu、Python3.12.3、Node24.21.0/npm11.19.0、Java17、工作区命令与 PTY 在 API35 Android 模拟器实测通过；JS/HTML 插件页面、固定签名及覆盖升级门禁通过。[发布与下载](release-0.31.1.md)。ARM64 真机、真实模型完整开发任务和本地 stdio MCP 仍未验收。下文按时间保留研究和失败修复记录，其中候选状态不代表最新发布状态。
 
 ## 实际 upstream 链路
 
