@@ -171,3 +171,10 @@ README增加中英文简介和英文页面，GitHub仓库简介同步；未完�
 ## 2026-10-14 新增：Linux 环境与开发工具
 
 已在 [0.31.1](release-0.31.1.md) 发布：按 Operit 的 PRoot + Ubuntu 用户空间思路，提供无需 root 的环境安装、Python/venv、Node24/npm、可追加 Java17、插件 HTML 管理页面、进度与错误，以及同一个工作区的 AI 命令和交互终端。生产安装与运行、页面触摸、固定签名和覆盖升级已通过远程 Android 模拟器门禁。ARM64 真机、真实模型完整开发任务和本地 stdio MCP 接入仍待完成；屏幕操控继续暂缓。[研究与交付条件](linux-environment-stage.md)。
+
+
+## 0.36.2：已保存附件与目录联动
+
+[正式38643634909](https://github.com/veryy/Solvit/actions/runs/38643634909)的构建、插件、搜索、Linux、完整页面与发布门禁全部成功。当前聊天已保存附件可在工作区JS/HTML页选择、查看来源、预览后导入完整原文件，Git和Shell共用；修复子目录/分页footer超限与动态网页空正文，并修复设备测试的线程/窗口同步。此前0.36.0与0.36.1没有发布APK，不覆盖旧标签。
+
+下一项继续带文件版本确认的覆盖、导入进度/取消、异常暂存回收与配额；Git克隆中断恢复、真实GitHub账号读写、真实模型角色/流式/工具完整任务、真机和本地stdio MCP仍待验收。Linux/Python/Node/Java无需root的环境已交付，但不是额外Android权限或独立内核。屏幕操控继续暂缓。[完整阶段与证据](release-0.36.2.md)。

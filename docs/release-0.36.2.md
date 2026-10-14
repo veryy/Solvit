@@ -38,3 +38,18 @@ Linux正式0.36.1同源运行实际执行Python3.12.3、Node24.21.0/npm11.19.0�
 正式build116125032359成功；11930759518（375784字节）完整ZIP CRC/XML为499单元、零失败/错误/跳过；Lint/APK与固定签名f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3实际日志通过。正式插件121 SDK/5市场及公开搜索/MCP/Skills通过；Linux116125032758成功，详细版本日志继续核对。页面116127699807仍运行，正式release未执行。
 
 正式Linux完整日志确认原3个Android用例及严格版本门禁，生产Python3.12.3、Node24.21.0/npm11.19.0与Java17成功。完整探针归档未下载，不声称其CRC。APK11930509799已完整下载并核对外层/内层ZIP CRC，内部58122130字节、SHA256 86316d09921953023aa5a75c4941fa96843c6db4e5cb5a78818a6b8eef949031。设备页面与公开下载比较仍待完成。
+
+
+## 正式发布与实际下载核对
+
+0.36.2已公开：[下载APK](https://github.com/veryy/Solvit/releases/download/v0.36.2/solvit-debug.apk) · [Release](https://github.com/veryy/Solvit/releases/tag/v0.36.2) · [成功Actions38643634909](https://github.com/veryy/Solvit/actions/runs/38643634909) · [Linux源码与许可](https://github.com/veryy/Solvit/releases/download/v0.36.2/solvit-linux-sources.zip)。不可变标签固定fd66fc14dc2209c5260e78a0ef6e75689b86aa08，应用0.36.2/build72/API24；build/plugins/search/Linux/verify-ui/release六项全部成功。正式unit11930759518与UI11932102571（5658158字节）均完整下载核对ZIP CRC/XML：499单元、78设备，零失败/错误/跳过。
+
+真实保存附件PDF→HTML第二页及蓝色像素→完整原文件→Git untracked→Shell摘要/退出码→原附件保留通过；原大文件输入/保存/冲突/目录任务通过，聊天权限/队列/角色与外观通过，英语/日语切换与Activity重建通过，原及延迟/永久空正文WebView三项通过。固定签名和原0.7.0覆盖升级保留加密配置/对话用例通过。实际查看下列正式PDF原页与目录操作栏截图，内容、分页与确认、目录与底部导航正常。
+
+![正式聊天附件PDF预览](screenshots/0.36.2/chat-attachment-workspace-pdf-formal.png)
+
+![正式目录与操作栏](screenshots/0.36.2/workspace-directory-formal.png)
+
+公开APK与源码已实际下载，与正式artifact11930509799/11930783822内部文件逐字节相同，外层/内层及公开ZIP CRC通过。APK58122130字节、SHA256 86316d09921953023aa5a75c4941fa96843c6db4e5cb5a78818a6b8eef949031；源码1072569字节、SHA256 f1fe3412825eedd538bf4d75d653f1ca143c651c9518969771b6fc7f1362a633。固定证书及正式121 SDK/5市场、搜索/MCP/Skills、生产Linux版本证据见上节。完整Linux探针归档未下载，不声称其CRC。GitHub简介已补中英文Linux/插件工作区说明，首页链接到Release，中英文README更新当前版本与附件入口。
+
+此节为当前正式状态，保留前面候选记录。已完成保存附件导入工作区阶段；继续带版本覆盖、导入进度取消/暂存回收与配额。ARM64真机、真实模型完整任务、真实GitHub账号插件写入和本地stdio MCP仍待验收；屏幕操控继续暂缓。
