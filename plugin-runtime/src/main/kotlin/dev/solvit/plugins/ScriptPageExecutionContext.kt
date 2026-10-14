@@ -46,6 +46,9 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     }
     suspend fun queryWorkspace(operation: String, args: JsonObject, apiVersion: Int = 12, filesDeclared: Boolean = false): String {
         ensureAuthorized()
+        if (operation == "chatAttachments") check(apiVersion >= 24 && filesDeclared) {
+            "聊天附件来源需要 API24 及 workspace.files 服务声明"
+        }
         if (operation == "importPdf") check(apiVersion >= 23 && filesDeclared) {
             "PDF文件预览需要 API23 及 workspace.files 服务声明"
         }
@@ -59,6 +62,9 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     suspend fun performWorkspace(apiVersion: Int, linuxDeclared: Boolean = false, filesDeclared: Boolean = false): String {
         ensureAuthorized()
         val control = ScriptPageHostAction.workspace(checkNotNull(approvedAction))
+        if (control.operation == "selectChatAttachment") check(apiVersion >= 24 && filesDeclared) {
+            "聊天附件选择需要 API24 及 workspace.files 服务声明"
+        }
         check(control.operation !in setOf("installEnvironment", "cancelEnvironment", "installSoftware", "createLinuxShell") ||
             apiVersion >= 21 && linuxDeclared) { "Linux 环境操作需要 API21 及 environment.linux 服务声明" }
         if (control.operation in setOf("selectImport", "importFile", "dropImport")) requireImportAccess(apiVersion, filesDeclared)

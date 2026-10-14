@@ -66,6 +66,13 @@ object ScriptPageHostAction {
             }
             "dropImport" -> { text("id",128);setOf("id") }
             "selectImport" -> emptySet()
+            "selectChatAttachment" -> {
+                text("messageId",4096)
+                val id=text("attachmentId",36)
+                require(runCatching { java.util.UUID.fromString(id).toString()==id }.getOrDefault(false))
+                require(text("sha256",64).matches(Regex("[a-f0-9]{64}")))
+                setOf("messageId","attachmentId","sha256")
+            }
             "makeDirectory", "deleteEntry" -> { text("path",1024);setOf("path") }
             "moveEntry" -> { text("path",1024);text("destination",1024);setOf("path","destination") }
             "unbind" -> emptySet()

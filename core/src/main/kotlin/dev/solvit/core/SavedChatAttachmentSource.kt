@@ -25,6 +25,35 @@ class SavedChatAttachmentSource(
         return checkNotNull(message.attachments.singleOrNull { it.id == attachmentId }) { "附件来源已改变或删除" }
     }
 
+    data class Entry(val messageId: String, val messageNumber: Int, val attachment: ChatAttachment)
+    data class Page(val entries: List<Entry>, val offset: Int, val total: Int)
+
+    /** Metadata only, latest messages first. No message body, blob bytes or other conversation. */
+    suspend fun list(offset: Int, authorize: suspend () -> Unit): Page {
+        require(offset >= 0)
+        verify(authorize)
+        val history = chats.history(sessionId)
+        fun entries() = history.asSequence().withIndex().filter { (_, message) ->
+            message.sessionId == sessionId && message.role == Role.USER
+        }.flatMap { (index, message) -> message.attachments.asSequence().map { Entry(message.id, index + 1, it) } }
+        val total = entries().count()
+        require(offset <= total) { "附件列表已改变，请刷新" }
+        // Scan in reverse message order without materialising every attachment reference.
+        val selected = history.asReversed().asSequence().withIndex().filter { (_, message) ->
+            message.sessionId == sessionId && message.role == Role.USER
+        }.flatMap { (index, message) -> message.attachments.asSequence().map { Entry(message.id, history.size - index, it) } }
+            .drop(offset).take(20).toList()
+        verify(authorize)
+        return Page(selected, offset, total)
+    }
+
+    suspend fun validate(messageId: String, attachmentId: String, expectedSha256: String,
+        authorize: suspend () -> Unit) {
+        verify(authorize)
+        check(reference(messageId, attachmentId).sha256 == expectedSha256) { "附件来源或内容版本已改变" }
+        verify(authorize)
+    }
+
     /** Caller owns the result. PDF selection/OCR text never replaces the complete original file. */
     suspend fun open(messageId: String, attachmentId: String, expectedSha256: String,
         authorize: suspend () -> Unit): PageBinaryDocument {

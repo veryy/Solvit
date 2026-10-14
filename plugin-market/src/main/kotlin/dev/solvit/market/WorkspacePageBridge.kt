@@ -13,6 +13,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     private val linux: LinuxEnvironmentService? = null,
     private val pictureRenderer: PageFilePictureRenderer? = null,
     private val pdfRenderer: PagePdfPreviewRenderer? = null,
+    private val chatAttachments: SavedChatAttachmentSource? = null,
     private val activeChat: () -> String? = { chatId }) : PageWorkspaceAccess {
     init { require(chatId.isNotBlank() && chatId.length <= 128) }
     private val mutex = Mutex()
@@ -22,8 +23,13 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         val text:StringBuilder=StringBuilder(),var bytes:Int=0,var sha256:String?=null)
     private var textDraft:TextDraft?=null
     private var importDraft:Pair<String,PageBinaryDocument>?=null
+    private data class AttachmentOrigin(val messageId:String,val attachmentId:String,val sha256:String)
+    private var importOrigin:AttachmentOrigin?=null
     private fun importMetadata():JsonElement = importDraft?.let { (id,document) -> buildJsonObject {
         put("id",id);put("name",document.name);put("mimeType",document.mimeType);put("bytes",document.sizeBytes);put("sha256",document.sha256)
+        importOrigin?.let { origin -> put("source",buildJsonObject {
+            put("kind","chatAttachment");put("messageId",origin.messageId);put("attachmentId",origin.attachmentId)
+        }) }
     } } ?: JsonNull
     override suspend fun stageImport(document:PageBinaryDocument,authorize:suspend ()->Unit):String {
         var adopted=false
@@ -31,7 +37,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
             return mutex.withLock {
                 verify(authorize);workspace()
                 val next=java.util.UUID.randomUUID().toString() to document
-                importDraft?.second?.close();importDraft=next;adopted=true
+                importDraft?.second?.close();importDraft=next;importOrigin=null;adopted=true
                 importMetadata().toString()
             }
         } finally { if(!adopted) document.close() }
@@ -72,6 +78,20 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                 }
                 "snapshot" -> { require(args.isEmpty()); snapshot() }
                 "importSelection" -> { require(args.isEmpty());importMetadata() }
+                "chatAttachments" -> {
+                    workspace();require(args.keys==setOf("offset"))
+                    val offset=args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int
+                    val page=checkNotNull(chatAttachments) { "聊天附件来源服务不可用" }.list(offset) { verify(authorize) }
+                    buildJsonObject {
+                        put("offset",page.offset);put("total",page.total)
+                        put("attachments",buildJsonArray { page.entries.forEach { entry -> add(buildJsonObject {
+                            put("messageId",entry.messageId);put("messageNumber",entry.messageNumber)
+                            put("attachmentId",entry.attachment.id);put("name",entry.attachment.name)
+                            put("mimeType",entry.attachment.mimeType);put("bytes",entry.attachment.sizeBytes)
+                            put("sha256",entry.attachment.sha256)
+                        }) } })
+                    }
+                }
                 "importText" -> {
                     require(args.keys == setOf("id", "sha256"))
                     val selected = checkNotNull(importDraft) { "请先选择要导入的文件" }
@@ -222,19 +242,33 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         var nextBinding = binding
         scoped(authorize, { created }) {
             when (control.operation) {
+                "selectChatAttachment" -> {
+                    workspace()
+                    val origin=AttachmentOrigin(text("messageId"),text("attachmentId"),text("sha256"))
+                    val document=checkNotNull(chatAttachments) { "聊天附件来源服务不可用" }
+                        .open(origin.messageId,origin.attachmentId,origin.sha256) { verify(authorize) }
+                    var adopted=false
+                    try {
+                        verify(authorize)
+                        val next=java.util.UUID.randomUUID().toString() to document
+                        importDraft?.second?.close();importDraft=next;importOrigin=origin;adopted=true
+                    } finally { if(!adopted)document.close() }
+                }
                 "importFile" -> {
                     val selected=checkNotNull(importDraft) { "请先选择要导入的文件" }
                     check(selected.first==text("id") && selected.second.sha256==text("sha256")) { "选择的文件已改变，请重新确认" }
+                    importOrigin?.let { origin -> checkNotNull(chatAttachments).validate(
+                        origin.messageId,origin.attachmentId,origin.sha256) { verify(authorize) } }
                     val bytes=selected.second.readBytes()
                     try { service.importFile(workspace(),text("path"),bytes,selected.second.sha256) }
                     finally { bytes.fill(0) }
                     verify(authorize)
-                    selected.second.close();importDraft=null
+                    selected.second.close();importDraft=null;importOrigin=null
                 }
                 "dropImport" -> {
                     val selected=checkNotNull(importDraft) { "选择的文件已失效" }
                     check(selected.first==text("id")) { "选择的文件已改变" }
-                    selected.second.close();importDraft=null
+                    selected.second.close();importDraft=null;importOrigin=null
                 }
 
                 "create" -> {
@@ -272,5 +306,5 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         verify(authorize)
         snapshot().toString()
     }
-    override suspend fun close() = mutex.withLock { closed=true;textDraft=null;importDraft?.second?.close();importDraft=null }
+    override suspend fun close() = mutex.withLock { closed=true;textDraft=null;importDraft?.second?.close();importDraft=null;importOrigin=null }
 }

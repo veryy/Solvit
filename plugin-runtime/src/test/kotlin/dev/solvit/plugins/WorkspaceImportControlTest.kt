@@ -7,6 +7,34 @@ import kotlin.test.*
 
 /** Exercise the host boundary before the API22 package/catalog rollout. */
 class WorkspaceImportControlTest {
+    @Test fun chatAttachmentsRequireApi24AndDeclaredFilesBeforeListingOrConsumingTheDisplayedSelection():Unit=runBlocking {
+        var reads=0;var selections=0
+        val workspace=object:PageWorkspaceAccess {
+            override suspend fun query(operation:String,argumentsJson:String,authorize:suspend()->Unit):String {
+                authorize();assertEquals("chatAttachments",operation);reads++;return "{}"
+            }
+            override suspend fun perform(control:PageWorkspaceControl,authorize:suspend()->Unit):String {
+                authorize();assertEquals("selectChatAttachment",control.operation);selections++;return "{}"
+            }
+        }
+        val approved=control("selectChatAttachment",buildJsonObject {
+            put("messageId","source");put("attachmentId",java.util.UUID.randomUUID().toString());put("sha256","a".repeat(64))
+        })
+        for((api,declared)in listOf(22 to true,23 to true,24 to false)) {
+            val context=ScriptPageExecutionContext("test.chat.import",{},approved,workspace=workspace)
+            assertFails { context.queryWorkspace("chatAttachments",buildJsonObject { put("offset",0) },api,declared) }
+            assertFails { context.performWorkspace(api,filesDeclared=declared) }
+        }
+        assertEquals(0,reads);assertEquals(0,selections)
+        val context=ScriptPageExecutionContext("test.chat.import",{},approved,workspace=workspace)
+        context.queryWorkspace("chatAttachments",buildJsonObject { put("offset",0) },24,true)
+        context.performWorkspace(24,filesDeclared=true)
+        assertFails { context.performWorkspace(24,filesDeclared=true) }
+        assertEquals(1,reads);assertEquals(1,selections)
+        assertFails { ScriptPageHostAction.workspace(control("selectChatAttachment",buildJsonObject {
+            put("messageId","source");put("attachmentId",java.util.UUID.randomUUID().toString());put("sha256","a".repeat(64));put("uri","file:///private")
+        })) }
+    }
     @Test fun pdfQueryRejectsOldApisOrMissingServiceBeforeCallingTheNativePage():Unit=runBlocking {
         var calls=0
         val workspace=object:PageWorkspaceAccess {

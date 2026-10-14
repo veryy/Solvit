@@ -16,6 +16,66 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28])
 class WorkspaceImportPageBridgeTest {
+    @Test fun savedChatSelectionPreviewsAndImportsExactBytesWithItsMessageProvenance()=fixture { service ->
+        val app=RuntimeEnvironment.getApplication()
+        app.deleteDatabase("solvit.db")
+        dev.solvit.storage.SqliteChatStore(app).use { chats ->
+            val chat=chats.createSession().id
+            val workspace=service.forChat(chat)
+            val bytes=byteArrayOf(0,-1,-2,65)+ByteArray(300_000) { it.toByte() }
+            val attachment=chats.attachmentFiles.import(chat,"original.bin","application/octet-stream",java.io.ByteArrayInputStream(bytes))
+            chats.append(ChatMessage("saved-binary",chat,Role.USER,"private body must not enter metadata",attachments=listOf(attachment)))
+            var active=chat
+            val source=SavedChatAttachmentSource(chats,chats.attachmentFiles,chat) { active }
+            val bridge=WorkspacePageBridge(service,null,chat,chatAttachments=source) { active }
+            try {
+                val listing=Json.parseToJsonElement(bridge.query("chatAttachments","{\"offset\":0}") {}).jsonObject
+                val entry=listing.getValue("attachments").jsonArray.single().jsonObject
+                assertEquals(JsonPrimitive(1),listing["total"])
+                assertFalse(listing.toString().contains("private body"));assertFalse(listing.toString().contains(".blob"))
+                val action=PageWorkspaceControl("selectChatAttachment",buildJsonObject {
+                    put("messageId",entry.getValue("messageId"));put("attachmentId",entry.getValue("attachmentId"));put("sha256",entry.getValue("sha256"))
+                }.toString())
+                bridge.perform(action) {}
+                val selected=Json.parseToJsonElement(bridge.query("importSelection","{}") {}).jsonObject
+                assertEquals(JsonPrimitive("saved-binary"),selected.getValue("source").jsonObject["messageId"])
+                assertEquals(JsonPrimitive("chatAttachment"),selected.getValue("source").jsonObject["kind"])
+                assertTrue(service.list(workspace.id).isEmpty())
+                val preview=Json.parseToJsonElement(bridge.query("importText",buildJsonObject {
+                    put("id",selected.getValue("id"));put("sha256",selected.getValue("sha256"))
+                }.toString()) {}).jsonObject
+                assertEquals(JsonPrimitive("OVERSIZED"),preview["kind"])
+                bridge.perform(control(selected,"original.bin")) {}
+                assertContentEquals(bytes,File(service.location(workspace.id),"original.bin").readBytes())
+                assertContentEquals(bytes,chats.attachmentFiles.read(chat,attachment))
+                assertEquals("null",bridge.query("importSelection","{}") {})
+                active="another-chat"
+                assertFails { bridge.query("chatAttachments","{\"offset\":0}") {} }
+            } finally { bridge.close() }
+        }
+    }
+    @Test fun deletedChatSourceCannotBeConfirmedAndReplacingWithSystemSelectionClearsProvenance()=fixture { service ->
+        val app=RuntimeEnvironment.getApplication();app.deleteDatabase("solvit.db")
+        dev.solvit.storage.SqliteChatStore(app).use { chats ->
+            val chat=chats.createSession().id;val workspace=service.forChat(chat)
+            val attachment=chats.attachmentFiles.import(chat,"note.txt","text/plain",java.io.ByteArrayInputStream("saved".toByteArray()))
+            chats.append(ChatMessage("saved-note",chat,Role.USER,"",attachments=listOf(attachment)))
+            val bridge=WorkspacePageBridge(service,null,chat,chatAttachments=SavedChatAttachmentSource(chats,chats.attachmentFiles,chat) { chat })
+            try {
+                bridge.perform(PageWorkspaceControl("selectChatAttachment",buildJsonObject {
+                    put("messageId","saved-note");put("attachmentId",attachment.id);put("sha256",attachment.sha256)
+                }.toString())) {}
+                val selected=Json.parseToJsonElement(bridge.query("importSelection","{}") {}).jsonObject
+                chats.deleteSession(chat)
+                assertFails { bridge.perform(control(selected,"deleted.txt")) {} }
+                assertTrue(service.list(workspace.id).isEmpty())
+                val system=Json.parseToJsonElement(bridge.stageImport(PageBinaryDocument("system.txt","text/plain","system".toByteArray())) {}).jsonObject
+                assertFalse("source" in system)
+                bridge.perform(control(system,"system.txt")) {}
+                assertEquals("system",service.read(workspace.id,"system.txt"))
+            } finally { bridge.close() }
+        }
+    }
     @Test fun pdfPreviewNeedsTheReviewedSelectionAndClosesPixelsAfterScopeChanges()=fixture { service ->
         val workspace=service.forChat("pdf-page")
         var active="pdf-page";var calls=0;var changeDuringRender=false;var generated:PageFilePicture?=null

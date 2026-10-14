@@ -18,6 +18,28 @@ class SavedChatAttachmentSourceTest {
     private val app get() = RuntimeEnvironment.getApplication()
     @Before fun reset() { app.deleteDatabase("solvit.db") }
 
+    @Test fun metadataPagesAreBoundedAndOnlyListThisConversationsSavedUserAttachments() = runBlocking<Unit> {
+        SqliteChatStore(app).use { store ->
+            val a=store.createSession().id;val b=store.createSession().id
+            val attachment=store.attachmentFiles.import(a,"note.txt","text/plain",ByteArrayInputStream("original".toByteArray()))
+            for(i in 0 until 25)store.append(ChatMessage("u-$i",a,Role.USER,"message body",attachments=listOf(attachment)))
+            store.append(ChatMessage("other-chat",b,Role.USER,"private",attachments=listOf(attachment)))
+            var reads=0
+            val files=object:ChatAttachmentStore by store.attachmentFiles {
+                override suspend fun read(sessionId:String,attachment:ChatAttachment,authorize:suspend()->Unit):ByteArray {
+                    reads++;error("Metadata must not read blobs")
+                }
+            }
+            val source=SavedChatAttachmentSource(store,files,a) { a }
+            val first=source.list(0) {};assertEquals(25,first.total);assertEquals(20,first.entries.size)
+            assertEquals("u-24",first.entries.first().messageId);assertEquals(25,first.entries.first().messageNumber)
+            val second=source.list(20) {};assertEquals(5,second.entries.size)
+            assertEquals("u-0",second.entries.last().messageId)
+            assertTrue(source.list(25) {}.entries.isEmpty());assertFails { source.list(26) {} };assertFails { source.list(-1) {} }
+            assertEquals(0,reads)
+        }
+    }
+
     @Test fun reopenedPdfUsesCompleteOriginalDespiteSelectedPagesAndKeepsSavedFile() = runBlocking<Unit> {
         val original = byteArrayOf(0, -1, -2, 65) + "%PDF fixture original".toByteArray()
         lateinit var session: String
