@@ -153,3 +153,28 @@ hostAction: {
 已在0.35.0正式发布；0.34.0/API22 不支持此查询。页面须声明 `apiVersion: 23`、workspace权限及 `workspace.files` 原生服务；使用当前选择返回的id/SHA调用 `workspacePage.query('importPdf', {id, sha256, page})`。page为1-based整数。结果包含page、pageCount、text、truncated、width、height和内联JPEG source。实际页数最多5000，当前页文字最多8192 UTF16单元，最长边640/图片64KiB；文字应作为普通文本显示。扫描页提供原页而不伪造OCR文字。
 
 预览不会写入工作区，也不向脚本暴露URI或私有路径。导入仍使用已发布的importFile确认操作，写入完整原PDF，而非预览JPEG或截断文字。撤权/切换对话会阻止当前结果返回，关闭页面释放选择。源码和实际验证状态见[PDF阶段](workspace-pdf-preview-stage.md)。
+
+## API24：当前对话已保存附件
+
+0.36.2已发布。人工页面声明API24、workspace权限和workspace.files服务后，调用`workspacePage.query('chatAttachments', {offset: 0})`获取当前对话保存的用户附件；一次最多20项，返回`{offset,total,attachments}`。条目包含`messageId,messageNumber,attachmentId,name,mimeType,bytes,sha256`，不含聊天正文、附件原始字节或URI。对话和工作区由宿主捕获，脚本不能传入其他对话ID。
+
+把用户已看到的条目放入确认按钮：`{kind:'workspace.perform',operation:'selectChatAttachment',arguments:{messageId,attachmentId,sha256}}`；获确认后调用无参数`workspacePage.perform()`，再查询`importSelection`。宿主重新读取并核对持久消息和原附件，选择元数据额外包含`source:{kind:'chatAttachment',messageId,attachmentId}`。预览及导入与系统选择的文件共用接口；PDF选页/OCR不替换原始文件。消息或原附件变化、撤权、切换对话/工作区时拒绝继续，关闭页面仅释放当前选择，不删除聊天附件。
+
+## API25：审阅已有目标再导入（0.37.0候选）
+
+候选代码与远程验证见[阶段记录](workspace-import-replacement-stage.md)，尚未正式发布。须声明API25、workspace权限与workspace.files服务；不向普通工具、Hook或生命周期开放。
+
+先查询`workspacePage.query('reviewImport', {id,sha256,path})`。id和sha256来自当前选择，path为当前工作区的相对路径。宿主返回`{reviewId,path,target}`；target为null表示未存在，否则是`{bytes,sha256}`。这里target.sha256是已有目标版本，和源文件的sha256含义不同。页面显示目标、源信息和替换说明后，提供确认控件：
+
+```ts
+hostAction: {
+  kind: 'workspace.perform', operation: 'importReviewed',
+  arguments: {id: selection.id, sha256: selection.sha256, path, reviewId: review.reviewId},
+}
+// 仅在已显示的上述按钮被用户确认后调用：
+const result = await ctx.workspacePage.perform();
+```
+
+脚本不能传入目标摘要来伪造审阅。宿主reviewId绑定选中文档、源摘要、路径及宿主观察的目标版本；每次重新审阅替换旧凭证，提交尝试后不可重用。文件变化时保留源选择，要求重新查询审阅，不自动重新提交。目标原本不存在时仍使用create-only原子发布，同名竞争返回冲突。
+
+成功返回snapshot，额外`lastImport:{path,sha256,backupPath}`。新建时backupPath为null；替换时为同目录保留的原文件相对路径，页面应展示给用户。备份可以在文件管理中查看/改名/删除，也会出现在Git未跟踪文件中；不会自动删除。外部Shell不受互斥锁约束，提交过程中抢先创建的同名文件不覆盖，原文件保留供恢复。旧API22的importFile仍只新建，不因升级而变成盲目覆盖。
