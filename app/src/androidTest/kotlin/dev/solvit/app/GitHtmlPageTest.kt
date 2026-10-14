@@ -54,6 +54,7 @@ class GitHtmlPageTest {
                 }, onDismiss = { visible = false })
             } } }
             click("git_remote")
+            waitDom("!!document.getElementById('field-git_remote_url') && !document.getElementById('field-git_remote_url').disabled")
             html.js("(()=>{const field=document.getElementById('field-git_remote_url');field.value=${kotlinx.serialization.json.JsonPrimitive(endpoint.url)};field.dispatchEvent(new Event('input'))})()")
             openForm()
             rule.onNodeWithTag("git_credential_endpoint").assertTextEquals(endpoint.url)
@@ -113,7 +114,7 @@ class GitHtmlPageTest {
                 val allow = object : dev.solvit.core.ToolAuthorization {
                     override suspend fun authorize(descriptor: dev.solvit.core.ToolDescriptor): Boolean {
                         assertEquals(plugin, descriptor.pluginId)
-                        assertEquals(setOf("workspace", "git"), descriptor.capabilities)
+                        assertEquals(setOf("workspace", "git", "network"), descriptor.capabilities)
                         return true
                     }
                 }

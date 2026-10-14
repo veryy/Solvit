@@ -87,7 +87,13 @@ class ChatAttachmentsDeviceTest {
         val owner = object : ActivityResultRegistryOwner { override val activityResultRegistry = registry }
         val server = MockWebServer().apply { start(); enqueue(MockResponse().setHeader("Content-Type", "text/event-stream")
             .setBody("data: {\"choices\":[{\"delta\":{\"content\":\"attachment answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n")) }
-        val client = OkHttpClient()
+        val fixtureUrl = server.url("/v1")
+        val client = OkHttpClient.Builder().proxy(java.net.Proxy.NO_PROXY).addInterceptor { chain ->
+            val request = chain.request()
+            if (request.url.host != fixtureUrl.host || request.url.port != fixtureUrl.port)
+                throw java.io.IOException("Attachment fixture refused non-local model endpoint")
+            chain.proceed(request)
+        }.build()
         val store = SqliteChatStore(context)
         val models = mutableListOf<ViewModel>()
         lateinit var vm: ChatViewModel
@@ -96,7 +102,7 @@ class ChatAttachmentsDeviceTest {
             val events = EventBus()
             val chat = DefaultChatService(store, ToolAgentRuntime(OpenAiProvider(client), ToolRegistry(events)), events, attachmentStore = files)
             val settings = object : SettingsStore {
-                override suspend fun load() = ModelConfig(server.url("/v1").toString(), "fixture-vision")
+                override suspend fun load() = ModelConfig(fixtureUrl.toString(), "fixture-vision")
                 override suspend fun save(value: ModelConfig) = Unit
                 override suspend fun isConfigured() = true
             }
@@ -112,6 +118,8 @@ class ChatAttachmentsDeviceTest {
                 } }
             }
             rule.waitUntil(10_000) { vm.ready.value && vm.sessionId.value != null }
+            assertEquals("Attachment test must use its own local model endpoint", fixtureUrl.toString(), vm.config.value.baseUrl)
+            assertEquals("fixture-vision", vm.config.value.model)
             rule.onNodeWithTag("chat_attach").assertIsEnabled().performClick()
             rule.waitUntil(5_000) { launches == 1 }
             rule.waitForIdle()
