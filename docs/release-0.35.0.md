@@ -25,3 +25,9 @@ PDF文字提取与渲染使用现有PDFBox和Android PdfRenderer，不新增库�
 ![工作区PDF第二页与导入操作](screenshots/0.35.0/workspace-import-pdf-candidate.png)
 
 正式同源标签门禁与公开APK/源码下载核对随后补充。本记录不代表整个Agent项目或完整文件导入范围完成。
+
+## 正式运行中的产物核对
+
+不可变v0.35.0指向24f05884b052626c12f785015cbf4fe0e24e38ec。[正式38619541924](https://github.com/veryy/Solvit/actions/runs/38619541924)的build/plugins/search/Linux已成功，verify-ui仍运行，release尚未执行。正式unit11922511231完整ZIP CRC/XML为490/0/0/0；实际下载APK11922321520与源码11921107536并核对外层/内层ZIP CRC。APK58107578字节，SHA256 e3c63e7f01fb0aad30db560adda3f6d1127ecc1ce6c3cc15e5d9d22aafe0544b；源码1072569字节，SHA256 dd1d3a3eb2869f51ed50720611058e586df0abe26bc59a0151edb6c756ff76af。固定签名实际日志为f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3。尚未公开下载比较。
+
+正式插件完整日志核对118 SDK/5市场零失败及公开搜索/MCP/Skills成功；正式Linux完整日志核对原3个Android用例及严格版本门禁，生产Python3.12.3/Node24.21.0/npm11.19.0、Java17检查成功。Linux完整探针归档尚未下载，不声称其ZIP CRC。发布仍等待正式设备报告、截图、覆盖升级及公开APK/源码逐字节比较。
