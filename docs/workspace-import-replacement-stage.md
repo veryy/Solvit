@@ -32,3 +32,7 @@ workspace下一包1.8.0/API25；共享目录代码使Git包升为1.2.4/API20。�
 7db98b7 的 [远程插件生成38648117122](https://github.com/veryy/Solvit/actions/runs/38648117122)成功；完整任务日志确认122 SDK/5市场零失败，公开搜索、HTTPS MCP、Skills也通过。实际下载11933034134核对ZIP CRC，仅同步workspace/Git新包到市场与APK两处，b288b7b提交。workspace1.8.0为767107字节、SHA256 6e7d3e22d8f4df745f87702986a142818c139f8fca4d2f17e0e25b688e5ed3d5；Git1.2.4为749895字节、SHA256 7cfd8eb28865d9bb529aff3d342ad11a8bd15fd0c8df1fb89cc7917ae71755e4。
 
 服务器私有 .staging-api25-1792017186 对before/next两个真实Node服务运行verify-market-api25.mjs：API1..19目录完全一致，API20..24仅Git兼容更新且工作区保留各自兼容版本（API24仍1.7.0），44个历史包全部原字节保留，API25选择1.8.0/API25与Git1.2.4/API20并核对新包摘要。尚未更新公开服务。Android候选38648342947正在运行，完整页面、升级及APK结果仍待确认。
+
+## Android候选完整构建
+
+b288b7b 的38648342947/build116140689380成功。实际下载11933686427（378468字节）并核对完整ZIP CRC/XML：508单元、零失败/错误/跳过；包括新6个原生替换、桥接token/过期目标、API25门禁及原包升级保留设置/授权/自定义代码。完整任务日志确认Lint/APK成功及固定签名f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3。设备116143298818仍在运行，不能据此称完整发布验收。公开市场更新前HTTPS24个目录与44个历史下载摘要核对成功。
