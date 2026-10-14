@@ -49,9 +49,11 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
         return checkNotNull(workspace) { "此页面没有聊天工作区授权" }.query(operation, args.toString(), ::ensureAuthorized)
             .also { ensureAuthorized() }
     }
-    suspend fun performWorkspace(apiVersion: Int): String {
+    suspend fun performWorkspace(apiVersion: Int, linuxDeclared: Boolean = false): String {
         ensureAuthorized()
         val control = ScriptPageHostAction.workspace(checkNotNull(approvedAction))
+        check(control.operation !in setOf("installEnvironment", "cancelEnvironment", "installSoftware", "createLinuxShell") ||
+            apiVersion >= 21 && linuxDeclared) { "Linux 环境操作需要 API21 及 environment.linux 服务声明" }
         check(control.operation !in setOf("writeDraft","makeDirectory","moveEntry","deleteEntry") || apiVersion >= 18) { "文件管理需要 API18" }
         check(consumed.compareAndSet(false, true)) { "Native page control already consumed" }
         return checkNotNull(workspace) { "此页面没有聊天工作区授权" }.perform(control, ::ensureAuthorized)

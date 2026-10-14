@@ -56,6 +56,9 @@ object ScriptPageHostAction {
         }.content
         val keys = when (operation) {
             "create", "createShell" -> { text("name", 80); setOf("name") }
+            "createLinuxShell" -> { text("name", 80); setOf("name") }
+            "installEnvironment", "cancelEnvironment" -> emptySet()
+            "installSoftware" -> { LinuxSoftware.valueOf(text("software", 16)); setOf("software") }
             "bind" -> { text("id", 128); setOf("id") }
             "makeDirectory", "deleteEntry" -> { text("path",1024);setOf("path") }
             "moveEntry" -> { text("path",1024);text("destination",1024);setOf("path","destination") }

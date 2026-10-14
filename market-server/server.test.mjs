@@ -180,3 +180,18 @@ test('API19 retains its published plugin order after Git advances to API20', asy
     assert.equal(git.sha256, '7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd');
   } finally { await new Promise(resolve => server.close(resolve)); }
 });
+
+
+test('API21 environment is offered only to compatible hosts and API20 remains intact', async()=>{
+ const server=createMarketServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const base=`http://127.0.0.1:${server.address().port}`;
+ try {
+  const previous=await(await fetch(base+'/api/v1/plugins?hostApi=20')).json();
+  assert.equal(previous.plugins.some(p=>p.id==='dev.solvit.environment'),false);
+  const latest=await(await fetch(base+'/api/v1/plugins?hostApi=21')).json();
+  const environment=latest.plugins.find(p=>p.id==='dev.solvit.environment');
+  assert.equal(environment.apiVersion,21);
+  assert.deepEqual(environment.nativeServices,['environment.linux']);
+  assert.deepEqual(latest.plugins.filter(p=>p.id!=='dev.solvit.environment'),previous.plugins);
+ }finally{await new Promise(resolve=>server.close(resolve))}
+});

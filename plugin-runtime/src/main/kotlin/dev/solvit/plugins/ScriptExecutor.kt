@@ -110,10 +110,13 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             check(page.pluginId == pkg.manifest.id)
                             if (operation == "workspacePage.perform") {
                                 require(arguments.isEmpty()) { "原生操作只能来自已确认的页面控件" }
-                                page.performWorkspace(pkg.manifest.apiVersion)
+                                page.performWorkspace(pkg.manifest.apiVersion, "environment.linux" in pkg.manifest.nativeServices &&
+                                    pkg.manifest.permissions.containsAll(setOf("workspace", "shell", "network")))
                             } else {
                                 require(arguments.keys == setOf("operation", "arguments"))
                                 val query = arguments.getValue("operation").jsonPrimitive.also { require(it.isString) }.content
+                                check(query != "environmentStatus" || pkg.manifest.apiVersion >= 21 && "environment.linux" in pkg.manifest.nativeServices &&
+                                    pkg.manifest.permissions.containsAll(setOf("workspace", "shell", "network"))) { "Linux 环境查询需要 API21 及服务声明" }
                                 page.queryWorkspace(query, arguments.getValue("arguments").jsonObject)
                             }
                         } else if (operation.startsWith("gitPage.")) {
@@ -360,6 +363,7 @@ class ScriptToolPlugin(
         if ("afterTurn" in pkg.manifest.hooks) add(PostTurnHookServiceKey)
         if (pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }) add(WorkspaceServiceKey)
         if ("workspace.git" in pkg.manifest.nativeServices) add(WorkspaceGitServiceKey)
+        if ("environment.linux" in pkg.manifest.nativeServices) add(LinuxEnvironmentServiceKey)
         if ("terminal.pty" in pkg.manifest.nativeServices || pkg.manifest.apiVersion in 5..11 && "shell" in pkg.manifest.permissions) add(TerminalServiceKey)
         if ("web.pages" in pkg.manifest.nativeServices || pkg.manifest.apiVersion in 6..11 && "network" in pkg.manifest.permissions) add(WebPageServiceKey)
     }

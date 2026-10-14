@@ -76,3 +76,7 @@
 5904168 的共享启动/事务安装已经由 [38535852875](https://github.com/veryy/Solvit/actions/runs/38535852875) 实际通过，Android 上仍完成完整 apt/Python/Node/venv 与工作区断言，并核对 active 指针指向初始化时的固定目录；版本日志保持 Python 3.12.3、Node 18.19.1、npm 9.2.0。新增取消/失败保留旧环境、重建管理器识别安装、下载中断和启动映射测试通过任务门禁；报告成员的精确数量待归档核对。
 
 宿主接入第一块新增独立 linux-android 原生 provider：可信固定目录下载、HTTPS/容量限制、协程取消、Android 当前网络 DNS、apt 日志和 Python/Node/Java 软件包组。Linux 命令使用既有 ShellJobEngine 的输出限额、超时及进程组 watchdog，而非另建不受管的命令执行器；宿主运行计划只用于 APP 身份。该 provider 还未注册到正式应用或开放给 JS，下一轮检查其编译及进程清理回归。
+
+环境管理作为独立 dev.solvit.environment JS/HTML 插件接入，包含安装阶段/下载容量、可停止的 apt 日志、Python/pip、Node/npm、Java17 安装入口和当前工作区 Ubuntu Shell 创建。管理动作只能来自当前页面显示并确认的原生控件，JS 不能提供 rootfs URL、哈希、命令或宿主私有路径。新增 API21 的 environment.linux 声明，必须同时声明 workspace/shell/network；旧 API1..20 仍保留，市场不向旧宿主提供这个插件。软件版本及实际可用性以设备执行日志为准，Java尚未实测。
+
+5678e59修复了宿主cancel方法推导成Unit?的编译错误；9ddb339的生产探针实际失败于缺少core显式编译依赖，8072aa0补齐后重新跑原生产HTTPS下载/DNS/apt/PTY断言。既有 f1d871f/cfd0102 的底层安装结论不等同于这轮产品provider通过。

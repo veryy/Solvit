@@ -10,6 +10,7 @@ import kotlinx.serialization.json.*
 /** One captured conversation. A background rebind invalidates it; it never follows another chat. */
 class WorkspacePageBridge(private val service: WorkspaceService, private val drafts: PluginDraftService?,
     private val chatId: String, private val canInstallDrafts: Boolean = false,
+    private val linux: LinuxEnvironmentService? = null,
     private val activeChat: () -> String? = { chatId }) : PageWorkspaceAccess {
     init { require(chatId.isNotBlank() && chatId.length <= 128) }
     private val mutex = Mutex()
@@ -28,7 +29,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         put("workspaceId", binding?.let(::JsonPrimitive) ?: JsonNull)
         put("draftInstallAllowed", canInstallDrafts)
         put("workspaces", buildJsonArray { service.state.value.workspaces.forEach { w -> add(buildJsonObject { put("id", w.id); put("name", w.name) }) } })
-        put("shells", buildJsonArray { service.state.value.shells.filter { it.workspaceId == binding }.forEach { s -> add(buildJsonObject { put("id", s.id); put("name", s.name) }) } })
+        put("shells", buildJsonArray { service.state.value.shells.filter { it.workspaceId == binding }.forEach { s -> add(buildJsonObject { put("id", s.id); put("name", s.name); put("runtime", s.runtime.name) }) } })
     }
     private suspend fun <T> scoped(authorize: suspend () -> Unit, allowedNewWorkspace: () -> String? = { null }, block: suspend () -> T): T =
         withContext(WorkspacePageAuthority { target, session ->
@@ -43,6 +44,15 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         fun text(key: String) = args.getValue(key).jsonPrimitive.also { require(it.isString && it.content.length <= 1024) }.content
         val result = scoped(authorize) {
             when (operation) {
+                "environmentStatus" -> {
+                    require(args.isEmpty())
+                    val environment = checkNotNull(linux) { "Linux 环境服务不可用" }.state.value
+                    buildJsonObject {
+                        put("supported", environment.supported); put("installed", environment.installed); put("stage", environment.stage)
+                        put("bytes", environment.bytes); put("total", environment.total?.let(::JsonPrimitive) ?: JsonNull)
+                        put("output", environment.output); put("failure", environment.failure?.let(::JsonPrimitive) ?: JsonNull)
+                    }
+                }
                 "snapshot" -> { require(args.isEmpty()); snapshot() }
                 "list" -> {
                     require(args.keys == setOf("path", "offset"))
@@ -158,6 +168,10 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                 "bind" -> { service.bind(chatId, text("id")); nextBinding = text("id") }
                 "unbind" -> { service.unbind(chatId); nextBinding = null }
                 "createShell" -> service.createShell(workspace(), text("name"))
+                "createLinuxShell" -> { checkNotNull(linux); service.createShell(workspace(), text("name"), ShellRuntime.UBUNTU) }
+                "installEnvironment" -> checkNotNull(linux) { "Linux 环境服务不可用" }.install()
+                "cancelEnvironment" -> checkNotNull(linux) { "Linux 环境服务不可用" }.cancel()
+                "installSoftware" -> checkNotNull(linux) { "Linux 环境服务不可用" }.installSoftware(LinuxSoftware.valueOf(text("software")))
                 "write" -> service.writeForEdit(workspace(), text("path"), text("text"), args.getValue("expectedSha256").let { if (it == JsonNull) null else it.jsonPrimitive.content })
                 "makeDirectory" -> service.makeDirectory(workspace(),text("path"))
                 "moveEntry" -> service.moveEntry(workspace(),text("path"),text("destination"))
