@@ -1,6 +1,6 @@
 # Solvit 0.34.0：把文件导入工作区
 
-候选版本，尚未公开。正式下载和最终验证以不可变标签工作流及公开产物核对为准。
+本版新增工作区文件选择、确认导入及文本/图片预览。正式下载和最终验证以不可变标签工作流及公开产物核对为准。
 
 - 在工作区文件页选择手机上的文件，查看名称、类型、大小、来源和目标路径，再确认导入。每个文件最多20MiB，导入保留完整原始字节。
 - 文本/代码支持UTF-8内容预览；最多读取256KiB并显示前8192字符，截断明确提示。二进制不被误当文本。
@@ -16,7 +16,7 @@ Linux环境保留PRoot/Ubuntu、Python3.12.3、Node24.21.0/npm11.19.0、Java17�
 
 ## 验证状态
 
-文本候选[38601350681](https://github.com/veryy/Solvit/actions/runs/38601350681)通过483单元和65设备用例，完整报告ZIP CRC/XML及实际导入截图已核对。图片候选编译、485单元和Lint通过，但完整设备链/实际图片截图尚待[38606210921](https://github.com/veryy/Solvit/actions/runs/38606210921)。市场API22私有暂存比较通过，未公开新包。正式标签六项门禁、签名/覆盖升级、APK/源码公开下载核对均待完成。
+文本候选[38601350681](https://github.com/veryy/Solvit/actions/runs/38601350681)通过483单元和65设备用例，完整报告ZIP CRC/XML及实际导入截图已核对。图片候选485单元和Lint通过，[38606210921](https://github.com/veryy/Solvit/actions/runs/38606210921)完整设备链69用例零失败/错误/跳过；完整报告ZIP CRC/XML及实际图片截图已核对。市场API22私有暂存比较通过，未公开新包。正式标签六项门禁、签名/覆盖升级、APK/源码公开下载核对均待完成。
 
 保留已知诊断历史：曾发生PDF读取设备等待超时，以及此前WebView原生SIGSEGV；后续候选通过不等于原因已修复。原断言和超时保留，PDF失败时增加合成夹具状态和截图诊断。详细证据见[阶段记录](workspace-import-stage.md)。
 
@@ -26,3 +26,6 @@ Linux环境保留PRoot/Ubuntu、Python3.12.3、Node24.21.0/npm11.19.0、Java17�
 ![工作区选择文件后查看信息、路径并确认](screenshots/0.34.0/workspace-import-selected.png)
 
 ![原始二进制导入后在同一工作区文件树可见](screenshots/0.34.0/workspace-import-directory.png)
+
+
+![图片候选真实Android屏幕：插件HTML显示选择PNG的缩略图，确认仍导入原文件](screenshots/0.34.0/workspace-import-image.png)
