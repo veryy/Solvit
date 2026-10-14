@@ -34,3 +34,6 @@ Linux环境保留PRoot/Ubuntu、Python3.12.3、Node24.21.0/npm11.19.0、Java17�
 ## 正式标签进行中
 
 不可变标签v0.34.0固定源 `8d4a40e65e319ce79582f69f4488229f5365a544`。正式[Android38609672475](https://github.com/veryy/Solvit/actions/runs/38609672475)正在执行全部门禁；插件任务日志已下载核对117 SDK及5市场测试零失败/错误/跳过，公开搜索任务成功。build/Linux/UI/发布和正式产物核对尚待完成，不将候选成功说成公开APK已发布。
+
+
+正式build、plugins、search、Linux任务已成功，UI尚在运行。完整下载正式unit artifact11916569717（370479字节），ZIP CRC/XML核对485单元零失败/错误/跳过。正式Linux完整任务日志下载并核对原3个Android用例及严格生产版本门禁：Python3.12.3、Node24.21.0/npm11.19.0、Java17；完整Linux探针35MB归档未下载，不声称其CRC/XML。正式源码artifact11916414052完整下载，外层与内部ZIP CRC通过，内部1072569字节/SHA256 `c50c3f2837b56a29f4d11c0a3ec56941ade9686f5f5c266fff4b61ddf33e6d27`。公开APK及源码下载尚待发布后比较。
