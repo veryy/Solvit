@@ -25,6 +25,7 @@ class DefaultChatService(
     private val modelProfiles: ModelProfilesService? = null,
     private val postTurnHooks: PostTurnHookRegistry? = null,
     private val attachmentStore: ChatAttachmentStore? = null,
+    private val documentText: DocumentTextService? = null,
 ) : ChatService {
     // V1 permits one active turn. Deletion cannot race with a stream settlement.
     private val turn = Mutex()
@@ -130,7 +131,7 @@ class DefaultChatService(
                 val attachmentBytes = projected.sumOf { message -> message.attachments.sumOf { it.sizeBytes } }
                 if (attachmentBytes > ChatAttachment.MAX_ATTACHMENT_BYTES)
                     throw ModelException("本次会话附件资料超过20MiB请求限制，请新建对话；原消息和附件已保留")
-                val resolver = attachmentStore?.let(::AttachmentContentResolver)
+                val resolver = attachmentStore?.let { AttachmentContentResolver(it, documentText) }
                 projected.forEach { message ->
                     if (message.attachments.isEmpty()) add(message)
                     else add((resolver ?: error("附件服务未启用")).resolve(sessionId, message))
@@ -195,9 +196,11 @@ internal fun completeContext(history: List<ChatMessage>, trackSources: Boolean =
     return result
 }
 
-class ChatServicePlugin(private val useWorkspaces: Boolean = false, private val useAttachments: Boolean = false) : SolvitPlugin {
+class ChatServicePlugin(private val useWorkspaces: Boolean = false, private val useAttachments: Boolean = false,
+    private val useDocuments: Boolean = false) : SolvitPlugin {
+    init { require(!useDocuments || useAttachments) { "文档读取需要附件服务" } }
     override val id = "builtin.chat"
-    override val requires = buildSet { addAll(setOf(Services.Storage, Services.Agent, RoleServiceKey, ModelProfilesServiceKey, PostTurnHookServiceKey)); if (useWorkspaces) add(WorkspaceServiceKey); if (useAttachments) add(ChatAttachmentStoreKey) }
+    override val requires = buildSet { addAll(setOf(Services.Storage, Services.Agent, RoleServiceKey, ModelProfilesServiceKey, PostTurnHookServiceKey)); if (useWorkspaces) add(WorkspaceServiceKey); if (useAttachments) add(ChatAttachmentStoreKey); if (useDocuments) add(DocumentTextServiceKey) }
     override val provides = setOf(Services.Chat)
     override suspend fun enable(context: PluginContext) {
         context.register(Services.Chat, DefaultChatService(
@@ -206,6 +209,7 @@ class ChatServicePlugin(private val useWorkspaces: Boolean = false, private val 
             context.require(ModelProfilesServiceKey),
             context.require(PostTurnHookServiceKey),
             if (useAttachments) context.require(ChatAttachmentStoreKey) else null,
+            if (useDocuments) context.require(DocumentTextServiceKey) else null,
         ))
     }
 }

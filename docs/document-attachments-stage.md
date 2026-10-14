@@ -11,3 +11,11 @@ Solvit现状：选择器、私有原文件、消息引用和HTTP图片/文本路
 解析/渲染需限定原文件、页数、像素、提取结果和并发内存，逐页可取消并释放Bitmap/descriptor/document。短内容不应直接判定为扫描件；混合PDF按页决定OCR。长文不能静默截断或全部塞进请求，需展示覆盖范围、页选择和既有上下文预算；文档内容作为用户资料，不能改变角色或授权规则。
 
 验收必须使用Android真实PDF字节、文字页和扫描页、多页及中英文、坏文件/密码文件/超限/取消、选中对话归属、SHA校验和清理保留边界；核对实际HTTP正文与页面来源，并查看真实截图。模型读取答案质量另外用真实模型任务验收，不由本地提取或MockWebServer代替。工作区导入复用受授权文件服务，同目录文件内容应与聊天原文件一致；系统选择器不代表工作区导入已完成。
+
+## 服务与模型请求接线（待远程验证）
+
+新增核心DocumentTextService契约：宿主按对话和类型化附件读取PDF，结果携带附件ID/SHA、顺序页码、文字提取/OCR/空页状态；日志字符串不包含正文。完整结果暂限定40页/256KiB UTF-8，不接受遗漏页或静默截断；长文页选择继续保留为后续范围。聊天解析器通过独立服务读取PDF，在请求前核对身份/版本和授权；原图片/文本路径保留。ChatServicePlugin通过声明式依赖接入，正式应用尚未注册Android实现，选择器仍未开放PDF，公开版保持0.32.0。
+
+新增7个用例覆盖多页完整性、UTF-8累计容量、空页/二进制/状态、日志隐去正文、服务结果身份与版本、读取中权限撤销，以及经实际OpenAI Provider和MockWebServer检查HTTP页文字/来源/模式。此HTTP用例的解析服务是夹具，不能证明PDFBox或OCR已能读取真实PDF。仅做diff静态检查，等待远程；Android解析、OCR、预览、进度/取消、工作区导入、实际文件和设备验证均需继续完成。
+
+本次另核对[PDFBox Android官方使用/Apache-2.0](https://github.com/TomRoush/PdfBox-Android)和[ML Kit官方Android文字识别](https://developers.google.com/ml-kit/vision/text-recognition/v2/android)：初始化PDFBox资源加载器；ML Kit支持打包模型或首次下载模型，需明确呈现识别语言与可用性。本提交只定义服务，尚未引入这些依赖。上述Operit文件与附件测试已重新读取，9个上游checkout verify-only成功。

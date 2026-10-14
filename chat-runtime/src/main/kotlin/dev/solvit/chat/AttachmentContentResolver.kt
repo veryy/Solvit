@@ -6,7 +6,7 @@ import java.nio.charset.CodingErrorAction.REPORT
 import java.util.Base64
 
 /** Host-owned conversion. References and display cards are not model-readable content. */
-class AttachmentContentResolver(private val store: ChatAttachmentStore) {
+class AttachmentContentResolver(private val store: ChatAttachmentStore, private val documentText: DocumentTextService? = null) {
     suspend fun resolve(sessionId: String, message: ModelMessage,
         authorize: suspend () -> Unit = {}): ModelMessage {
         if (message.attachments.isEmpty()) return message
@@ -19,6 +19,22 @@ class AttachmentContentResolver(private val store: ChatAttachmentStore) {
             authorize()
             totalBytes += attachment.sizeBytes
             require(totalBytes <= ChatAttachment.MAX_ATTACHMENT_BYTES) { "本条消息附件总大小超过限制" }
+            if (attachment.mimeType == "application/pdf") {
+                val document = (documentText ?: throw ModelException("PDF读取服务未启用"))
+                    .readPdf(sessionId, attachment, authorize)
+                authorize()
+                require(document.attachmentId == attachment.id && document.sha256 == attachment.sha256) { "文档读取结果与附件内容版本不一致" }
+                val content = document.pages.joinToString("\n\n") { page ->
+                    val method = when (page.method) {
+                        DocumentPageMethod.TEXT -> "文字提取"
+                        DocumentPageMethod.OCR -> "扫描识别，请核对原页"
+                        DocumentPageMethod.EMPTY -> "无文字"
+                    }
+                    "[第${page.number}/${document.pageCount}页；$method]\n${page.text}"
+                }
+                documents += "[用户附件资料：${attachment.name}；ID：${attachment.id}；内容版本：${attachment.sha256}]\n$content\n[附件资料结束]"
+                continue
+            }
             val image = attachment.mimeType in setOf("image/png", "image/jpeg", "image/webp", "image/gif")
             val text = attachment.mimeType.startsWith("text/") || attachment.mimeType in setOf(
                 "application/json", "application/xml", "application/javascript", "application/x-python")
