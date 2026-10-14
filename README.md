@@ -24,7 +24,7 @@ Android 8.0 及以上可用。界面默认中文，也支持英文、日文、�
 - **记忆**：本地记录、检索、关系图谱、编辑和删除；可以开启自动检索和后台保存。真实模型的记忆质量仍需验证。[记忆说明](docs/memory.md)
 - **MCP 和 Skills**：多个具名 HTTPS MCP 连接、独立会话和加密凭据；导入 SKILL.md 及文本资源，让角色按需使用。[MCP](docs/mcp.md) · [Skills](docs/skills.md)
 - **工作区**：一个对话可绑定一个目录，多个 Shell 共用该目录。文件树、新建目录、重命名、删除、CodeMirror 文本/代码预览编辑，以及 xterm.js + Android PTY 交互终端。可以选择最多20MiB的原文件导入，先看信息、文本、图片或 PDF 原页预览再确认；同名文件提示改名，文件树、Git和Shell共用。[工作区说明](docs/workspaces.md)
-- **Linux 开发环境**：无需 root，按需安装 Ubuntu 24.04、Python/venv、Node24/npm，可追加 Python/pip 或 Java17。在「工作区 → Linux」安装后新建 Ubuntu Shell，AI 命令、终端和文件管理使用同一目录。[使用与验证](docs/linux-environment-stage.md)
+- **Linux 开发环境**：无需 root，按需安装 Ubuntu 24.04、Python/venv、Node24/npm，可追加 Python/pip 或 Java17。在「工作区 → Linux」安装后新建 Ubuntu Shell，AI 命令、终端和文件管理使用同一目录。[上手指南](docs/linux-environment.md) · [验证记录](docs/linux-environment-stage.md)
 - **Git 工作台**：Changes、差异、暂存、提交和历史，与文件管理和终端使用同一目录。支持 HTTPS 克隆、fetch、拉取/推送审阅、合并冲突、进度和取消；凭据由原生安全表单加密保存。AI Git 工具目前只读。[Git 阶段记录](docs/workspace-github-stage.md)
 - **更新**：应用内查看版本说明、下载进度和安装入口。配置中的 API Key 使用 Android Keystore 加密保存。
 
