@@ -32,10 +32,12 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
     private val mutableState = MutableStateFlow(LinuxEnvironmentState(supported, installer?.activeRoot() != null, "IDLE"))
     override val state = mutableState.asStateFlow()
     private val mutex = Mutex()
-    private var operation: Job? = null
+    @Volatile private var operation: Job? = null
     init {
         installer?.let { manager -> scope.launch {
             manager.state.collect { next ->
+                // The initial replay must not overwrite a newly queued install/software job.
+                if (next.stage == InstallationStage.IDLE && operation?.isActive == true) return@collect
                 mutableState.update { old -> old.copy(installed = manager.activeRoot() != null,
                     stage = next.stage.name, bytes = next.bytes, total = next.total, failure = next.details) }
             }
@@ -102,11 +104,17 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         check(supported) { "当前架构尚未提供 Linux 运行环境" }
         check(operation?.isActive != true) { "已有环境安装任务正在进行" }
         mutableState.update { it.copy(stage = stage, output = "", failure = null) }
-        operation = scope.launch {
+        operation = scope.launch(start = CoroutineStart.LAZY) {
             try { action(); mutableState.update { it.copy(installed = installer?.activeRoot() != null, stage = "READY") } }
             catch (e: CancellationException) { mutableState.update { it.copy(stage = "CANCELLED") }; throw e }
             catch (e: Exception) { mutableState.update { it.copy(stage = "FAILED", failure = e.message?.take(4096) ?: "Linux 环境操作失败") } }
         }
+        operation!!.invokeOnCompletion { error ->
+            if (error is CancellationException) mutableState.update {
+                if (it.stage in setOf("DOWNLOADING", "EXTRACTING", "INITIALIZING", "INSTALLING_SOFTWARE")) it.copy(stage = "CANCELLED") else it
+            }
+        }
+        operation!!.start()
     }
     override suspend fun install() = begin("DOWNLOADING") {
         checkNotNull(installer).install { root -> run(root,

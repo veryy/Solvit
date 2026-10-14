@@ -54,6 +54,27 @@ class RootfsInstallation(private val directory: File, private val source: Rootfs
     private val status = MutableStateFlow(InstallationStatus(InstallationStage.IDLE))
     val state = status.asStateFlow()
     private val pointer get() = File(directory, "active")
+    private fun deleteTree(root: File) {
+        if (!Files.exists(root.toPath(), NOFOLLOW_LINKS)) return
+        Files.walk(root.toPath()).use { paths -> paths.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) } }
+    }
+    /** Discard only our interrupted candidates; never follow guest links or remove a ready root. */
+    private suspend fun recoverInterrupted() {
+        val active = activeRoot()
+        directory.listFiles().orEmpty().forEach { entry ->
+            currentCoroutineContext().ensureActive()
+            if (entry == active) return@forEach
+            when {
+                entry.name.matches(Regex("root-[a-f0-9-]{36}\\.(tar\\.xz|active)")) &&
+                    !Files.isDirectory(entry.toPath(), NOFOLLOW_LINKS) -> Files.deleteIfExists(entry.toPath())
+                entry.name.matches(Regex("root-[a-f0-9-]{36}")) -> {
+                    val marker = File(entry, ".solvit-ready").toPath()
+                    if (!Files.isDirectory(entry.toPath(), NOFOLLOW_LINKS) ||
+                        !Files.isRegularFile(marker, NOFOLLOW_LINKS) || Files.size(marker) != 64L) deleteTree(entry)
+                }
+            }
+        }
+    }
 
     /** Host use only; never serialize this private path to a plugin. */
     fun activeRoot(): File? {
@@ -74,6 +95,7 @@ class RootfsInstallation(private val directory: File, private val source: Rootfs
         withContext(Dispatchers.IO) {
             check(directory.isDirectory || directory.mkdirs()) { "无法创建 Linux 私有目录" }
             check(!Files.isSymbolicLink(directory.toPath()))
+            recoverInterrupted()
             val old = activeRoot()
             check(directory.usableSpace >= minimumFreeBytes) { "Linux 安装至少需要 ${minimumFreeBytes / (1024 * 1024)} MiB 可用空间" }
             val id = "root-${UUID.randomUUID()}"
@@ -112,11 +134,7 @@ class RootfsInstallation(private val directory: File, private val source: Rootfs
             } finally {
                 withContext(NonCancellable + Dispatchers.IO) {
                     Files.deleteIfExists(archive.toPath()); Files.deleteIfExists(next.toPath())
-                    if (!activated && Files.exists(root.toPath(), NOFOLLOW_LINKS)) {
-                        Files.walk(root.toPath()).use { paths ->
-                            paths.sorted(Comparator.reverseOrder()).forEach { Files.deleteIfExists(it) }
-                        }
-                    }
+                    if (!activated) deleteTree(root)
                 }
             }
         }

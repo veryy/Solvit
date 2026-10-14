@@ -2,6 +2,10 @@ package dev.solvit.linux
 
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancelAndJoin
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
 import org.junit.Test
@@ -13,6 +17,29 @@ import java.security.MessageDigest
 import kotlin.test.*
 
 class RootfsInstallationTest {
+    @Test fun actualCoroutineCancellationAndRestartRemoveOnlyInterruptedCandidate(): Unit = runBlocking {
+        val parent = Files.createTempDirectory("linux cancellation").toFile()
+        try {
+            val (fixture, source) = fixture(parent)
+            val directory = File(parent, "environments")
+            val installer = RootfsInstallation(directory, source, RootfsDownload { _, target, _ -> fixture.copyTo(target) }, 0)
+            val old = installer.install { File(it, "kept").writeText("old") }
+            val entered = CompletableDeferred<Unit>()
+            val pending = async { installer.install { entered.complete(Unit); awaitCancellation() } }
+            entered.await(); pending.cancelAndJoin()
+            assertEquals(old, installer.activeRoot()); assertEquals(InstallationStage.CANCELLED, installer.state.value.stage)
+            val incomplete = File(directory, "root-${java.util.UUID.randomUUID()}").apply { mkdir() }
+            val outside = File(parent, "outside").apply { mkdir(); resolve("kept").writeText("outside") }
+            Files.createSymbolicLink(File(incomplete, "escape").toPath(), outside.toPath())
+            val partialArchive = File(directory, "root-${java.util.UUID.randomUUID()}.tar.xz").apply { writeText("partial") }
+            val foreign = File(directory, "user-notes").apply { writeText("keep") }
+            val restarted = RootfsInstallation(directory, source, RootfsDownload { _, target, _ -> fixture.copyTo(target) }, 0)
+            restarted.install { }
+            assertFalse(incomplete.exists()); assertFalse(partialArchive.exists())
+            assertEquals("outside", File(outside, "kept").readText()); assertEquals("keep", foreign.readText())
+            assertEquals("old", File(old, "kept").readText())
+        } finally { parent.deleteRecursively() }
+    }
     private fun fixture(parent: File): Pair<File, RootfsSource> {
         val file = File(parent, "fixture.tar.xz")
         XZOutputStream(file.outputStream(), LZMA2Options()).use { xz ->
