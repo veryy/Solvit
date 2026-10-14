@@ -59,3 +59,5 @@ DocumentTextService增加读取事件Flow，Android宿主在文字提取/扫描�
 聊天入口570daeb/38581214299的build现已成功，verify-ui实际运行中；原图6acd29e/38581841892的build仍在运行。缓存403ad38已推送独立分支，防止取消上述原验证。
 
 原页预览6acd29e/38581841892的build已成功，完整下载unit artifact11904453734并核对ZIP CRC/XML为463单元零失败/错误/跳过；设备仍在运行。缓存403ad38/38583010493的build已成功，完整下载unit artifact11903609319并核对ZIP CRC/XML为465单元零失败/错误/跳过，包含DocumentSourceCacheTest两项；设备仍在运行。聊天入口570daeb/38581214299的build与verify-ui均成功，其设备报告与截图正在实际下载，尚未声称已查看截图或正式发布。
+
+聊天入口38581214299设备归档artifact11904314339已完整下载并核对ZIP CRC/XML：63设备零失败/错误/跳过。真实`PdfChatDeviceTest::pickerSelectedScanPreviewHttpRetryReopenAndEditPreserveTheSameSelection`运行21.493秒通过；实际查看pdf-chat-selected-scan.png，页面显示“共2页，本次读取第2至2页”、扫描识别标签和中英文2026内容，控件与系统底栏可见。HTTP夹具验证所选扫描内容进入请求、未选SHORT不进入、失败重试内容一致，重开/编辑分支保留范围及字节；不冒充真实模型答案或原图新版本的截图验收。
