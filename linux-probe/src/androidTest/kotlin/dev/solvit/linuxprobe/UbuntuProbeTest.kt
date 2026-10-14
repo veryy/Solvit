@@ -29,7 +29,7 @@ class UbuntuProbeTest {
         val native = File(context.applicationInfo.nativeLibraryDir)
         val log = File(context.filesDir,"ubuntu-probe.log")
         val command = listOf(File(native,"libsolvit_proot.so").absolutePath,
-            "-0", "-r", root.absolutePath, "-b", "/dev", "-b", "/proc", "-b", "/sys",
+            "-0", "--link2symlink", "-r", root.absolutePath, "-b", "/dev", "-b", "/proc", "-b", "/sys",
             "-b", "${workspace.absolutePath}:/workspace", "-w", "/workspace",
             "/usr/bin/env", "-i", "HOME=/root", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
             "TERM=xterm-256color", "LANG=C.UTF-8", "DEBIAN_FRONTEND=noninteractive", "/bin/bash", "-ec",
@@ -52,6 +52,7 @@ class UbuntuProbeTest {
         val child = ProcessBuilder(command).apply {
             environment()["PROOT_LOADER"] = File(native,"libsolvit_loader.so").absolutePath
             environment()["PROOT_TMP_DIR"] = context.cacheDir.absolutePath
+            environment()["PROOT_L2S_DIR"] = File(root,".l2s").apply { mkdirs() }.absolutePath
             environment().remove("PROOT_NO_SECCOMP")
             environment().remove("LD_LIBRARY_PATH")
             redirectErrorStream(true); redirectOutput(log)
