@@ -28,7 +28,7 @@ TransportHttp.java和HttpConfig.java；沿用已有依赖，不复制上游实�
 下一检查点加入原生GitCredentialVault：Android Keystore AES-GCM、每仓库AAD绑定、
 存储键为仓库地址摘要，宿主仅公开是否配置；borrow为每次传输创建独立凭据提供器。
 加解密临时字节/字符缓冲在finally清理，错误不包含密钥、密文或原输入异常。
-实际Keystore重开、移除保持其他仓库，以及跨仓库密文复制拒绝回归待远程验证。
+实际Keystore重开、移除保持其他仓库，以及跨仓库密文复制拒绝回归已通过下面的远程检查。
 尚未接到页面和传输，不表示克隆/推送已可用。
 
 1. 共享远程Git服务：归属当前对话/目录，明确仓库URL、远程名和分支；页面、AI调用同一服务，停用/关闭收回会话与网络任务。
@@ -44,3 +44,12 @@ TransportHttp.java和HttpConfig.java；沿用已有依赖，不复制上游实�
 - 实际QuickJS→授权→服务→仓库查询/写入，以及未授权、切换对话、撤权、旧审阅和隐藏参数拒绝。
 - 真实模型项目修改→执行→修复→验证→审阅提交与用户批准推送，确认本地和远程提交；此项仍需有效模型凭据及实际任务，不以机制测试替代。
 - 全部构建/测试用GitHub Actions；固定APK签名、覆盖安装保留配置和数据、旧市场目录兼容、公开APK与构建产物相同。及时提交、发布可用阶段，继续保留记忆/手机等完整范围。
+
+
+## 加密存储检查结果
+
+源0188d82的[实际Android检查38490062790](https://github.com/veryy/Solvit/actions/runs/38490062790)
+成功。API26产物11860954662与API35产物11861691375均下载、检查ZIP CRC/XML：
+各10项、零失败/错误/跳过，两项GitCredentialVaultTest与两项RepositoryCredentialsTest
+均执行通过。真实Android Keystore写入/重开/移除、密文跨仓库AAD拒绝已验证。
+仍未接通HTTP克隆/拉取/推送或插件页面；不以凭据测试当作远程Git完成。
