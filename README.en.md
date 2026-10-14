@@ -12,12 +12,12 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The latest public release is [0.31.1](https://github.com/veryy/Solvit/releases/tag/v0.31.1). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The latest public release is [0.32.0](https://github.com/veryy/Solvit/releases/tag/v0.32.0). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 
 - **Chat:** streamed text, collapsible reasoning, Markdown, conversation history, stop, queue, and interrupt. Tool details and permission requests appear inside the conversation. Retry the latest failed or stopped reply in the original bubble with its attachments preserved; earlier attempts stay collapsed.
-- **Attachments:** pick images, UTF-8 text, or code files; preview or remove them before sending, and reopen saved attachments with messages. Attachment-only sends, queueing, and interruption are supported. Vision requires a capable model. Up to 8 attachments and 20MiB per message; text files up to 256KiB each. PDF and other documents are not supported yet.
+- **Attachments:** pick images, UTF-8 text, or code files; preview or remove them before sending, and reopen saved attachments with messages. Editing an older question carries independent attachment copies into the new branch; removing a copy preserves the original. Attachment-only sends, queueing, and interruption are supported. Vision requires a capable model. Up to 8 attachments and 20MiB per message; text files up to 256KiB each. PDF and other documents are not supported yet.
 - **Personalization:** roles inherited by new conversations, plugin and Skills bindings, font size, text display speed, chat style, language, and theme. Multiple model connections, model discovery, error details, and encrypted configuration backup.
 - **Plugins:** install, enable, and disable JS/TS plugins. Plugins can ship offline HTML/JS pages; Android manages permissions, platform services, and resource cleanup. [Plugin API](docs/plugins.md)
 - **Search and memory:** default public web search with source links, local memory retrieval and relationship graphs, editing, deletion, and optional background saving. Public search can encounter network restrictions or challenges; real-model memory quality still needs validation.
@@ -31,10 +31,9 @@ The latest public release is [0.31.1](https://github.com/veryy/Solvit/releases/t
 
 Image, text, and code attachments are now available. Next priorities:
 
-1. Carry attachments when editing older messages and clean up unsent files.
-2. Read PDFs and other documents; connect workspace imports with chat and file previews.
-3. Recover interrupted Git clone installation and verify plugin operations with a real GitHub account.
-4. Validate roles, visible streaming, tool selection, and complete tasks with real models; improve plugins and memory.
+1. Read PDFs and other documents; connect workspace imports with chat and file previews.
+2. Recover interrupted Git clone installation and verify plugin operations with a real GitHub account.
+3. Validate roles, visible streaming, tool selection, and complete tasks with real models; improve plugins and memory.
 
 **Screen control is deferred.** Larger-file editing, AI Git writes, and autonomous project tasks remain on the [roadmap](docs/product-roadmap.md).
 
@@ -43,6 +42,8 @@ Image, text, and code attachments are now available. Next priorities:
 Text editing is limited to 256KiB UTF-8 and checks for external changes before saving. MCP currently supports HTTPS Streamable HTTP; OAuth, stdio, and full resource/prompt support are unfinished. JS plugins do not have process isolation.
 
 The Linux environment shares the Android kernel and app identity and grants no extra system permissions. ARM64/x86_64 binaries are included; Node24 officially targets kernel 4.18+. Older phones and ARM64 physical devices still need validation. QuickJS does not become Node, and local stdio MCP support remains unfinished.
+
+Unsent drafts and queued messages do not survive process death; startup cleans up their orphan attachment files. Saved attachments remain available. [Attachment release and verification](docs/release-0.32.0.md)
 
 Configuration backups include model connections, API keys, roles, prompts, language, and appearance, but exclude chats, plugin packages, plugin credentials, and memories. Keep backups outside the app. Conversation context is sent to your configured model service.
 

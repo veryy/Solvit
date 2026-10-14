@@ -10,14 +10,16 @@
 
 未发送输入框和等待队列仍不支持进程死亡恢复，重启后遗留文件会清理。已发送附件仍保存并可重开查看。PDF、工作区导入、全局存储配额仍待实现。Linux 环境延续0.31.1；ARM64真机及真实模型完整任务仍未验收。
 
-验证包含单元、实际Android附件编辑/预览/移除/HTTP字节检查、清理保留边界、完整界面、Lint、固定签名与覆盖升级。结果和公开文件摘要在正式门禁完成后补充；当前说明不替代构建证明。
+## 实际发布验证
 
-候选源码28df383的[38566195895第二轮](https://github.com/veryy/Solvit/actions/runs/38566195895)build/UI通过；已完整下载报告并核对452单元、59设备零失败/错误/跳过，实际截图确认移除后只保留图片卡片、文字和发送按钮可见。正式标签还须完成插件、公开搜索、生产Linux及完整应用发布门禁；此候选证据不替代正式发布结果。
+正式源码[f690c5f](https://github.com/veryy/Solvit/commit/f690c5f)，[Actions38569876572](https://github.com/veryy/Solvit/actions/runs/38569876572)的build、verify-ui、verify-plugins、verify-search、verify-linux和release六项全部成功。
 
-## 正式验证进度（尚未公开）
+实际完整下载正式unit artifact11897437426和UI artifact11898490585，ZIP CRC/XML核对452单元、59应用/Web/PTY设备测试，零失败/错误/跳过。真实Android用例覆盖编辑纯附件问题、独立副本、文件预览与触摸移除、实际HTTP文字/图片字节、原对话和重开附件保留；实际截图确认移除后只剩图片卡片，编辑文字与发送按钮完整。固定签名和旧版覆盖升级门禁通过。
 
-正式源码[f690c5f](https://github.com/veryy/Solvit/commit/f690c5f)，[Actions38569876572](https://github.com/veryy/Solvit/actions/runs/38569876572)的build、verify-plugins、verify-search、verify-linux成功；完整应用界面回归仍在运行，尚未公开APK。
+正式插件日志核对113 SDK、5市场测试零失败，线上HTTPS MCP/Skills成功；公开搜索日志确认中英文/版本查询正文和主引擎故障区域回退成功，模型回答引用未验收。生产Linux任务日志为3/3 API35 Android用例成功、零失败/跳过，严格设备日志门禁确认Python3.12.3、Node24.21.0/npm11.19.0及Java17，执行与共享PTY通过；本轮未下载完整Linux探针归档，不以日志宣称该归档完整校验。
 
-实际完整下载正式unit artifact11897437426，ZIP CRC/XML核对452单元，零失败/错误/跳过。下载正式插件任务日志核对113 SDK、5市场测试零失败，线上HTTPS MCP/Skills成功；独立公开搜索日志确认中英文/版本查询正文和主引擎故障区域回退成功，模型回答引用未验收。生产Linux任务日志为3/3 API35 Android用例成功、零失败/跳过，严格设备日志门禁确认Python3.12.3、Node24.21.0/npm11.19.0及Java17，执行与共享PTY通过；未在此下载完整Linux探针归档。
+公开APK实际下载后与正式artifact11897667310逐字节一致，25,296,932字节，SHA256 `4b396a4f60471df96695bf11c3287e5726fb8eecd665dfdf60950f086de72e58`，artifact和APK的ZIP CRC通过。正式apksigner核对固定证书SHA256 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。
 
-实际完整下载正式APK artifact11897667310，artifact/APK ZIP CRC通过，提取APK为25,296,932字节，SHA256 `4b396a4f60471df96695bf11c3287e5726fb8eecd665dfdf60950f086de72e58`。正式构建日志的apksigner核对固定证书SHA256 `f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。对应源码artifact11897546234及其中源码ZIP的CRC通过，源码ZIP为1,072,439字节，SHA256 `cf0d9767a71e8a52199f9039a86843fa9b14f4b539dce388733e235469359a8e`。这些是正式构建产物摘要，公开下载文件仍须发布后实际下载比较，不能提前冒称已核对公开文件。
+公开对应源码实际下载后与artifact11897546234内源码ZIP逐字节一致，1,072,439字节，SHA256 `cf0d9767a71e8a52199f9039a86843fa9b14f4b539dce388733e235469359a8e`；artifact/源码ZIP CRC均通过。
+
+[下载APK](https://github.com/veryy/Solvit/releases/download/v0.32.0/solvit-debug.apk) · [对应源码](https://github.com/veryy/Solvit/releases/download/v0.32.0/solvit-linux-sources.zip)。ARM64真机、真实模型完整任务及所有Linux/Node扩展兼容性仍未验收；不能把HTTP夹具及模拟器替代真实模型效果证明。
