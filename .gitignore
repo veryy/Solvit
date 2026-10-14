@@ -9,3 +9,5 @@ local.properties
 
 plugin-sdk/node_modules/
 .signing/
+/linux-probe/src/main/jniLibs/
+/linux-probe/build-inputs/

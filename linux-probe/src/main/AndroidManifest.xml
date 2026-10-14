@@ -1,0 +1,3 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:label="Solvit Linux compatibility probe" android:allowBackup="false" android:extractNativeLibs="true" />
+</manifest>
