@@ -53,8 +53,26 @@ sealed interface DocumentReadEvent {
     }
 }
 
+/** One bounded original page. PNG pixels are private data, never included in diagnostics. */
+class DocumentPagePreview(val attachmentId: String, val sha256: String, val page: Int,
+    val pageCount: Int, val width: Int, val height: Int, png: ByteArray) {
+    private val pixels = png.copyOf()
+    fun pngBytes(): ByteArray = pixels.copyOf()
+    init {
+        require(UUID.fromString(attachmentId).toString() == attachmentId)
+        require(sha256.matches(Regex("[0-9a-f]{64}")))
+        require(pageCount in 1..DocumentText.MAX_TOTAL_PAGES && page in 1..pageCount)
+        require(width in 1..1600 && height in 1..1600 && width.toLong() * height <= 2_000_000)
+        require(pixels.size in 8..MAX_PNG_BYTES && pixels.take(8) == listOf(137,80,78,71,13,10,26,10).map { it.toByte() })
+    }
+    override fun toString() = "DocumentPagePreview(page=$page, pageCount=$pageCount, pixels=<redacted>)"
+    companion object { const val MAX_PNG_BYTES = 8 * 1024 * 1024 }
+}
+
 /** The host resolves private attachment bytes. Callers never provide arbitrary paths or URLs. */
 interface DocumentTextService {
+    suspend fun previewPdfPage(sessionId: String, attachment: ChatAttachment, page: Int,
+        authorize: suspend () -> Unit = {}): DocumentPagePreview = throw ModelException("PDF原页预览未启用")
     suspend fun readPdf(sessionId: String, attachment: ChatAttachment,
         authorize: suspend () -> Unit = {}): DocumentText
     fun readPdfEvents(sessionId: String, attachment: ChatAttachment,

@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit
 
 class PdfChatDeviceTest {
     @get:Rule val rule=createAndroidComposeRule<MainActivity>()
-    private fun screenshot() {
+    private fun screenshot(name:String="pdf-chat-selected-scan") {
         rule.waitForIdle()
         runBlocking {
             val frame=CompletableDeferred<Unit>()
@@ -53,7 +53,7 @@ class PdfChatDeviceTest {
         }
         val automation=InstrumentationRegistry.getInstrumentation().uiAutomation
         android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
-        android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/pdf-chat-selected-scan.png")).use { it.readBytes() }
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
     @Test fun pickerSelectedScanPreviewHttpRetryReopenAndEditPreserveTheSameSelection() {
         val app=rule.activity.application as SolvitApplication
@@ -129,6 +129,11 @@ class PdfChatDeviceTest {
             val scan=rule.onNodeWithTag("pdf_text_2").fetchSemanticsNode().config[SemanticsProperties.Text].joinToString("") { it.text }.replace(Regex("\\s"),"")
             assertTrue(scan.contains("扫描测试") && scan.contains("2026"));assertEquals(0,server.requestCount)
             screenshot()
+            rule.onNodeWithTag("pdf_original_2").performScrollTo().performClick()
+            rule.waitUntil(30_000) { rule.onAllNodesWithTag("pdf_original_image").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("pdf_original_image").assertIsDisplayed()
+            screenshot("pdf-chat-original-scan")
+            rule.onNodeWithTag("pdf_original_close").performClick()
             rule.onNodeWithTag("attachment_preview_close").performClick()
             rule.onNode(hasSetTextAction()).performTextInput("read selected page")
             rule.onNodeWithTag("chat_send").performClick()

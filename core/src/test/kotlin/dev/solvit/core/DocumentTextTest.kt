@@ -49,4 +49,16 @@ class DocumentTextTest {
         assertNotEquals(contextPrefixDigest(listOf(message)), contextPrefixDigest(listOf(message.copy(
             attachments=listOf(attachment.copy(documentSelection=DocumentSelection(101,139,selection.ocrScript)))))))
     }
+    @Test fun originalPagePixelsAreBoundedDefensiveAndRedacted() {
+        val source=byteArrayOf(137.toByte(),80,78,71,13,10,26,10)
+        val preview=DocumentPagePreview(id,hash,2,3,1600,1000,source)
+        source[0]=0
+        val returned=preview.pngBytes();assertEquals(137.toByte(),returned[0]);returned[0]=0
+        assertEquals(137.toByte(),preview.pngBytes()[0])
+        assertFalse(preview.toString().contains(hash))
+        assertFailsWith<IllegalArgumentException> { DocumentPagePreview(id,hash,4,3,100,100,preview.pngBytes()) }
+        assertFailsWith<IllegalArgumentException> { DocumentPagePreview(id,hash,1,3,1600,1600,preview.pngBytes()) }
+        assertFailsWith<IllegalArgumentException> { DocumentPagePreview(id,hash,1,3,100,100,ByteArray(9)) }
+    }
+
 }

@@ -5318,5 +5318,45 @@
     "ko": "텍스트 없음",
     "es": "Sin texto",
     "fr": "Aucun texte"
+  },
+  "查看原始页面": {
+    "zh": "查看原始页面",
+    "en": "View original page",
+    "ja": "原ページを表示",
+    "ko": "원본 페이지 보기",
+    "es": "Ver página original",
+    "fr": "Voir la page originale"
+  },
+  "原始页面 · 第{0}页": {
+    "zh": "原始页面 · 第{0}页",
+    "en": "Original · Page {0}",
+    "ja": "原文 · ページ{0}",
+    "ko": "원본 · {0}페이지",
+    "es": "Original · Página {0}",
+    "fr": "Original · Page {0}"
+  },
+  "PDF原始页面": {
+    "zh": "PDF原始页面",
+    "en": "Original PDF page",
+    "ja": "PDFの原ページ",
+    "ko": "PDF 원본 페이지",
+    "es": "Página PDF original",
+    "fr": "Page PDF originale"
+  },
+  "PDF原页预览失败": {
+    "zh": "PDF原页预览失败",
+    "en": "Could not preview original PDF page",
+    "ja": "PDF原ページを表示できません",
+    "ko": "PDF 원본 페이지를 표시할 수 없습니다",
+    "es": "No se pudo mostrar la página PDF original",
+    "fr": "Impossible d’afficher la page PDF originale"
+  },
+  "PDF预览页超出选取范围": {
+    "zh": "PDF预览页超出选取范围",
+    "en": "Preview page is outside the selected range",
+    "ja": "プレビューページが選択範囲外です",
+    "ko": "미리보기 페이지가 선택 범위 밖입니다",
+    "es": "La página está fuera del rango seleccionado",
+    "fr": "La page est hors de la plage sélectionnée"
   }
 }

@@ -1,5 +1,6 @@
 package dev.solvit.app
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,6 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.window.Dialog
+import android.graphics.BitmapFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import dev.solvit.core.*
 import kotlinx.coroutines.CancellationException
 
@@ -22,6 +29,7 @@ internal fun PdfAttachmentPreview(vm: ChatViewModel, session: String, attachment
     var first by remember(session,attachment.id) { mutableStateOf(initial.firstPage.toString()) }
     var last by remember(session,attachment.id) { mutableStateOf(initial.lastPage?.toString().orEmpty()) }
     var script by remember(session,attachment.id) { mutableStateOf(initial.ocrScript) }
+    var originalPage by remember(session, attachment.id) { mutableStateOf<Int?>(null) }
     var settingsOpen by remember { mutableStateOf(false) }
     var languageMenu by remember { mutableStateOf(false) }
     var readingEnabled by remember { mutableStateOf(true) }
@@ -99,10 +107,48 @@ internal fun PdfAttachmentPreview(vm: ChatViewModel, session: String, attachment
                         DocumentPageMethod.OCR->"扫描识别"
                         DocumentPageMethod.EMPTY->"无文字"
                     })}",style=MaterialTheme.typography.labelMedium)
+                    TextButton(onClick={ originalPage=page.number },modifier=Modifier.testTag("pdf_original_${page.number}")) { UiText("查看原始页面") }
                     SelectionContainer { Text(page.text,modifier=Modifier.fillMaxWidth().testTag("pdf_text_${page.number}"),style=MaterialTheme.typography.bodyMedium) }
                 }
             }
         } }
+    }
+    originalPage?.let { number -> PdfOriginalPage(vm,session,current,number) { originalPage=null } }
+}
+
+/** Holds one rendered page only; closing or changing the source cancels the read. */
+@Composable
+private fun PdfOriginalPage(vm:ChatViewModel,session:String,attachment:ChatAttachment,page:Int,onClose:()->Unit) {
+    var image by remember(session,attachment,page) { mutableStateOf<ImageBitmap?>(null) }
+    var problem by remember(session,attachment,page) { mutableStateOf<String?>(null) }
+    LaunchedEffect(session,attachment,page) {
+        try {
+            val preview=vm.previewDocumentPage(session,attachment,page)
+            image=withContext(Dispatchers.IO) {
+                val bytes=preview.pngBytes()
+                try {
+                    val bounds=BitmapFactory.Options().apply { inJustDecodeBounds=true }
+                    BitmapFactory.decodeByteArray(bytes,0,bytes.size,bounds)
+                    check(bounds.outWidth==preview.width && bounds.outHeight==preview.height) { "PDF预览图尺寸不一致" }
+                    val bitmap=checkNotNull(BitmapFactory.decodeByteArray(bytes,0,bytes.size)) { "PDF原页预览失败" }
+                    bitmap.asImageBitmap()
+                } finally { bytes.fill(0) }
+            }
+        } catch(cancelled:CancellationException) { throw cancelled }
+        catch(failure:Exception) { problem=failure.message?.take(240) ?: "PDF原页预览失败" }
+    }
+    Dialog(onDismissRequest=onClose) {
+        Surface(shape=MaterialTheme.shapes.large) {
+            Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+                UiText("原始页面 · 第${page}页",style=MaterialTheme.typography.titleMedium)
+                val pixels=image
+                if(pixels!=null) Image(pixels,contentDescription=uiString("PDF原始页面"),modifier=Modifier.fillMaxWidth()
+                    .heightIn(max=420.dp).aspectRatio(pixels.width.toFloat()/pixels.height).testTag("pdf_original_image"))
+                else if(problem==null) LinearProgressIndicator(Modifier.fillMaxWidth())
+                problem?.let { UiText(it,color=MaterialTheme.colorScheme.error) }
+                TextButton(onClick=onClose,modifier=Modifier.testTag("pdf_original_close")) { UiText("关闭") }
+            }
+        }
     }
 }
 

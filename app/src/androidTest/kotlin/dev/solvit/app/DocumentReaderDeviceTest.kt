@@ -87,6 +87,17 @@ class DocumentReaderDeviceTest {
             assertEquals(2,selectedResult.pageCount)
             assertTrue(events.filterIsInstance<DocumentReadEvent.Progress>().all { it.page == 2 && it.firstPage == 2 && it.lastPage == 2 })
             assertTrue(events.filterIsInstance<DocumentReadEvent.Progress>().any { it.method == DocumentPageMethod.OCR })
+            val preview=AndroidDocumentTextService(app,app.attachments).previewPdfPage(session,selected,2)
+            assertEquals(2,preview.page);assertEquals(2,preview.pageCount)
+            val encoded=preview.pngBytes()
+            val rendered=checkNotNull(android.graphics.BitmapFactory.decodeByteArray(encoded,0,encoded.size))
+            try {
+                assertEquals(preview.width,rendered.width);assertEquals(preview.height,rendered.height)
+                val pixels=IntArray(rendered.width*rendered.height);rendered.getPixels(pixels,0,rendered.width,0,0,rendered.width,rendered.height)
+                assertTrue("original scan was blank",pixels.count { Color.red(it)<80 && Color.green(it)<80 && Color.blue(it)<80 }>100)
+            } finally { rendered.recycle() }
+            try { AndroidDocumentTextService(app,app.attachments).previewPdfPage(session,selected,1);fail("preview escaped selected range") }
+            catch(expected:IllegalArgumentException) { assertTrue(expected.message!!.isNotBlank()) }
             assertNoTemporarySources(app)
         } finally { chat.deleteSession(session) }
     }

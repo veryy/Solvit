@@ -93,6 +93,14 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
             check(selected.value == session) { "对话已改变" }
         })
     }
+    suspend fun previewDocumentPage(session: String, attachment: ChatAttachment, page: Int): DocumentPagePreview {
+        check(selected.value == session) { "对话已改变" }
+        val preview = (documentText ?: error("PDF读取服务未启用")).previewPdfPage(session, attachment, page) {
+            check(selected.value == session) { "对话已改变" }
+        }
+        check(selected.value == session && preview.attachmentId == attachment.id && preview.sha256 == attachment.sha256 && preview.page == page) { "PDF预览内容与附件不一致" }
+        return preview
+    }
     fun setDocumentSelection(session: String, id: String, selection: DocumentSelection): ChatAttachment {
         check(selected.value == session && !switching.value && !branching.value && !importingAttachment.value) { "附件选择已失效" }
         val current=attachmentDrafts.value[session].orEmpty()

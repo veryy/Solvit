@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
+import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 import java.io.File
 import java.io.IOException
 import java.io.Writer
@@ -54,8 +56,8 @@ class AndroidDocumentTextService(context: Context, private val attachments: Chat
         send(DocumentReadEvent.Complete(document))
     }
 
-    private suspend fun read(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit,
-        progress: (DocumentReadEvent.Progress) -> Unit): DocumentText = reads.withLock {
+    private suspend fun <T> withSource(sessionId: String, attachment: ChatAttachment,
+        authorize: suspend () -> Unit, action: suspend (File, File) -> T): T = reads.withLock {
         withContext(Dispatchers.IO) {
             require(attachment.mimeType == "application/pdf") { "文档读取仅支持PDF" }
             authorize(); currentCoroutineContext().ensureActive()
@@ -73,54 +75,96 @@ class AndroidDocumentTextService(context: Context, private val attachments: Chat
                     source.outputStream().use { it.write(bytes) }
                 } finally { bytes.fill(0) }
                 authorize(); currentCoroutineContext().ensureActive()
-                val memory = MemoryUsageSetting.setupMixed(8L * 1024 * 1024, 64L * 1024 * 1024).setTempDir(directory)
-                PDDocument.load(source, memory).use { document ->
-                    if (document.isEncrypted) throw ModelException("PDF受密码保护，请先导出未加密副本")
-                    if (!document.currentAccessPermission.canExtractContent()) throw ModelException("PDF禁止文字提取，请使用允许读取的副本")
-                    val count = document.numberOfPages
-                    if (count !in 1..DocumentText.MAX_TOTAL_PAGES) throw ModelException("PDF为空或超过5000页文件限制")
-                    val selection = attachment.documentSelection ?: DocumentSelection(ocrScript=script)
-                    val first = selection.firstPage
-                    val last = selection.lastPage ?: count
-                    if (first > count || last > count || last - first >= DocumentText.MAX_PAGES)
-                        throw ModelException("PDF选取范围超出文件或超过40页，请调整读取页范围")
-                    val pages = mutableListOf<DocumentTextPage>()
-                    var total = 0
-                    var renderer: PdfRenderer? = null
-                    var descriptor: ParcelFileDescriptor? = null
-                    try {
-                        for (number in first..last) {
-                            authorize(); currentCoroutineContext().ensureActive()
-                            progress(DocumentReadEvent.Progress(number, count, first, last))
-                            val writer = BoundedTextWriter(DocumentText.MAX_TEXT_BYTES - total)
-                            PDFTextStripper().apply { startPage=number; endPage=number; sortByPosition=true }.writeText(document, writer)
-                            var text = writer.value().trim()
-                            var method = DocumentPageMethod.TEXT
-                            // Short text is valid; OCR is per empty page, including mixed documents.
-                            if (text.isBlank()) {
-                                if (renderer == null) {
-                                    descriptor = ParcelFileDescriptor.open(source, ParcelFileDescriptor.MODE_READ_ONLY)
-                                    renderer = PdfRenderer(checkNotNull(descriptor))
-                                    check(renderer.pageCount == count) { "PDF页面读取结果不一致" }
-                                }
-                                progress(DocumentReadEvent.Progress(number, count, first, last, DocumentPageMethod.OCR))
-                                text = renderAndRecognize(checkNotNull(renderer), number - 1, selection.ocrScript).trim()
-                                method = if (text.isBlank()) DocumentPageMethod.EMPTY else DocumentPageMethod.OCR
-                            }
-                            currentCoroutineContext().ensureActive(); authorize()
-                            total += text.toByteArray(Charsets.UTF_8).size
-                            if (total > DocumentText.MAX_TEXT_BYTES) throw ModelException("PDF文字超过256KiB读取限制，请选择或拆分需要的页面")
-                            pages += DocumentTextPage(number, text, method)
-                            progress(DocumentReadEvent.Progress(number, count, first, last, method))
-                        }
-                    } finally { renderer?.close(); descriptor?.close() }
-                    DocumentText(attachment.id, attachment.sha256, count, pages, first, last, selection.ocrScript)
-                }
+                action(directory, source)
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (_: InvalidPasswordException) { throw ModelException("PDF受密码保护，请先导出未加密副本") }
             catch (failure: ModelException) { throw failure }
             catch (_: IOException) { throw ModelException("PDF损坏或无法读取，请检查原文件") }
             finally { directory.deleteRecursively() }
+        }
+    }
+
+    private suspend fun read(sessionId: String, attachment: ChatAttachment, authorize: suspend () -> Unit,
+        progress: (DocumentReadEvent.Progress) -> Unit): DocumentText = withSource(sessionId, attachment, authorize) { directory, source ->
+        val memory = MemoryUsageSetting.setupMixed(8L * 1024 * 1024, 64L * 1024 * 1024).setTempDir(directory)
+        PDDocument.load(source, memory).use { document ->
+            if (document.isEncrypted) throw ModelException("PDF受密码保护，请先导出未加密副本")
+            if (!document.currentAccessPermission.canExtractContent()) throw ModelException("PDF禁止文字提取，请使用允许读取的副本")
+            val count = document.numberOfPages
+            if (count !in 1..DocumentText.MAX_TOTAL_PAGES) throw ModelException("PDF为空或超过5000页文件限制")
+            val selection = attachment.documentSelection ?: DocumentSelection(ocrScript=script)
+            val first = selection.firstPage
+            val last = selection.lastPage ?: count
+            if (first > count || last > count || last - first >= DocumentText.MAX_PAGES)
+                throw ModelException("PDF选取范围超出文件或超过40页，请调整读取页范围")
+            val pages = mutableListOf<DocumentTextPage>()
+            var total = 0
+            var renderer: PdfRenderer? = null
+            var descriptor: ParcelFileDescriptor? = null
+            try {
+                for (number in first..last) {
+                    authorize(); currentCoroutineContext().ensureActive()
+                    progress(DocumentReadEvent.Progress(number, count, first, last))
+                    val writer = BoundedTextWriter(DocumentText.MAX_TEXT_BYTES - total)
+                    PDFTextStripper().apply { startPage=number; endPage=number; sortByPosition=true }.writeText(document, writer)
+                    var text = writer.value().trim()
+                    var method = DocumentPageMethod.TEXT
+                    // Short text is valid; OCR is per empty page, including mixed documents.
+                    if (text.isBlank()) {
+                        if (renderer == null) {
+                            descriptor = ParcelFileDescriptor.open(source, ParcelFileDescriptor.MODE_READ_ONLY)
+                            renderer = PdfRenderer(checkNotNull(descriptor))
+                            check(renderer.pageCount == count) { "PDF页面读取结果不一致" }
+                        }
+                        progress(DocumentReadEvent.Progress(number, count, first, last, DocumentPageMethod.OCR))
+                        text = renderAndRecognize(checkNotNull(renderer), number - 1, selection.ocrScript).trim()
+                        method = if (text.isBlank()) DocumentPageMethod.EMPTY else DocumentPageMethod.OCR
+                    }
+                    currentCoroutineContext().ensureActive(); authorize()
+                    total += text.toByteArray(Charsets.UTF_8).size
+                    if (total > DocumentText.MAX_TEXT_BYTES) throw ModelException("PDF文字超过256KiB读取限制，请选择或拆分需要的页面")
+                    pages += DocumentTextPage(number, text, method)
+                    progress(DocumentReadEvent.Progress(number, count, first, last, method))
+                }
+            } finally { renderer?.close(); descriptor?.close() }
+            DocumentText(attachment.id, attachment.sha256, count, pages, first, last, selection.ocrScript)
+        }    }
+
+    override suspend fun previewPdfPage(sessionId: String, attachment: ChatAttachment, page: Int,
+        authorize: suspend () -> Unit): DocumentPagePreview = withSource(sessionId, attachment, authorize) { directory, source ->
+        val count = PDDocument.load(source, MemoryUsageSetting.setupMixed(8L * 1024 * 1024, 64L * 1024 * 1024).setTempDir(directory)).use { document ->
+            if (document.isEncrypted) throw ModelException("PDF受密码保护，请先导出未加密副本")
+            if (!document.currentAccessPermission.canExtractContent()) throw ModelException("PDF禁止文字提取，请使用允许读取的副本")
+            document.numberOfPages
+        }
+        val selection = attachment.documentSelection ?: DocumentSelection(ocrScript=script)
+        require(count in 1..DocumentText.MAX_TOTAL_PAGES && page in selection.firstPage..(selection.lastPage ?: count) && page <= count) { "PDF预览页超出选取范围" }
+        authorize(); currentCoroutineContext().ensureActive()
+        ParcelFileDescriptor.open(source, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+            PdfRenderer(descriptor).use { renderer ->
+                check(renderer.pageCount == count) { "PDF页面读取结果不一致" }
+                renderer.openPage(page - 1).use { original ->
+                    require(original.width in 1..100_000 && original.height in 1..100_000) { "PDF页面尺寸无效" }
+                    val scale = min(1600.0 / max(original.width, original.height), sqrt(2_000_000.0 / (original.width.toDouble() * original.height)))
+                    val bitmap = Bitmap.createBitmap(max(1,(original.width * scale).toInt()),max(1,(original.height * scale).toInt()),Bitmap.Config.ARGB_8888)
+                    try {
+                        bitmap.eraseColor(Color.WHITE)
+                        original.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        currentCoroutineContext().ensureActive(); authorize()
+                        val output = ByteArrayOutputStream()
+                        val bounded = object : OutputStream() {
+                            override fun write(value: Int) { require(output.size() < DocumentPagePreview.MAX_PNG_BYTES) { "PDF预览图超过容量限制" }; output.write(value) }
+                            override fun write(bytes: ByteArray, offset: Int, length: Int) {
+                                require(length <= DocumentPagePreview.MAX_PNG_BYTES - output.size()) { "PDF预览图超过容量限制" }
+                                output.write(bytes,offset,length)
+                            }
+                        }
+                        check(bitmap.compress(Bitmap.CompressFormat.PNG,100,bounded)) { "PDF原页预览失败" }
+                        currentCoroutineContext().ensureActive(); authorize()
+                        DocumentPagePreview(attachment.id,attachment.sha256,page,count,bitmap.width,bitmap.height,output.toByteArray())
+                    } finally { bitmap.recycle() }
+                }
+            }
         }
     }
 
