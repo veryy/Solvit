@@ -70,3 +70,5 @@
 源 cfd0102，[38532078640](https://github.com/veryy/Solvit/actions/runs/38532078640) 全部通过：4 个安装边界单元用例、2 个 API35 Android 用例，零失败/错误/跳过。artifact11878393901 的报告成员已实际下载，逐个核对 ZIP 成员 CRC、XML 与设备 logcat；本轮未下载完整诊断 APK 归档，不宣称整体 ZIP 校验。设备日志和版本文件一致：Python 3.12.3、Node v18.19.1、npm 9.2.0。Python/Node 写工作区文件、venv、普通 Android UID 实测通过。ARM64 仅编译通过，尚未真机执行。
 
 公开版本仍为 0.30.2；此证明属于底层兼容性，不代表产品的环境安装、取消恢复、软件管理或 AI/PTY 环境绑定已交付。下一步将同一启动配置提取为共享运行时，并接入按需安装和插件页面。
+
+共享运行时新增 LinuxLaunch 与 RootfsInstallation：命令/交互终端复用同一工作区映射和 PRoot 环境变量；安装目录在初始化前就固定，完成后只原子切换 active 指针。失败、取消保留旧环境；下载、校验、解包、初始化状态经 Flow 提供，私有路径只给可信宿主。新增4个事务/启动边界用例，Ubuntu Android探针改用这两个生产模块，仍执行完整 apt/Python/Node/venv 断言；等待本轮远程结果。产品接入尚未完成。
