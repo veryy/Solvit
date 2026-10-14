@@ -12,12 +12,12 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The latest public release is [0.32.0](https://github.com/veryy/Solvit/releases/tag/v0.32.0). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The latest public release is [0.33.1](https://github.com/veryy/Solvit/releases/tag/v0.33.1). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 
 - **Chat:** streamed text, collapsible reasoning, Markdown, conversation history, stop, queue, and interrupt. Tool details and permission requests appear inside the conversation. Retry the latest failed or stopped reply in the original bubble with its attachments preserved; earlier attempts stay collapsed.
-- **Attachments:** pick images, UTF-8 text, or code files; preview or remove them before sending, and reopen saved attachments with messages. Editing an older question carries independent attachment copies into the new branch; removing a copy preserves the original. Attachment-only sends, queueing, and interruption are supported. Vision requires a capable model. Up to 8 attachments and 20MiB per message; text files up to 256KiB each. PDF and other documents are not supported yet.
+- **Attachments:** pick images, UTF-8 text, or code files; preview or remove them before sending, and reopen saved attachments with messages. Editing an older question carries independent attachment copies into the new branch; removing a copy preserves the original. Attachment-only sends, queueing, and interruption are supported. Vision requires a capable model. Up to 8 attachments and 20MiB per message; text files up to 256KiB each. PDFs support text extraction, offline Chinese/Japanese/Korean/Latin OCR, selection of up to 40 pages, and original-page previews, with extracted text capped at 256KiB. [PDF guide](docs/release-0.33.1.md)
 - **Personalization:** roles inherited by new conversations, plugin and Skills bindings, font size, text display speed, chat style, language, and theme. Multiple model connections, model discovery, error details, and encrypted configuration backup.
 - **Plugins:** install, enable, and disable JS/TS plugins. Plugins can ship offline HTML/JS pages; Android manages permissions, platform services, and resource cleanup. [Plugin API](docs/plugins.md)
 - **Search and memory:** default public web search with source links, local memory retrieval and relationship graphs, editing, deletion, and optional background saving. Public search can encounter network restrictions or challenges; real-model memory quality still needs validation.
@@ -31,7 +31,7 @@ The latest public release is [0.32.0](https://github.com/veryy/Solvit/releases/t
 
 Image, text, and code attachments are now available. Next priorities:
 
-1. Read PDFs and other documents; connect workspace imports with chat and file previews.
+1. Workspace file import, plugin document access, and connections between chat and file previews.
 2. Recover interrupted Git clone installation and verify plugin operations with a real GitHub account.
 3. Validate roles, visible streaming, tool selection, and complete tasks with real models; improve plugins and memory.
 
@@ -47,7 +47,7 @@ Unsent drafts and queued messages do not survive process death; startup cleans u
 
 Configuration backups include model connections, API keys, roles, prompts, language, and appearance, but exclude chats, plugin packages, plugin credentials, and memories. Keep backups outside the app. Conversation context is sent to your configured model service.
 
-The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38555594514) passed remote build, tests, lint, signing, and upgrade gates; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.31.1.md)
+The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38592485019) passed remote build, tests, lint, signing, and upgrade gates; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.33.1.md)
 
 ## Development
 

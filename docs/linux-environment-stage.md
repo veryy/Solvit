@@ -120,3 +120,6 @@ Node v24.21.0 官方BUILDING.md对Linux ARM64/x64的支持基线为kernel>=4.18�
 修复源74b36ae的[Linux38589013597](https://github.com/veryy/Solvit/actions/runs/38589013597)已成功；完整任务日志已下载，原生产环境完整回归3/3设备通过。严格设备报告版本门禁输出生产Python3.12.3、Node v24.21.0、npm11.19.0与Java17检查成功；原先READY后立即安装Java路径未改变，现可成功。该轮完整35MB探针归档尚未下载，不宣称其ZIP CRC/XML已核对。Android38588850320的build成功，verify-ui仍运行；正式0.33.1尚待发布。修复仅join终态旧Job，不依赖增加睡眠、重试或放宽原断言。
 
 74b36ae候选Android38588850320的unit/UI归档已完整下载并通过ZIP CRC/XML：465单元/63设备零失败/错误/跳过。实际原始扫描页截图检查正文和关闭按钮完整。完整Linux生产回归与候选应用门禁已通过，准备FF合入main及不可变v0.33.1标签，正式门禁/产物核对仍待执行。
+
+
+0.33.1正式发布已完成：[Actions38592485019](https://github.com/veryy/Solvit/actions/runs/38592485019)六项成功。Linux完整任务日志核对原3个Android用例通过、Python3.12.3、Node24.21.0/npm11.19.0和Java17严格门禁成功，安装READY后立即追加Java的原路径通过。正式APK与对应源码已从公开Release实际下载，与Actions产物逐字节一致并通过ZIP CRC；摘要见[0.33.1正式记录](release-0.33.1.md#正式发布与实际下载核对)。ARM64真机、真实模型开发任务、stdio MCP边界不变。
