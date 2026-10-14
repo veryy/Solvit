@@ -4,13 +4,13 @@
 
 “聊天 → 工作区”提供‘Shell’和‘工作目录’两个标签，可查看实际目录、浏览子目录并编辑文本文件。每条命令从对应工作区根目录启动，默认以应用 UID 执行，可选择普通命令或交互终端。Shell ID、工作区和对话绑定跨重启保存；运行任务与输出当前仅在进程生命周期内保留，进程关闭后不会恢复任务。
 
-“普通命令”每次启动独立进程；`cd` 和环境变量只影响本条命令。“交互终端”使用真实 PTY，在同一进程内保留目录、环境和交互提示；API13候选使用插件离线HTML/JS与xterm.js绘制终端。直接键盘输入为原始字符，底部便捷命令输入追加换行；Ctrl-C中断前台命令，关闭终端结束会话。同对话AI终端可在列表中选择，须经过原生确认才可查看与输入；跨对话不允许，即使共享工作区。关闭页面不等于关闭手动PTY。
+“普通命令”每次启动独立进程；`cd` 和环境变量只影响本条命令。“交互终端”使用真实 PTY，在同一进程内保留目录、环境和交互提示；交互页面使用插件离线HTML/JS与xterm.js绘制终端。直接键盘输入为原始字符，底部便捷命令输入追加换行；Ctrl-C中断前台命令，关闭终端结束会话。同对话AI终端可在列表中选择，须经过原生确认才可查看与输入；跨对话不允许，即使共享工作区。关闭页面不等于关闭手动PTY。
 
 新增 `terminal-android` Kotlin 宿主插件 `builtin.pty`，提供可替换 `TerminalService`。API 5 的独立 JS/TS 插件 `dev.solvit.terminal` 提供 `terminal_open/status/input/interrupt/close` 工具；先用工作区插件获得 Shell ID。模型发送的输入是原始文本，执行命令或回答提示时须自行追加换行，然后轮询状态读取输出。
 
 PTY 按插件、角色、工作区、Shell 和执行身份隔离。同一个名字的 Shell 可以有不同插件拥有的进程；插件页面显示会话来源。最多 8 个活动终端、16 条历史，每个保留最近 65536 个字符。进程不会跨重启恢复；同一会话内的目录和环境保留，重新打开关闭过的终端会创建新进程。取消本轮 Agent 执行会关闭本轮使用的终端；停用插件、执行身份变化会关闭该插件终端。
 
-当前 PTY 使用普通应用身份，Root 模式会明确拒绝 PTY 启动，可切回普通模式或使用原有 Root 非交互命令。尚无 Root PTY、Shizuku、Linux 发行版和 SSH/SFTP；交互界面使用xterm.js处理VT屏幕与原始按键，但vim/top等全屏TUI、真机输入法和Root环境尚未验收。
+当前 PTY 使用普通应用身份，Root 模式会明确拒绝 PTY 启动，可切回普通模式或使用原有 Root 非交互命令。尚无 Root PTY、Shizuku和 SSH/SFTP；PRoot/Ubuntu发行版已在0.31.1交付，见下方安装说明；交互界面使用xterm.js处理VT屏幕与原始按键，但vim/top等全屏TUI、真机输入法和Root环境尚未验收。
 
 `workspace-android` 是注册 `WorkspaceService` 的 Kotlin 宿主插件，负责本机文件与子进程能力。工具逻辑在 `dev.solvit.workspace` JS/TS 插件中。启用“工作区与 Shell”并授予权限后，AI 可发现当前工作区、读取/写入文本、创建 Shell 会话、启动命令、轮询输出与停止任务。
 
@@ -26,14 +26,23 @@ PTY 按插件、角色、工作区、Shell 和执行身份隔离。同一个名�
 
 Root 可以操作整个设备；普通文件 API 仍限定在工作区内。不同 Root 管理器与真机尚未验证。Shizuku、无障碍和其他设备操作接口仍待接入。
 
-工作区概念参考 [VS Code](https://code.visualstudio.com/docs/editing/workspaces/workspaces)：目录与运行上下文。终端会话接口参考 [Operit Terminal](https://github.com/AAswordman/OperitTerminal)；PTY 实现为独立编写的 POSIX/JNI 后端，未复制其代码。目前尚未提供其 Ubuntu 环境。
+工作区概念参考 [VS Code](https://code.visualstudio.com/docs/editing/workspaces/workspaces)：目录与运行上下文。终端会话接口参考 [Operit Terminal](https://github.com/AAswordman/OperitTerminal)；PTY 实现为独立编写的 POSIX/JNI 后端，未复制其代码。Ubuntu环境已按其PRoot用户空间思路独立适配，参考版本、许可证和实际执行证据见[环境阶段](linux-environment-stage.md)。
 
 API13离线终端包1.1.0与APK一致，API5–12市场继续提供原始1.0.0。仅字节匹配的旧内置包自动升级并保留启用与授权；修改包和卸载状态不覆盖。接口见[插件终端页面](plugin-terminal-pages.md)，验证与未完成范围见[0.22.3候选](release-0.22.3.md)。
 
-## Linux 开发环境（0.31 候选）
+## Linux 开发环境（已在0.31.1发布）
 
 打开「工作区 → Linux」下载 Ubuntu。安装结束后点「新建 Ubuntu Shell」，该 Shell 会持久保存 `UBUNTU` 运行环境。Python/venv、Node24/npm 随基础安装提供，Python/pip 和 Java17 可以继续安装。新建的 Ubuntu Shell 与 Android Shell 使用同一个工作目录；终端和 AI 命令都映射到 `/workspace`，文件管理立即看到脚本输出的文件。
 
 没有工作区时也能安装全局环境，但必须先创建/绑定工作区才能添加 Ubuntu Shell。原有 Android Shell 不自动改名或切换运行环境。Linux 页面提供进度、近期日志、停止和重试；失败的初次安装保持未安装，重装失败保留已启用环境。
 
 该环境使用 Android 内核和应用身份，不获得 root 或额外 Android 权限。当前 ARM64/x86_64 提供程序，API35 x86_64 设备测试与 ARM64 真机状态请看 [验收记录](linux-environment-stage.md)。Node24 的官方 Linux 支持基线为内核4.18以上；旧手机的兼容性须实际验证。公开版本与下载以 Release 为准。
+
+
+## 文件导入与预览（0.34.0正式门禁进行中）
+
+当前公开0.33.1尚无本入口；0.34.0的正式APK与下载核对见[发布记录](release-0.34.0.md)。升级后打开「工作区 → 文件 → 导入文件」，选择一个最多20MiB的文件，先查看名称、类型、大小与目标位置，再点确认导入。需要写入子目录时先创建目录；路径必须位于当前工作区内。同名文件会提示冲突，返回改名重试即可，不会自动覆盖原文件。
+
+文本/代码可以预览UTF-8正文，超限或二进制明确提示。图片可按需生成缩略图，PNG/JPEG/WebP/GIF支持、动图只看首帧；缩略图的大小和白底不改变实际导入的原文件。导入后在文件树、Git Changes和Shell里看到的是同一个文件。系统选择器取消保留此前选择，放弃选择/关闭页面释放当前选择；单纯查看预览不创建工作区文件。
+
+PDF原文件可以导入，但工作区的PDF内容预览、直接取已有聊天附件、带版本确认覆盖及进度取消仍待完成。完整范围和实际设备证据见[导入阶段](workspace-import-stage.md)。
