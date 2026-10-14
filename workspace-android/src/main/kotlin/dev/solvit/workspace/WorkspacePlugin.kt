@@ -249,6 +249,18 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         val result=WorkspaceFileImports.create(base,path,bytes,expectedSha256,importPublisher) { verifyPage(workspaceId) }
         WorkspaceImportedFile(workspaceId,path,result.first,result.second)
     } }
+    override suspend fun reviewImportTarget(workspaceId:String,path:String):WorkspaceImportTarget? = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        WorkspaceFileImports.review(directory(workspaceId).canonicalFile,path) { verifyPage(workspaceId) }
+    } }
+    override suspend fun replaceImportedFile(workspaceId:String,path:String,bytes:ByteArray,
+        sourceSha256:String,targetSha256:String):WorkspaceImportedFile = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val result=WorkspaceFileImports.replace(directory(workspaceId).canonicalFile,path,bytes,sourceSha256,targetSha256,importPublisher) {
+            verifyPage(workspaceId)
+        }
+        WorkspaceImportedFile(workspaceId,path,result.first,result.second,result.third)
+    } }
     override suspend fun write(workspaceId: String, path: String, text: String) { writeObserved(workspaceId,path,text) }
     override suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)

@@ -33,7 +33,10 @@ const val MAX_WORKSPACE_CAPTURE_BYTES = 2 * 1024 * 1024
 data class WorkspaceWriteEvidence(val workspaceId: String, val path: String,
     val before: FileObservation, val after: FileObservation, val changed: Boolean?, val verified: Boolean)
 /** Exact bytes copied into a newly created workspace file, never a host path or file body. */
-data class WorkspaceImportedFile(val workspaceId: String, val path: String, val bytes: Long, val sha256: String)
+data class WorkspaceImportedFile(val workspaceId: String, val path: String, val bytes: Long, val sha256: String,
+    val backupPath: String? = null)
+/** A complete content observation, separate from the selected source file's digest. */
+data class WorkspaceImportTarget(val bytes: Long, val sha256: String)
 const val MAX_WORKSPACE_IMPORT_BYTES = 20 * 1024 * 1024
 
 data class ShellSession(val id: String, val workspaceId: String, val name: String,
@@ -81,6 +84,14 @@ interface WorkspaceService {
     /** Create only: an existing file is a conflict, including one created by a concurrent Shell. */
     suspend fun importFile(workspaceId: String, path: String, bytes: ByteArray,
         expectedSha256: String): WorkspaceImportedFile { error("工作区文件导入服务不可用") }
+    suspend fun reviewImportTarget(workspaceId: String, path: String): WorkspaceImportTarget? {
+        error("工作区导入审阅服务不可用")
+    }
+    /** Replace only the reviewed content; retain the displaced file at backupPath. */
+    suspend fun replaceImportedFile(workspaceId: String, path: String, bytes: ByteArray,
+        sourceSha256: String, targetSha256: String): WorkspaceImportedFile {
+        error("工作区文件替换服务不可用")
+    }
     suspend fun write(workspaceId: String, path: String, text: String)
     suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence {
         write(workspaceId,path,text)

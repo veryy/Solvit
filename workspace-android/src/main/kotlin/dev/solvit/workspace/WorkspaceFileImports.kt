@@ -1,6 +1,10 @@
 package dev.solvit.workspace
 
 import dev.solvit.core.MAX_WORKSPACE_IMPORT_BYTES
+import dev.solvit.core.WorkspaceImportTarget
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import java.io.File
@@ -39,6 +43,56 @@ internal object WorkspaceFileImports {
             }
         }
         return digest.digest().joinToString("") { "%02x".format(it.toInt() and 255) }
+    }
+    suspend fun review(root: File, path: String, authorize: suspend () -> Unit): WorkspaceImportTarget? {
+        authorize();currentCoroutineContext().ensureActive()
+        val destination=target(root,path)
+        if(!Files.exists(destination.toPath(),NOFOLLOW_LINKS)) return null
+        check(Files.isRegularFile(destination.toPath(),NOFOLLOW_LINKS)) { "目标不是普通文件，不能替换" }
+        val bytes=destination.length()
+        check(bytes<=MAX_WORKSPACE_IMPORT_BYTES) { "仅支持审阅不超过20MiB的目标文件" }
+        val digest=fileDigest(destination)
+        authorize();currentCoroutineContext().ensureActive()
+        check(target(root,path)==destination && Files.isRegularFile(destination.toPath(),NOFOLLOW_LINKS) && destination.length()==bytes) {
+            "目标文件已变化，请重新审阅"
+        }
+        return WorkspaceImportTarget(bytes,digest)
+    }
+
+    /** Claim the old name without replacement, verify the claimed bytes, then create the new name.
+     * Keeping the old inode also preserves writes through an already-open Shell descriptor.
+     * External writers are not locked: a concurrent name wins and the backup remains recoverable.
+     */
+    suspend fun replace(root: File, path: String, bytes: ByteArray, sourceSha256: String,
+        targetSha256: String, publisher: WorkspaceImportPublisher, authorize: suspend () -> Unit): Triple<Long,String,String> {
+        require(bytes.size<=MAX_WORKSPACE_IMPORT_BYTES && sourceSha256.matches(Regex("[a-f0-9]{64}")) &&
+            targetSha256.matches(Regex("[a-f0-9]{64}"))) { "导入文件超过20MiB或版本无效" }
+        require(sha(bytes)==sourceSha256) { "导入文件内容校验失败" }
+        check(review(root,path,authorize)?.sha256==targetSha256) { "目标文件已变化，请重新审阅" }
+        val destination=target(root,path)
+        val backup=File(destination.parentFile,"solvit-backup-${java.util.UUID.randomUUID()}")
+        authorize();currentCoroutineContext().ensureActive()
+        check(target(root,path)==destination) { "导入目标目录已改变" }
+        publisher.publish(destination,backup)
+        try {
+            check(Files.isRegularFile(backup.toPath(),NOFOLLOW_LINKS) && fileDigest(backup)==targetSha256) {
+                "目标文件已变化，请重新审阅"
+            }
+            val result=create(root,path,bytes,sourceSha256,publisher,authorize)
+            return Triple(result.first,result.second,backup.relativeTo(root).invariantSeparatorsPath)
+        } catch(failure:Throwable) {
+            // Recovery must run even after cancellation/revocation. Never replace a concurrent file.
+            withContext(NonCancellable) {
+                try {
+                    check(target(root,path)==destination) { "目标目录已改变，保留恢复文件" }
+                    publisher.publish(backup,destination)
+                } catch(recovery:Throwable) { failure.addSuppressed(recovery) }
+            }
+            if(Files.exists(backup.toPath(),NOFOLLOW_LINKS) && failure !is CancellationException) {
+                throw IllegalStateException("${failure.message}；原文件保留在 ${backup.relativeTo(root).invariantSeparatorsPath}",failure)
+            }
+            throw failure
+        }
     }
     suspend fun create(root: File, path: String, bytes: ByteArray, expected: String, publisher: WorkspaceImportPublisher,
         authorize: suspend () -> Unit): Pair<Long,String> {
