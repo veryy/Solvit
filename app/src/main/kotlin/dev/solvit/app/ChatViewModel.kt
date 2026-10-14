@@ -178,8 +178,8 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                         ?: error("原问题已不存在") else null
                 val originals = original?.attachments.orEmpty()
                 val files = if (originals.isNotEmpty()) checkNotNull(attachmentStore) { "附件服务未启用" } else null
-                val branch = service.fork(source, point)
-                created = branch
+                val branch = withContext(NonCancellable) { service.fork(source, point).also { created = it } }
+                currentCoroutineContext().ensureActive()
                 val copies = originals.map { attachment ->
                     val bytes = checkNotNull(files).read(source, attachment)
                     try {

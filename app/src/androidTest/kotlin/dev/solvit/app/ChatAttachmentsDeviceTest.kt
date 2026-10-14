@@ -114,7 +114,7 @@ class ChatAttachmentsDeviceTest {
                 override suspend fun isConfigured() = true
             }
             rule.runOnUiThread {
-                vm = ChatViewModel(chat, settings, attachmentStore = files)
+                vm = ChatViewModel(chat, settings, branches = dev.solvit.chat.DefaultChatBranchService(store), attachmentStore = files)
                 val agents = AgentLibraryViewModel(app.roles, app.skills, app.marketplace)
                 val workspaces = WorkspaceViewModel(app.workspaces, app.pluginDrafts, app.terminals)
                 val updates = UpdateViewModel(app.updates, app.updateDownloader)
@@ -191,6 +191,44 @@ class ChatAttachmentsDeviceTest {
             assertTrue(vm.messages.value.any { it.id == failed.id && it.status == MessageStatus.FAILED })
             rule.onNodeWithTag("reply_attempts_reply-${originalUsers.last().id}").performScrollTo().assertExists()
             rule.onAllNodesWithTag("retry_reply_${failed.id}").assertCountEquals(0)
+            // Edit the first attachment-only question through the real menu/dialog.
+            val originalUser = originalUsers.first()
+            rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_${originalUser.id}"))
+            rule.onNodeWithTag("message_actions_${originalUser.id}").performClick()
+            rule.onNodeWithText("编辑并分支").performClick()
+            rule.onNodeWithTag("branch_edit").performTextReplacement("edited attachment question")
+            rule.onNodeWithText("创建分支").assertIsEnabled().performClick()
+            rule.waitUntil(10_000) { vm.sessionId.value != session && vm.attachmentDrafts.value[vm.sessionId.value].orEmpty().size == 2 && !vm.branching.value }
+            val branch = vm.sessionId.value!!
+            val editCopies = vm.attachmentDrafts.value.getValue(branch)
+            assertTrue(editCopies.none { copy -> attachments.any { it.id == copy.id } })
+            assertEquals(0, runBlocking { store.history(branch).size })
+            rule.onNode(hasSetTextAction()).assertTextEquals("edited attachment question")
+            val copiedImage = editCopies.single { it.mimeType == "image/png" }
+            val copiedText = editCopies.single { it.mimeType == "text/plain" }
+            assertArrayEquals(imageBytes, runBlocking { files.read(branch, copiedImage) })
+            rule.onNodeWithTag("attachment_${copiedText.id}").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("attachment_text_${copiedText.id}").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("attachment_text_${copiedText.id}").assertTextEquals("中文 fixture code 😀\nprint(42)")
+            rule.onNodeWithTag("attachment_preview_close").performClick()
+            rule.onNodeWithTag("attachment_remove_${copiedText.id}").performClick()
+            rule.waitUntil(10_000) { vm.attachmentDrafts.value[branch].orEmpty().size == 1 }
+            assertEquals("中文 fixture code 😀\nprint(42)", runBlocking { files.read(session, document).toString(Charsets.UTF_8) })
+            screenshot("chat-edit-attachment-draft")
+            server.enqueue(MockResponse().setHeader("Content-Type","text/event-stream")
+                .setBody("data: {\"choices\":[{\"delta\":{\"content\":\"edited answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"))
+            rule.onNodeWithTag("chat_send").performClick()
+            rule.waitUntil(15_000) { !vm.busy.value && vm.messages.value.lastOrNull()?.content == "edited answer" }
+            val editedHttp = server.takeRequest(5,TimeUnit.SECONDS) ?: error("missing edited attachment request")
+            val editMessages = JSONObject(editedHttp.body.readUtf8()).getJSONArray("messages")
+            val editUser = (0 until editMessages.length()).map { editMessages.getJSONObject(it) }.single { it.getString("role") == "user" }
+            val editBlocks = editUser.getJSONArray("content")
+            val editText = (0 until editBlocks.length()).map { editBlocks.getJSONObject(it) }.single { it.getString("type") == "text" }.getString("text")
+            assertEquals("edited attachment question", editText)
+            val editImage = (0 until editBlocks.length()).map { editBlocks.getJSONObject(it) }.single { it.getString("type") == "image_url" }.getJSONObject("image_url").getString("url")
+            assertArrayEquals(imageBytes, java.util.Base64.getDecoder().decode(editImage.substringAfter(',')))
+            assertEquals(originalUsers, runBlocking { store.history(session).filter { it.role == Role.USER } })
+            assertEquals(listOf(copiedImage), runBlocking { store.history(branch).first { it.role == Role.USER }.attachments })
             rule.runOnUiThread { vm.viewModelScope.cancel() }
             store.close()
             SqliteChatStore(context).use { reopened -> runBlocking {

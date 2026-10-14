@@ -43,6 +43,24 @@ class AttachmentFilesTest {
             assertEquals("original", outside.readText())
         } finally { outside.delete() }
     }
+    @Test fun recoveryDoesNotFollowSessionOrBlobLinksOrDeleteUnknownContent() = fixture { root, session, store ->
+        val outside = Files.createTempDirectory("attachment-outside").toFile()
+        try {
+            val saved = store.import(session, "keep.txt", "text/plain", ByteArrayInputStream("keep".toByteArray()))
+            val unsafeId = UUID.randomUUID().toString()
+            val folder = File(root, session)
+            val target = File(outside, "target.txt").apply { writeText("outside") }
+            Files.createSymbolicLink(File(folder, "$unsafeId.blob").toPath(), target.toPath())
+            Files.createSymbolicLink(File(root, UUID.randomUUID().toString()).toPath(), outside.toPath())
+            File(folder, "unknown").mkdir()
+            File(folder, "unknown/keep.txt").writeText("unknown")
+            store.removeUnreferenced(mapOf(session to setOf(saved.id)))
+            assertEquals("outside", target.readText())
+            assertEquals("unknown", File(folder, "unknown/keep.txt").readText())
+            assertContentEquals("keep".toByteArray(), store.read(session, saved))
+            assertFalse(Files.exists(File(folder, "$unsafeId.blob").toPath(), java.nio.file.LinkOption.NOFOLLOW_LINKS))
+        } finally { outside.deleteRecursively() }
+    }
     @Test fun revokedAuthorityAndOversizedStreamsLeaveNoPartialOrInstalledBlob() = fixture { root, session, store ->
         var approvals = 0
         assertFailsWith<IllegalStateException> {

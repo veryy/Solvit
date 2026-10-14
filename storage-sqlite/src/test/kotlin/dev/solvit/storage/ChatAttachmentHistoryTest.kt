@@ -59,6 +59,43 @@ class ChatAttachmentHistoryTest {
             assertFailsWith<IllegalStateException> { reopened.attachmentFiles.read(branch, attachment) }
         }
     }
+    @Test fun startupRecoveryRetainsSavedAndBranchBytesAndReclaimsDraftPartialAndDeletedSessionFiles() = runBlocking<Unit> {
+        val sessionId: String
+        val branchId: String
+        val saved: ChatAttachment
+        val abandoned: ChatAttachment
+        val deleted: ChatAttachment
+        var deletedSession = ""
+        SqliteChatStore(context).use { store ->
+            val session = store.createSession(); sessionId = session.id
+            saved = store.attachmentFiles.import(session.id, "saved.txt", "text/plain", java.io.ByteArrayInputStream("saved".toByteArray()))
+            abandoned = store.attachmentFiles.import(session.id, "draft.txt", "text/plain", java.io.ByteArrayInputStream("unsent".toByteArray()))
+            store.append(ChatMessage("saved-user", session.id, Role.USER, "", attachments = listOf(saved)))
+            store.append(ChatMessage("saved-reply", session.id, Role.ASSISTANT, "done"))
+            branchId = store.forkSession(session.id, BranchPoint("saved-reply", BranchMode.AFTER_REPLY)).id
+            val orphanSession = store.createSession(); deletedSession = orphanSession.id
+            deleted = store.attachmentFiles.import(orphanSession.id, "orphan.txt", "text/plain", java.io.ByteArrayInputStream("orphan".toByteArray()))
+            // Simulate a process killed after DB deletion and before file cleanup.
+            SQLiteDatabase.openDatabase(context.getDatabasePath("solvit.db").path, null, SQLiteDatabase.OPEN_READWRITE).use {
+                it.delete("sessions", "id=?", arrayOf(orphanSession.id))
+            }
+            val folder = java.io.File(context.filesDir, "chat-attachments/${session.id}")
+            java.io.File(folder, "${UUID.randomUUID()}.partial").writeText("incomplete")
+            java.io.File(folder, "unknown-file.txt").writeText("leave alone")
+        }
+        SqliteChatStore(context).use { reopened ->
+            reopened.recoverAttachmentFiles()
+            assertContentEquals("saved".toByteArray(), reopened.attachmentFiles.read(sessionId, saved))
+            assertContentEquals("saved".toByteArray(), reopened.attachmentFiles.read(branchId, saved))
+            assertFailsWith<IllegalStateException> { reopened.attachmentFiles.read(sessionId, abandoned) }
+            assertFailsWith<IllegalStateException> { reopened.attachmentFiles.read(deletedSession, deleted) }
+            val folder = java.io.File(context.filesDir, "chat-attachments/$sessionId")
+            assertTrue(folder.listFiles().orEmpty().none { it.extension == "partial" })
+            assertEquals("leave alone", java.io.File(folder, "unknown-file.txt").readText())
+            reopened.recoverAttachmentFiles() // Idempotent, including older named sessions.
+            reopened.deleteSession(sessionId); reopened.deleteSession(branchId)
+        }
+    }
     @Test fun versionNineUpgradeRetainsTextAndDefaultsAttachmentsToEmpty() = runBlocking<Unit> {
         val session = SqliteChatStore(context).use { store ->
             val session = store.createSession()
