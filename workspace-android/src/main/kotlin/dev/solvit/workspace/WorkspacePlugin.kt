@@ -241,6 +241,13 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         verifyPage(workspaceId)
         writeLocked(workspaceId,path,text,requireVersion=true,expectedSha256=expectedSha256)
     } }
+    override suspend fun importFile(workspaceId: String, path: String, bytes: ByteArray,
+        expectedSha256: String): WorkspaceImportedFile = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val base=directory(workspaceId).canonicalFile
+        val result=WorkspaceFileImports.create(base,path,bytes,expectedSha256) { verifyPage(workspaceId) }
+        WorkspaceImportedFile(workspaceId,path,result.first,result.second)
+    } }
     override suspend fun write(workspaceId: String, path: String, text: String) { writeObserved(workspaceId,path,text) }
     override suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)

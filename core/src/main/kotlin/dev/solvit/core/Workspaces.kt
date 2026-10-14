@@ -32,6 +32,10 @@ const val MAX_WORKSPACE_CAPTURE_BYTES = 2 * 1024 * 1024
 /** Per-write observations, not a whole-project diff or a promise that Shell did not change other files. */
 data class WorkspaceWriteEvidence(val workspaceId: String, val path: String,
     val before: FileObservation, val after: FileObservation, val changed: Boolean?, val verified: Boolean)
+/** Exact bytes copied into a newly created workspace file, never a host path or file body. */
+data class WorkspaceImportedFile(val workspaceId: String, val path: String, val bytes: Long, val sha256: String)
+const val MAX_WORKSPACE_IMPORT_BYTES = 20 * 1024 * 1024
+
 data class ShellSession(val id: String, val workspaceId: String, val name: String,
     val runtime: ShellRuntime = ShellRuntime.ANDROID)
 data class WorkspaceState(val workspaces: List<Workspace> = emptyList(),
@@ -74,6 +78,9 @@ interface WorkspaceService {
     /** Commit one complete UTF-8 document, up to the preview limit, against its opened version. */
     suspend fun writeTextForEdit(workspaceId: String, path: String, text: String,
         expectedSha256: String?): WorkspaceWriteEvidence { error("完整文本编辑服务不可用") }
+    /** Create only: an existing file is a conflict, including one created by a concurrent Shell. */
+    suspend fun importFile(workspaceId: String, path: String, bytes: ByteArray,
+        expectedSha256: String): WorkspaceImportedFile { error("工作区文件导入服务不可用") }
     suspend fun write(workspaceId: String, path: String, text: String)
     suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence {
         write(workspaceId,path,text)
