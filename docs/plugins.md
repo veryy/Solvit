@@ -90,7 +90,7 @@ globalThis.solvitPlugin = {
 
 API12 将权限与服务依赖分开：有限Shell作业不再自动依赖PTY；普通HTTP也不自动依赖浏览器。调用 `ctx.terminal` 的插件显式声明 `nativeServices:["terminal.pty"]` 和 `shell` 权限；调用 `ctx.web.visit` 的插件声明 `nativeServices:["web.pages"]` 和 `network` 权限。API5–11的隐式依赖保留兼容。新版市场查询 `hostApi=12`，旧宿主仍选择旧包。示例及实际验证范围见[工作区页面阶段](plugin-workspace-stage.md)。
 
-## API16 项目规则只读 Hook（候选，未发布）
+## API16 项目规则只读 Hook（0.25.0起）
 
 声明apiVersion:16、workspace权限与beforeModel，使用`ctx.workspace.instructions()`。只返回当前对话已绑定目录根的AGENTS.md、CLAUDE.md、AGENTS.local.md和CLAUDE.local.md来源，不接受任何路径、会话或工作区参数。未绑定时available=false、sources=[]，不会替普通聊天创建工作区。
 
@@ -98,7 +98,7 @@ sources包含path、TEXT/ABSENT/BINARY/OVERSIZED/UNAVAILABLE状态；TEXT有完�
 
 此接口仅供beforeModel，不可从工具、页面或activate/deactivate调用；不会开放普通workspace.read/write或Shell。内置工作区1.2.0默认自动读取（用户启用并授予workspace/shell后），配置projectRules=false可关闭。每个模型步骤重新读取，修改/删除后旧Hook投影不会写入持久聊天历史或继续使用。包内TS按12KiB UTF-8预算渲染并优先保留local来源，省略/截断明确标记，资料不提升为角色/系统指令。受控Provider测试不代表真实模型遵守规则。
 
-当前最新可安装APK仍是0.24.1，候选包及桥接在feat/workspace-instructions完整验收中。实际证据与边界见[阶段记录](workspace-instructions-stage.md)。
+API16已随0.25.0发布，后续版本继续兼容；新包版本以当前市场与APK为准。实际证据与边界见[阶段记录](workspace-instructions-stage.md)。
 
 ## API21：Linux 环境页面
 
@@ -160,9 +160,9 @@ hostAction: {
 
 把用户已看到的条目放入确认按钮：`{kind:'workspace.perform',operation:'selectChatAttachment',arguments:{messageId,attachmentId,sha256}}`；获确认后调用无参数`workspacePage.perform()`，再查询`importSelection`。宿主重新读取并核对持久消息和原附件，选择元数据额外包含`source:{kind:'chatAttachment',messageId,attachmentId}`。预览及导入与系统选择的文件共用接口；PDF选页/OCR不替换原始文件。消息或原附件变化、撤权、切换对话/工作区时拒绝继续，关闭页面仅释放当前选择，不删除聊天附件。
 
-## API25：审阅已有目标再导入（0.37.0候选）
+## API25：审阅已有目标再导入（0.37.0）
 
-候选代码与远程验证见[阶段记录](workspace-import-replacement-stage.md)，尚未正式发布。须声明API25、workspace权限与workspace.files服务；不向普通工具、Hook或生命周期开放。
+0.37.0已发布，实际远程与公开下载验证见[发布记录](release-0.37.0.md)。须声明API25、workspace权限与workspace.files服务；不向普通工具、Hook或生命周期开放。
 
 先查询`workspacePage.query('reviewImport', {id,sha256,path})`。id和sha256来自当前选择，path为当前工作区的相对路径。宿主返回`{reviewId,path,target}`；target为null表示未存在，否则是`{bytes,sha256}`。这里target.sha256是已有目标版本，和源文件的sha256含义不同。页面显示目标、源信息和替换说明后，提供确认控件：
 
