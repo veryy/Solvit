@@ -15,7 +15,7 @@ import java.util.UUID
 
 /** Native PTY primitive; terminal rendering belongs to the offline HTML plugin. */
 class AndroidTerminals(private val scope: CoroutineScope, private val workspace: WorkspaceService,
-    private val execution: AndroidExecution) : TerminalService {
+    private val execution: AndroidExecution, private val linux: LinuxEnvironmentService? = null) : TerminalService {
     private class Entry(val pty: PtyConnection, @Volatile var state: TerminalSession) { @Volatile var reader: Job? = null }
     private val lock = Mutex()
     private val snapshots = Any()
@@ -52,7 +52,7 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
         try {
         val result = execution.authorized(owner) { mode ->
             check(mode == ExecutionMode.APP) { "交互式 PTY 暂不支持 Root；请使用已提供的普通 Root 命令工具，或在设置切换普通应用身份" }
-            check(workspace.state.value.shells.any { it.id == shellId && it.workspaceId == workspaceId }) { "Shell 不属于此工作区" }
+            val shell = workspace.state.value.shells.firstOrNull { it.id == shellId && it.workspaceId == workspaceId } ?: error("Shell 不属于此工作区")
             val directory = File(workspace.location(workspaceId))
             withContext(Dispatchers.IO) { lock.withLock {
                 verify(context, workspaceId, "open", shellId, claim = false)
@@ -67,7 +67,8 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
                     check(entries.values.count { it.state.active } < 8) { "最多同时运行 8 个交互终端" }
                     while (entries.size >= 16) entries.entries.firstOrNull { !it.value.state.active }?.let { entries.remove(it.key) } ?: error("终端历史已满")
                 }
-                val pty = PtyConnection.open(directory)
+                val plan = if (shell.runtime == ShellRuntime.UBUNTU) checkNotNull(linux) { "Linux 环境服务不可用" }.terminal(directory.absolutePath) else null
+                val pty = if (plan == null) PtyConnection.open(directory) else PtyConnection.open(directory, command = plan.arguments, environment = plan.environment)
                 val entry = Entry(pty, TerminalSession(UUID.randomUUID().toString(), owner, role, workspaceId, shellId, mode, chatId = identity.chat, human = identity.human))
                 acquired = entry
                 synchronized(snapshots) { entries[entry.state.id] = entry; publish() }
@@ -196,13 +197,14 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
     }
 }
 
-class TerminalPlugin : SolvitPlugin {
+class TerminalPlugin(private val useLinux: Boolean = false) : SolvitPlugin {
     override val id = "builtin.pty"
-    override val requires = setOf(WorkspaceServiceKey, SystemExecutionServiceKey)
+    override val requires = setOf(WorkspaceServiceKey, SystemExecutionServiceKey) + if (useLinux) setOf(LinuxEnvironmentServiceKey) else emptySet()
     override val provides = setOf(TerminalServiceKey)
     override suspend fun enable(context: PluginContext) {
         val execution = context.require(SystemExecutionServiceKey) as? AndroidExecution ?: error("缺少 Android 执行身份服务")
-        val service = AndroidTerminals(context.scope, context.require(WorkspaceServiceKey), execution)
+        val service = AndroidTerminals(context.scope, context.require(WorkspaceServiceKey), execution,
+            if (useLinux) context.require(LinuxEnvironmentServiceKey) else null)
         val removeCleanup = execution.onIdentityInvalidated { service.cancelOwner(it) }
         context.own { removeCleanup(); service.shutdown() }
         context.register(TerminalServiceKey, service)

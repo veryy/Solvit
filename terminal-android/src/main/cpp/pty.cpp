@@ -97,7 +97,8 @@ std::string string(JNIEnv *env, jstring value) {
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_dev_solvit_terminal_NativePty_open(JNIEnv *env, jobject, jstring directory,
-                                      jobjectArray command, jint rows, jint columns) {
+                                      jobjectArray command, jint rows, jint columns,
+                                      jobjectArray overrides, jobjectArray removed) {
     std::string cwd = string(env, directory);
     std::vector<std::string> args;
     const jsize count = env->GetArrayLength(command);
@@ -107,13 +108,36 @@ Java_dev_solvit_terminal_NativePty_open(JNIEnv *env, jobject, jstring directory,
     }
     if (env->ExceptionCheck()) return 0;
     if (args.empty()) { failure(env, "缺少终端命令"); return 0; }
+    // Copy per-session overrides before fork. Never mutate process-wide environ.
+    std::vector<std::string> changed;
+    std::vector<std::string> additions;
+    if (env->GetArrayLength(overrides) > 16 || env->GetArrayLength(removed) > 16) {
+        failure(env, "终端环境变量过多"); return 0;
+    }
+    for (jsize i = 0; i < env->GetArrayLength(overrides); ++i) {
+        auto value = static_cast<jstring>(env->GetObjectArrayElement(overrides, i));
+        std::string variable = string(env, value); env->DeleteLocalRef(value);
+        const auto separator = variable.find('=');
+        if (separator == std::string::npos || separator == 0) { failure(env, "终端环境变量无效"); return 0; }
+        changed.push_back(variable.substr(0, separator) + "="); additions.push_back(variable);
+    }
+    for (jsize i = 0; i < env->GetArrayLength(removed); ++i) {
+        auto value = static_cast<jstring>(env->GetObjectArrayElement(removed, i));
+        std::string key = string(env, value); env->DeleteLocalRef(value);
+        if (key.empty() || key.find('=') != std::string::npos) { failure(env, "终端环境变量名称无效"); return 0; }
+        changed.push_back(key + "=");
+    }
+    if (env->ExceptionCheck()) return 0;
     std::vector<char *> argv;
     for (auto &arg : args) argv.push_back(arg.data());
     argv.push_back(nullptr);
     std::vector<std::string> variables;
     for (char **entry = environ; entry && *entry; ++entry) {
-        if (strncmp(*entry, "TERM=", 5) && strncmp(*entry, "PS1=", 4) && strncmp(*entry, "PS2=", 4)) variables.emplace_back(*entry);
+        bool overridden = false;
+        for (const auto &key : changed) if (strncmp(*entry, key.c_str(), key.size()) == 0) { overridden = true; break; }
+        if (!overridden && strncmp(*entry, "TERM=", 5) && strncmp(*entry, "PS1=", 4) && strncmp(*entry, "PS2=", 4)) variables.emplace_back(*entry);
     }
+    for (auto &variable : additions) variables.push_back(variable);
     variables.emplace_back("TERM=xterm-256color");
     variables.emplace_back("PS1=$ "); variables.emplace_back("PS2=> ");
     std::vector<char *> environment;

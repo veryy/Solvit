@@ -6,6 +6,18 @@ import org.junit.Test
 import java.io.File
 
 class PtyConnectionTest {
+    @Test fun hostOverridesBelongToOnePtyAndDoNotChangeOtherSessions() {
+        PtyConnection.open(root, environment = mapOf("PROOT_TMP_DIR" to "first runtime", "PROOT_NO_SECCOMP" to null)).use { first ->
+            PtyConnection.open(root, environment = mapOf("PROOT_TMP_DIR" to "second runtime")).use { second ->
+                ready(first); ready(second)
+                first.write("printf 'value:%s\\n__ENV_%s__\\n' \"\$PROOT_TMP_DIR\" FIRST\n".toByteArray())
+                second.write("printf 'value:%s\\n__ENV_%s__\\n' \"\$PROOT_TMP_DIR\" SECOND\n".toByteArray())
+                assertTrue(readUntil(first, "__ENV_FIRST__").contains("value:first runtime"))
+                assertTrue(readUntil(second, "__ENV_SECOND__").contains("value:second runtime"))
+            }
+        }
+        assertFalse(System.getenv("PROOT_TMP_DIR") in setOf("first runtime", "second runtime"))
+    }
     private val root get() = InstrumentationRegistry.getInstrumentation().targetContext.filesDir
     private fun readUntil(pty: PtyConnection, marker: String): String {
         val output = java.io.ByteArrayOutputStream()

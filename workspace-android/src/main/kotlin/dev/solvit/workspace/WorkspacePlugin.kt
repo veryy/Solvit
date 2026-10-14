@@ -16,7 +16,8 @@ import java.util.UUID
 /** Native storage/process primitives; plugin tools remain JavaScript packages. */
 class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     launcher: ShellLauncher = ShellLauncher(ShellPaths("/system/bin/sh", "/system/bin/toybox", setsidArguments = listOf("setsid"))),
-    rootAccess: RootAccess = AndroidRootAccess()) : WorkspaceService {
+    rootAccess: RootAccess = AndroidRootAccess(),
+    private val linux: LinuxEnvironmentService? = null) : WorkspaceService {
     private val root = File(context.filesDir, "workspaces").apply { check(mkdirs() || isDirectory) }
     private val prefs = context.getSharedPreferences("workspaces", Context.MODE_PRIVATE)
     private val lock = Mutex()
@@ -32,7 +33,8 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             val w = array.getJSONObject(it); Workspace(w.getString("id"), w.getString("name"))
         } }
         val shells = value.getJSONArray("shells").let { array -> (0 until array.length()).map {
-            val s = array.getJSONObject(it); ShellSession(s.getString("id"), s.getString("workspace"), s.getString("name"))
+            val s = array.getJSONObject(it); ShellSession(s.getString("id"), s.getString("workspace"), s.getString("name"),
+                ShellRuntime.valueOf(s.optString("runtime", "ANDROID")))
         } }
         val bindings = value.getJSONObject("bindings").let { obj -> obj.keys().asSequence().associateWith { obj.getString(it) } }
         check(workspaces.all { it.id.matches(ID) } && workspaces.map { it.id }.toSet().size == workspaces.size)
@@ -43,7 +45,7 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     private fun save(value: WorkspaceState) {
         val json = JSONObject().apply {
             put("workspaces", JSONArray(value.workspaces.map { JSONObject().put("id", it.id).put("name", it.name) }))
-            put("shells", JSONArray(value.shells.map { JSONObject().put("id", it.id).put("workspace", it.workspaceId).put("name", it.name) }))
+            put("shells", JSONArray(value.shells.map { JSONObject().put("id", it.id).put("workspace", it.workspaceId).put("name", it.name).put("runtime", it.runtime.name) }))
             put("bindings", JSONObject(value.bindings))
         }
         check(prefs.edit().putString("state", json.toString()).commit()) { "工作区配置保存失败" }
@@ -100,11 +102,13 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         // Keep reusable workspaces and files when a conversation is deleted.
         save(state.value.copy(bindings = state.value.bindings - sessionId))
     } }
-    override suspend fun createShell(workspaceId: String, name: String): ShellSession = withContext(Dispatchers.IO) { lock.withLock {
+    override suspend fun createShell(workspaceId: String, name: String): ShellSession = createShell(workspaceId, name, ShellRuntime.ANDROID)
+    override suspend fun createShell(workspaceId: String, name: String, runtime: ShellRuntime): ShellSession = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         directory(workspaceId)
         check(state.value.shells.count { it.workspaceId == workspaceId } < 16) { "每个工作区最多 16 个 Shell 会话" }
-        val shell = ShellSession(UUID.randomUUID().toString(), workspaceId, name(name))
+        if (runtime == ShellRuntime.UBUNTU) check(linux?.state?.value?.let { it.supported && it.installed } == true) { "请先完成 Ubuntu 环境安装" }
+        val shell = ShellSession(UUID.randomUUID().toString(), workspaceId, name(name), runtime)
         save(state.value.copy(shells = state.value.shells + shell)); shell
     } }
     override suspend fun location(workspaceId: String): String = withContext(Dispatchers.IO) { lock.withLock { verifyPage(workspaceId); directory(workspaceId).canonicalPath } }
@@ -267,7 +271,7 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             before,after,FileObservations.changed(before,after),true)
     }
     override suspend fun run(workspaceId: String, shellId: String, command: String, timeoutMs: Long): ShellJob {
-        check(state.value.shells.any { it.id == shellId && it.workspaceId == workspaceId }) { "Shell 会话不属于此工作区" }
+        val shell = state.value.shells.firstOrNull { it.id == shellId && it.workspaceId == workspaceId } ?: error("Shell 会话不属于此工作区")
         val context = currentCoroutineContext()
         val invocation = context[ToolInvocationContext]
         val owner = invocation?.descriptor?.pluginId ?: TERMINAL_OWNER
@@ -281,8 +285,13 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
                 check(conversation.workspaceId == workspaceId && state.value.bindings[conversation.sessionId] == workspaceId)
                 invocation.claim("native.workspace.start")
             }
+            val base = directory(workspaceId)
+            val plan = if (shell.runtime == ShellRuntime.UBUNTU) {
+                check(mode == ExecutionMode.APP) { "Ubuntu Shell 使用普通应用身份，请在设置切换身份" }
+                checkNotNull(linux) { "Linux 环境服务不可用" }.command(base.absolutePath, command)
+            } else null
             engine.start(owner, roleId, ShellRequest(command, timeoutMs = timeoutMs), mode,
-                directory(workspaceId), workspaceId, shellId)
+                base, workspaceId, shellId, plan)
         }
         try {
             val cancel: suspend () -> Unit = { engine.cancel(owner, roleId, job.id) }
@@ -308,11 +317,12 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     }
 }
 
-class WorkspacePlugin(private val androidContext: Context) : SolvitPlugin {
+class WorkspacePlugin(private val androidContext: Context, private val useLinux: Boolean = false) : SolvitPlugin {
     override val id = "builtin.workspace"
     override val provides = setOf(WorkspaceServiceKey, SystemExecutionServiceKey)
+    override val requires = if (useLinux) setOf(LinuxEnvironmentServiceKey) else emptySet()
     override suspend fun enable(context: PluginContext) {
-        val service = AndroidWorkspaces(androidContext, context.scope)
+        val service = AndroidWorkspaces(androidContext, context.scope, linux = if (useLinux) context.require(LinuxEnvironmentServiceKey) else null)
         context.own { service.close() }
         context.register(WorkspaceServiceKey, service)
         context.register(SystemExecutionServiceKey, service.execution)

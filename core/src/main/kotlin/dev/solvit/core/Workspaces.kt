@@ -32,7 +32,8 @@ const val MAX_WORKSPACE_CAPTURE_BYTES = 2 * 1024 * 1024
 /** Per-write observations, not a whole-project diff or a promise that Shell did not change other files. */
 data class WorkspaceWriteEvidence(val workspaceId: String, val path: String,
     val before: FileObservation, val after: FileObservation, val changed: Boolean?, val verified: Boolean)
-data class ShellSession(val id: String, val workspaceId: String, val name: String)
+data class ShellSession(val id: String, val workspaceId: String, val name: String,
+    val runtime: ShellRuntime = ShellRuntime.ANDROID)
 data class WorkspaceState(val workspaces: List<Workspace> = emptyList(),
     val bindings: Map<String, String> = emptyMap(), val shells: List<ShellSession> = emptyList())
 /** Immutable for an Agent turn; scripts cannot choose another conversation's workspace. */
@@ -49,6 +50,10 @@ interface WorkspaceService {
     suspend fun unbind(sessionId: String)
     suspend fun create(name: String): Workspace
     suspend fun createShell(workspaceId: String, name: String): ShellSession
+    suspend fun createShell(workspaceId: String, name: String, runtime: ShellRuntime): ShellSession {
+        require(runtime == ShellRuntime.ANDROID) { "Linux Shell 服务不可用" }
+        return createShell(workspaceId, name)
+    }
     suspend fun location(workspaceId: String): String { error("工作区目录服务不可用") }
     /** Fixed-name root instruction sources only. Recheck host authority around every read. */
     suspend fun instructionSources(workspaceId: String, authorize: suspend () -> Unit): List<WorkspaceInstructionSource> {

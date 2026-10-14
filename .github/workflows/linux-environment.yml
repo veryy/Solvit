@@ -9,6 +9,8 @@ on:
       - 'linux-android/**'
       - 'system-runtime/**'
       - 'core/**'
+      - 'terminal-android/**'
+      - 'workspace-android/**'
       - 'scripts/build-android-proot.sh'
       - '.github/workflows/linux-environment.yml'
 permissions:
@@ -33,7 +35,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Prepare SDK and native binaries from pinned source
         run: |
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
           bash scripts/build-android-proot.sh
       - name: Validate rootfs installation boundaries
         run: ./gradlew :linux-runtime:test :system-runtime:test :linux-android:assembleDebug --stacktrace

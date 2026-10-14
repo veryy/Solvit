@@ -47,6 +47,26 @@ class UbuntuProbeTest {
                 assertEquals("python-ok", File(workspace, "production-python.txt").readText())
                 assertEquals("node-ok", File(workspace, "production-node.txt").readText())
             } finally { child.destroyForcibly() }
+            val terminal = service.terminal(workspace.absolutePath)
+            dev.solvit.terminal.PtyConnection.open(workspace, command = terminal.arguments, environment = terminal.environment).use { pty ->
+                fun readUntil(marker: String): String {
+                    val output = java.io.ByteArrayOutputStream()
+                    val deadline = System.nanoTime() + 15_000_000_000L
+                    while (System.nanoTime() < deadline) {
+                        val bytes = pty.read() ?: break
+                        output.write(bytes)
+                        val text = output.toString("UTF-8")
+                        if (marker in text) return text
+                    }
+                    error("Ubuntu PTY 未收到 $marker：${output.toString("UTF-8")}")
+                }
+                pty.write("stty -echo; printf '__UBUNTU_%s__\\n' READY\n".toByteArray())
+                readUntil("__UBUNTU_READY__")
+                pty.write("[ -t 0 ] && [ -t 1 ] && python3 -c \"from pathlib import Path; Path('pty-python.txt').write_text('pty-ok')\" && node --version && printf '__UBUNTU_%s__\\n' DONE\n".toByteArray())
+                val output = readUntil("__UBUNTU_DONE__")
+                assertTrue(output, output.contains("v18."))
+                assertEquals("pty-ok", File(workspace, "pty-python.txt").readText())
+            }
         } finally { service.close(); scope.cancel() }
     }
 

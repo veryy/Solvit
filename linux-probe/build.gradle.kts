@@ -18,6 +18,7 @@ android {
 dependencies {
     implementation(project(":linux-runtime"))
     implementation(project(":linux-android"))
+    implementation(project(":terminal-android"))
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }
