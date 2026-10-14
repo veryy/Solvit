@@ -50,3 +50,7 @@
 源5bb4860，[远程38526852717](https://github.com/veryy/Solvit/actions/runs/38526852717)通过：ARM64/x86_64从源码编译，实际artifact11876157015的ZIP CRC与XML核对为4安装边界单元和1 API35 Android PRoot用例，零失败/错误/跳过。普通应用 UID、guest伪root、带空格工作目录与双向文件可见通过。此时尚未安装Ubuntu/Python/Node。
 
 下一轮新增UbuntuProbeTest，使用官方校验归档与同一个RootfsArchive，在API35应用私有目录安装Ubuntu，普通UID启动guest bash，经apt安装Python/venv、Node/npm并实际读写同一个工作区。rootfs只进入诊断APK，不进入Solvit产品APK；记录精确版本，不宣称发行版自带Node版本支持所有现代MCP。等待实际结果，仍未提供产品环境入口。
+
+## Ubuntu 首轮实测失败与收窄修复
+
+38527701091/a8d7eb2 已实际解包并启动 Ubuntu 24.04 guest bash，工作区从宿主读取检查通过；apt 下载30.5MB签名索引后以100退出，所有重命名返回 ENOSYS，尚未到Python/Node安装。锁定PRoot `tracee/seccomp.c` 中 PR_rename 会转成 PR_renameat；`tracee/event.c` 中 PROOT_NO_SECCOMP 控制过滤/适配路径。上游官方问题 https://github.com/termux/proot/issues/390 记录同类 x86_64 Android、仅在 PROOT_NO_SECCOMP=1 出现的失败。下一轮只清除 Ubuntu 启动中人为加入的该覆盖，让PRoot正常启用其适配；保持原下载、apt安装、脚本、venv断言和8分钟上限。此处不是关闭Android安全限制，不改变应用UID。是否修复以原完整Ubuntu测试为准。

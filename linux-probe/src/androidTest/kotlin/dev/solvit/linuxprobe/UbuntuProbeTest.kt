@@ -52,7 +52,7 @@ class UbuntuProbeTest {
         val child = ProcessBuilder(command).apply {
             environment()["PROOT_LOADER"] = File(native,"libsolvit_loader.so").absolutePath
             environment()["PROOT_TMP_DIR"] = context.cacheDir.absolutePath
-            environment()["PROOT_NO_SECCOMP"] = "1"
+            environment().remove("PROOT_NO_SECCOMP")
             environment().remove("LD_LIBRARY_PATH")
             redirectErrorStream(true); redirectOutput(log)
         }.start()
