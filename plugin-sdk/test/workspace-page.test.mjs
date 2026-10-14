@@ -17,6 +17,10 @@ function harness(bound=true,directories=null){
   queries.push([op,clone(args)]);
   if(op==='snapshot')return clone(snapshot);
   if(op==='importSelection')return clone(importSelection);
+  if(op==='importText'){
+   assert.equal(args.id,importSelection.id);assert.equal(args.sha256,importSelection.sha256);
+   return {kind:'TEXT',text:'<script>window.executed=true</script>\n代码🙂',truncated:true};
+  }
   if(op==='list'){const entries=directories?.[args.path]??files;return {files:entries.slice(args.offset,args.offset+40),total:entries.length}}
   if(op==='read')return {text:'old',sha256:'a'.repeat(64)};
   if(op==='readChunk'){
@@ -66,6 +70,10 @@ test('file imports preserve metadata and require a separate reviewed create; con
  await h.event('selectImport');assert.equal(h.imports.length,0);
  assert.equal(h.nodes().find(n=>n.id==='import_type').text,'application/pdf · 300000 B');
  assert.ok(h.nodes().some(n=>n.id==='import_sha'&&n.text==='c'.repeat(64)));
+ await h.event('importPreview',{importPath:'kept.pdf'});
+ assert.ok(h.nodes().find(n=>n.id==='import_content').text.includes('<script>'));
+ assert.ok(h.nodes().some(n=>n.id==='import_truncated'));
+ assert.equal(h.nodes().find(n=>n.id==='importPath').value,'kept.pdf');assert.equal(h.imports.length,0);
  await h.event('prepareImport',{importPath:'../escape.pdf'});assert.equal(h.imports.length,0);assert.ok(h.nodes().some(n=>n.id==='importPath'));
  await h.event('prepareImport',{importPath:'src/scan.pdf'});assert.equal(h.imports.length,0);
  await h.event('cancel');assert.equal(h.nodes().find(n=>n.id==='importPath').value,'src/scan.pdf');

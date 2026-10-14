@@ -16,6 +16,22 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28])
 class WorkspaceImportPageBridgeTest {
+    @Test fun textPreviewIsScopedToTheReviewedTokenAndDoesNotWrite()=fixture { service ->
+        val workspace=service.forChat("preview-page")
+        val bridge=WorkspacePageBridge(service,null,"preview-page")
+        val original="<script>window.executed=true</script>\n中文🙂".toByteArray()
+        val document=PageBinaryDocument("source.js","text/javascript",original)
+        val selection=Json.parseToJsonElement(bridge.stageImport(document) {}).jsonObject
+        val args=buildJsonObject { put("id",selection.getValue("id"));put("sha256",selection.getValue("sha256")) }
+        val preview=Json.parseToJsonElement(bridge.query("importText",args.toString()) {}).jsonObject
+        assertEquals(JsonPrimitive("TEXT"),preview["kind"])
+        assertEquals(JsonPrimitive(original.toString(Charsets.UTF_8)),preview["text"])
+        assertEquals(JsonPrimitive(false),preview["truncated"]);assertTrue(service.list(workspace.id).isEmpty())
+        assertFails { bridge.query("importText",buildJsonObject { put("id","other");put("sha256",document.sha256) }.toString()) {} }
+        bridge.perform(control(selection,"source.js")) {}
+        assertContentEquals(original,File(service.location(workspace.id),"source.js").readBytes())
+        assertFails { bridge.query("importText",args.toString()) {} };bridge.close()
+    }
     private fun fixture(block:suspend(AndroidWorkspaces)->Unit)=runBlocking<Unit> {
         val scope=CoroutineScope(SupervisorJob()+Dispatchers.Default)
         val service=AndroidWorkspaces(RuntimeEnvironment.getApplication(),scope,

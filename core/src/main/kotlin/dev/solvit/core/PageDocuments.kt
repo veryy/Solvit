@@ -53,6 +53,25 @@ class PageBinaryDocument(val name: String, val mimeType: String, bytes: ByteArra
         sha256=java.security.MessageDigest.getInstance("SHA-256").digest(content).joinToString("") { "%02x".format(it.toInt() and 255) }
     }
     @Synchronized fun readBytes(): ByteArray { check(!closed) { "选择的文件已失效，请重新选择" };return content.copyOf() }
+    /** Preview only. The import always retains the complete original binary content. */
+    @Synchronized fun textPreview(): PageImportTextPreview {
+        check(!closed) { "选择的文件已失效，请重新选择" }
+        if (content.size > MAX_FILE_CAPTURE_BYTES) return PageImportTextPreview("OVERSIZED")
+        val decoded = try {
+            Charsets.UTF_8.newDecoder()
+                .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+                .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+                .decode(java.nio.ByteBuffer.wrap(content)).toString()
+        } catch (_: java.nio.charset.CharacterCodingException) { return PageImportTextPreview("BINARY") }
+        if ('\u0000' in decoded) return PageImportTextPreview("BINARY")
+        var end = minOf(decoded.length, 8192)
+        if (end < decoded.length && end > 0 && decoded[end - 1].isHighSurrogate()) end--
+        return PageImportTextPreview("TEXT", decoded.substring(0, end), decoded.length > end)
+    }
     @Synchronized override fun close() { closed=true;content.fill(0) }
     override fun toString()="PageBinaryDocument(bytes=$sizeBytes, content=<redacted>)"
+}
+
+data class PageImportTextPreview(val kind: String, val text: String? = null, val truncated: Boolean = false) {
+    override fun toString() = "PageImportTextPreview(kind=$kind, truncated=$truncated, text=<redacted>)"
 }

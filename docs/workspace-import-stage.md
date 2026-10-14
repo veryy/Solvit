@@ -59,3 +59,7 @@ API22协议候选继续扩展Kotlin manifest、TS类型/打包器与市场服务
 远程生成38597964986成功，日志门禁116 SDK及5市场测试通过；普通push检查尚未收回包而失败：SDK是生成包diff，market是暂时与legacy重复的旧workspace1.4.0键。不会把这些暂态失败当已发布功能。另静态发现git/pages.ts复用workspacePage；Git保持API20，因此显式关闭其新导入入口，避免显示必失败的API22控件。共享代码变化将Git包升1.2.1，保留原1.2.0完整包，禁止替换同版本公开字节。Git读写能力与协议不变。
 
 9c0c90a的远程生成38598548619成功；实际下载artifact11913300855并完整ZIP CRC检查，收回workspace1.5.0/API22与Git1.2.1/API20到市场和APK，其他包逐字节未变。没有本地执行TS构建。增加实际Android界面用例：真实HTML/QuickJS与ContentResolver读取30万字节FileProvider文件，先拒绝原生确认不打开选择器，再查看元数据与SHA，取消不写入、同名失败保留旧内容、改名成功，生产Git状态看到untracked、生产Shell校验SHA与退出码、关闭重开文件树可见，并导出两张截图。ActivityResultRegistry注入真实URI，不宣称实际点击系统DocumentsUI。新用例尚未远程编译执行，图片/PDF内容预览及其他完整范围仍待后续。
+
+## 文本内容预览候选
+
+再次读取Operit AttachmentViewerDialog的MIME/容量检查与AttachmentInfoTest：它们区分图片、文本和PDF，不将所有字节当文本。Solvit新增独立importText只读查询，API22/workspace.files及当前选择id/SHA同时检查；严格UTF8及NUL判定，最多256KiB源文本、显示前8192 UTF16单元，代理对完整，截断明确标记。超限和二进制只返回分类，不暴露正文；不能把信息预览叫做图片/PDF内容预览。JS页面按钮显式请求，正文以text节点显示，不执行脚本，保留正在编辑的目标路径；原始导入字节完全不变。新增核心严格解码/容量/截断/关闭用例、真实bridge token/选择生命周期及预览不写入用例、TS页面字段与预览状态用例。尚待远程生成及验证；图片/PDF内容预览、聊天附件来源、覆盖版本、进度中断/崩溃回收仍保留完整待办。

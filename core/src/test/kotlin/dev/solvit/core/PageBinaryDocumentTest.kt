@@ -4,6 +4,27 @@ import java.security.MessageDigest
 import kotlin.test.*
 
 class PageBinaryDocumentTest {
+    @Test fun textPreviewIsBoundedStrictAndNeverChangesImportBytes() {
+        val text = "a".repeat(8191) + "🙂" + "tail"
+        val bytes = text.toByteArray()
+        val document = PageBinaryDocument("code.txt", "text/plain", bytes)
+        val preview = document.textPreview()
+        assertEquals("TEXT", preview.kind); assertEquals("a".repeat(8191), preview.text)
+        assertTrue(preview.truncated); assertContentEquals(bytes, document.readBytes())
+        assertFalse(preview.toString().contains("aaaa"))
+        document.close(); assertFails { document.textPreview() }
+        for (raw in listOf(byteArrayOf(-1), byteArrayOf(65, 0, 66), byteArrayOf(65, -61))) {
+            val binary = PageBinaryDocument("file.bin", "text/plain", raw)
+            try { assertEquals("BINARY", binary.textPreview().kind); assertNull(binary.textPreview().text) }
+            finally { binary.close() }
+        }
+        val large = PageBinaryDocument("large.txt", "text/plain", ByteArray(MAX_FILE_CAPTURE_BYTES + 1) { 65 })
+        try { assertEquals("OVERSIZED", large.textPreview().kind); assertNull(large.textPreview().text) }
+        finally { large.close() }
+        val empty = PageBinaryDocument("empty.txt", "text/plain", byteArrayOf())
+        try { assertEquals(PageImportTextPreview("TEXT", "", false), empty.textPreview()) }
+        finally { empty.close() }
+    }
     @Test fun selectedBinaryKeepsExactBytesAndDigestWithoutExposingPrivateContentInDiagnostics() {
         val input=byteArrayOf(0,1,255.toByte(),13,10)
         val original=input.copyOf()

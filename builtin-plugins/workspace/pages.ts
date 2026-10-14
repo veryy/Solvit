@@ -5,6 +5,14 @@ type Draft={id:string;name:string;pluginId:string;version:string;sha256:string;p
 type Button=Extract<PageNode,{kind:'button'}>;
 type TextChunk={text:string;offset:number;nextOffset:number;total:number;sha256:string};
 type ImportSelection={id:string;name:string;mimeType:string;bytes:number;sha256:string};
+const previewLabels={
+ zh:['预览文本 / 代码','仅显示开头，导入仍保留完整文件。','此文件不是有效 UTF-8 文本，请使用对应格式预览。','文本预览上限256KiB，仍可导入原文件。'],
+ en:['Preview text / code','Only the beginning is shown. Import keeps the complete file.','This is not valid UTF-8 text. Use a preview for its format.','Text previews support up to256KiB. Original file import remains available.'],
+ ja:['テキスト / コードを確認','先頭のみ表示。インポートは元のファイル全体を保持します。','有効なUTF-8テキストではありません。形式に対応するプレビューを使用してください。','テキスト表示は最大256KiB。元のファイルはインポートできます。'],
+ ko:['텍스트 / 코드 미리 보기','앞부분만 표시합니다. 전체 원본을 가져옵니다.','유효한 UTF-8 텍스트가 아닙니다. 해당 형식의 미리 보기를 사용하세요.','텍스트 미리 보기는 최대256KiB. 원본은 가져올 수 있습니다.'],
+ es:['Vista previa de texto / código','Solo se muestra el principio. Se importa el archivo completo.','No es texto UTF-8 válido. Usa una vista previa para su formato.','Vista previa hasta256KiB. Puedes importar el original.'],
+ fr:['Aperçu du texte / code','Seul le début est affiché. Le fichier entier sera importé.','Ce fichier n’est pas un texte UTF-8 valide. Utilisez un aperçu de son format.','Aperçu limité à256KiB. L’import du fichier original reste possible.']
+};
 const importLabels={
  zh:['导入文件','目标路径','确认导入','放弃选择','最多20MiB，保留原始文件；同名文件不会被覆盖。','重新选择','来源：系统文件选择器'],
  en:['Import file','Destination path','Confirm import','Discard selection','Up to 20MiB, original bytes. Existing files are never overwritten.','Choose another','Source: system file picker'],
@@ -35,12 +43,14 @@ export function workspacePage(importsEnabled=true){
  let editorId=0,chunk:TextChunk|null=null,phase='ready',uploadId='',uploadOffset=0;
  let managementPath='';
  let importSelection:ImportSelection|null=null,importPath='';
+ let importPreview:{kind:string;text:string|null;truncated:boolean}|null=null;
  let treeWorkspace:string|null=null,treeResult:JsonObject|null=null,treeRevision=0;
  const treeEntries=new Map<string,FileEntry>();
  return async({locale,event}:PluginPageInput,ctx:PluginContext):Promise<PluginPageView>=>{
   const t=labels[locale.split(/[-_]/)[0] as keyof typeof labels]??labels.en;
   const f=fileLabels[locale.split(/[-_]/)[0] as keyof typeof fileLabels]??fileLabels.en;
   const im=importLabels[locale.split(/[-_]/)[0] as keyof typeof importLabels]??importLabels.en;
+  const ip=previewLabels[locale.split(/[-_]/)[0] as keyof typeof previewLabels]??previewLabels.en;
   const api=ctx.workspacePage;if(!api)throw Error('Workspace page needs API12');
   let snapshot=await api.query('snapshot') as unknown as Snapshot;
   if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear()}
@@ -75,15 +85,16 @@ export function workspacePage(importsEnabled=true){
     if(action==='selectImport'){
      const chosen=await api.perform() as unknown as ImportSelection|null;
      // Cancellation keeps the previous selection; only the host can supply metadata.
-     if(chosen){importSelection=chosen;importPath=(directory?directory+'/':'')+chosen.name;mode='import'}
+     if(chosen){importSelection=chosen;importPreview=null;importPath=(directory?directory+'/':'')+chosen.name;mode='import'}
     }
+    else if(action==='importPreview'&&importSelection){importPath=event.fields.importPath??importPath;importPreview=await api.query('importText',{id:importSelection.id,sha256:importSelection.sha256}) as unknown as {kind:string;text:string|null;truncated:boolean}}
     else if(action==='showImport'){importSelection=await api.query('importSelection') as unknown as ImportSelection|null;if(importSelection)mode='import'}
     else if(action==='prepareImport'&&importSelection){
      importPath=(event.fields.importPath??importPath).trim();
      if(!importPath||importPath.length>1024||importPath.startsWith('/')||importPath.includes('\\')||/[\u0000-\u001f\u007f]/.test(importPath)||importPath.split('/').some(p=>!p||p==='.'||p==='..'||p==='.git'))throw Error('Invalid relative path');
      prepare('importFile',{id:importSelection.id,path:importPath,sha256:importSelection.sha256});
     }
-    else if(action==='dropImport'&&importSelection){await api.perform();importSelection=null;mode='list';await list()}
+    else if(action==='dropImport'&&importSelection){await api.perform();importSelection=null;importPreview=null;mode='list';await list()}
     else if(action==='treeLoad'){
      const target=event.fields.treePath??'',start=Number(event.fields.treeOffset??0);
      if(!Number.isInteger(start)||start<0||start>1000)throw Error('Invalid directory offset');
@@ -200,6 +211,13 @@ export function workspacePage(importsEnabled=true){
    nodes.push(text('import_name',importSelection.name,'title'),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),
     text('import_source',im[6],'caption'),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]),
     {id:'importPath',kind:'field',label:im[1],value:importPath});
+   nodes.push(button('importPreview',ip[0]));
+   if(importPreview){
+    if(importPreview.kind==='TEXT'){
+     nodes.push(text('import_content',importPreview.text??''));
+     if(importPreview.truncated)nodes.push(text('import_truncated',ip[1],'caption'));
+    }else nodes.push(text('import_preview_unavailable',importPreview.kind==='OVERSIZED'?ip[3]:ip[2]));
+   }
    footer.push(selectImport(),{...button('dropImport',im[3]),hostAction:{kind:'workspace.perform',operation:'dropImport',arguments:{id:importSelection.id}}},button('prepareImport',im[2]));
   }else if(mode==='mkdir'||mode==='rename'){
    nodes.push({id:'destination',kind:'field',label:f[3],value:managementPath});

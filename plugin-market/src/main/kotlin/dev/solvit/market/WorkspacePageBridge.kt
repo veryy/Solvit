@@ -70,6 +70,16 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                 }
                 "snapshot" -> { require(args.isEmpty()); snapshot() }
                 "importSelection" -> { require(args.isEmpty());importMetadata() }
+                "importText" -> {
+                    require(args.keys == setOf("id", "sha256"))
+                    val selected = checkNotNull(importDraft) { "请先选择要导入的文件" }
+                    check(selected.first == text("id") && selected.second.sha256 == text("sha256")) { "选择的文件已改变" }
+                    val preview = selected.second.textPreview()
+                    buildJsonObject {
+                        put("kind", preview.kind); put("text", preview.text?.let(::JsonPrimitive) ?: JsonNull)
+                        put("truncated", preview.truncated)
+                    }
+                }
                 "list" -> {
                     require(args.keys == setOf("path", "offset"))
                     val offset = args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int.also { require(it in 0..1000) }
