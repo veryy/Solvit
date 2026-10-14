@@ -57,3 +57,5 @@ API22协议候选继续扩展Kotlin manifest、TS类型/打包器与市场服务
 市场保留原workspace1.4.0完整原字节到legacy，显式插回原目录位置；API1..21继续选原版本，API22才选新包。客户端hostApi请求仍保持21，待线上市场兼容验证后再切换。SDK行为用例覆盖选择不写入、空绑定不显示入口、路径越界拒绝、确认取消、重名改名重试和放弃；市场用例覆盖新版本与历史原包下载。生成包尚未本地编译，按约定将由远程Actions生成后取回，候选当前不可作为可用APK交付。
 
 远程生成38597964986成功，日志门禁116 SDK及5市场测试通过；普通push检查尚未收回包而失败：SDK是生成包diff，market是暂时与legacy重复的旧workspace1.4.0键。不会把这些暂态失败当已发布功能。另静态发现git/pages.ts复用workspacePage；Git保持API20，因此显式关闭其新导入入口，避免显示必失败的API22控件。共享代码变化将Git包升1.2.1，保留原1.2.0完整包，禁止替换同版本公开字节。Git读写能力与协议不变。
+
+9c0c90a的远程生成38598548619成功；实际下载artifact11913300855并完整ZIP CRC检查，收回workspace1.5.0/API22与Git1.2.1/API20到市场和APK，其他包逐字节未变。没有本地执行TS构建。增加实际Android界面用例：真实HTML/QuickJS与ContentResolver读取30万字节FileProvider文件，先拒绝原生确认不打开选择器，再查看元数据与SHA，取消不写入、同名失败保留旧内容、改名成功，生产Git状态看到untracked、生产Shell校验SHA与退出码、关闭重开文件树可见，并导出两张截图。ActivityResultRegistry注入真实URI，不宣称实际点击系统DocumentsUI。新用例尚未远程编译执行，图片/PDF内容预览及其他完整范围仍待后续。
