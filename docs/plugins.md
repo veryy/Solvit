@@ -146,10 +146,10 @@ hostAction: {
 
 缩略图显示使用API22 HTML页面的 `image` 节点 `{id,kind:'image',source,alt,width,height}`。source仅接受规范Base64内联JPEG及上述容量/尺寸边界，不能使用HTTP、file或SVG地址，也不能附带action。HTML负责实际img绘制，例如工作区的 `ui/main.mjs`；通用旧版 `mountPage` helper没有图片绘制逻辑，第三方页面要实现自己的渲染。声明的JPEG标记不等于完整解码保证；内置预览服务会实际解码并重新编码缩略图。
 
-当前图片与文本候选不等于完整导入交付。PDF内容预览、聊天附件来源、覆盖版本检查、进度/停止、崩溃后暂存回收以及真机/真实模型任务仍按阶段记录继续实现。
+图片/文本导入已在0.34.0发布，PDF分页预览已在0.35.0发布；完整导入范围仍包含聊天附件来源、覆盖版本检查、进度/停止、崩溃后暂存回收以及真机/真实模型任务仍按阶段记录继续实现。
 
-## API23 候选：工作区 PDF 分页预览
+## API23：工作区 PDF 分页预览
 
-尚未发布，0.34.0/API22 不支持此查询。页面须声明 `apiVersion: 23`、workspace权限及 `workspace.files` 原生服务；使用当前选择返回的id/SHA调用 `workspacePage.query('importPdf', {id, sha256, page})`。page为1-based整数。结果包含page、pageCount、text、truncated、width、height和内联JPEG source。实际页数最多5000，当前页文字最多8192 UTF16单元，最长边640/图片64KiB；文字应作为普通文本显示。扫描页提供原页而不伪造OCR文字。
+已在0.35.0正式发布；0.34.0/API22 不支持此查询。页面须声明 `apiVersion: 23`、workspace权限及 `workspace.files` 原生服务；使用当前选择返回的id/SHA调用 `workspacePage.query('importPdf', {id, sha256, page})`。page为1-based整数。结果包含page、pageCount、text、truncated、width、height和内联JPEG source。实际页数最多5000，当前页文字最多8192 UTF16单元，最长边640/图片64KiB；文字应作为普通文本显示。扫描页提供原页而不伪造OCR文字。
 
 预览不会写入工作区，也不向脚本暴露URI或私有路径。导入仍使用已发布的importFile确认操作，写入完整原PDF，而非预览JPEG或截断文字。撤权/切换对话会阻止当前结果返回，关闭页面释放选择。源码和实际验证状态见[PDF阶段](workspace-pdf-preview-stage.md)。

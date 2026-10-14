@@ -12,7 +12,7 @@ AI chat, plugins, and a project workspace on your Android phone. Connect your ow
 
 Android 8.0 及以上可用。界面默认中文，也支持英文、日文、韩文、西班牙文和法文；有浅色、深色和跟随系统主题，Android 12 及以上支持动态配色。
 
-当前公开版是 [0.34.0](https://github.com/veryy/Solvit/releases/tag/v0.34.0)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
+当前公开版是 [0.35.0](https://github.com/veryy/Solvit/releases/tag/v0.35.0)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
 
 ## 现在能做什么
 
@@ -23,7 +23,7 @@ Android 8.0 及以上可用。界面默认中文，也支持英文、日文、�
 - **联网搜索**：启用搜索插件即可使用默认公开搜索，也可以选配其他引擎。搜索和网页正文带来源链接；公网搜索仍可能受网络和人机验证影响。[使用说明](docs/web-search.md)
 - **记忆**：本地记录、检索、关系图谱、编辑和删除；可以开启自动检索和后台保存。真实模型的记忆质量仍需验证。[记忆说明](docs/memory.md)
 - **MCP 和 Skills**：多个具名 HTTPS MCP 连接、独立会话和加密凭据；导入 SKILL.md 及文本资源，让角色按需使用。[MCP](docs/mcp.md) · [Skills](docs/skills.md)
-- **工作区**：一个对话可绑定一个目录，多个 Shell 共用该目录。文件树、新建目录、重命名、删除、CodeMirror 文本/代码预览编辑，以及 xterm.js + Android PTY 交互终端。可以选择最多20MiB的原文件导入，先看信息、文本或图片预览再确认；同名文件提示改名，文件树、Git和Shell共用。[工作区说明](docs/workspaces.md)
+- **工作区**：一个对话可绑定一个目录，多个 Shell 共用该目录。文件树、新建目录、重命名、删除、CodeMirror 文本/代码预览编辑，以及 xterm.js + Android PTY 交互终端。可以选择最多20MiB的原文件导入，先看信息、文本、图片或 PDF 原页预览再确认；同名文件提示改名，文件树、Git和Shell共用。[工作区说明](docs/workspaces.md)
 - **Linux 开发环境**：无需 root，按需安装 Ubuntu 24.04、Python/venv、Node24/npm，可追加 Python/pip 或 Java17。在「工作区 → Linux」安装后新建 Ubuntu Shell，AI 命令、终端和文件管理使用同一目录。[使用与验证](docs/linux-environment-stage.md)
 - **Git 工作台**：Changes、差异、暂存、提交和历史，与文件管理和终端使用同一目录。支持 HTTPS 克隆、fetch、拉取/推送审阅、合并冲突、进度和取消；凭据由原生安全表单加密保存。AI Git 工具目前只读。[Git 阶段记录](docs/workspace-github-stage.md)
 - **更新**：应用内查看版本说明、下载进度和安装入口。配置中的 API Key 使用 Android Keystore 加密保存。
@@ -32,7 +32,7 @@ Android 8.0 及以上可用。界面默认中文，也支持英文、日文、�
 
 图片、文本和代码附件已经能用，接下来继续补齐：
 
-1. 工作区文件导入、插件侧文档调用，以及聊天与文件预览的联动。
+1. 聊天已有附件导入工作区、带文件版本检查的覆盖，以及导入进度、取消和异常暂存回收。
 2. Git 克隆中断恢复和真实 GitHub 账号读写验收。
 3. 用真实模型验证角色、流式、工具选择和完整项目任务，继续改善插件管理与记忆体验。
 
@@ -50,7 +50,7 @@ Linux 环境仍使用 Android 内核和应用身份，不额外授予系统权�
 
 配置备份包含模型连接、API Key、角色、提示词、语言和外观等；不包含聊天、插件包、插件密钥和记忆。备份文件请保存在应用外。
 
-当前发布的是 debug APK。[0.34.0 远程验证](https://github.com/veryy/Solvit/actions/runs/38609672475)通过了测试、Lint、APK、签名与覆盖升级等门禁；真实模型完整任务与真机体验尚未验收。构建证据和 APK 摘要见[版本记录](docs/release-0.34.0.md)。
+当前发布的是 debug APK。[0.35.0 远程验证](https://github.com/veryy/Solvit/actions/runs/38619541924)通过了测试、Lint、APK、签名与覆盖升级等门禁；真实模型完整任务与真机体验尚未验收。构建证据和 APK 摘要见[版本记录](docs/release-0.35.0.md)。
 
 ## 构建
 
