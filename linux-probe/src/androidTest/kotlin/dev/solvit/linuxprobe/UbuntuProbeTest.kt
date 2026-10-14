@@ -73,6 +73,33 @@ class UbuntuProbeTest {
                 assertTrue(output, output.contains("v18."))
                 assertEquals("pty-ok", File(workspace, "pty-python.txt").readText())
             }
+            // Exercise the same post-authorization native path used by AI Shell tools.
+            val workspaces = dev.solvit.workspace.AndroidWorkspaces(context, scope, linux = service)
+            try {
+                val project = workspaces.create("Linux agent workspace")
+                val shell = workspaces.createShell(project.id, "Ubuntu agent", dev.solvit.core.ShellRuntime.UBUNTU)
+                val chat = "linux-authorized-turn"
+                workspaces.bind(chat, project.id)
+                val command = "python3 -c \"from pathlib import Path; Path('agent-python.txt').write_text('agent-ok')\" && node --version && java -version"
+                val args = org.json.JSONObject().put("shellId", shell.id).put("command", command).toString()
+                val descriptor = dev.solvit.core.ToolDescriptor("shell_start", "Approved Ubuntu command", "{}",
+                    pluginId = "test.linux.agent", capabilities = setOf("shell"), executionMode = dev.solvit.core.ExecutionMode.APP)
+                val invocation = dev.solvit.core.ToolInvocationContext(descriptor,
+                    dev.solvit.core.ToolCall("linux-call", descriptor.name, args))
+                val started = withContext(invocation + dev.solvit.core.ConversationContext(chat, project.id)) {
+                    workspaces.run(project.id, shell.id, command)
+                }
+                val completed = withTimeout(30_000) { workspaces.jobs.first { jobs ->
+                    jobs.any { it.id == started.id && it.stage !in setOf(dev.solvit.core.ShellStage.STARTING, dev.solvit.core.ShellStage.RUNNING) }
+                }.first { it.id == started.id } }
+                assertEquals(completed.output.joinToString("") { it.text }, dev.solvit.core.ShellStage.COMPLETED, completed.stage)
+                assertEquals(project.id, completed.workspaceId); assertEquals(shell.id, completed.shellSessionId)
+                assertEquals("agent-ok", workspaces.read(project.id, "agent-python.txt"))
+                invocation.cancelResources()
+                val restored = dev.solvit.workspace.AndroidWorkspaces(context, scope, linux = service)
+                try { assertEquals(dev.solvit.core.ShellRuntime.UBUNTU, restored.state.value.shells.first { it.id == shell.id }.runtime) }
+                finally { restored.close() }
+            } finally { workspaces.close() }
         } finally { service.close(); scope.cancel() }
     }
 
