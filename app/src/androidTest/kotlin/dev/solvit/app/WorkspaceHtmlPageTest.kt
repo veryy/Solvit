@@ -33,6 +33,16 @@ class WorkspaceHtmlPageTest {
         val initialText = "<script>window.executed=true</script>\n第一版🙂\n" + "const value = 1; // 中文\n".repeat(3000)
         val marker = "IME_EDIT"
         var visible by mutableStateOf(true)
+        // This fixture contains no real chat or configuration data.
+        fun imeState(phase: String) {
+            val snapshot = html.js("""(()=>{const e=window.workspaceEditor,s=e?.state,d=s?.doc.toString()??'';
+                const line=document.querySelector('.cm-line:last-child'),r=line?.getBoundingClientRect();
+                return {phase:${JsonPrimitive(phase)},length:d.length,marker:d.indexOf('$marker'),tail:d.slice(-100),
+                  selection:s?.selection.main.toJSON(),focused:e?.hasFocus,composing:e?.composing,
+                  viewport:e?.viewport,active:document.activeElement?.className,
+                  lastLine:line?.textContent,lineTop:r?.top,lineBottom:r?.bottom,height:innerHeight}})()""")
+            android.util.Log.i("WORKSPACE_IME_DIAG", snapshot)
+        }
         fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
         fun click(id: String) {
             waitDom("!!document.querySelector('[data-node=$id]') && !document.querySelector('[data-node=$id]').disabled")
@@ -69,10 +79,18 @@ class WorkspaceHtmlPageTest {
             click("new"); waitDom("!!window.workspaceEditor && !!document.querySelector('.cm-content[contenteditable=true]')")
             field("path", "src/note.ts");document(initialText)
             waitDom("(()=>{const line=document.querySelector('.cm-line:last-child');if(!line)return false;const r=line.getBoundingClientRect();return r.top>=0 && r.bottom<document.getElementById('actions').getBoundingClientRect().top})()")
+            imeState("before-tap")
             html.tapElement(".cm-line:last-child")
             rule.waitUntil(10_000) { html.keyboardVisible() }
+            imeState("keyboard-visible")
             InstrumentationRegistry.getInstrumentation().sendStringSync(marker)
-            waitDom("window.workspaceEditor.state.doc.toString().endsWith('$marker')")
+            try {
+                waitDom("window.workspaceEditor.state.doc.toString().endsWith('$marker')")
+            } catch (failure: Throwable) {
+                runCatching { imeState("input-failed"); html.screenshot("workspace-editor-ime-failed").recycle() }
+                throw failure
+            }
+            imeState("input-complete")
             html.hideKeyboard()
             rule.waitUntil(10_000) { !html.keyboardVisible() }
             click("prepareSave"); waitDom("!!document.querySelector('[data-node=confirm]')")
