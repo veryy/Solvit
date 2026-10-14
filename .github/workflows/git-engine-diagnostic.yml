@@ -46,7 +46,7 @@ jobs:
           ./gradlew :core:test :git-android:assembleDebug :git-android:assembleDebugAndroidTest --stacktrace
       - name: Install emulator image with bounded download retries
         run: |
-          image='system-images;android-${{ matrix.api }};google_apis;x86_64'
+          image='system-images;android-${{ matrix.api }};default;x86_64'
           for attempt in 1 2 3; do
             if sdkmanager "$image"; then exit 0; fi
             if [ "$attempt" = 3 ]; then exit 1; fi
