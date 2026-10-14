@@ -44,19 +44,41 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
         return checkNotNull(git) { "此页面没有Git授权" }.perform(control, ::ensureAuthorized)
             .also { ensureAuthorized() }
     }
-    suspend fun queryWorkspace(operation: String, args: JsonObject): String {
+    suspend fun queryWorkspace(operation: String, args: JsonObject, apiVersion: Int = 12, filesDeclared: Boolean = false): String {
         ensureAuthorized()
+        if (operation == "importSelection") requireImportAccess(apiVersion, filesDeclared)
         return checkNotNull(workspace) { "此页面没有聊天工作区授权" }.query(operation, args.toString(), ::ensureAuthorized)
             .also { ensureAuthorized() }
     }
-    suspend fun performWorkspace(apiVersion: Int, linuxDeclared: Boolean = false): String {
+    private fun requireImportAccess(apiVersion: Int, filesDeclared: Boolean) {
+        check(apiVersion >= 22 && filesDeclared) { "文件导入需要 API22 及 workspace.files 服务声明" }
+    }
+    suspend fun performWorkspace(apiVersion: Int, linuxDeclared: Boolean = false, filesDeclared: Boolean = false): String {
         ensureAuthorized()
         val control = ScriptPageHostAction.workspace(checkNotNull(approvedAction))
         check(control.operation !in setOf("installEnvironment", "cancelEnvironment", "installSoftware", "createLinuxShell") ||
             apiVersion >= 21 && linuxDeclared) { "Linux 环境操作需要 API21 及 environment.linux 服务声明" }
-        check(control.operation !in setOf("importFile","dropImport") || apiVersion >= 22) { "文件导入需要 API22" }
+        if (control.operation in setOf("selectImport", "importFile", "dropImport")) requireImportAccess(apiVersion, filesDeclared)
         check(control.operation !in setOf("writeDraft","makeDirectory","moveEntry","deleteEntry") || apiVersion >= 18) { "文件管理需要 API18" }
         check(consumed.compareAndSet(false, true)) { "Native page control already consumed" }
+        if (control.operation == "selectImport") {
+            val access = checkNotNull(workspace) { "此页面没有聊天工作区授权" }
+            // Reject an unbound/invalid page before opening the system picker.
+            access.query("list", "{\"path\":\"\",\"offset\":0}", ::ensureAuthorized)
+            ensureAuthorized()
+            val selected = checkNotNull(documents) { "此页面没有文件导入选择器" }.selectFile(::ensureAuthorized)
+                ?: return "null".also { ensureAuthorized() }
+            var adopted = false
+            try {
+                ensureAuthorized()
+                val metadata = access.stageImport(selected, ::ensureAuthorized)
+                adopted = true
+                ensureAuthorized()
+                return metadata
+            } finally {
+                if (!adopted) selected.close()
+            }
+        }
         return checkNotNull(workspace) { "此页面没有聊天工作区授权" }.perform(control, ::ensureAuthorized)
             .also { ensureAuthorized() }
     }

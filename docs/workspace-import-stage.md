@@ -39,3 +39,11 @@ PageWorkspaceAccess追加host-only stageImport；WorkspacePageBridge捕获对话
 新增4个真实宿主桥单元入口：选中文件只返回元数据且确认后原字节写入；旧token/切换共享工作区对话拒绝及关闭释放；重名保留草稿、提交前撤权无部分文件、改名重试；普通聊天拒绝并释放来历文件。JVM发布适配器显式注入，仅验证宿主桥；JNI设备验证继续依赖独立原用例。
 
 ScriptPageHostAction加入importFile/dropImport严格字段检查，ScriptPageExecutionContext要求API22，旧API1..21不能调用新动作。当前manifest上限仍21，新动作暂不能由发布插件发起；后续还须增加API22声明、文件选择动作、BuiltinWorkspaceManager文档选择器接入、TS SDK/HTML页、市场旧版本保留，以及实际选择→预览→确认→Shell/Git/重开与撤权验证。本文不把几个服务接口当成产品入口已完成。新增桥代码尚未远程编译执行。
+
+## 选择器与插件执行上下文连接
+
+0.33.1已经公开，下载和正式门禁见release-0.33.1.md。导入候选7569a8c/38592230545的编译成功，设备任务失败于旧ChatLayoutTest.openWorkspace的10秒等待，不是新增二进制导入的异常；完整设备报告尚待下载核对，不将任务失败说成JNI再次失败，也不以此宣称整套功能通过。
+
+本检查点继续核对上述DSH readBytes实现/实际read-bytes.spec.ts和Operit ComposeDslFilePickerRequestTest；采用原始字节、容量拒绝、显式用户选择的边界，不复制上游代码。新增selectImport已显示控件动作：只接受空参数，不能由JS指定URI/路径；API22及workspace.files声明同时满足才可选择、查询或提交导入。先核对绑定工作区再打开系统选择器，返回后重验授权；未交接文件遇撤权或错误即close，成功只移交给当前WorkspacePageBridge，取消保留已有选择。BuiltinWorkspaceManager将宿主PageDocumentAccess传入真实脚本页。
+
+增加四个宿主执行边界用例：旧API/未声明服务/隐藏URI拒绝且不打开选择器，无绑定拒绝；30万原字节一次性移交、不调用写入；选择器延迟返回时撤权清空；用户取消保留旧草稿。这些不是实际DocumentsUI或QuickJS API22整链验收。manifest暂保持API21上限，市场与SDK/UI切换尚未完成；本检查点待远程编译与执行。

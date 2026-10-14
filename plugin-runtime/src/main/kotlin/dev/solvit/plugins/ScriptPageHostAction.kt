@@ -65,6 +65,7 @@ object ScriptPageHostAction {
                 setOf("id","path","sha256")
             }
             "dropImport" -> { text("id",128);setOf("id") }
+            "selectImport" -> emptySet()
             "makeDirectory", "deleteEntry" -> { text("path",1024);setOf("path") }
             "moveEntry" -> { text("path",1024);text("destination",1024);setOf("path","destination") }
             "unbind" -> emptySet()

@@ -111,13 +111,15 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             if (operation == "workspacePage.perform") {
                                 require(arguments.isEmpty()) { "原生操作只能来自已确认的页面控件" }
                                 page.performWorkspace(pkg.manifest.apiVersion, "environment.linux" in pkg.manifest.nativeServices &&
-                                    pkg.manifest.permissions.containsAll(setOf("workspace", "shell", "network")))
+                                    pkg.manifest.permissions.containsAll(setOf("workspace", "shell", "network")),
+                                    "workspace.files" in pkg.manifest.nativeServices && "workspace" in pkg.manifest.permissions)
                             } else {
                                 require(arguments.keys == setOf("operation", "arguments"))
                                 val query = arguments.getValue("operation").jsonPrimitive.also { require(it.isString) }.content
                                 check(query != "environmentStatus" || pkg.manifest.apiVersion >= 21 && "environment.linux" in pkg.manifest.nativeServices &&
                                     pkg.manifest.permissions.containsAll(setOf("workspace", "shell", "network"))) { "Linux 环境查询需要 API21 及服务声明" }
-                                page.queryWorkspace(query, arguments.getValue("arguments").jsonObject)
+                                page.queryWorkspace(query, arguments.getValue("arguments").jsonObject, pkg.manifest.apiVersion,
+                                    "workspace.files" in pkg.manifest.nativeServices && "workspace" in pkg.manifest.permissions)
                             }
                         } else if (operation.startsWith("gitPage.")) {
                             val page = checkNotNull(currentCoroutineContext()[ScriptPageExecutionContext]) { "Git页面缺少授权" }
