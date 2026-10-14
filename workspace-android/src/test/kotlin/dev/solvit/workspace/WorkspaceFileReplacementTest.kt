@@ -85,6 +85,24 @@ class WorkspaceFileReplacementTest {
             assertEquals("old",destination.readText());assertEquals(1,root.listFiles()!!.size)
         }
     }
+    @Test fun cancellationWithConcurrentNameReportsRecoveryBackupInsteadOfSilentlyClaimingCleanup()=fixture { root ->
+        val destination=File(root,"file.bin").apply { writeText("old") }
+        val reviewed=WorkspaceFileImports.review(root,"file.bin") {}!!
+        val bytes="replacement".toByteArray()
+        val failure=assertFails {
+            WorkspaceFileImports.replace(root,"file.bin",bytes,sha(bytes),reviewed.sha256,move) {
+                if(root.listFiles()!!.any { it.name.startsWith("solvit-backup-") }) {
+                    destination.writeText("concurrent Shell")
+                    throw CancellationException("cancel")
+                }
+            }
+        }
+        assertFalse(failure is CancellationException,"Unresolved recovery requires a visible failure, not ordinary cancellation")
+        assertTrue(failure.message!!.contains("solvit-backup-"))
+        assertEquals("concurrent Shell",destination.readText())
+        assertEquals("old",root.listFiles()!!.single { it.name.startsWith("solvit-backup-") }.readText())
+        assertEquals(2,root.listFiles()!!.size)
+    }
     @Test fun reviewRejectsSymlinksDirectoriesOversizedAndInternalPaths()=fixture { root ->
         assertNull(WorkspaceFileImports.review(root,"absent") {})
         File(root,"folder").mkdir()
