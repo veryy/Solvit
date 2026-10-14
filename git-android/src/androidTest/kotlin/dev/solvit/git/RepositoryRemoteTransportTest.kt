@@ -3,6 +3,7 @@ package dev.solvit.git
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.solvit.core.GitRemoteEndpoint
+import dev.solvit.workspace.AndroidWorkspaces
 import kotlinx.coroutines.*
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.MergeResult
@@ -52,6 +53,91 @@ class RepositoryRemoteTransportTest {
         git.add().addFilepattern("content.txt").call()
         return git.commit().setMessage("Actual native change").setAuthor("Solvit test", "test@example.invalid")
             .setCommitter("Solvit test", "test@example.invalid").call().name
+    }
+
+    @Test fun boundSessionRequiresNetworkPreservesFilesAndPushesOnlyReviewedRevision() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val workspaces = AndroidWorkspaces(context, scope)
+        val chat = "git-remote-bound-${UUID.randomUUID()}"
+        val workspace = workspaces.forChat(chat)
+        val root = File(workspaces.location(workspace.id))
+        var active: String? = chat
+        var networkAllowed = false
+        val remote = endpoint("bound")
+        val page = BoundWorkspaceGit(workspaces, chat, { active }, authorizeWrite = {},
+            authorizeNetwork = { target -> assertEquals(remote.url, target.url); check(networkAllowed) }) { }
+        page.remoteTransport = RepositoryRemoteTransport(tls)
+        val vault = GitCredentialVault(context)
+        val secret = "fixture-secret".toCharArray()
+        try {
+            vault.save(remote, "fixture-user", secret)
+            page.borrowCredentials = { vault.borrow(it) }
+            page.initialize()
+            File(root, "keep.txt").writeText("concurrent Shell file\n")
+            try { page.fetch(remote, "main"); fail("Network must have separate authorization") }
+            catch (_: IllegalStateException) { }
+            assertNull(page.status().head)
+            networkAllowed = true
+            val fetched = page.fetch(remote, "main")
+            assertNull(page.status().head)
+            assertFalse(File(root, "content.txt").exists())
+            assertEquals("concurrent Shell file\n", File(root, "keep.txt").readText())
+            Git.open(root).use { git ->
+                git.reset().setMode(ResetCommand.ResetType.HARD).setRef(fetched.head).call()
+            }
+            File(root, "content.txt").writeText("bound commit 中文 😀\n")
+            val staged = page.stage(page.diff("content.txt", false))
+            val committed = page.commit(staged, "Bound reviewed commit", "Fixture", "test@example.invalid")
+            val review = page.reviewPush(remote, "main")
+            File(root, "another.txt").writeText("change reviewed index\n")
+            val changed = page.stage(page.diff("another.txt", false))
+            try { page.push(review); fail("Stale reviewed index must fail") }
+            catch (_: IllegalStateException) { }
+            page.unstage("another.txt", changed)
+            val fresh = page.reviewPush(remote, "main")
+            val pushed = page.push(fresh)
+            assertEquals("OK", pushed.status)
+            assertEquals(committed.id, pushed.head)
+            repository { git, _ ->
+                val actual = RepositoryRemoteTransport(tls).fetch(git.repository, remote, "main", credentials(remote), {})
+                assertEquals(committed.id, actual.head)
+            }
+            active = "another-chat"
+            try { page.fetch(remote, "main"); fail("Changed chat must reject network operation") }
+            catch (_: IllegalStateException) { }
+            assertEquals("concurrent Shell file\n", File(root, "keep.txt").readText())
+            assertEquals("change reviewed index\n", File(root, "another.txt").readText())
+            assertNull(page.progress.value)
+        } finally {
+            secret.fill('\u0000'); vault.remove(remote)
+            page.close(); workspaces.unbind(chat); scope.cancel(); root.deleteRecursively()
+        }
+    }
+
+    @Test fun closingBoundSessionCancelsTransferWithoutWaitingForRepositoryLock() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val workspaces = AndroidWorkspaces(context, scope)
+        val chat = "git-remote-close-${UUID.randomUUID()}"
+        val root = File(workspaces.location(workspaces.forChat(chat).id))
+        val remote = endpoint("bound-slow")
+        val page = BoundWorkspaceGit(workspaces, chat, { chat }, authorizeWrite = {}, authorizeNetwork = {}) { }
+        page.remoteTransport = RepositoryRemoteTransport(tls)
+        page.borrowCredentials = { credentials(it) }
+        try {
+            page.initialize()
+            File(root, "keep.txt").writeText("must survive closing\n")
+            val pending = async(Dispatchers.IO) { page.fetch(remote, "main") }
+            withTimeout(5_000) { while (control("/control/bound-slow-started") != "true") delay(25) }
+            assertNotNull(page.progress.value)
+            withTimeout(2_000) { page.close(); pending.join() }
+            assertTrue(pending.isCancelled)
+            assertNull(page.progress.value)
+            assertEquals("must survive closing\n", File(root, "keep.txt").readText())
+            try { page.status(); fail("Closed session must reject reads") }
+            catch (_: IllegalStateException) { }
+        } finally {
+            page.close(); workspaces.unbind(chat); scope.cancel(); root.deleteRecursively()
+        }
     }
 
     @Test fun realHttpsFetchPushAndNonFastForwardPreserveRemoteCommitsWithoutInheritedHeaders() = runBlocking<Unit> {

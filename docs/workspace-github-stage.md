@@ -103,3 +103,22 @@ AndroidInputStreams.transferTo，读取短块/零字节、写错误及不关闭�
 CloneCommand.java:867–899，默认失败cleanup会deleteChildren已有目录，不能直接
 把此流程用于聊天共享目录。下载/安装阶段需明确资源归属、复核目标及失败保留行为。
 完整GitHub真实账号推送、克隆、pull/冲突恢复、页面及AI写入仍按原范围验证。
+
+## 对话绑定的远程服务候选
+
+复核固定JGit `TransportCommand.java:35–100`的默认CredentialsProvider继承行为和
+`PushCommandTest.java:testPushWithLease`的实际引用审阅方式后，新增独立网络授权的
+WorkspaceRemoteGitService/Session。既有bind入口默认拒绝网络；bindRemote额外接受
+精确仓库端点的宿主授权。BoundWorkspaceGit复核当前聊天和工作区绑定，fetch只下载
+对象/更新tracking引用，不改变HEAD、索引和文件。推送审阅捕获本地版本和真实远端HEAD，
+推送前复核暂存区/分支，保持force=false及expected-old远端引用。
+
+Android服务按仓库从Keystore凭据库借出短生命周期Provider，未配置时显式匿名，
+JS/model不接收凭据。进度为独立StateFlow；取消/关闭先取消拥有的传输任务，再等待
+仓库互斥锁，网络连接由原传输所有者回收。测试新增真实TLS后端的绑定授权、
+加密凭据取用、文件保留、陈旧索引拒绝、推送后重新读取和关闭阻塞传输场景。
+新增专用bound/bound-slow仓库与独立后端已进入等待状态的观察接口，避免用固定延迟
+代替实际网络路径。许可证仍遵循既有JGit通知，新增桥接代码为本项目实现。
+
+本阶段尚未远程验证；不是插件页面交付。后续保留克隆、pull/合并冲突、
+原生安全凭据输入、HTML页面、AI写入以及真实GitHub账户读写与APK发布。

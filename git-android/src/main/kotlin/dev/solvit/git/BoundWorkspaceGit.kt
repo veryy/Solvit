@@ -3,6 +3,8 @@ package dev.solvit.git
 import dev.solvit.core.WorkspacePageAuthority
 import dev.solvit.core.WorkspaceService
 import dev.solvit.core.WorkspaceGitSession
+import dev.solvit.core.WorkspaceRemoteGitSession
+import dev.solvit.core.GitRemoteEndpoint
 import dev.solvit.core.WorkspaceGitSession.Entry
 import dev.solvit.core.WorkspaceGitSession.Status
 import dev.solvit.core.WorkspaceGitSession.Revision
@@ -14,6 +16,11 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.dircache.DirCacheEntry
@@ -46,11 +53,80 @@ class BoundWorkspaceGit(
     private val activeChat: () -> String?,
     private val authorizeWrite: suspend () -> Unit = { error("Git写入尚未授权") },
     private val onClose: () -> Unit = {},
+    private val authorizeNetwork: suspend (GitRemoteEndpoint) -> Unit = { error("Git网络访问尚未授权") },
     private val authorize: suspend () -> Unit,
-) : WorkspaceGitSession {
+) : WorkspaceRemoteGitSession {
     private val binding = checkNotNull(workspaces.state.value.bindings[chatId]) { "此对话尚未绑定工作区" }
     private val mutex = Mutex()
-    private var closed = false
+    @Volatile private var closed = false
+    private val transferLock = Any()
+    private var activeTransfer: Job? = null
+    private val transferProgress = MutableStateFlow<WorkspaceRemoteGitSession.Progress?>(null)
+    override val progress = transferProgress.asStateFlow()
+    internal var remoteTransport = RepositoryRemoteTransport()
+    internal var borrowCredentials: (GitRemoteEndpoint) -> RepositoryCredentials? = { null }
+
+    private suspend fun verifyRemote(endpoint: GitRemoteEndpoint) {
+        verifyWrite()
+        authorizeNetwork(endpoint)
+        verify()
+    }
+
+    private suspend fun <T> transfer(endpoint: GitRemoteEndpoint, operation: String,
+        block: suspend (Git) -> T): T = coroutineScope {
+        val ownedJob = currentCoroutineContext().job
+        synchronized(transferLock) {
+            check(!closed) { "Git页面已关闭" }
+            check(activeTransfer == null) { "Git传输正在进行" }
+            activeTransfer = ownedJob
+            transferProgress.value = WorkspaceRemoteGitSession.Progress(operation, "", 0, 0)
+        }
+        try {
+            verifyRemote(endpoint)
+            access { git -> verifyRemote(endpoint); block(git) }
+        } finally {
+            synchronized(transferLock) {
+                if (activeTransfer === ownedJob) {
+                    activeTransfer = null
+                    transferProgress.value = null
+                }
+            }
+        }
+    }
+
+    private fun report(operation: String, value: GitTransferProgress) {
+        transferProgress.value = WorkspaceRemoteGitSession.Progress(operation, value.task, value.completed, value.total)
+    }
+
+    override suspend fun fetch(endpoint: GitRemoteEndpoint, branch: String) = transfer(endpoint, "fetch") { git ->
+        val result = remoteTransport.fetch(git.repository, endpoint, branch, borrowCredentials(endpoint),
+            { verifyRemote(endpoint) }, { report("fetch", it) })
+        WorkspaceRemoteGitSession.Fetch(result.branch, result.head, result.updates)
+    }
+
+    override suspend fun reviewPush(endpoint: GitRemoteEndpoint, branch: String) = transfer(endpoint, "review") { git ->
+        val local = revision(git)
+        check(local.head != null && local.branch == "refs/heads/$branch") { "请选择当前本地分支，且至少有一次提交" }
+        val remote = remoteTransport.fetch(git.repository, endpoint, branch, borrowCredentials(endpoint),
+            { verifyRemote(endpoint) }, { report("review", it) })
+        check(revision(git) == local) { "本地提交或暂存区已变化，请重新审阅" }
+        WorkspaceRemoteGitSession.PushReview(endpoint, branch, local, remote.head)
+    }
+
+    override suspend fun push(review: WorkspaceRemoteGitSession.PushReview) = transfer(review.endpoint, "push") { git ->
+        check(revision(git) == review.revision && review.revision.branch == "refs/heads/${review.branch}") {
+            "本地提交或暂存区已变化，请重新审阅"
+        }
+        val head = checkNotNull(review.revision.head)
+        val result = remoteTransport.push(git.repository, review.endpoint, review.branch, head, review.remoteHead,
+            borrowCredentials(review.endpoint), { verifyRemote(review.endpoint) }, { report("push", it) })
+        WorkspaceRemoteGitSession.Push(result.branch, result.localHead, result.status)
+    }
+
+    override suspend fun cancelTransfer() {
+        verify() // Must not wait behind the transfer's repository mutex.
+        synchronized(transferLock) { activeTransfer?.cancel() }
+    }
     private suspend fun verify() {
         currentCoroutineContext().ensureActive()
         check(!closed) { "Git页面已关闭" }
@@ -353,7 +429,14 @@ class BoundWorkspaceGit(
             }
         } finally { cache.unlock() }
     }
-    override suspend fun close() = mutex.withLock {
-        if (!closed) { closed = true; onClose() }
+    override suspend fun close() {
+        val first = synchronized(transferLock) {
+            if (closed) false else {
+                closed = true
+                activeTransfer?.cancel()
+                true
+            }
+        }
+        mutex.withLock { if (first) onClose() }
     }
 }

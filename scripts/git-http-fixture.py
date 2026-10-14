@@ -31,12 +31,13 @@ git('init', '--initial-branch=main', str(source))
 git('add', 'content.txt', cwd=source)
 git('-c', 'user.name=Solvit fixture', '-c', 'user.email=fixture@example.invalid',
     'commit', '-m', 'Initial remote content', cwd=source)
-for name in ['roundtrip', 'conflict', 'auth', 'slow']:
+for name in ['roundtrip', 'conflict', 'auth', 'slow', 'bound', 'bound-slow']:
     repository = root / (name + '.git')
     git('clone', '--bare', str(source), str(repository))
     git('config', 'http.receivepack', 'true', cwd=repository)
 
 slow_started = threading.Event()
+bound_slow_started = threading.Event()
 records = []
 record_lock = threading.Lock()
 
@@ -87,13 +88,15 @@ class Handler(BaseHTTPRequestHandler):
             return self.response(200, b'OK')
         if url.path == '/control/slow-started':
             return self.response(200, json.dumps(slow_started.is_set()).encode())
+        if url.path == '/control/bound-slow-started':
+            return self.response(200, json.dumps(bound_slow_started.is_set()).encode())
         if url.path == '/control/records':
             with record_lock:
                 data = json.dumps(records).encode()
             return self.response(200, data)
         if url.path.startswith('/redirect.git/'):
             return self.response(302, headers={'Location': '/roundtrip.git/info/refs?service=git-upload-pack'})
-        allowed = ['/roundtrip.git/', '/conflict.git/', '/auth.git/', '/slow.git/']
+        allowed = ['/roundtrip.git/', '/conflict.git/', '/auth.git/', '/slow.git/', '/bound.git/', '/bound-slow.git/']
         if not any(url.path.startswith(path) for path in allowed):
             return self.response(404)
         expected = 'Basic ' + base64.b64encode(b'fixture-user:fixture-secret').decode()
@@ -108,6 +111,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.response(401, headers={'WWW-Authenticate': 'Basic realm="Git fixture"'})
         if url.path.startswith('/slow.git/'):
             slow_started.set()
+            time.sleep(30)
+        if url.path.startswith('/bound-slow.git/'):
+            bound_slow_started.set()
             time.sleep(30)
         data = self.body()
         if self.headers.get('Content-Encoding', '').lower() == 'gzip':
