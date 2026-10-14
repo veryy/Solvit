@@ -79,6 +79,16 @@ class WorkspaceImportOperationTest {
             assertEquals(JsonNull,Json.parseToJsonElement(f.bridge.query("importSelection","{}") {}))
         }finally{f.close()}
     }
+    @Test fun cancellationRequestedAfterPublicationStillReportsSuccessfulCompleteFile()=runBlocking<Unit> {
+        val f=Fixture("COMMITTED")
+        try {
+            val id=f.start(f.setup());withTimeout(5000){f.reached.await()}
+            assertContentEquals(f.bytes,File(f.root,"code.bin").readBytes())
+            f.cancel(id);f.release.complete(Unit)
+            assertEquals("SUCCEEDED",f.finished(id).getValue("status").jsonPrimitive.content)
+            assertContentEquals(f.bytes,File(f.root,"code.bin").readBytes())
+        }finally{f.close()}
+    }
     @Test fun closingPageInterruptsActiveImportBeforeReleasingItsSelectedDocument()=runBlocking<Unit> {
         val f=Fixture()
         try {
