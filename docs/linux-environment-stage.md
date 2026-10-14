@@ -1,6 +1,6 @@
 # 无需 root 的 Linux 工作环境
 
-2026-10-14 用户新增要求：在手机上安装 Python、Node.js 等开发工具，在没有 root 的情况下让 AI 与工作区终端执行脚本。现有 Android PTY 只运行系统 shell，没有 Linux 发行版，也不提供 Node/Python；不能把终端界面当作该需求已经完成。当前状态：源码研究，尚未提供可下载的 Linux 环境版 APK。
+2026-10-14 用户新增要求：在手机上安装 Python、Node.js 等开发工具，在没有 root 的情况下让 AI 与工作区终端执行脚本。现有 Android PTY 只运行系统 shell，没有 Linux 发行版，也不提供 Node/Python；不能把终端界面当作该需求已经完成。当前状态：底层 Android Ubuntu/Python/Node 实测通过，产品安装界面与工作区接入尚未完成，尚未提供可下载的 Linux 环境版 APK。
 
 ## 实际 upstream 链路
 
@@ -62,3 +62,11 @@
 源f1d871f，[38529444261](https://github.com/veryy/Solvit/actions/runs/38529444261)通过。实际artifact11877745788（32,449,542字节）ZIP CRC/XML核对4单元、2 Android，零失败/错误/跳过；Ubuntu用例耗时106.972秒，apt安装、Python/Node脚本写文件、npm版本调用和venv均实际成功。ARM64仅源码编译，尚未真机执行。
 
 该轮版本导出不合格：Gradle完成连接测试会卸载诊断应用，随后adb run-as读到unknown package；不能把该导出文件当作版本证据。原安装执行通过不受影响，但精确版本暂不报告。修复为测试成功后向设备日志输出单行RUNTIME_VERSIONS，工作流从已收集的logcat严格解析并校验Python/Node/npm版本；缺少或格式错误就失败。下一轮重新核对真实报告。产品安装界面、软件管理、AI与PTY绑定仍未交付，公开版本保持0.30.2。
+
+## 精确版本证据完成
+
+024b427/38531440527 实际失败是 JUnit 方法返回了 Log.i 的 Int，而非 void；修复只显式声明 Unit，未删除原安装/脚本断言。
+
+源 cfd0102，[38532078640](https://github.com/veryy/Solvit/actions/runs/38532078640) 全部通过：4 个安装边界单元用例、2 个 API35 Android 用例，零失败/错误/跳过。artifact11878393901 的报告成员已实际下载，逐个核对 ZIP 成员 CRC、XML 与设备 logcat；本轮未下载完整诊断 APK 归档，不宣称整体 ZIP 校验。设备日志和版本文件一致：Python 3.12.3、Node v18.19.1、npm 9.2.0。Python/Node 写工作区文件、venv、普通 Android UID 实测通过。ARM64 仅编译通过，尚未真机执行。
+
+公开版本仍为 0.30.2；此证明属于底层兼容性，不代表产品的环境安装、取消恢复、软件管理或 AI/PTY 环境绑定已交付。下一步将同一启动配置提取为共享运行时，并接入按需安装和插件页面。
