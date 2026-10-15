@@ -21,3 +21,9 @@
 已准备0.43.2/build85，代码35b91982，正式[38783582460](https://github.com/veryy/Solvit/actions/runs/38783582460)运行中，专项[38783587337](https://github.com/veryy/Solvit/actions/runs/38783587337)验证修复后的同一个文档替换回归。846989f4的main候选38783382950主动取消，由正式同功能标签完整门禁替代，不算成功。另建只含测试改动、生产仍与0.43.1相同的diagnose/webview-startup-stress分支1d4d91ef，[38783699801](https://github.com/veryy/Solvit/actions/runs/38783699801)执行每轮30次、三轮最多90次的原快速切换重建；首错停止，与新修复分开比较，尚待结果。
 
 修复后的同一文档替换专项[38783587337](https://github.com/veryy/Solvit/actions/runs/38783587337)已通过。原始归档11997090912（454619字节，SHA256 `7af3de92b8392a15f13f220b04e2d5efe36c676b0dd4c9c5ed19b231faeb4844`）完整下载/CRC，result-1实际OK (1 test)。保留同一断言：新文档必须挂载不同实例，并实际显示second DOM及接收当前Lifecycle状态；原APK对应断言明确失败。此专项包未声称完成完整Linux/应用发布验收，正式标签38783582460仍在运行。
+
+## 原生崩溃已在原正式APK复现
+
+1d4d91ef压力诊断38783699801终态失败。原始归档11997340813（623544字节，SHA256 `bd58ac51e5bd98d44325ecc0d0b825d09653a9cbde8d59a1f97a6e803c261b6b`）已完整下载/CRC及原始结果核对：第一轮74.775秒、30次重建全部通过；第二轮只完成2次，在第3次期间主进程SIGSEGV，instrumentation明确Process crashed，并首错停止。native pc仍为0x357d7e5、libwebviewchromium.so、BuildId 68dabd72c6088238cbfc9a5fbfe211f916771df5，信号code128/SI_KERNEL，r9=efefefefefefefef；与前两次正式失败同签名，不是另一项断言失败。此证据推翻“短循环未复现足够”的判断，但尚不能仅凭寄存器判定上层根因。
+
+将只有测试/诊断改动的压力入口cherry-pick到main，默认仍保留原三次重建。接下来以0.43.2正式产物在相同系统WebView124运行相同压力；未切provider、不增加产品延时。诊断来源准入从“整个流程终态”改为严格检查build任务已经终态success，APK与native产物已上传完成后可与独立UI任务并行诊断；原来的生产源码逐文件一致性检查继续执行，正式发布门禁完全保留。

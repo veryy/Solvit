@@ -35,7 +35,13 @@ jobs:
         with:
           script: |
             const run = (await github.rest.actions.getWorkflowRun({...context.repo, run_id: Number(process.env.APK_RUN_ID)})).data;
-            if (run.status !== 'completed') throw new Error('APK source run must be terminal');
+            // A completed build has finalized its APK/native artifacts even while
+            // the independent UI suite is running. Never use an unfinished build.
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun,
+              {...context.repo, run_id: run.id, per_page: 100});
+            if (!jobs.some(job => job.name === 'build' && job.status === 'completed' && job.conclusion === 'success')) {
+              throw new Error('APK source build must have completed successfully');
+            }
             const {execFileSync} = require('child_process');
             const files = execFileSync('git', ['diff', '--name-only', run.head_sha, 'HEAD']).toString().trim().split('\n').filter(Boolean);
             const allowed = p => p.startsWith('app/src/androidTest/') || p.startsWith('docs/') || p.startsWith('.github/workflows/') || p.startsWith('scripts/') || ['README.md','README.en.md','plugin-sdk/README.md'].includes(p);
