@@ -26,8 +26,32 @@ import dev.solvit.chat.ToolAgentRuntime
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class McpHostIntegrationTest {
-    private suspend fun infrastructure(manager: PluginManager) {
+    private suspend fun infrastructure(manager: PluginManager, scope: CoroutineScope) {
         manager.load(ToolsPlugin())
+        val workspaces = dev.solvit.workspace.AndroidWorkspaces(RuntimeEnvironment.getApplication(), scope)
+        manager.load(object : SolvitPlugin {
+            override val id = "test.mcp-native-contracts"
+            override val provides = setOf(WorkspaceServiceKey, LinuxEnvironmentServiceKey, StdioProcessServiceKey)
+            override suspend fun enable(context: PluginContext) {
+                context.register(WorkspaceServiceKey, workspaces); context.own { workspaces.close() }
+                context.register(LinuxEnvironmentServiceKey, object : LinuxEnvironmentService {
+                    override val state = kotlinx.coroutines.flow.MutableStateFlow(LinuxEnvironmentState(false, false, "unavailable"))
+                    override suspend fun install() = error("HTTPS must not install Linux")
+                    override suspend fun installSoftware(software: LinuxSoftware) = error("HTTPS must not install software")
+                    override suspend fun cancel() = error("HTTPS must not cancel Linux")
+                    override fun command(workspaceDirectory: String, command: String, cwd: String): HostProcessPlan = error("HTTPS must not run Shell")
+                    override fun terminal(workspaceDirectory: String): HostProcessPlan = error("HTTPS must not open a terminal")
+                    override fun process(workspaceDirectory: String, executable: String, arguments: List<String>, environment: Map<String, String>, cwd: String): HostProcessPlan = error("HTTPS must not start Linux")
+                })
+                context.register(StdioProcessServiceKey, object : StdioProcessService {
+                    override suspend fun open(owner: StdioOwner, plan: HostProcessPlan, directory: String, authorize: suspend () -> Unit): String = error("HTTPS must not start stdio")
+                    override suspend fun send(owner: StdioOwner, id: String, frame: String, authorize: suspend () -> Unit) = error("HTTPS must not send stdio")
+                    override suspend fun receive(owner: StdioOwner, id: String, authorize: suspend () -> Unit): String = error("HTTPS must not receive stdio")
+                    override suspend fun close(owner: StdioOwner, id: String) = error("HTTPS must not close stdio")
+                    override suspend fun cancelOwner(pluginId: String) { }
+                })
+            }
+        })
         manager.load(object : SolvitPlugin {
             override val id = "test.mcp-browser"
             override val provides = setOf(WebPageServiceKey)
@@ -48,13 +72,14 @@ class McpHostIntegrationTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val manager = PluginManager(scope = scope)
         try {
-            infrastructure(manager)
+            infrastructure(manager, scope)
             val configuration = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { it.toByte() }, "AES") }
             val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools), configuration)
             market.restore()
             assertFailsWith<IllegalStateException> { market.enable("dev.solvit.mcp", emptySet()) }
             market.configure("dev.solvit.mcp", mapOf("url" to server.url("/mcp").toString(), "token" to "private-token"))
-            market.enable("dev.solvit.mcp", setOf("network"))
+            assertFailsWith<IllegalStateException> { market.enable("dev.solvit.mcp", setOf("network")) }
+            market.enable("dev.solvit.mcp", setOf("network", "workspace", "shell"))
             assertFailsWith<IllegalStateException> { market.configure("dev.solvit.mcp", mapOf("url" to server.url("/other").toString())) }
             server.enqueue(MockResponse().setHeader("Content-Type", "application/json").setHeader("Mcp-Session-Id", "session-id").setBody("""{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"fixture","version":"1"}}}"""))
             server.enqueue(MockResponse().setResponseCode(202))
@@ -88,7 +113,7 @@ class McpHostIntegrationTest {
             context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).edit().putStringSet("grants.dev.solvit.mcp", emptySet()).commit()
             assertFailsWith<Exception> { market.runTool("dev_solvit_mcp_mcp_call", """{"name":"echo","arguments":{}}""", allow) }
             assertEquals(6, server.requestCount)
-            context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).edit().putStringSet("grants.dev.solvit.mcp", setOf("network")).commit()
+            context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE).edit().putStringSet("grants.dev.solvit.mcp", setOf("network", "workspace", "shell")).commit()
             server.enqueue(MockResponse().setResponseCode(405))
             market.disable("dev.solvit.mcp")
             assertEquals("DELETE", server.takeRequest().method)
@@ -141,7 +166,7 @@ class McpHostIntegrationTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default); val manager = PluginManager(scope = scope)
         val configuration = EncryptedPluginConfiguration(context) { SecretKeySpec(ByteArray(32) { 9 }, "AES") }
         try {
-            infrastructure(manager)
+            infrastructure(manager, scope)
             val tools = manager.registry.require(Services.Tools)
             val market = AndroidMarketplace(context, manager, client, tools, configuration)
             market.restore()
@@ -150,7 +175,7 @@ class McpHostIntegrationTest {
                     put("name", name); put("url", server.url("/mcp").toString()); put("token", "private-$name")
                 })
             }.toString()))
-            market.enable("dev.solvit.mcp", setOf("network"))
+            market.enable("dev.solvit.mcp", setOf("network", "workspace", "shell"))
             var requests = 0; var approvals = 0
             val provider = object : ModelProvider {
                 override val id = "dual-mcp-fixture"

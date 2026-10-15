@@ -3,6 +3,7 @@ package dev.solvit.linuxprobe
 import android.content.Context
 import dev.solvit.core.*
 import dev.solvit.chat.ToolAgentRuntime
+import dev.solvit.market.WorkspacePageBridge
 import dev.solvit.market.AndroidMarketplace
 import dev.solvit.terminal.StdioProcessPlugin
 import dev.solvit.workspace.AndroidWorkspaces
@@ -50,6 +51,13 @@ internal suspend fun verifyLocalMcpAgent(context: Context, scope: CoroutineScope
                 elif request['method']=='tools/list': result={'tools':[{'name':'write_fixture','inputSchema':{'type':'object','properties':{'text':{'type':'string'}},'required':['text']}}]}
                 else:
                     text=request['params']['arguments']['text']
+                    if text=='cancel-probe':
+                        Path('mcp-waiting.txt').write_text('waiting')
+                        import time
+                        time.sleep(90)
+                    if text=='crash-probe':
+                        Path('mcp-crash-once.txt').write_text('once')
+                        os._exit(7)
                     Path('agent-mcp-python.txt').write_text(text)
                     result={'content':[{'type':'text','text':text}]}
                 print(json.dumps({'jsonrpc':'2.0','id':request['id'],'result':result}),flush=True)
@@ -118,6 +126,36 @@ internal suspend fun verifyLocalMcpAgent(context: Context, scope: CoroutineScope
         }
         assertTrue(list.contains("not_connected"))
         val pids = listOf("python", "node").map { File(directory, "mcp-$it.pid").readText().trim().toInt() }
+        val page = market.openPage(pluginId, "main", "zh")
+        page.attachWorkspace(WorkspacePageBridge(workspaces, null, "mcp-agent"))
+        try {
+            val initial = page.open()
+            var denied = false
+            try { page.dispatch(initial.revision, "probe_0") } catch (_: IllegalArgumentException) { denied = true }
+            assertTrue("Unconfirmed page start must fail", denied)
+            val tested = page.dispatch(initial.revision, "probe_0", confirmed = true)
+            assertTrue(tested.json, tested.json.contains("连接测试成功"))
+            val pagePid = File(directory, "mcp-python.pid").readText().trim().toInt()
+            withTimeout(10_000) { while (File("/proc/$pagePid").exists()) delay(20) }
+            assertTrue("Page probe must not close the AI conversation", File("/proc/${pids[0]}").exists())
+        } finally { page.close() }
+        suspend fun direct(value: String): String = tools.executeCall(ToolCall(value, "dev_solvit_mcp_mcp_call", buildJsonObject {
+            put("server", "python"); put("name", "write_fixture"); put("arguments", buildJsonObject { put("text", value) })
+        }.toString()), allow, role, conversation = ConversationContext("mcp-agent", project.id))
+        // Cancel an in-flight real pipe read; successful prior invocations may have kept it alive.
+        val waiting = scope.launch { direct("cancel-probe") }
+        try {
+            withTimeout(15_000) { while (!File(directory, "mcp-waiting.txt").exists()) delay(20) }
+        } finally { waiting.cancelAndJoin() }
+        withTimeout(10_000) { while (File("/proc/${pids[0]}").exists()) delay(20) }
+        var crashed = false
+        try { direct("crash-probe") } catch (_: Exception) { crashed = true }
+        assertTrue("Server crash must fail the call without replay", crashed)
+        assertEquals("once", File(directory, "mcp-crash-once.txt").readText())
+        val crashPid = File(directory, "mcp-python.pid").readText().trim().toInt()
+        withTimeout(10_000) { while (File("/proc/$crashPid").exists()) delay(20) }
+        assertTrue("Node connection survives Python cancellation/crash", File("/proc/${pids[1]}").exists())
+        android.util.Log.i("SolvitLinuxProbe", "STDIO_MCP_AGENT|page-review|cancel|crash-no-replay|independent-node")
         market.disable(pluginId)
         withTimeout(10_000) { while (pids.any { File("/proc/$it").exists() }) delay(20) }
         android.util.Log.i("SolvitLinuxProbe", "STDIO_MCP_AGENT|disable|both-processes-reaped|chat-isolation")
