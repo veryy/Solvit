@@ -66,6 +66,11 @@ object ScriptPageHostAction {
                 else setOf("id","path","sha256")
             }
             "cancelImport" -> { text("operationId",128);setOf("operationId") }
+            "dismissImportRecovery" -> {
+                val id=text("recoveryId",36)
+                require(runCatching { java.util.UUID.fromString(id).toString()==id }.getOrDefault(false))
+                setOf("recoveryId")
+            }
             "dropImport" -> { text("id",128);setOf("id") }
             "selectImport" -> emptySet()
             "selectChatAttachment" -> {

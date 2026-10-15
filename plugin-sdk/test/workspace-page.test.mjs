@@ -5,7 +5,8 @@ import vm from 'node:vm';
 import {createHash} from 'node:crypto';
 const pkg=JSON.parse(await readFile('../market-server/packages/dev.solvit.workspace.solvit.json','utf8'));
 const clone=value=>JSON.parse(JSON.stringify(value));
-function harness(bound=true,directories=null){
+function harness(bound=true,directories=null,notices=[]){
+ let recoveryNotices=clone(notices);
  const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
  let view,approved,created=0,writes=0,draft=null,document='old',importSelection=null,nextSelection=null,importConflict=false;
  const imports=[];
@@ -21,6 +22,7 @@ function harness(bound=true,directories=null){
    assert.ok(!operation||!['RUNNING','CANCELLING'].includes(operation.status),'snapshot must not block behind an active import');
    return clone(snapshot);
   }
+  if(op==='importRecoveries'){assert.ok(Number.isInteger(args.offset));return {recoveries:clone(recoveryNotices.slice(args.offset,args.offset+5)),total:recoveryNotices.length}}
   if(op==='importOperation'){
    assert.equal(args.operationId,operation.operationId);
    if(operation.status==='CANCELLING')operation.status='CANCELLED';
@@ -69,6 +71,7 @@ function harness(bound=true,directories=null){
   throw Error('unsupported');
  },perform:async()=>{
   assert.ok(approved);
+  if(approved.operation==='dismissImportRecovery'){recoveryNotices=recoveryNotices.filter(n=>n.id!==approved.arguments.recoveryId);return clone(snapshot)}
   if(approved.operation==='selectChatAttachment'){
    const args=approved.arguments,entry=savedFiles.find(e=>e.messageId===args.messageId&&e.attachmentId===args.attachmentId);
    assert.ok(entry);assert.equal(args.sha256,entry.sha256);
@@ -186,7 +189,7 @@ test('image preview remains separate from original import and preserves its dest
  assert.ok(!h.nodes().some(n=>n.id==='import_picture'));
 });
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
- assert.equal(pkg.manifest.apiVersion,26);assert.equal(pkg.manifest.version,'1.9.0');assert.ok(pkg.resources['ui/main.js']);
+ assert.equal(pkg.manifest.apiVersion,27);assert.equal(pkg.manifest.version,'1.10.0');assert.ok(pkg.resources['ui/main.js']);
  assert.ok(pkg.resources['ui/editor-NOTICE.txt'].includes('Permission is hereby granted'));
  const api17=await readFile('../market-server/packages/legacy/dev.solvit.workspace-1.3.0.solvit.json');
  assert.equal(createHash('sha256').update(api17).digest('hex'),'95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b');
@@ -318,4 +321,31 @@ test('import task progress stays responsive without ordinary queries and cancell
  assert.ok(h.nodes().find(n=>n.id==='message').text.includes('Cancelled'));
  assert.ok(h.nodes().some(n=>n.id==='importPath'));assert.ok(!h.nodes().some(n=>n.id==='confirm'));
  h.pauseImport=false;await h.event('prepareImport');await h.event('confirm');assert.equal(h.imports.length,1);
+});
+
+test('recovery reports are paged, retain exact paths and use native dismissal without touching files',async()=>{
+ const notices=Array.from({length:7},(_,i)=>({id:`00000000-0000-0000-0000-${String(i+1).padStart(12,'0')}`,path:`src/file-${i}.txt`,backupPath:i?`src/solvit-backup-${i}`:null,status:i?'CONFLICT':'ORIGINAL_AVAILABLE'}));
+ const h=harness(true,null,notices);await h.render();
+ assert.ok(h.nodes().some(n=>n.id==='recovery_summary_title'&&n.text.endsWith('(7)')));
+ assert.ok(!h.nodes().some(n=>n.id==='recovery_path_0'));
+ await h.event('recoveryOpen');
+ assert.equal(h.nodes().find(n=>n.id==='recovery_path_0').text,'src/file-0.txt');
+ assert.equal(h.nodes().filter(n=>/^recovery_path_/.test(n.id)).length,5);
+ assert.ok(h.nodes().some(n=>n.id==='recovery_status_0'&&n.text.includes('original path')));
+ assert.ok(!h.nodes().some(n=>n.id==='recovery_backup_0'));
+ await h.event('recoveryNext');
+ assert.equal(h.nodes().find(n=>n.id==='recovery_path_0').text,'src/file-5.txt');
+ assert.equal(h.nodes().find(n=>n.id==='recovery_backup_0').text,'Recorded backup path: src/solvit-backup-5');
+ const control=h.nodes().find(n=>n.id==='recovery_dismiss_0');
+ assert.deepEqual(control.hostAction,{kind:'workspace.perform',operation:'dismissImportRecovery',arguments:{recoveryId:notices[5].id}});
+ assert.ok(control.confirm.includes('keeps files'));
+ await h.event('recovery_dismiss_0');await h.event('recovery_dismiss_0');
+ assert.equal(h.nodes().filter(n=>/^recovery_path_/.test(n.id)).length,5);
+ assert.equal(h.writes,0);assert.deepEqual(h.entryActions,[]);assert.equal(h.imports.length,0);
+ await h.event('recoveryBack');assert.ok(h.nodes().find(n=>n.id==='recovery_summary_title').text.endsWith('(5)'));
+});
+test('an unbound conversation does not query recovery records or create a workspace',async()=>{
+ const h=harness(false,null,[{id:'hidden',path:'private',status:'CONFLICT',backupPath:'private-copy'}]);await h.render();
+ assert.ok(!h.queries.some(([operation])=>operation==='importRecoveries'));assert.ok(!h.nodes().some(n=>n.id==='recovery_summary'));
+ assert.equal(h.created,0);
 });

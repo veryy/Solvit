@@ -150,7 +150,8 @@ internal class WorkspaceImportTransactions(private val root: File, private val l
                     require(lines.size == 4 && lines[0] == NOTICE_HEADER && lines[1] in setOf("PUBLISHED", "ORIGINAL_AVAILABLE", "CONFLICT", "REVIEW_REQUIRED"))
                     val target = checkNotNull(decoded(lines[2])); val backup = checkNotNull(decoded(lines[3]))
                     safe(target); safe(backup)
-                    result += Files.getLastModifiedTime(path, NOFOLLOW_LINKS).toMillis() to WorkspaceImportRecovery(id, target, backup, lines[1])
+                    result += Files.getLastModifiedTime(path, NOFOLLOW_LINKS).toMillis() to
+                        WorkspaceImportRecovery(id, target, backup.takeUnless { lines[1] == "ORIGINAL_AVAILABLE" }, lines[1])
                 }
             }
         }

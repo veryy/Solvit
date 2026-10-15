@@ -5366,5 +5366,13 @@
     "ko": "현재 파일 가져오기를 중지하고 정리를 기다립니다. 이미 완료된 경우 성공 결과를 유지합니다.",
     "es": "Detén esta importación y espera a que termine la limpieza. Si ya se completó, se conserva el resultado correcto.",
     "fr": "Arrêtez cet import et attendez le nettoyage. Si l’import est déjà terminé, son résultat est conservé."
+  },
+  "仅关闭这条恢复提示，不删除工作区文件或原文件备份。": {
+    "zh": "仅关闭这条恢复提示，不删除工作区文件或原文件备份。",
+    "en": "Dismiss this recovery notice only. Workspace files and original backups stay intact.",
+    "ja": "この復旧通知のみを閉じます。ファイルと元のバックアップは削除しません。",
+    "ko": "이 복구 알림만 닫습니다. 작업 공간 파일과 원본 백업은 삭제하지 않습니다.",
+    "es": "Solo se cierra este aviso. No se borran archivos ni copias del original.",
+    "fr": "Ferme uniquement cet avis. Les fichiers et les copies originales sont conservés."
   }
 }

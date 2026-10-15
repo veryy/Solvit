@@ -115,6 +115,17 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                     }
                 }
                 "snapshot" -> { require(args.isEmpty()); snapshot() }
+                "importRecoveries" -> {
+                    require(args.keys==setOf("offset"))
+                    val offset=args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int.also { require(it in 0..100) }
+                    val records=service.importRecoveries(workspace())
+                    buildJsonObject { put("total",records.size);put("recoveries",buildJsonArray {
+                        records.drop(offset).take(5).forEach { item -> add(buildJsonObject {
+                            put("id",item.id);put("path",item.path);put("status",item.status)
+                            put("backupPath",item.backupPath?.let(::JsonPrimitive)?:JsonNull)
+                        }) }
+                    }) }
+                }
                 "importSelection" -> { require(args.isEmpty());importMetadata() }
                 "reviewImport" -> {
                     require(args.keys==setOf("id","path","sha256"))
@@ -339,6 +350,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         var nextBinding = binding
         scoped(authorize, { created }) {
             when (control.operation) {
+                "dismissImportRecovery" -> service.dismissImportRecovery(workspace(),text("recoveryId"))
                 "selectChatAttachment" -> {
                     workspace()
                     val origin=AttachmentOrigin(text("messageId"),text("attachmentId"),text("sha256"))

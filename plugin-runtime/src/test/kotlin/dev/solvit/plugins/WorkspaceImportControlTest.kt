@@ -7,6 +7,27 @@ import kotlin.test.*
 
 /** Exercise the host boundary before the API22 package/catalog rollout. */
 class WorkspaceImportControlTest {
+    @Test fun recoveryReportsRequireApi27DeclaredFilesAndOneDisplayedDismissal():Unit=runBlocking {
+        var reads=0;var writes=0
+        val access=object:PageWorkspaceAccess {
+            override suspend fun query(operation:String,argumentsJson:String,authorize:suspend()->Unit):String { authorize();reads++;return "{}" }
+            override suspend fun perform(control:PageWorkspaceControl,authorize:suspend()->Unit):String { authorize();writes++;return "{}" }
+        }
+        val approved=control("dismissImportRecovery",buildJsonObject { put("recoveryId",java.util.UUID.randomUUID().toString()) })
+        for((api,declared)in listOf(25 to true,26 to true,27 to false)) {
+            val context=ScriptPageExecutionContext("test.recovery",{},approved,workspace=access)
+            assertFails { context.queryWorkspace("importRecoveries",buildJsonObject { put("offset",0) },api,declared) }
+            assertFails { context.performWorkspace(api,filesDeclared=declared) }
+        }
+        assertEquals(0,reads);assertEquals(0,writes)
+        val context=ScriptPageExecutionContext("test.recovery",{},approved,workspace=access)
+        context.queryWorkspace("importRecoveries",buildJsonObject { put("offset",0) },27,true)
+        context.performWorkspace(27,filesDeclared=true)
+        assertFails { context.performWorkspace(27,filesDeclared=true) }
+        assertEquals(1,reads);assertEquals(1,writes)
+        assertFails { ScriptPageHostAction.workspace(control("dismissImportRecovery",buildJsonObject { put("recoveryId","../record") })) }
+        assertFails { ScriptPageExecutionContext("test.recovery",{},workspace=access).performWorkspace(27,filesDeclared=true) }
+    }
     @Test fun transferControlsRequireApi26DeclaredFilesAndOneDisplayedApproval():Unit=runBlocking {
         var reads=0;var writes=0
         val access=object:PageWorkspaceAccess {

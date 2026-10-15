@@ -7,6 +7,15 @@ type TextChunk={text:string;offset:number;nextOffset:number;total:number;sha256:
 type ImportSelection={id:string;name:string;mimeType:string;bytes:number;sha256:string;source?:{kind:string;messageId:string;attachmentId:string}};
 type ImportReview={reviewId:string;path:string;target:{bytes:number;sha256:string}|null};
 type ImportOperation={operationId:string;status:string;progress?:{stage:string;completed:number;total:number};result?:Snapshot;error?:string};
+type ImportRecovery={id:string;path:string;backupPath:string|null;status:string};
+const recoveryLabels={
+ zh:['上次导入恢复','查看详情','原文件已保留在原位置','保留已发布状态，未自动恢复旧文件','发现同名文件，已保留双方','请检查保留的备份','记录的备份位置','关闭提示','关闭提示不会删除文件或备份','暂无恢复提示','最多显示最近100条'],
+ en:['Previous import recovery','View details','Original file is available at its original path','Publication retained; no automatic rollback','A concurrent name was kept; both files survive','Review the retained backup','Recorded backup path','Dismiss notice','Dismissing keeps files and backups','No recovery notices','Shows up to 100 recent notices'],
+ ja:['前回のインポート復旧','詳細','元のファイルは元の場所にあります','公開済み状態を保持し、自動で元に戻しません','同名ファイルと元のファイルを保持しました','保持したバックアップを確認してください','記録されたバックアップ先','通知を閉じる','ファイルやバックアップは削除しません','復旧通知はありません','最新100件まで表示'],
+ ko:['이전 가져오기 복구','자세히 보기','원본 파일이 원래 경로에 있습니다','게시 상태를 유지하며 자동 복원하지 않습니다','동일 이름 파일과 원본을 모두 보관했습니다','보관된 백업을 확인하세요','기록된 백업 경로','알림 닫기','파일과 백업은 삭제하지 않습니다','복구 알림이 없습니다','최근 100개까지 표시'],
+ es:['Recuperación de la importación anterior','Ver detalles','El original está en su ruta original','Se conserva la publicación; sin reversión automática','Se conservan el archivo concurrente y el original','Revisa la copia conservada','Ruta de copia registrada','Cerrar aviso','Se conservan los archivos y las copias','No hay avisos de recuperación','Hasta 100 avisos recientes'],
+ fr:['Récupération de l’import précédent','Voir les détails','L’original est disponible à son emplacement initial','Publication conservée, sans restauration automatique','Le fichier concurrent et l’original sont conservés','Vérifiez la copie conservée','Emplacement de copie enregistré','Fermer l’avis','Les fichiers et copies sont conservés','Aucun avis de récupération','100 avis récents au maximum']
+};
 const transferLabels={
  zh:['正在写入工作区','取消导入','正在取消，请等待清理','已取消，所选文件仍可重试','准备','写入','同步','校验','发布','已完成'],
  en:['Importing into workspace','Cancel import','Cancelling; waiting for cleanup','Cancelled. The selected file is available for retry.','Preparing','Writing','Syncing','Verifying','Publishing','Completed'],
@@ -82,6 +91,8 @@ export function workspacePage(importsEnabled=true){
  let importSelection:ImportSelection|null=null,importPath='';
  let importReview:ImportReview|null=null;
  let importOperation:ImportOperation|null=null;
+ let recoveryWorkspace:string|null=null,recoveryOffset=0,recoveryTotal=0,recoveryReturnMode='home';
+ let recoveries:ImportRecovery[]=[];
  let snapshot:Snapshot={workspaceId:null,workspaces:[],shells:[],draftInstallAllowed:false};
  let importPreview:{kind:string;text:string|null;truncated:boolean}|null=null;
  let importPicture:{width:number;height:number;source:string}|null=null;
@@ -95,6 +106,7 @@ export function workspacePage(importsEnabled=true){
   const im=importLabels[locale.split(/[-_]/)[0] as keyof typeof importLabels]??importLabels.en;
   const tr=transferLabels[locale.split(/[-_]/)[0] as keyof typeof transferLabels]??transferLabels.en;
   const ir=replacementLabels[locale.split(/[-_]/)[0] as keyof typeof replacementLabels]??replacementLabels.en;
+  const rl=recoveryLabels[locale.split(/[-_]/)[0] as keyof typeof recoveryLabels]??recoveryLabels.en;
   const ip=previewLabels[locale.split(/[-_]/)[0] as keyof typeof previewLabels]??previewLabels.en;
   const pic=pictureLabels[locale.split(/[-_]/)[0] as keyof typeof pictureLabels]??pictureLabels.en;
   const pdf=pdfLabels[locale.split(/[-_]/)[0] as keyof typeof pdfLabels]??pdfLabels.en;
@@ -103,6 +115,16 @@ export function workspacePage(importsEnabled=true){
   if(mode!=='importTransfer')snapshot=await api.query('snapshot') as unknown as Snapshot;
   if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear()}
   const refresh=async()=>{snapshot=await api.query('snapshot') as unknown as Snapshot};
+  const loadRecoveries=async():Promise<void>=>{
+   if(!importsEnabled||!snapshot.workspaceId){recoveries=[];recoveryTotal=0;return}
+   const result=await api.query('importRecoveries',{offset:recoveryOffset}) as unknown as {recoveries:ImportRecovery[];total:number};
+   recoveries=result.recoveries;recoveryTotal=result.total;
+   if(recoveryOffset>=recoveryTotal&&recoveryOffset>0){recoveryOffset=Math.max(0,Math.floor((recoveryTotal-1)/5)*5);await loadRecoveries()}
+  };
+  if(mode!=='importTransfer'&&(recoveryWorkspace!==snapshot.workspaceId||!event||['home','directory','refresh'].includes(event.action))){
+   if(recoveryWorkspace!==snapshot.workspaceId)recoveryOffset=0;
+   recoveryWorkspace=snapshot.workspaceId;await loadRecoveries();
+  }
   const list=async()=>{const result=await api.query('list',{path:directory,offset}) as unknown as {files:FileEntry[];total:number};files=result.files;total=result.total};
   const loadChatFiles=async()=>{const page=await api.query('chatAttachments',{offset:chatFileOffset}) as unknown as {attachments:ChatFile[];total:number};chatFiles=page.attachments;chatFileTotal=page.total};
   const loadDrafts=async()=>{drafts=await api.query('drafts') as unknown as Draft[]};
@@ -146,7 +168,13 @@ export function workspacePage(importsEnabled=true){
    // Passive tree fetches follow writes automatically; keep their result/backup visible.
    if(event.action!=='treeLoad')message='';try{
     const action=event.action;
-    if(action==='importPoll'){await pollImport()}
+    if(action==='recoveryOpen'){recoveryReturnMode=mode;recoveryOffset=0;await loadRecoveries();mode='recoveries'}
+    else if(action==='recoveryPrev'||action==='recoveryNext'||action==='recoveryRefresh'){
+     recoveryOffset=action==='recoveryPrev'?Math.max(0,recoveryOffset-5):action==='recoveryNext'?recoveryOffset+5:0;await loadRecoveries();
+    }
+    else if(action==='recoveryBack'){mode=recoveryReturnMode}
+    else if(action==='dismissRecovery'){await api.perform();await loadRecoveries()}
+    else if(action==='importPoll'){await pollImport()}
     else if(action==='cancelImport'&&importOperation){await api.perform();await pollImport()}
     else if(action==='chatFiles'){chatReturnMode=mode;chatFileOffset=0;await loadChatFiles();mode='chatFiles'}
     else if(action==='chatFilesPrev'||action==='chatFilesNext'||action==='chatFilesRefresh'){chatFileOffset=action==='chatFilesRefresh'?0:action==='chatFilesPrev'?Math.max(0,chatFileOffset-20):chatFileOffset+20;await loadChatFiles()}
@@ -280,6 +308,8 @@ export function workspacePage(importsEnabled=true){
   const selectImport=():Button=>({...button('selectImport',importSelection?im[5]:im[0]),hostAction:{kind:'workspace.perform',operation:'selectImport',arguments:{}}});
   if(message)nodes.push(text('message',Array.from(message).slice(0,1000).join('')));
   const current=snapshot.workspaces.find(w=>w.id===snapshot.workspaceId);
+  if(importsEnabled&&recoveryTotal>0&&['home','list'].includes(mode))nodes.push({id:'recovery_summary',kind:'card',children:[
+   text('recovery_summary_title',`${rl[0]} (${recoveryTotal})`),button('recoveryOpen',rl[1])]});
   nodes.push(text('tree_meta',JSON.stringify({workspaceId:snapshot.workspaceId,revision:treeRevision,result:treeResult}),'caption'),
    {id:'treePath',kind:'field',label:'Directory',value:''},
    {id:'treeOffset',kind:'field',label:'Offset',value:'0'},
@@ -303,6 +333,17 @@ export function workspacePage(importsEnabled=true){
   }else if(mode==='choose'){
    names=snapshot.workspaces.slice(workspaceOffset,workspaceOffset+40);names.forEach((w,i)=>nodes.push(button(`bind_${i}`,w.name,'prepareBind')));
    footer.push(button('home',t[8]));if(workspaceOffset>0)footer.push(button('choosePrev',t[17]));if(workspaceOffset+40<snapshot.workspaces.length)footer.push(button('chooseNext',t[18]));
+  }else if(mode==='recoveries'){
+   nodes.push(text('recovery_title',rl[0],'title'),text('recovery_limit',rl[10],'caption'));
+   if(!recoveries.length)nodes.push(text('recovery_empty',rl[9]));
+   recoveries.forEach((entry,i)=>nodes.push({id:`recovery_${i}`,kind:'card',children:[
+    text(`recovery_path_${i}`,entry.path),
+    text(`recovery_status_${i}`,entry.status==='ORIGINAL_AVAILABLE'?rl[2]:entry.status==='PUBLISHED'?rl[3]:entry.status==='CONFLICT'?rl[4]:rl[5]),
+    ...(entry.backupPath?[text(`recovery_backup_${i}`,`${rl[6]}: ${entry.backupPath}`,'caption')]:[]),
+    {...button(`recovery_dismiss_${i}`,rl[7],'dismissRecovery'),confirm:rl[8],hostAction:{kind:'workspace.perform',operation:'dismissImportRecovery',arguments:{recoveryId:entry.id}}}
+   ]}));
+   footer.push(button('recoveryBack',t[8]),button('recoveryRefresh',t[9]));
+   if(recoveryOffset>0)footer.push(button('recoveryPrev',t[17]));if(recoveryOffset+5<recoveryTotal)footer.push(button('recoveryNext',t[18]));
   }else if(mode==='list'){
    nodes.push(text('directory',directory||'/','title'),{id:'directory_actions',kind:'row',children:[
     ...(importsEnabled?[selectImport(),fromChat()]:[]),button('new',t[10]),button('mkdir',f[0])]});
