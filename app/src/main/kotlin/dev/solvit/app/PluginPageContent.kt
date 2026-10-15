@@ -102,7 +102,9 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                 val directoryControl = workspace ?: git
                 if (directoryControl != null) {
                     Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (directoryControl.operation in setOf("installEnvironment", "cancelEnvironment", "installSoftware", "createLinuxShell")) {
+                        if (directoryControl.operation == "cancelImport") {
+                            UiText("停止当前文件导入并等待清理。若文件已经导入完成，会保留成功结果。")
+                        } else if (directoryControl.operation in setOf("installEnvironment", "cancelEnvironment", "installSoftware", "createLinuxShell")) {
                             // Fixed host controls already constrain their inputs; show the page's localized explanation.
                             val explanation = if (directoryControl.operation == "createLinuxShell") node.getValue("text").jsonPrimitive.content
                                 else node["confirm"]?.jsonPrimitive?.content ?: node.getValue("text").jsonPrimitive.content

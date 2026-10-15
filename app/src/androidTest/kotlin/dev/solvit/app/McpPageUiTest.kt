@@ -29,7 +29,10 @@ class McpPageUiTest {
         val html = HtmlPageProbe(rule.activity)
         fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
         fun profiles() = Json.parseToJsonElement(configuration.read(id).getValue("connections")).jsonArray
-        fun click(node: String) { html.js("document.querySelector('[data-node=$node]').click()") }
+        fun click(node: String) {
+            waitDom("!!document.querySelector('[data-node=$node]')&&!document.querySelector('[data-node=$node]').disabled")
+            html.js("document.querySelector('[data-node=$node]').click()")
+        }
         fun add(name: String, token: String) {
             click("new"); waitDom("!!document.getElementById('field-name')")
             html.js("(()=>{for(const [id,value]of Object.entries({name:'$name',url:'https://$name.example.invalid/mcp',token:'$token'})){const input=document.getElementById('field-'+id);input.value=value;input.dispatchEvent(new Event('input'))}document.querySelector('[data-node=save]').click()})()")

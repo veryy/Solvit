@@ -5358,5 +5358,12 @@
     "ko": "미리보기 페이지가 선택 범위 밖입니다",
     "es": "La página está fuera del rango seleccionado",
     "fr": "La page est hors de la plage sélectionnée"
+  },
+  "停止当前文件导入并等待清理。若文件已经导入完成，会保留成功结果。": {
+    "en": "Stop this file import and wait for cleanup. If the import has already completed, its successful result is kept.",
+    "ja": "現在のファイル取り込みを停止し、後処理を待ちます。既に完了した場合は成功した結果を保持します。",
+    "ko": "현재 파일 가져오기를 중지하고 정리를 기다립니다. 이미 완료된 경우 성공 결과를 유지합니다.",
+    "es": "Detén esta importación y espera a que termine la limpieza. Si ya se completó, se conserva el resultado correcto.",
+    "fr": "Arrêtez cet import et attendez le nettoyage. Si l’import est déjà terminé, son résultat est conservé."
   }
 }

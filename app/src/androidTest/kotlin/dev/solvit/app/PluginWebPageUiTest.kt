@@ -90,6 +90,7 @@ class PluginWebPageUiTest {
             assertEquals(JsonPrimitive("persistent HTML note").toString(), prefs.getString("note", null))
             rule.onNodeWithText("取消").performClick()
             assertEquals(JsonPrimitive("persistent HTML note").toString(), prefs.getString("note", null))
+            rule.waitUntil(10_000) { js("document.getElementById('delete').disabled===false") == "true" }
             js("document.getElementById('delete').click()")
             rule.onNodeWithTag("plugin_page_confirm").performClick()
             rule.waitUntil(10_000) { prefs.getString("note", null) == JsonPrimitive("").toString() }

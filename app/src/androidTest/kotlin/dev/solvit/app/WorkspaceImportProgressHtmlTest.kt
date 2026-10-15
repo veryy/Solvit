@@ -68,6 +68,8 @@ class WorkspaceImportProgressHtmlTest {
             html.js("window.importConfirmationBlocked=false;setTimeout(()=>{window.importConfirmationBlocked=document.querySelector('[data-node=cancelImport]')?.disabled===true},450)")
             waitDom("window.importConfirmationBlocked===true")
             rule.onNodeWithTag("plugin_page_confirm").assertExists()
+            rule.onNodeWithText("停止当前文件导入并等待清理。若文件已经导入完成，会保留成功结果。").assertIsDisplayed()
+            rule.onNodeWithText("cancelImport").assertDoesNotExist()
             html.screenshot("workspace-import-cancel-confirmation").recycle()
             confirm()
             waitDom("!!document.querySelector('[data-node=transfer_cancel_wait]')")

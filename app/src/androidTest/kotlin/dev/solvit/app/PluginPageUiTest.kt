@@ -75,6 +75,7 @@ class PluginPageUiTest {
         rule.onNodeWithText("重试将使用原模型配置，可能产生额外费用。").assertIsDisplayed()
         rule.onNodeWithText("取消").performClick()
         assertEquals(0, controls.get())
+        waitDom("document.querySelector('[data-node=task_retry]')?.disabled===false")
         html.js("document.querySelector('[data-node=task_retry]').click()")
         rule.onNodeWithTag("plugin_page_confirm").performClick()
         waitDom("document.querySelector('[data-node=task_status]')?.textContent==='等待处理'")
@@ -168,6 +169,7 @@ class PluginPageUiTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("取消").performClick()
             assertEquals("plugin-memory-ui-edited", runBlocking { manager.snapshot().getValue("facts").jsonArray.first { it.jsonObject["id"]==JsonPrimitive(id) }.jsonObject.getValue("text").jsonPrimitive.content })
+            waitDom("document.querySelector('[data-node=remove]')?.disabled===false")
             html.js("document.querySelector('[data-node=remove]').click()")
             rule.onNodeWithTag("plugin_page_confirm").performClick()
             waitDom("!document.querySelector('[data-memory-id=$id]') && document.getElementById('sheet').hidden")
