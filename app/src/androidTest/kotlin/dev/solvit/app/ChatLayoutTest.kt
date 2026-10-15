@@ -218,6 +218,15 @@ class ChatLayoutTest {
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
+    private fun workspaceStartupObservation(label:String) {
+        rule.runOnUiThread {
+            val provider=androidx.lifecycle.ViewModelProvider(rule.activity)
+            val chat=provider[ChatViewModel::class.java]
+            val workspace=provider[WorkspaceViewModel::class.java]
+            val selected=chat.sessionId.value
+            android.util.Log.i("WORKSPACE_PAGE_DIAG","startup phase=$label selected=$selected bound=${workspace.workspaceId.value} serviceBound=${workspace.state.value.bindings[selected]} busy=${workspace.busy.value} error=${workspace.error.value}")
+        }
+    }
     private fun openWorkspace(commandJobs: Boolean = true) {
         rule.waitUntil(10_000) { rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty() ||
             rule.onAllNodes(hasText("新建工作区") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
@@ -231,7 +240,15 @@ class ChatLayoutTest {
         }
         // These callers test command jobs, so explicitly select that retained mode.
         // The separate real-PTY test verifies the default remains interactive.
+        workspaceStartupObservation("after-create-click")
+        try {
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_terminal_mode").fetchSemanticsNodes().isNotEmpty() }
+        } catch(e:androidx.compose.ui.test.ComposeTimeoutException) {
+            workspaceStartupObservation("terminal-timeout")
+            android.util.Log.i("WORKSPACE_PAGE_DIAG","startup nodes create=${rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().size} close=${rule.onAllNodesWithContentDescription("关闭工作区").fetchSemanticsNodes().size} unbound=${rule.onAllNodesWithText("此对话尚未绑定工作区").fetchSemanticsNodes().size} shell=${rule.onAllNodesWithText("Shell").fetchSemanticsNodes().size} linux=${rule.onAllNodesWithTag("workspace_environment_tab").fetchSemanticsNodes().size}")
+            screenshot("workspace-startup-timeout")
+            throw e
+        }
         if(commandJobs) {
             if(rule.onAllNodesWithText("命令任务").fetchSemanticsNodes().isNotEmpty())rule.onNodeWithTag("workspace_terminal_mode").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("shell_command").fetchSemanticsNodes().isNotEmpty() }
