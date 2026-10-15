@@ -161,3 +161,7 @@ TS 插件接口按阶段增加提示段贡献、受限的 `afterTurn`、工具�
 用户要求修复新对话默认角色、角色名展示、对话内工具授权、生成中继续提交消息并展示等待队列，以及逐条直接发送打断。此项在独立`feat/chat-role-queue`推进，不能被当前文件差异阶段替代。随后添加本地Git与GitHub JS/TS插件：工作区Changes查看Git工作树/暂存区差异、状态、选择暂存、提交和历史；远程绑定、拉取/推送和GitHub提交浏览与代码上传。插件自带HTML界面，AI通过已发现的工具操作，沿用对话内授权及凭据加密。不能将当前历史执行副本页冒称Git状态/工作树差异。
 
 已实际阅读锁定Operit `examples/github/src/github/contents.ts` 与 `src/local/terminal.ts`：远程上传使用GitHub Contents API的SHA前置条件，本地执行经宿主Terminal会话；这两个机制不等同，不能把REST上传作为本地Git实现。进一步核对原子多文件提交、冲突/非快进处理、Android Git执行环境与插件生命周期，再提交实现及真实工作区任务门禁。此段是需求和研究证据，尚无Git/GitHub插件发布。
+
+## 0.39.0 已发布：进程死亡恢复
+
+[正式版本](release-0.39.0.md)已交付文件替换事务恢复、插件HTML结果页与保留文件的提示关闭。537单元、79常规设备、5外部强杀恢复和3独立Linux用例通过，公开APK/源码字节已核对。下一步继续容量/备份管理及Git克隆中断恢复；角色/流式/搜索/完整项目任务的真实模型验收、真实GitHub账号写入、ARM64真机、stdio MCP、Skills运行环境及完整JS Agent/Provider协议继续保留。屏幕操控暂缓。
