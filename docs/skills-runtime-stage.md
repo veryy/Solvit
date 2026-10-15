@@ -30,3 +30,7 @@ API31桥首次诊断38766584222失败于既有目录测试仍期待hostApi30；T
 新增实际Ubuntu设备探针：QuickJS Skills正文加载、资源准备、info选择Ubuntu Shell、运行Python/Node相对资源、检查真实失败退出码、写入缺失输入、再次执行并读取输出，包含Unicode及Shell元字符的字面量参数；导入/准备不得执行脚本，技能库原始脚本保持。使用确定性Provider驱动真实工具，不当作真实模型任务。设备日志缺任一实际执行标记则工作流失败。19fc3d17启动38769171362，尚待结果。
 
 [19fc3d17原生诊断38769176196](https://github.com/veryy/Solvit/actions/runs/38769176196)已通过并下载独立核对：117套/491实际用例，包含6项发布、3项授权桥、API声明、真实QuickJS普通聊天Skills回归，无失败/错误/跳过。归档11990069578 SHA256 `2e004b7d1ab3e35abc4aafaa9cc7c91a3333f71eefe641d233425f389a7875e9`。不把此原生单元结果当作Ubuntu脚本执行证明。
+
+19fc3d17的Ubuntu诊断38769171362已失败：生产环境下载、Java和此前MCP链路执行后，Skills资源准备返回了Agent脱敏的UNKNOWN，后续JSON解析失败；不能据此宣称脚本运行通过。e81062ad增加同一真实QuickJS工具的最小直接调用，在Agent脱敏前保留测试异常原因，仍不记录账号配置或密钥。尚待重新远程诊断。
+
+1b9bbd44的[TS38769510870](https://github.com/veryy/Solvit/actions/runs/38769510870)141/141、市场7/7全部通过。API31市场已经私有before/next逐项验证：API1..30目录内容完全保持、55个历史包完整字节不变；切换后服务active，备份`/opt/solvit-market/.backup-api31-1792082197283`。公网重新取得31个目录、59次完整包下载/56个不同版本，摘要和大小全部匹配。Skills1.2.0/API31主包258398字节，SHA256 `541c979ba8038b50a886680cfeb51d1bc59f66d51cc193186de687c009e3bfad`。SSH等待超时后没有重复切换或重启检查，读取原任务完成的verified.json；检查脚本见scripts/verify-market-api31.mjs。新APK仍待Ubuntu修复和完整发布门禁。
