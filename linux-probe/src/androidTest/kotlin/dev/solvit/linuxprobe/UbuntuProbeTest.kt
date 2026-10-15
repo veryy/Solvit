@@ -159,16 +159,16 @@ class UbuntuProbeTest {
             val plan = service.process(workspace.path, executable, listOf(file, literal), mapOf("MCP_FIXTURE_ONLY" to "explicit-fixture"))
             val environment = plan.environment.filterValues { it != null }.mapValues { it.value!! }
             dev.solvit.terminal.StdioConnection.open(workspace, plan.arguments, environment).use { connection ->
+                val frames = dev.solvit.system.StdioFrames()
                 fun send(message: org.json.JSONObject) = connection.write((message.toString() + "\n").toByteArray())
                 fun response(id: Int): org.json.JSONObject {
-                    val bytes = java.io.ByteArrayOutputStream()
                     val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15)
                     while (System.nanoTime() < deadline) {
                         val chunk = connection.readStdout() ?: error("$executable stdio EOF before response $id")
-                        bytes.write(chunk)
-                        check(bytes.size() <= 16_384)
-                        if (chunk.contains(10.toByte())) {
-                            val message = org.json.JSONObject(bytes.toString("UTF-8"))
+                        val complete = frames.append(chunk)
+                        if (complete.isNotEmpty()) {
+                            assertEquals(1, complete.size)
+                            val message = org.json.JSONObject(complete.single())
                             assertEquals("2.0", message.getString("jsonrpc")); assertEquals(id, message.getInt("id"))
                             return message.getJSONObject("result")
                         }
@@ -199,6 +199,9 @@ class UbuntuProbeTest {
                 val end = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
                 while (connection.exitCode() == null && System.nanoTime() < end) Thread.sleep(10)
                 assertEquals(0, connection.exitCode())
+                val remainder = connection.readStdout()
+                assertTrue(remainder == null || remainder.isEmpty())
+                frames.finish()
                 android.util.Log.i("SolvitLinuxProbe", "STDIO_MCP_NATIVE|$executable|initialize|tools/list|tools/call|EOF|explicit-env|shared-workspace")
             }
         }

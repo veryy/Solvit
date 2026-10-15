@@ -18,6 +18,7 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(project(":linux-runtime"))
+    implementation(project(":system-runtime"))
     implementation(project(":linux-android"))
     implementation(project(":terminal-android"))
     implementation(project(":workspace-android"))
