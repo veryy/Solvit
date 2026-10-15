@@ -69,11 +69,16 @@ internal class CloneInstallTransactions(private val base: File,
     private fun encoded(text: String) = Base64.getEncoder().encodeToString(text.toByteArray(Charsets.UTF_8))
     private fun decoded(text: String) = Charsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(Base64.getDecoder().decode(text))).toString()
     private fun readText(file: File, max: Int): String {
-        check(attrs(file)?.isRegularFile == true)
+        val before = checkNotNull(attrs(file)); check(before.isRegularFile)
+        require(before.size() in 0..max.toLong()) { "克隆记录超过读取上限" }
         return Files.newByteChannel(file.toPath(), setOf(READ, NOFOLLOW_LINKS)).use { channel ->
-            val buffer = ByteBuffer.allocate(max + 1)
+            // The cap is a validation bound, not a minimum allocation. A tiny
+            // manifest must not allocate 32 MiB each time it is inspected.
+            val buffer = ByteBuffer.allocate(before.size().toInt() + 1)
             while (buffer.hasRemaining() && channel.read(buffer) != -1) { /* bounded metadata */ }
-            require(buffer.position() <= max) { "克隆记录超过读取上限" }
+            val after = attrs(file)
+            require(buffer.position().toLong() == before.size() && after?.isRegularFile == true &&
+                after.fileKey() == before.fileKey() && after.size() == before.size()) { "克隆记录在读取时变化" }
             buffer.flip(); Charsets.UTF_8.newDecoder().decode(buffer).toString()
         }
     }

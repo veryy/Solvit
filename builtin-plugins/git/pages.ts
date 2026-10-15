@@ -36,7 +36,7 @@ const labels={
  fr:['Espace Git','Modifications','Fichiers','Historique','Actualiser','Initialiser','Copie de travail','Index','Conflit','Voir la différence','Ajouter à l’index','Retirer','Commit de l’index','Message','Auteur','E-mail','Vérifier le commit','Confirmer','Retour','Précédent','Suivant','Aucun changement','Chargement','Échec : ','Terminé','Octets bruts ; filtres LFS non pris en charge. Revérifiez après modification.']
 };
 export function gitPage(){
- let mode='changes',offset=0,status:Status|null=null,message='',review:Review|null=null,chunk:Chunk|null=null;
+ let mode='changes',offset=0,status:Status|null=null,message='',notice=false,review:Review|null=null,chunk:Chunk|null=null;
  let commits:Commit[]=[],pending:Extract<PageHostAction,{kind:'git.perform'}>|null=null,author='',email='',commitMessage='';
  let remoteUrl='',remoteBranch='main',operationId='',remoteTarget='',remoteReview:{reviewId:string;localHead:string;remoteHead:string}|null=null;
  let remoteProgress='';
@@ -65,7 +65,7 @@ export function gitPage(){
    if(chunk.offset!==start||chunk.nextOffset-start!==chunk.text.length||chunk.total!==review.total)throw Error('Incomplete Git patch');};
   try{
    if(event){
-    message='';const action=event.action;
+    message='';notice=false;const action=event.action;
     if(action==='gitFiles'){mode='files';return await renderFiles({...input,event:null})}
     if(action==='gitClones'){mode='clones';cloneOffset=0;cloneReview=null;pending=null;await loadClones()}
     else if(action==='gitClonePrevious'||action==='gitCloneNext'){
@@ -85,7 +85,7 @@ export function gitPage(){
      try{
       const result=await api.perform() as unknown as {operationId?:string};
       if(asyncRemote){if(!result.operationId)throw Error('Missing operation ID');operationId=result.operationId;remoteProgress=rt[6];mode='remote-running'}
-      else{mode='clones';await loadClones();message=t[24]}
+      else{mode='clones';await loadClones();message=t[24];notice=true}
      }catch(error){mode='clones';await loadClones();throw error}
      finally{pending=null;cloneReview=null}
     }else if(action==='gitChanges'||action==='gitRefresh'){mode='changes';review=null;chunk=null;pending=null;cloneReview=null;await loadClones();await refresh()}
@@ -121,7 +121,7 @@ export function gitPage(){
       if(remoteTarget==='reviewPush'||remoteTarget==='reviewPull'){
        if(!state.result?.reviewId||!state.result.localHead||!state.result.remoteHead)throw Error('Incomplete remote review');
        remoteReview=state.result as {reviewId:string;localHead:string;remoteHead:string};mode='remote-review';
-      }else {message=state.result?.status??t[24];mode='changes';await loadClones();await refresh()}
+      }else {message=state.result?.status??t[24];notice=true;mode='changes';await loadClones();await refresh()}
      }else if(state.status==='FAILED'||state.status==='CANCELLED'){
       operationId='';message=state.error??state.status;
       if(['clone','resumeCloneInstall','restartCloneDownload'].includes(remoteTarget)){mode='clones';await loadClones()}else mode='remote';
@@ -136,15 +136,15 @@ export function gitPage(){
      const asyncRemote=pending.operation==='startRemote',result=await api.perform() as unknown as {operationId?:string};
      pending=null;review=null;chunk=null;
      if(asyncRemote){if(!result.operationId)throw Error('Missing operation ID');operationId=result.operationId;remoteProgress=rt[6];mode='remote-running'}
-     else{mode='changes';await refresh();message=t[24]}
+     else{mode='changes';await refresh();message=t[24];notice=true}
     }
     else if(action==='gitHistory'){commits=await api.query('history',{limit:5}) as unknown as Commit[];mode='history'}
     else if(action==='gitBack'){pending=null;mode='changes';await refresh()}
    }else {await loadClones();await refresh()}
-  }catch(error){message=t[23]+(error instanceof Error?error.message:String(error));}
+  }catch(error){notice=false;message=t[23]+(error instanceof Error?error.message:String(error));}
   const nodes:PageNode[]=[],footer:Button[]=[],text=(id:string,value:string):PageNode=>({id,kind:'text',text:value}),
    button=(id:string,value:string,action=id):Button=>({id,kind:'button',text:value,action});
-  if(message)nodes.push(text('git_error',Array.from(message).slice(0,1000).join('')));
+  if(message)nodes.push(text(notice?'git_notice':'git_error',Array.from(message).slice(0,1000).join('')));
   if(mode==='changes'){
    nodes.push(button('git_clones',cr[1]+(clones?.entries.length?' · '+clones.entries.length:''),'gitClones'));
    if(cloneError)nodes.push(text('git_clone_inventory_error',cloneError));
