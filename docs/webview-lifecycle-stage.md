@@ -131,3 +131,10 @@ c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/3878892612
 顺序诊断[38807004179](https://github.com/veryy/Solvit/actions/runs/38807004179)成功。归档12006073993（1758958字节，SHA256 `3de68eb9ff06f4de214d96e8a76473a6f3c4e6879fe0fe5ecdde058002d99b2f`）完整下载/CRC，实际OK (12 tests)、48.448秒，TestRunner有12次开始/12次结束。仅重放先前11项常规用例未复现，不能因此宣称挂起已修复；完整失败轮此前还做过覆盖升级和15场恢复检查并留下更多会话。
 
 继续用b1ccb325/[38807773768](https://github.com/veryy/Solvit/actions/runs/38807773768)检验长历史条件：沿用已有branchHistoryAtEnd诊断，目标回复分支用例先创建12个独立会话、将真实侧栏滚到末尾并断言目标问题尚不可见，再执行原查找/滚动/点击及全部分支、角色、工作区和原对话保留断言。finally逐个删除新增会话。不以直接跳到目标索引代替被怀疑的滚动入口，不更改生产代码；若挂起由同一入口产生，原ART采集器提供栈。这个条件与完整恢复环境并非完全等同，结果不能冒称完整回归通过。
+
+
+## 长历史对照确认滚动动作与位置检查之间缺少调度推进
+
+b1ccb325/[38807773768](https://github.com/veryy/Solvit/actions/runs/38807773768)失败；归档12006229893（500598字节，SHA256 `3c454511aa1ce392c8b7344c4ea0a01e66458dc1e565b8d28c6a8e22ef8ba6ec`）完整下载/CRC，实际失败栈是selectBranchFixture中的performScrollToNode报找不到目标，侧栏语义VerticalScrollAxisRange(value=3517,maxValue=3517)，处在列表末尾。这轮快速断言失败，未到SIGQUIT时间，也没有ART栈；不能谎称取得挂起线程栈或已完全复现12分钟挂起。
+
+实际读取官方ui-test1.8.3 Actions.kt：performScrollToNode在lazy列表末尾先调用scrollToIndex(0)，随后立即重取节点并检查是否在末尾；ScrollToIndex/ScrollBy经宿主节点的协程执行。结合此前排队侧栏关闭证据，待验证假设是StandardTestDispatcher使滚动操作仍在队列中，后续检查观察旧位置。3e2fccbf只在selectBranchFixture替换滚动驱动：先回到开头并推进一个UI帧，10秒有界等待目标显示；若仍不可见，每次滚动半个实际视口后推进UI帧，再检查。不直接跳到目标索引、不重试点击、不变更生产分支/存储逻辑；真实选择、工具回合复制、角色、工作区及原对话保留断言全部保留。同一长历史条件正在复验，完整流程挂起是否同源仍待回归。
