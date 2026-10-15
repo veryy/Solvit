@@ -72,8 +72,10 @@ class StdioMcpBridge(private val processes: StdioProcessService, private val lin
         if (access.invocation != null) {
             val approved = Json.parseToJsonElement(access.invocation.call.argumentsJson).jsonObject
             val selected = approved["server"]?.jsonPrimitive?.also { require(it.isString) }?.content
-            val actual = LocalMcpConfiguration.select(encoded, selected)
-            check(actual.name == profile.name) { "本地MCP服务器与工具确认内容不一致" }
+            if (operation != "stdio.close" || selected != null) {
+                val actual = LocalMcpConfiguration.select(encoded, selected)
+                check(actual.name == profile.name) { "本地MCP服务器与工具确认内容不一致" }
+            }
         }
         val owner = StdioOwner(manifest.id, access.ownerScope, profile.name, profile.fingerprint)
         val directory = File(workspaces.location(access.conversation.workspaceId)).canonicalFile

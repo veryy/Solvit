@@ -22,6 +22,11 @@ dependencies {
     implementation(project(":linux-android"))
     implementation(project(":terminal-android"))
     implementation(project(":workspace-android"))
+    implementation(project(":plugin-runtime"))
+    implementation(project(":plugin-market"))
+    implementation(project(":chat-runtime"))
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    androidTestImplementation("com.squareup.okhttp3:okhttp:4.12.0")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }

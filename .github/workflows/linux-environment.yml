@@ -78,6 +78,9 @@ jobs:
           assert 'JAVA_RUNTIME_VERIFIED|openjdk version "17.' in text, 'Production Java 17 execution missing'
           for runtime in ('python3', 'node'):
               assert f'STDIO_MCP_NATIVE|{runtime}|initialize|tools/list|tools/call|EOF|explicit-env|shared-workspace' in text, f'Actual {runtime} stdio MCP transport probe missing'
+          for runtime in ('python', 'node'):
+              assert f'STDIO_MCP_AGENT|{runtime}|QuickJS|host-authority|discovery|tool-call|follow-up|shared-file' in text, f'Actual JS/Agent {runtime} MCP probe missing'
+          assert 'STDIO_MCP_AGENT|disable|both-processes-reaped|chat-isolation' in text, 'MCP disable/chat isolation probe missing'
           Path('linux-probe/build/ubuntu-probe-production-versions.txt').write_text('\n'.join(production.groups()) + '\n')
           print('Production:', production.groups())
           PY_REPORT

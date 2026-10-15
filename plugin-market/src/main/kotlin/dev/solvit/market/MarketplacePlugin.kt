@@ -102,7 +102,13 @@ class AndroidMarketplace(
                             else if (name == "dev.solvit.web-search.solvit.json") setOf("91dc9957e6c259626dbeba07d8ceb19799f36d000688e2532b322e0f860a409f", "914771c881ee879d0abecaecca48bb5627f9c6509afdf9ff06efe5af90b218bd", "175c0f5b7fdff2307d59462d31318a9773df27b8ac342a7376fc63c2bc96e39a") else setOf("511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445",
                                 "0f32b5b2e5e684b1d95b275b71d72864f9463cbd55eb549f150e2196a6e80ed7")
                         if (digest in originals) {
-                            val payload = context.assets.open("builtin-plugins/$name").use { it.readBytes() }
+                            val candidate = context.assets.open("builtin-plugins/$name").use { it.readBytes() }
+                            val next = ScriptPackage.parse(candidate)
+                            // Existing HTTPS users retain their working package and network-only grant.
+                            // Installing the API30 edition is an explicit update with new permission review.
+                            val payload = if (name == "dev.solvit.mcp.solvit.json" &&
+                                !ScriptPackage.parse(original).manifest.permissions.containsAll(next.manifest.permissions))
+                                context.assets.open("builtin-compat/mcp-1.1.1.solvit.json").use { it.readBytes() } else candidate
                             ScriptPackage.parse(payload)
                             val atomic = AtomicFile(base); val stream = atomic.startWrite()
                             try { stream.write(payload); atomic.finishWrite(stream) }
