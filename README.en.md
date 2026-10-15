@@ -12,7 +12,7 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The stable release is [0.41.0](https://github.com/veryy/Solvit/releases/tag/v0.41.0). Version 0.42.1 has one failed UI test hidden by an exit-status bug and is marked prerelease; 0.42.2 is being validated. Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The stable release is [0.41.0](https://github.com/veryy/Solvit/releases/tag/v0.41.0). Version 0.42.1 has one failed UI test hidden by an exit-status bug and is marked prerelease; the gate is fixed, 0.42.2 was blocked by an attachment test timeout, and 0.42.3 is being validated. Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 

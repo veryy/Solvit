@@ -65,7 +65,7 @@ class ChatAttachmentsDeviceTest {
         android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
     private data class AttachmentViewport(val bounds:androidx.compose.ui.geometry.Rect,val height:Int,val ime:Int,val keyboardVisible:Boolean)
-    private fun waitForStableAttachmentAfterBranchKeyboard(tag:String) {
+    private fun waitForStableAttachmentAboveKeyboard(tag:String) {
         var previous:AttachmentViewport?=null
         var stableSince=0L
         // Compose idle does not mean the separate OS keyboard animation has finished.
@@ -170,6 +170,7 @@ class ChatAttachmentsDeviceTest {
             val attachments = vm.attachmentDrafts.value.getValue(session)
             val image = attachments.single { it.mimeType == "image/png" }
             val document = attachments.single { it.mimeType == "text/plain" }
+            waitForStableAttachmentAboveKeyboard("attachment_${image.id}")
             screenshot("chat-attachment-drafts")
             val imageBoundsBeforeClick = rule.onNodeWithTag("attachment_${image.id}").fetchSemanticsNode().boundsInRoot
             val imageInsetsBeforeClick = rule.runOnUiThread {
@@ -254,7 +255,7 @@ class ChatAttachmentsDeviceTest {
             val previewTag="attachment_${copiedText.id}"
             var previewBounds=rule.onNodeWithTag(previewTag).fetchSemanticsNode().boundsInRoot
             try {
-                waitForStableAttachmentAfterBranchKeyboard(previewTag)
+                waitForStableAttachmentAboveKeyboard(previewTag)
                 rule.onNodeWithTag(previewTag).performScrollTo().assertIsDisplayed()
                 previewBounds=rule.onNodeWithTag(previewTag).fetchSemanticsNode().boundsInRoot
                 rule.onNodeWithTag(previewTag).performClick()
