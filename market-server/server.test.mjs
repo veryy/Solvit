@@ -276,3 +276,22 @@ test('API30 offers local MCP while API10 through API29 retain immutable HTTPS MC
   assert.equal(mcp.version,'1.2.0');assert.equal(mcp.apiVersion,30);assert.deepEqual(mcp.nativeServices,['environment.linux','process.stdio']);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
+
+test('API31 Skills resources retain the exact read-only Skills package for API11 through API30',async()=>{
+ const server=createMarketServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const base=`http://127.0.0.1:${server.address().port}`;
+ try{
+  const historical=await readFile(new URL('./packages/legacy/dev.solvit.skills-1.1.1.solvit.json',import.meta.url));
+  for(let api=11;api<=30;api++){
+   const catalog=await(await fetch(base+`/api/v1/plugins?hostApi=${api}`)).json();
+   const skills=catalog.plugins.find(p=>p.id==='dev.solvit.skills');assert.equal(skills.version,'1.1.1');
+   assert.deepEqual(Buffer.from(await(await fetch(base+skills.downloadPath)).arrayBuffer()),historical);
+  }
+  const latest=await(await fetch(base+'/api/v1/plugins?hostApi=31')).json();
+  const skills=latest.plugins.find(p=>p.id==='dev.solvit.skills');assert.equal(skills.version,'1.2.0');assert.equal(skills.apiVersion,31);
+  assert.deepEqual(skills.nativeServices,['workspace.resources']);assert.deepEqual(skills.permissions,['storage','workspace']);
+  const payload=Buffer.from(await(await fetch(base+skills.downloadPath)).arrayBuffer());
+  assert.equal(createHash('sha256').update(payload).digest('hex'),skills.sha256);
+  assert.deepEqual(payload,await readFile(new URL('./packages/dev.solvit.skills.solvit.json',import.meta.url)));
+ }finally{await new Promise(resolve=>server.close(resolve))}
+});

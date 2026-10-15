@@ -78,6 +78,7 @@ class UbuntuProbeTest {
             }
             verifyNativeStdioMcp(service, workspace)
             verifyLocalMcpAgent(context, scope, service)
+            verifySkillsResourcesAgent(context, scope, service)
             // Exercise the same post-authorization native path used by AI Shell tools.
             val workspaces = dev.solvit.workspace.AndroidWorkspaces(context, scope, linux = service)
             try {
