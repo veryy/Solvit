@@ -49,7 +49,7 @@ class BuiltinMemoryTest {
             val entry = market.catalog().single()
             assertEquals(setOf("storage", "model"), entry.permissions.toSet())
             market.install(entry)
-            assertEquals("/api/v1/plugins?hostApi=25", server.takeRequest(2, TimeUnit.SECONDS)!!.path)
+            assertEquals("/api/v1/plugins?hostApi=26", server.takeRequest(2, TimeUnit.SECONDS)!!.path)
             assertEquals(path, server.takeRequest(2, TimeUnit.SECONDS)!!.path)
             val installed = market.installed.value.single { it.id == "dev.solvit.memory" }
             assertEquals("1.4.1", installed.version); assertFalse(installed.enabled)
