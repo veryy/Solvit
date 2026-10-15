@@ -37,6 +37,8 @@ data class WorkspaceImportedFile(val workspaceId: String, val path: String, val 
     val backupPath: String? = null)
 /** A complete content observation, separate from the selected source file's digest. */
 data class WorkspaceImportTarget(val bytes: Long, val sha256: String)
+/** Recovery reports contain workspace-relative paths only; dismissing never removes a file. */
+data class WorkspaceImportRecovery(val id: String, val path: String, val backupPath: String?, val status: String)
 const val MAX_WORKSPACE_IMPORT_BYTES = 20 * 1024 * 1024
 
 data class ShellSession(val id: String, val workspaceId: String, val name: String,
@@ -91,6 +93,10 @@ interface WorkspaceService {
     suspend fun replaceImportedFile(workspaceId: String, path: String, bytes: ByteArray,
         sourceSha256: String, targetSha256: String): WorkspaceImportedFile {
         error("工作区文件替换服务不可用")
+    }
+    suspend fun importRecoveries(workspaceId: String): List<WorkspaceImportRecovery> = emptyList()
+    suspend fun dismissImportRecovery(workspaceId: String, recoveryId: String) {
+        error("工作区导入恢复记录服务不可用")
     }
     suspend fun write(workspaceId: String, path: String, text: String)
     suspend fun writeObserved(workspaceId: String, path: String, text: String): WorkspaceWriteEvidence {

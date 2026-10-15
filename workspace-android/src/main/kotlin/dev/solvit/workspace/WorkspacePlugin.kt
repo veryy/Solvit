@@ -36,11 +36,25 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
                     val base=File(root,workspace.id)
                     check(java.nio.file.Files.isDirectory(base.toPath(),java.nio.file.LinkOption.NOFOLLOW_LINKS) &&
                         base.canonicalFile==File(root.canonicalFile,workspace.id))
-                    WorkspaceFileImports.cleanup(base.canonicalFile,WorkspaceImportStaging(base.canonicalFile,File(importLedgerRoot,workspace.id)))
+                    recoverImports(base.canonicalFile,workspace.id)
                 }
             }
         } }
     }
+    private fun recoverImports(base:File,id:String) {
+        val ledger=File(importLedgerRoot,id)
+        WorkspaceFileImports.recover(base,WorkspaceImportStaging(base,ledger),WorkspaceImportTransactions(base,ledger),importPublisher)
+    }
+    override suspend fun importRecoveries(workspaceId:String):List<WorkspaceImportRecovery> = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val base=directory(workspaceId).canonicalFile
+        recoverImports(base,workspaceId)
+        WorkspaceImportTransactions(base,File(importLedgerRoot,workspaceId)).notices().also { verifyPage(workspaceId) }
+    } }
+    override suspend fun dismissImportRecovery(workspaceId:String,recoveryId:String):Unit = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        WorkspaceImportTransactions(directory(workspaceId).canonicalFile,File(importLedgerRoot,workspaceId)).dismiss(recoveryId)
+    } }
     private fun load(): WorkspaceState {
         val raw = prefs.getString("state", null) ?: return WorkspaceState()
         val value = JSONObject(raw)
@@ -273,7 +287,8 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         sourceSha256:String,targetSha256:String):WorkspaceImportedFile = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         val base=directory(workspaceId).canonicalFile
-        val result=withContext(WorkspaceImportStaging(base,File(importLedgerRoot,workspaceId))) {
+        val ledger=File(importLedgerRoot,workspaceId)
+        val result=withContext(WorkspaceImportStaging(base,ledger)+WorkspaceImportTransactions(base,ledger)) {
             WorkspaceFileImports.replace(base,path,bytes,sourceSha256,targetSha256,importPublisher) { verifyPage(workspaceId) }
         }
         WorkspaceImportedFile(workspaceId,path,result.first,result.second,result.third)

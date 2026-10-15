@@ -21,6 +21,7 @@ import java.security.MessageDigest
 internal object WorkspaceFileImports {
     private val stagingLock=Any()
     private val activeStaging=mutableSetOf<String>()
+    private val activeTransactions=mutableSetOf<String>()
     private suspend fun progress(stage:String,completed:Long,total:Long) {
         yield()
         currentCoroutineContext()[WorkspaceImportMonitor]?.update?.invoke(WorkspaceImportProgress(stage,completed,total))
@@ -29,6 +30,13 @@ internal object WorkspaceFileImports {
     /** No journal means no authority to delete, even if a filename resembles staging. */
     fun cleanup(root:File,journal:WorkspaceImportStaging?=null):Int=synchronized(stagingLock) {
         journal?.cleanup(activeStaging)?:0
+    }
+    fun recover(root:File,staging:WorkspaceImportStaging,transactions:WorkspaceImportTransactions,
+        publisher:WorkspaceImportPublisher):Int=synchronized(stagingLock) {
+        // The staging inode distinguishes an interrupted publication from a published file
+        // later deleted by Shell, so inspect transactions before reclaiming their staging.
+        transactions.recover(activeTransactions,publisher)
+        staging.cleanup(activeStaging)
     }
     private fun target(root: File, path: String): File {
         require(path.length in 1..1024 && '\u0000' !in path && !File(path).isAbsolute) { "导入路径无效" }
@@ -86,28 +94,41 @@ internal object WorkspaceFileImports {
         val backup=File(destination.parentFile,"solvit-backup-${java.util.UUID.randomUUID()}")
         authorize();currentCoroutineContext().ensureActive()
         check(target(root,path)==destination) { "导入目标目录已改变" }
-        publisher.publish(destination,backup)
+        val journal=currentCoroutineContext()[WorkspaceImportTransactions]
+        val transaction=synchronized(stagingLock) {
+            journal?.begin(destination,backup)?.also { activeTransactions.add(it.recordPath) }
+        }
         try {
+            publisher.publish(destination,backup)
+            check(transaction?.ownsBackup()!=false) { "原文件身份已变化，保留备份供检查" }
             check(Files.isRegularFile(backup.toPath(),NOFOLLOW_LINKS) && fileDigest(backup)==targetSha256) {
                 "目标文件已变化，请重新审阅"
             }
-            val result=create(root,path,bytes,sourceSha256,publisher,authorize)
+            val result=create(root,path,bytes,sourceSha256,publisher,transaction,authorize)
+            transaction?.forget()
             return Triple(result.first,result.second,backup.relativeTo(root).invariantSeparatorsPath)
         } catch(failure:Throwable) {
             // Recovery must run even after cancellation/revocation. Never replace a concurrent file.
             withContext(NonCancellable) {
+                runCatching { transaction?.rollingBack() }.onFailure { failure.addSuppressed(it) }
                 try {
                     check(target(root,path)==destination) { "目标目录已改变，保留恢复文件" }
+                    check(transaction?.ownsBackup()!=false) { "原文件备份身份已变化，不能自动恢复" }
                     publisher.publish(backup,destination)
                 } catch(recovery:Throwable) { failure.addSuppressed(recovery) }
             }
             if(Files.exists(backup.toPath(),NOFOLLOW_LINKS)) {
+                runCatching { transaction?.retain() }.onFailure { failure.addSuppressed(it) }
                 throw IllegalStateException("${failure.message}；原文件保留在 ${backup.relativeTo(root).invariantSeparatorsPath}",failure)
             }
+            runCatching { transaction?.forget() }.onFailure { failure.addSuppressed(it) }
             throw failure
+        } finally {
+            synchronized(stagingLock) { transaction?.let { activeTransactions.remove(it.recordPath) } }
         }
     }
     suspend fun create(root: File, path: String, bytes: ByteArray, expected: String, publisher: WorkspaceImportPublisher,
+        transaction:WorkspaceImportTransaction?=null,
         authorize: suspend () -> Unit): Pair<Long,String> {
         require(bytes.size <= MAX_WORKSPACE_IMPORT_BYTES && expected.matches(Regex("[a-f0-9]{64}"))) { "导入文件超过20MiB或版本无效" }
         progress("PREPARING",0,bytes.size.toLong())
@@ -140,10 +161,12 @@ internal object WorkspaceFileImports {
                     Files.isRegularFile(staged.toPath(),NOFOLLOW_LINKS)) { "导入目标目录已改变" }
                 progress("VERIFYING",content.size.toLong(),content.size.toLong())
                 check(fileDigest(staged)==expected) { "导入暂存文件已改变" }
+                transaction?.publishing(staged)
                 // No replace option: do not turn a create conflict into an overwrite.
                 progress("PUBLISHING",content.size.toLong(),content.size.toLong())
                 publisher.publish(staged,destination)
                 withContext(NonCancellable) {
+                transaction?.committed()
                 check(target(root,path)==destination && Files.isRegularFile(destination.toPath(),NOFOLLOW_LINKS) && destination.length()==content.size.toLong() && fileDigest(destination)==expected) { "文件导入结果已改变，请刷新工作区" }
                 // A cancellation arriving after publication cannot turn a complete file into a partial one.
                 // Monitoring failures must not change the already committed outcome.
@@ -151,6 +174,12 @@ internal object WorkspaceFileImports {
                     WorkspaceImportProgress("COMMITTED",content.size.toLong(),content.size.toLong())) }
                 }
                 return content.size.toLong() to expected
+            } catch(failure:Throwable) {
+                // Record rollback intent before finally deletes staging. Otherwise a kill
+                // during cancellation would resemble a published-then-deleted new file.
+                runCatching { transaction?.rollingBack() }
+                    .onFailure { failure.addSuppressed(it) }
+                throw failure
             } finally {
                 synchronized(stagingLock) {
                     try {
