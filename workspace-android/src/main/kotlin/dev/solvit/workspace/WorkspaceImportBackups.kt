@@ -110,13 +110,33 @@ internal class WorkspaceImportBackups(private val root: File, private val ledger
         safeBackup(record)
         if (!Files.exists(backup.toPath(), NOFOLLOW_LINKS) && key(target) == originalKey) Files.delete(file.toPath())
     }
+    internal fun validateCleanupRecord(record:Record) = validate(record)
+    internal fun registeredOrNull(id:String):Record? = synchronized(lock) {
+        directory(create=false)
+        val file=recordFile(id)
+        if(Files.exists(file.toPath(),NOFOLLOW_LINKS))read(file).also { safeBackup(it) } else null
+    }
+    internal fun registered(id:String):Record = synchronized(lock) {
+        directory(create=false)
+        read(recordFile(id)).also { safeBackup(it) }
+    }
+    internal fun forgetDeleted(record:Record) = synchronized(lock) {
+        directory(create=false)
+        val file=recordFile(record.id)
+        if(Files.exists(file.toPath(),NOFOLLOW_LINKS)) {
+            check(read(file)==record) { "备份登记已变化" }
+            Files.delete(file.toPath())
+        }
+    }
+    internal fun location(record:Record):File = safeBackup(record)
+    private fun cleanupPending(id:String)=Files.exists(File(ledger,"backup-cleanup/$id.intent").toPath(),NOFOLLOW_LINKS)
     /** Read one currently owned backup for an explicit review/copy. Never follows a new
      * inode at the old name, never reads an active replacement, and never removes a file. */
     fun readOwned(id: String, checkpoint: () -> Unit): Pair<Record, ByteArray> {
         checkpoint(); directory(create = false)
         val record = read(recordFile(id))
         val pending = File(ledger, "${record.id}.transaction")
-        check(!Files.exists(pending.toPath(), NOFOLLOW_LINKS)) { "该备份仍有未完成事务，请等待恢复或导入结束" }
+        check(!Files.exists(pending.toPath(), NOFOLLOW_LINKS) && !cleanupPending(id)) { "该备份仍有未完成事务，请等待恢复或导入结束" }
         val source = safeBackup(record)
         val attrs = checkNotNull(attributes(source)) { "备份文件已不存在" }
         check(attrs.isRegularFile && attrs.fileKey()?.toString() == record.originalKey) { "备份身份已变化，不能作为登记备份读取" }
@@ -134,7 +154,7 @@ internal class WorkspaceImportBackups(private val root: File, private val ledger
             checkpoint()
             val after = attributes(safeBackup(record))
             check(after?.isRegularFile == true && after.fileKey()?.toString() == record.originalKey &&
-                after.size() == bytes.size.toLong() && !Files.exists(pending.toPath(), NOFOLLOW_LINKS)) {
+                after.size() == bytes.size.toLong() && !Files.exists(pending.toPath(), NOFOLLOW_LINKS) && !cleanupPending(id)) {
                 "备份内容或身份已变化，请重新审阅"
             }
             return record to bytes
@@ -155,7 +175,7 @@ internal class WorkspaceImportBackups(private val root: File, private val ledger
                 if (++visited > MAX_RECORDS) { incomplete = true; break }
                 if (!path.fileName.toString().matches(Regex("[a-f0-9-]{36}\\.backup"))) continue
                 val record = try { read(path.toFile()) } catch (_: Exception) { unreadable++; continue }
-                val pending = Files.exists(File(ledger, "${record.id}.transaction").toPath(), NOFOLLOW_LINKS)
+                val pending = Files.exists(File(ledger, "${record.id}.transaction").toPath(), NOFOLLOW_LINKS) || cleanupPending(record.id)
                 val observation = try {
                     val attrs = attributes(safeBackup(record))
                     when {
