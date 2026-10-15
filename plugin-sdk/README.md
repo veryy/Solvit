@@ -165,3 +165,18 @@ API1–28 目录保留 Git1.2.7 的原始包，不能调用 API29 恢复动作�
 - 工具的 `tools/call` 名称和 arguments 必须与用户批准的当前调用一致。停止或失败关闭该执行拥有的进程；配置变化、撤权、插件停用、角色/绑定变化也会关闭。成功回合可以复用。
 
 此服务是普通应用 UID 下的开发进程能力，不是 Android 权限提升或不可信代码隔离。QuickJS 插件不获得 Node 全局对象、JNI 句柄或任意宿主路径。协议范围及设备验证状态见[阶段记录](../docs/local-stdio-mcp-stage.md)。
+
+### API31：插件文本资源目录（0.43.0 候选）
+
+声明 `permissions: ["storage", "workspace"]`、`nativeServices: ["workspace.resources"]`。
+模型工具只接收 `{name}`，插件从自己的已授权存储取得文件后调用：
+
+```ts
+const copy = await ctx.workspace!.prepareResources!(name, files);
+// copy.path: 宿主生成的工作区相对目录；不是任意目标路径
+// copy.files / copy.bytes / copy.sourceSha256: 发布时核对过的源内容信息
+```
+
+宿主只在绑定工作区的、已确认工具调用中接受资源准备，校验名称与原始确认一致、当前插件代码、启用状态、权限、角色与绑定，并限制一次性发布。不接受模型额外提交文件正文或目标路径。文本包最多40文件、单个32KiB/合计220KiB，拒绝无效UTF-8、穿越和文件/目录冲突；先在私有缓存准备，再原子发布到新目录，不覆盖项目文件。发布后副本属于工作区，不随插件资源刷新，也不因撤权自动删除后续修改。
+
+`tools[].requiresWorkspace` 在API31可显式设为布尔值，只决定工具是否展示。Skills读取工具为false、资源准备为true；授权仍由原生层独立检查。未声明时保留旧版规则。准备资源不执行脚本：通过已授权工作区Shell选择UBUNTU解释器执行，检查退出码和实际输出。QuickJS仍不是Node.js，普通Shell也不是不可信代码隔离。当前实际验证进度见[阶段记录](../docs/skills-runtime-stage.md)。
