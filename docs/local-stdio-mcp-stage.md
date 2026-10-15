@@ -20,3 +20,9 @@
 先远程验证真实管道、分离stderr、环境隔离、启动失败、并发关闭、进程组及后代回收，再接Ubuntu启动计划、插件授权/绑定、逐行边界与资源限额、多连接JS页面、MCP协商和AI工具路由。当前内部原语不代表本地MCP已向用户交付。
 
 正式交付需要远程Node/Python MCP进程及取消/停用回收测试、旧HTTPS连接回归、完整Actions和可下载APK。真实模型与ARM64真机验收仍受既有条件限制；不能用确定性Provider替代真实模型结果。
+
+## 首轮设备失败与修复
+
+远程诊断[38727233386](https://github.com/veryy/Solvit/actions/runs/38727233386)，`946b9df2`：四架构原生编译及测试APK编译通过；API35任务通过，API26的9项测试均失败。API26产物11968294682已下载并检查ZIP CRC，设备logcat明确记录`SIGSYS / SYS_SECCOMP`，x86_64寄存器`rax=0x1b4`对应`close_range`。旧Android的seccomp直接杀死调用进程，不能依赖该调用返回`ENOSYS`后再回退。初版还把监督进程死亡导致的启动管道EOF误认成exec成功，失败测试实际捕获了不存在的命令也被错误接受的情况。
+
+修复改用`/proc/self/fd`及旧版允许的`getdents64`/`close`，仅在fork后单线程子进程中遍历自身描述符表；不执行可能触发旧版seccomp的新调用。增加子进程显式就绪标记，然后才接受exec的CLOEXEC EOF，缺少标记必须报启动失败。继续由相同API26/35实际用例回归，不关闭或放宽Android权限限制。

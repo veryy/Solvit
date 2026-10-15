@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <cerrno>
 #include <climits>
+#include <cstddef>
+#include <cstring>
 #include <csignal>
 #include <fcntl.h>
 #include <iterator>
@@ -9,7 +11,6 @@
 #include <mutex>
 #include <poll.h>
 #include <string>
-#include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/syscall.h>
 #include <sys/wait.h>
@@ -44,21 +45,37 @@ std::vector<std::string> strings(JNIEnv *env, jobjectArray array) {
     return result;
 }
 // Only async-signal-safe syscalls in either child after fork. No JVM, allocations or locks.
-void closeInterval(unsigned first, unsigned last, unsigned ceiling) {
-    if (first > last) return;
-#ifdef __NR_close_range
-    if (syscall(__NR_close_range, first, last, 0) == 0) return;
-#endif
-    for (unsigned fd = first; fd <= std::min(last, ceiling); ++fd) syscall(__NR_close, fd);
-}
-void closeExcept(const int *sorted, size_t count, unsigned ceiling) {
-    unsigned next = 3;
-    for (size_t i = 0; i < count; ++i) {
-        const unsigned keep = static_cast<unsigned>(sorted[i]);
-        if (keep > next) closeInterval(next, keep - 1, ceiling);
-        next = keep + 1;
+bool closeExcept(const int *preserved, size_t count) {
+    // Android 8 seccomp kills the process on close_range rather than returning ENOSYS.
+    // Enumerate the child's private descriptor table with old, allowed syscalls instead.
+    const int directory = ::open("/proc/self/fd", O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (directory < 0) return false;
+    alignas(8) char entries[8192];
+    while (true) {
+        const ssize_t length = syscall(__NR_getdents64, directory, entries, sizeof(entries));
+        if (length < 0 && errno == EINTR) continue;
+        if (length <= 0) { ::close(directory); return length == 0; }
+        size_t offset = 0;
+        while (offset < static_cast<size_t>(length)) {
+            // linux_dirent64: ino/off are 8 bytes each, reclen is 2, type is 1.
+            unsigned short size = 0;
+            if (offset + 20 > static_cast<size_t>(length)) { ::close(directory); errno = EIO; return false; }
+            memcpy(&size, entries + offset + 16, sizeof(size));
+            if (size < 20 || offset + size > static_cast<size_t>(length)) { ::close(directory); errno = EIO; return false; }
+            int fd = 0;
+            bool numeric = false;
+            for (size_t i = offset + 19; i < offset + size; ++i) {
+                const char digit = entries[i];
+                if (digit == '\0') { numeric = i > offset + 19; break; }
+                if (digit < '0' || digit > '9' || fd > (INT_MAX - (digit - '0')) / 10) break;
+                fd = fd * 10 + digit - '0';
+            }
+            bool keep = fd < 3 || fd == directory;
+            for (size_t i = 0; i < count; ++i) if (preserved[i] == fd) keep = true;
+            if (numeric && !keep) syscall(__NR_close, fd);
+            offset += size;
+        }
     }
-    closeInterval(next, UINT_MAX, ceiling);
 }
 [[noreturn]] void startupFailure(int fd, int error) {
     ssize_t sent;
@@ -158,15 +175,12 @@ Java_dev_solvit_terminal_NativeStdio_open(JNIEnv *env, jobject, jbyteArray direc
     Descriptor startupParent(ends[0]), startupChild(ends[1]);
     int keep[] = {inChild.value, outChild.value, errChild.value, controlChild.value, statusChild.value, startupChild.value};
     std::sort(std::begin(keep), std::end(keep));
-    rlimit limit{};
-    const unsigned ceiling = getrlimit(RLIMIT_NOFILE, &limit) == 0
-        ? static_cast<unsigned>(std::min<rlim_t>(limit.rlim_cur, INT_MAX)) : 65536;
     struct sigaction reset{}; reset.sa_handler = SIG_DFL; sigemptyset(&reset.sa_mask);
     struct sigaction ignored = reset; ignored.sa_handler = SIG_IGN;
     sigset_t unblocked; sigemptyset(&unblocked);
     const pid_t pid = fork();
     if (pid == 0) {
-        closeExcept(keep, sizeof(keep) / sizeof(keep[0]), ceiling);
+        if (!closeExcept(keep, sizeof(keep) / sizeof(keep[0]))) startupFailure(startupChild.value, errno);
         for (int signal : {SIGCHLD, SIGPIPE, SIGTERM, SIGHUP, SIGINT, SIGQUIT}) sigaction(signal, &reset, nullptr);
         sigprocmask(SIG_SETMASK, &unblocked, nullptr);
         if (setsid() < 0 || chdir(cwd.c_str()) < 0) startupFailure(startupChild.value, errno);
@@ -178,8 +192,12 @@ Java_dev_solvit_terminal_NativeStdio_open(JNIEnv *env, jobject, jbyteArray direc
             if (dup2(inChild.value, STDIN_FILENO) < 0 || dup2(outChild.value, STDOUT_FILENO) < 0 ||
                 dup2(errChild.value, STDERR_FILENO) < 0) startupFailure(startupChild.value, errno);
             const int preserved[] = {startupChild.value};
-            closeExcept(preserved, 1, ceiling);
+            if (!closeExcept(preserved, 1)) startupFailure(startupChild.value, errno);
             for (int signal : {SIGTERM, SIGHUP, SIGINT, SIGPIPE}) sigaction(signal, &reset, nullptr);
+            const int ready = 0;
+            ssize_t sent;
+            do { sent = ::write(startupChild.value, &ready, sizeof(ready)); } while (sent < 0 && errno == EINTR);
+            if (sent != sizeof(ready)) _exit(127);
             execve(argv[0], argv.data(), environment.data());
             startupFailure(startupChild.value, errno);
         }
@@ -215,6 +233,12 @@ Java_dev_solvit_terminal_NativeStdio_open(JNIEnv *env, jobject, jbyteArray direc
     int ready;
     do { ready = poll(&startup, 1, 3000); } while (ready < 0 && errno == EINTR);
     int error = 0;
+    if (ready <= 0 || ::read(startupParent.value, &error, sizeof(error)) != sizeof(error) || error != 0) {
+        channel->stop(); fail(env, "stdio 命令启动失败或超时"); return 0;
+    }
+    // Explicit child readiness precedes exec's close-on-exec EOF. A dead supervisor
+    // must never make an empty startup pipe look like successful exec.
+    do { ready = poll(&startup, 1, 3000); } while (ready < 0 && errno == EINTR);
     if (ready <= 0 || ::read(startupParent.value, &error, sizeof(error)) != 0) {
         channel->stop(); fail(env, "stdio 命令启动失败或超时"); return 0;
     }
