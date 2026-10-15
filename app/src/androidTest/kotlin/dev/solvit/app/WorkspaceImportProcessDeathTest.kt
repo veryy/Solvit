@@ -78,6 +78,17 @@ class WorkspaceImportProcessDeathTest {
             assertTrue(root.listFiles()!!.none { it.name.startsWith(".solvit-import-") })
         }
         assertFiles()
+        val catalogue=runBlocking { app.workspaces.importBackups(workspace) }
+        if(expected=="ORIGINAL_AVAILABLE") {
+            assertTrue(catalogue.backups.isEmpty());assertEquals(0L,catalogue.logicalBytes)
+        } else {
+            val retained=catalogue.backups.single()
+            assertEquals("data.txt",retained.path);assertEquals(report.backupPath,retained.backupPath)
+            assertEquals(sha(original),retained.originalSha256)
+            assertEquals(original.toByteArray().size.toLong(),retained.originalBytes)
+            assertEquals(WorkspaceBackupStatus.PRESENT,retained.status);assertFalse(retained.pending)
+            assertEquals(original.toByteArray().size.toLong(),catalogue.logicalBytes)
+        }
         val shell=runBlocking { app.workspaces.createShell(workspace,"Recovery verification") }
         val shellResult=runBlocking {
             val command=if(scenario=="DELETED")"/system/bin/toybox test ! -e data.txt" else "/system/bin/toybox sha256sum data.txt"
@@ -104,6 +115,9 @@ class WorkspaceImportProcessDeathTest {
             waitDom("!!document.querySelector('[data-node=recovery_empty]')")
             assertTrue(runBlocking { app.workspaces.importRecoveries(workspace) }.isEmpty())
             assertFiles()
+            val afterDismiss=runBlocking { app.workspaces.importBackups(workspace) }
+            assertEquals(catalogue.backups,afterDismiss.backups)
+            assertEquals(catalogue.logicalBytes,afterDismiss.logicalBytes)
             marker.delete();assertTrue(fixture.delete())
         }finally{runBlocking { bridge.close() }}
     }

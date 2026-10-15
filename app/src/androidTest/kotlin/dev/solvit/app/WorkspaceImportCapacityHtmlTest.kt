@@ -56,6 +56,7 @@ class WorkspaceImportCapacityHtmlTest {
             assertArrayEquals(original,File(root,"data.txt").readBytes())
             assertEquals(listOf("data.txt"),root.listFiles()!!.map { it.name })
             assertTrue(runBlocking { native.importRecoveries(workspace.id) }.isEmpty())
+            assertTrue(runBlocking { native.importBackups(workspace.id) }.backups.isEmpty())
             html.screenshot("workspace-import-insufficient-space").recycle()
             // Source bytes and the existing selection survive; this retry reviews the target
             // again and goes through a NEW native confirmation, then the production JNI move.
@@ -65,6 +66,11 @@ class WorkspaceImportCapacityHtmlTest {
             waitDom("document.querySelector('[data-node=message]')?.textContent.includes('solvit-backup-')===true")
             assertArrayEquals(bytes,File(root,"data.txt").readBytes())
             assertArrayEquals(original,root.listFiles()!!.single { it.name.startsWith("solvit-backup-") }.readBytes())
+            val provenance=runBlocking { native.importBackups(workspace.id) }
+            val retained=provenance.backups.single()
+            assertEquals("data.txt",retained.path);assertEquals(original.size.toLong(),retained.originalBytes)
+            assertEquals(WorkspaceBackupStatus.PRESENT,retained.status);assertFalse(retained.pending)
+            assertEquals(original.size.toLong(),provenance.logicalBytes)
             val shell=runBlocking { native.createShell(workspace.id,"Capacity retry Shell") }
             val result=runBlocking {
                 val job=native.run(workspace.id,shell.id,"/system/bin/toybox sha256sum data.txt",10_000)
