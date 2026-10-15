@@ -12,4 +12,4 @@
 
 无需 root 的 Ubuntu、Python/venv、Node.js/npm 和 Java17 继续包含在应用中，安装步骤见[环境指南](linux-environment.md)。正常同签名覆盖更新保留配置、聊天和Linux环境；卸载会删除应用数据。ARM64真机、真实模型完整项目任务、真实GitHub账号写入及stdio MCP仍待验收，屏幕操控暂缓。
 
-当前为候选说明，正式发布、完整远程设备报告和公开APK字节核对尚未完成，不将已通过的合同测试当作整版验收。
+候选[38700527294](https://github.com/veryy/Solvit/actions/runs/38700527294)已通过570项单元、82项常规Android设备、原五种导入与新增四种清理外部强杀恢复，以及Lint、APK和固定签名门禁。报告已下载并核对CRC/XML和逐场PID记录，实际查看恢复与清理页面截图。正式标签仍须通过完整六项门禁；公开APK/源码字节核对另行补充，以Release与下方正式构建链接为准。
