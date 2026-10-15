@@ -159,7 +159,7 @@ class WorkspaceCloneProcessDeathTest {
             } else click("git_clone_resume")
             click("git_clone_confirm");confirm(false)
             assertEquals(1,runBlocking { native.cloneInstalls().entries.size });preserved();assertEquals(before,requests(endpoint))
-            html.screenshot("git-clone-process-death-$scenario").recycle()
+            html.screenshot("git-clone-process-death-${scenario.lowercase(java.util.Locale.ROOT)}").recycle()
             click("git_clone_confirm");confirm(true)
             if(scenario in setOf("CONFLICT","CLEANUP"))waitDom("!!document.querySelector('[data-node=git_clone_empty]')")
             else waitDom("!!document.querySelector('[data-node=git_branch]')&&!document.querySelector('[data-node=git_transfer]')")

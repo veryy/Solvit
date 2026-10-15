@@ -55,3 +55,5 @@ Git1.3.0首轮[插件生成38714066212](https://github.com/veryy/Solvit/actions/
 候选`ec2147d4`的[插件远程生成38716258761](https://github.com/veryy/Solvit/actions/runs/38716258761)全部成功：typecheck、133项TS合同、5项市场测试以及免配置搜索/HTTPS MCP/Skills公网检查通过。完整下载862194字节归档，CRC和SHA256 `03fd556696a9335b0535360acb8c48081454dc22c60f9bf31f1d8b3b2213e121`与Actions一致，15个包中仅Git变化；同步Git1.3.0到市场当前包与APK内置asset，其余14包保持原始字节。Git1.2.7 legacy仍保留。API26/35的38714538919两份设备归档亦已完整下载核对CRC/XML，两路分别28项、零失败/错误/跳过。外部6场强杀运行38716282303尚在构建，不能记为通过；API29市场仅准备私有兼容验证，未部署。
 
 外部强杀首轮[38716282303](https://github.com/veryy/Solvit/actions/runs/38716282303)未进入设备：新增测试最后调用挂起的removeCredentials不在协程内，主APK已编译，但测试APK编译失败。修复为runBlocking，不放宽进程/文件/网络或HTML断言，须重新远程运行。
+
+第二轮外部验收[38716925404](https://github.com/veryy/Solvit/actions/runs/38716925404)实际进入设备：DOWNLOADING在真实请求阻塞后完成force-stop，新进程已通过记录、空目录、请求计数、插件HTML审阅与取消确认断言；随后截图名含大写DOWNLOADING，被既有HtmlPageProbe的小写名称限制拒绝，尚未执行重新下载及后五场。仅将截图场景名用Locale.ROOT转小写，保留截图工具限制和全部业务断言。另合同38716752774在旧a2506cfe上仍是已知removeCredentials编译问题；新一轮APK编译已确认该问题修复，不把旧合同记为成功。
