@@ -12,7 +12,7 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The latest public release is [0.37.0](https://github.com/veryy/Solvit/releases/tag/v0.37.0). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The latest public release is [0.38.0](https://github.com/veryy/Solvit/releases/tag/v0.38.0). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 
@@ -22,7 +22,7 @@ The latest public release is [0.37.0](https://github.com/veryy/Solvit/releases/t
 - **Plugins:** install, enable, and disable JS/TS plugins. Plugins can ship offline HTML/JS pages; Android manages permissions, platform services, and resource cleanup. [Plugin API](docs/plugins.md)
 - **Search and memory:** default public web search with source links, local memory retrieval and relationship graphs, editing, deletion, and optional background saving. Public search can encounter network restrictions or challenges; real-model memory quality still needs validation.
 - **MCP and Skills:** multiple named HTTPS MCP connections with independent sessions and encrypted credentials; import SKILL.md and text resources. [MCP](docs/mcp.md) · [Skills](docs/skills.md)
-- **Workspace:** one directory per conversation and multiple Shell sessions. File tree, directory creation, rename and delete, CodeMirror text/code preview and editing, and an xterm.js / Android PTY terminal share the same directory. Import complete original files up to 20MiB from the system picker or saved attachments in the current chat after reviewing provenance, metadata, and text/image/PDF page previews; existing files can be reviewed and replaced with a version check and a retained original backup. Git and Shell see the same imported file.
+- **Workspace:** one directory per conversation and multiple Shell sessions. File tree, directory creation, rename and delete, CodeMirror text/code preview and editing, and an xterm.js / Android PTY terminal share the same directory. Import complete original files up to 20MiB from the system picker or saved attachments in the current chat after reviewing provenance, metadata, and text/image/PDF page previews; existing files can be reviewed and replaced with a version check and a retained original backup. Import shows actual write progress and supports cancellation, cleanup, and retry. Git and Shell see the same imported file.
 - **Linux environment:** install Ubuntu 24.04 without root, with Python/venv and Node24/npm; add Python/pip or Java17. Open Workspace → Linux, install it, then create an Ubuntu Shell. AI commands, the terminal, and file management share the same directory. [Getting started (中文)](docs/linux-environment.md) · [Verification](docs/linux-environment-stage.md)
 - **Git workspace:** Changes, diffs, staging, commits, and history, plus HTTPS clone, fetch, pull/push reviews, merge conflicts, progress, and cancellation. Credentials are entered through a native secure form and stored encrypted. AI Git tools are currently read-only.
 - **Updates:** release notes, APK downloads with progress, and an installation entry inside the app. API keys are encrypted with Android Keystore.
@@ -31,7 +31,7 @@ The latest public release is [0.37.0](https://github.com/veryy/Solvit/releases/t
 
 Image, text, and code attachments are now available. Next priorities:
 
-1. Import progress, cancellation recovery, staging cleanup, and capacity management; version-checked replacement with original backups is now available.
+1. Recover interrupted replacement transactions after process death and add capacity/backup management. Import progress, cancellation, registered staging cleanup, and version-checked replacement with original backups are available.
 2. Recover interrupted Git clone installation and verify plugin operations with a real GitHub account.
 3. Validate roles, visible streaming, tool selection, and complete tasks with real models; improve plugins and memory.
 
@@ -47,7 +47,7 @@ Unsent drafts and queued messages do not survive process death; startup cleans u
 
 Configuration backups include model connections, API keys, roles, prompts, language, and appearance, but exclude chats, plugin packages, plugin credentials, and memories. Keep backups outside the app. Conversation context is sent to your configured model service.
 
-The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38652505308) passed remote build, tests, lint, signing, and upgrade gates; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.37.0.md)
+The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38666274917) passed remote build, tests, lint, signing, and upgrade gates; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.38.0.md)
 
 ## Development
 
