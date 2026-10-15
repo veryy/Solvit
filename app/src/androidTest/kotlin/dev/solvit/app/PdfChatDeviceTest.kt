@@ -40,7 +40,10 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class PdfChatDeviceTest {
-    @get:Rule val rule=createAndroidComposeRule<MainActivity>()
+    @OptIn(ExperimentalTestApi::class)
+    @get:Rule val rule=createAndroidComposeRule<MainActivity>(
+        effectContext=kotlinx.coroutines.test.StandardTestDispatcher()
+    )
     private fun screenshot(name:String="pdf-chat-selected-scan") {
         rule.waitForIdle()
         runBlocking {
