@@ -9,3 +9,7 @@
 实际阅读上游Operit固定dbf71916的`ui/common/composedsl/ToolPkgComposeDslWebView.kt`（disposedRef、actionLane、onDispose与renderer回调）、`ui/features/token/TokenConfigWebViewScreen.kt`，以及DSH d7432673的`packages/client/ui-settings-shell/tests/apply.client.spec.ts`（销毁移除页面及延迟注册）。参考生命周期撤销与资源归属，独立适配，不复制LGPL源码。Android官方WebView.destroy契约要求先从视图树移除且销毁后不再调用；AndroidView的factory并不在每次update重新执行。后续修改仍需实际设备反证与回归，不能仅凭源码猜测宣称修复。
 
 8dc2144b首轮38782140560/38782145576在源码一致性检查即被阻止，未执行设备：正式APK之后仅更新的plugin-sdk/README.md未在文档白名单中。将这个精确文件加入既有README列表，不允许其他SDK/运行时代码差异；随后重新执行两种诊断。不能把这次工作流前置失败当作复现。
+
+原APK的文档替换[38782376759](https://github.com/veryy/Solvit/actions/runs/38782376759)明确失败：3.225秒内在新文档应挂载WebView的断言失败，实际视图树没有新实例。原始归档11996668266（483681字节，SHA256 `ec7fc67e3fd7fab2cc30b8bf1b86c8a1d35e717eae03617720967c03468909fb`）已完整下载/CRC并读取原始断言。这是文档所有权错误，不是原生SIGSEGV复现。
+
+最小修复：按document为整段页面组合设置身份，旧消息桥、terminal确认和rememberCoroutineScope随旧页面一起离开；AndroidView的onRelease承担正常销毁，避免由独立DisposableEffect先销毁却留下旧视图节点。renderer错误仍立即清理对应实例，update核对live后才调用WebView。保留原origin/CSP/权限与不重放执行规则。新增回归纳入完整报告门禁（app最少69），待远程由红转绿和完整设备验证。尚不宣称原生SIGSEGV根因已修复。

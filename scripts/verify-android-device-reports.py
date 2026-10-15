@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-MINIMUM = {'app': 68, 'web-android': 3, 'terminal-android': 25}
+MINIMUM = {'app': 69, 'web-android': 3, 'terminal-android': 25}
 
 def verify(root: Path) -> dict[str, int]:
     counts = {}

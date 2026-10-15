@@ -13,6 +13,7 @@ timeout 90s adb install -r app/build/outputs/apk/debug/app-debug.apk || exit 1
 timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk || exit 1
 case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   memory-click) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin' ;;
+  plugin-document-lifecycle) solvit_diagnostic_class='dev.solvit.app.PluginWebPageLifecycleTest' ;;
   model-settings) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations' ;;
   model-task) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#modelProfilesUiSavesAndAssignsASeparateToolModel' ;;
   skills-documents) solvit_diagnostic_class='dev.solvit.app.SkillsHtmlPageTest' ;;

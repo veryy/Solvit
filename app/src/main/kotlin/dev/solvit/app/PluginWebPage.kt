@@ -43,6 +43,18 @@ private data class TerminalPageConfirmation(val title: String, val detail: Strin
 fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
     resource: suspend (String) -> ExtensionPageResource, busy: Boolean, modifier: Modifier = Modifier,
     terminalAccess: PageTerminalAccess? = null, onEvent: (ScriptWebPageEvent) -> Unit) {
+    // A new document owns a new AndroidView node, bridge token and coroutine scope.
+    // Updating factory alone would retain the previous, already destroyed View.
+    key(document) {
+        PluginWebPageDocument(view, document, resource, busy, modifier, terminalAccess, onEvent)
+    }
+}
+
+@SuppressLint("SetJavaScriptEnabled")
+@Composable
+private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageDocument,
+    resource: suspend (String) -> ExtensionPageResource, busy: Boolean, modifier: Modifier,
+    terminalAccess: PageTerminalAccess?, onEvent: (ScriptWebPageEvent) -> Unit) {
     if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER)) {
         UiText("当前系统 WebView 不支持插件页面消息桥，请更新系统 WebView。", modifier)
         return
@@ -191,16 +203,14 @@ fun PluginWebPage(view: ScriptPageView, document: ExtensionPageDocument,
             loadUrl("$PLUGIN_ORIGIN/${document.entry}")
         }
     }
-    DisposableEffect(browser) {
-        onDispose {
-            release(browser)
-        }
-    }
     Column(modifier.fillMaxSize()) {
         if (failed) UiText("插件页面加载失败，请关闭后重新打开。", Modifier.weight(1f))
-        else AndroidView(factory = { browser }, modifier = Modifier.fillMaxWidth().weight(1f).testTag("plugin_web_page"), update = {
-            it.setBackgroundColor(colors.surface.toArgb())
-            it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+        else AndroidView(factory = { browser }, modifier = Modifier.fillMaxWidth().weight(1f).testTag("plugin_web_page"),
+            onRelease = { release(it) }, update = {
+            if (live.get()) {
+                it.setBackgroundColor(colors.surface.toArgb())
+                it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+            }
         })
         terminalConfirmation?.let { question ->
             Surface(Modifier.fillMaxWidth().testTag("terminal_page_approval"),
