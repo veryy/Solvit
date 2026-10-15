@@ -19,6 +19,15 @@ interface WorkspaceRemoteGitSession : WorkspaceGitSession {
     data class PullReview(val revision: WorkspaceGitSession.Revision, val remoteHead: String,
         val worktreeSha256: String)
     data class Merge(val status: String, val head: String?, val conflicts: List<String>)
+    /** Safe inventory only. No private directory or caller-selected workspace path. */
+    data class CloneInstall(val id: String, val phase: String, val status: String,
+        val url: String, val branch: String, val head: String?, val createdAt: Long)
+    data class CloneInstalls(val entries: List<CloneInstall>, val nextOffset: Int?,
+        val incomplete: Boolean, val unreadable: Int)
+    /** Host-retained review. Script adapters must expose only a single-use opaque handle. */
+    data class CloneInstallReview(val entry: CloneInstall, val fingerprint: String,
+        val canResume: Boolean, val canRestart: Boolean, val files: Int, val bytes: Long,
+        val installedFiles: Int, val problem: String?)
 
     val progress: StateFlow<Progress?>
     suspend fun transferProgress(): Progress?
@@ -26,6 +35,14 @@ interface WorkspaceRemoteGitSession : WorkspaceGitSession {
     suspend fun fetch(endpoint: GitRemoteEndpoint, branch: String): Fetch
     /** Stages privately before installing into an empty bound directory, without replacing it. */
     suspend fun clone(endpoint: GitRemoteEndpoint, branch: String): Fetch
+    suspend fun cloneInstalls(offset: Int = 0, limit: Int = 20): CloneInstalls { error("克隆恢复不可用") }
+    suspend fun reviewCloneInstall(id: String): CloneInstallReview { error("克隆恢复不可用") }
+    /** Offline continuation; never downloads again or overwrites concurrent workspace files. */
+    suspend fun resumeCloneInstall(review: CloneInstallReview): Fetch { error("克隆恢复不可用") }
+    /** New network approval is required. Only an unfinished download can be restarted. */
+    suspend fun restartCloneDownload(review: CloneInstallReview): Fetch { error("克隆恢复不可用") }
+    /** Deletes only registered private staging; all installed workspace files remain. */
+    suspend fun discardCloneInstall(review: CloneInstallReview) { error("克隆恢复不可用") }
     /** Fetches the actual remote head and captures the local revision for user review. */
     suspend fun reviewPush(endpoint: GitRemoteEndpoint, branch: String): PushReview
     /** Pushes only the reviewed commit, without force, using the reviewed remote head as a lease. */

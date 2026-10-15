@@ -42,7 +42,7 @@ jobs:
           exit 1
       - name: Prepare actual Android Git test APKs
         run: |
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
           ./gradlew :core:test :git-android:assembleDebug :git-android:assembleDebugAndroidTest --stacktrace
       - name: Install emulator image with bounded download retries
         run: |

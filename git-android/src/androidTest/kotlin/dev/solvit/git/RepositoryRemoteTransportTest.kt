@@ -93,7 +93,7 @@ class RepositoryRemoteTransportTest {
         }
     }
 
-    @Test fun cloneRejectsFilesWrittenByShellDuringDownloadAndDeletesOnlyPrivateStaging() = runBlocking<Unit> {
+    @Test fun cloneRejectsFilesWrittenByShellDuringDownloadAndExplicitlyDiscardsOnlyPrivateStaging() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val workspaces = AndroidWorkspaces(context, scope)
         val chat = "git-clone-concurrent-${UUID.randomUUID()}"
@@ -112,6 +112,16 @@ class RepositoryRemoteTransportTest {
             assertTrue(shell.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)); assertEquals(0, shell.exitValue())
             assertEquals("OK", control("/control/clone-release"))
             assertTrue(withTimeout(10_000) { pending.await() })
+            assertEquals("Shell wrote during download\n", File(root, "from-shell.txt").readText())
+            assertEquals(listOf("from-shell.txt"), root.listFiles()!!.map { it.name })
+            val interrupted = page.cloneInstalls().entries.single()
+            assertEquals("READY", interrupted.phase)
+            val review = page.reviewCloneInstall(interrupted.id)
+            assertFalse(review.canResume)
+            assertFalse(review.canRestart)
+            assertNotNull(review.problem)
+            assertFalse(staging.listFiles()!!.isEmpty())
+            page.discardCloneInstall(review)
             assertEquals("Shell wrote during download\n", File(root, "from-shell.txt").readText())
             assertEquals(listOf("from-shell.txt"), root.listFiles()!!.map { it.name })
             assertTrue(staging.listFiles()!!.isEmpty())

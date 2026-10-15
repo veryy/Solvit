@@ -53,14 +53,10 @@ bool cleanup_basename(const char* name) {
     return name[0] != '\0' && std::strchr(name, '/') == nullptr &&
         std::strcmp(name, ".") != 0 && std::strcmp(name, "..") != 0;
 }
-}
-
-// Host-only cross-directory claim/restore. Both parent FDs are pinned for the move;
-// EEXIST/EXDEV/unsupported renameat2 retain the source and never fall back to copy/unlink.
-extern "C" JNIEXPORT jint JNICALL
-Java_dev_solvit_workspace_AndroidWorkspaceBackupMover_transferNative(
-        JNIEnv* env, jobject, jstring sourceDirectory, jstring destinationDirectory,
-        jstring source, jstring destination) {
+// Existing backup claims and Git metadata share the same no-replacement primitive.
+// Both parent FDs are pinned; unsupported/EXDEV never fall back to copy/unlink.
+int transfer_entry(JNIEnv* env, jstring sourceDirectory, jstring destinationDirectory,
+        jstring source, jstring destination, bool directory) {
     CleanupUtfChars fromParent(env, sourceDirectory);
     if (fromParent.value == nullptr) return ENOMEM;
     CleanupUtfChars toParent(env, destinationDirectory);
@@ -77,9 +73,24 @@ Java_dev_solvit_workspace_AndroidWorkspaceBackupMover_transferNative(
     struct stat attributes {};
     int result;
     if (fstatat(sourceFd, from.value, &attributes, AT_SYMLINK_NOFOLLOW) != 0) result = errno;
-    else if (!S_ISREG(attributes.st_mode)) result = EINVAL;
+    else if (directory ? !S_ISDIR(attributes.st_mode) : !S_ISREG(attributes.st_mode)) result = EINVAL;
     else result = syscall(__NR_renameat2, sourceFd, from.value, destinationFd, to.value, RENAME_NOREPLACE) == 0 ? 0 : errno;
     close(destinationFd);
     close(sourceFd);
     return result;
+}
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_dev_solvit_workspace_AndroidWorkspaceBackupMover_transferNative(
+        JNIEnv* env, jobject, jstring sourceDirectory, jstring destinationDirectory,
+        jstring source, jstring destination) {
+    return transfer_entry(env, sourceDirectory, destinationDirectory, source, destination, false);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_dev_solvit_workspace_AndroidWorkspaceDirectoryPublisher_publishNative(
+        JNIEnv* env, jobject, jstring sourceDirectory, jstring destinationDirectory,
+        jstring source, jstring destination) {
+    return transfer_entry(env, sourceDirectory, destinationDirectory, source, destination, true);
 }

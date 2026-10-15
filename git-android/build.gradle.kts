@@ -32,6 +32,7 @@ dependencies {
     implementation(files(jgitAndroidEngine))
     implementation("commons-codec:commons-codec:1.22.1")
     implementation(project(":core"))
+    implementation(project(":workspace-android"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     testImplementation(kotlin("test-junit"))
     androidTestImplementation(project(":workspace-android"))

@@ -152,4 +152,37 @@ class CloneInstallTransactionsTest {
             f.store.retire(r.id)
         }
     }
+    @Test fun reviewChecksActualContentsWithoutWritingAndDistinguishesRestartFromResume() = runBlocking {
+        fixture { f ->
+            val downloading = f.begin()
+            val unfinished = f.store.review(downloading.id)
+            assertTrue(unfinished.canRestart); assertFalse(unfinished.canResume)
+            assertTrue(f.root.listFiles()!!.isEmpty())
+            f.store.retire(downloading.id)
+            val r = f.ready(); f.interruptAfterFirstFile(r)
+            val review = f.store().review(r.id)
+            assertTrue(review.canResume); assertFalse(review.canRestart)
+            assertEquals(2, review.files); assertEquals(1, review.installedFiles)
+            assertFalse(File(f.root, "src/main.txt").exists())
+            File(f.root, "alpha.txt").writeText("concurrent edit")
+            val conflict = f.store().review(r.id)
+            assertFalse(conflict.canResume); assertFalse(conflict.canRestart)
+            assertNotNull(conflict.problem); assertFalse(conflict.problem!!.contains(f.temp.path))
+            assertEquals("concurrent edit", File(f.root, "alpha.txt").readText())
+        }
+    }
+    @Test fun publishedReviewDoesNotRequireOrReplayTheOriginalWorktreeAndCancellationEscapes() = runBlocking {
+        fixture { f ->
+            val r = f.ready()
+            f.store.install(r.id, retireOnSuccess = false)
+            File(f.root, "alpha.txt").delete(); File(f.root, "user.txt").writeText("later user content")
+            val review = f.store().review(r.id)
+            assertTrue(review.canResume); assertFalse(review.canRestart)
+            assertFalse(File(f.root, "alpha.txt").exists())
+            assertFailsWith<CancellationException> { f.store.review(r.id) { throw CancellationException("revoked") } }
+            assertEquals("COMMITTED", f.store.read(r.id).phase)
+            f.store.retire(r.id)
+            assertEquals("later user content", File(f.root, "user.txt").readText())
+        }
+    }
 }

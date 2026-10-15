@@ -71,6 +71,10 @@ class BoundWorkspaceGit(
     internal var remoteTransport = RepositoryRemoteTransport()
     internal var borrowCredentials: (GitRemoteEndpoint) -> RepositoryCredentials? = { null }
     internal var cloneStagingDirectory: File? = null
+    internal var cloneMetadataPublisher: (File, File) -> Unit = { source, target ->
+        dev.solvit.workspace.AndroidWorkspaceDirectoryPublisher.publish(source, target)
+    }
+    private fun cloneStore() = CloneInstallTransactions(checkNotNull(cloneStagingDirectory) { "Git克隆暂存目录尚未配置" }, cloneMetadataPublisher)
     internal var configuredCredentials: (GitRemoteEndpoint) -> Boolean = { false }
     internal var storeCredentials: (GitRemoteEndpoint, String, CharArray) -> Unit = { _, _, _ -> error("Git凭据库尚未配置") }
     internal var deleteCredentials: (GitRemoteEndpoint) -> Unit = { error("Git凭据库尚未配置") }
@@ -102,7 +106,7 @@ class BoundWorkspaceGit(
         verify()
     }
 
-    private suspend fun <T> ownTransfer(endpoint: GitRemoteEndpoint, operation: String,
+    private suspend fun <T> ownTransfer(endpoint: GitRemoteEndpoint, operation: String, requiresNetwork: Boolean = true,
         block: suspend () -> T): T = coroutineScope {
         val ownedJob = currentCoroutineContext().job
         synchronized(transferLock) {
@@ -112,7 +116,7 @@ class BoundWorkspaceGit(
             transferProgress.value = WorkspaceRemoteGitSession.Progress(operation, "", 0, 0)
         }
         try {
-            verifyRemote(endpoint)
+            if (requiresNetwork) verifyRemote(endpoint) else verifyWrite()
             block()
         } finally {
             synchronized(transferLock) {
@@ -131,28 +135,107 @@ class BoundWorkspaceGit(
 
     override suspend fun clone(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.Fetch =
         ownTransfer(endpoint, "clone") { withContext(Dispatchers.IO) { mutex.withLock {
-            require(branch.length in 1..256 && !branch.startsWith('-') && org.eclipse.jgit.lib.Repository.isValidRefName("refs/heads/$branch"))
+            val store = cloneStore()
+            store.exclusive(binding) { clonePrepared(store, endpoint, branch) }
+        } } }
+
+    private fun cloneEntry(record: CloneInstallTransactions.Record, status: String) =
+        WorkspaceRemoteGitSession.CloneInstall(record.id, record.phase, status, record.endpoint,
+            record.branch, record.head.takeIf { it.isNotEmpty() }, record.createdAt)
+
+    override suspend fun cloneInstalls(offset: Int, limit: Int): WorkspaceRemoteGitSession.CloneInstalls = withContext(Dispatchers.IO) {
+        require(offset in 0..1000 && limit in 1..100)
+        verify(); resolveRoot()
+        val inventory = cloneStore().inventory(binding)
+        val entries = inventory.records.drop(offset).take(limit).map { cloneEntry(it.record, it.status) }
+        verify()
+        WorkspaceRemoteGitSession.CloneInstalls(entries,
+            (offset + entries.size).takeIf { it < inventory.records.size }, inventory.incomplete, inventory.unreadable)
+    }
+
+    private suspend fun cloneRecord(store: CloneInstallTransactions, id: String): CloneInstallTransactions.Record {
+        verify()
+        return store.read(id).also { check(it.workspaceId == binding) { "克隆记录不属于当前工作区" } }
+    }
+
+    private suspend fun cloneReview(store: CloneInstallTransactions, id: String): WorkspaceRemoteGitSession.CloneInstallReview {
+        val record = cloneRecord(store, id)
+        val currentRoot = resolveRoot()
+        val value = store.review(id) { verify() }
+        check(value.record == record) { "克隆记录已变化，请重新审阅" }
+        val status = store.inventory(binding).records.firstOrNull { it.record.id == id }?.status ?: "UNAVAILABLE"
+        verify()
+        val sameRoot = record.rootPath == currentRoot.absolutePath
+        return WorkspaceRemoteGitSession.CloneInstallReview(cloneEntry(record, status), value.fingerprint,
+            sameRoot && value.canResume, sameRoot && value.canRestart, value.files, value.bytes, value.installedFiles,
+            if (sameRoot) value.problem else "工作区位置已变化，不能继续安装；可保留文件并关闭私有暂存")
+    }
+
+    override suspend fun reviewCloneInstall(id: String): WorkspaceRemoteGitSession.CloneInstallReview = withContext(Dispatchers.IO) {
+        val store = cloneStore()
+        store.exclusive(binding) { cloneReview(store, id) }
+    }
+
+    override suspend fun resumeCloneInstall(review: WorkspaceRemoteGitSession.CloneInstallReview): WorkspaceRemoteGitSession.Fetch =
+        ownTransfer(GitRemoteEndpoint.parse(review.entry.url), "resumeClone", requiresNetwork = false) {
+            withContext(Dispatchers.IO) { mutex.withLock {
+                val store = cloneStore()
+                store.exclusive(binding) {
+                    val fresh = cloneReview(store, review.entry.id)
+                    check(fresh == review && fresh.canResume) { "克隆事实已变化或不能继续，请重新审阅" }
+                    val root = resolveRoot()
+                    store.install(review.entry.id, retireOnSuccess = false) {
+                        verifyWrite(); check(resolveRoot() == root) { "工作区位置已变化" }
+                    }
+                    validateRepository(root)
+                    verifyWrite(); check(resolveRoot() == root)
+                    withContext(NonCancellable + Dispatchers.IO) { store.retire(review.entry.id) }
+                    WorkspaceRemoteGitSession.Fetch(review.entry.branch, checkNotNull(review.entry.head), emptyMap())
+                }
+            } }
+        }
+
+    override suspend fun restartCloneDownload(review: WorkspaceRemoteGitSession.CloneInstallReview): WorkspaceRemoteGitSession.Fetch =
+        ownTransfer(GitRemoteEndpoint.parse(review.entry.url), "restartClone") {
+            withContext(Dispatchers.IO) { mutex.withLock {
+                val store = cloneStore()
+                store.exclusive(binding) {
+                    val fresh = cloneReview(store, review.entry.id)
+                    check(fresh == review && fresh.canRestart) { "克隆事实已变化或不能重新下载，请重新审阅" }
+                    verifyRemote(GitRemoteEndpoint.parse(fresh.entry.url))
+                    store.retire(fresh.entry.id)
+                    clonePrepared(store, GitRemoteEndpoint.parse(fresh.entry.url), fresh.entry.branch)
+                }
+            } }
+        }
+
+    override suspend fun discardCloneInstall(review: WorkspaceRemoteGitSession.CloneInstallReview) = withContext(Dispatchers.IO) {
+        mutex.withLock {
+            val store = cloneStore()
+            store.exclusive(binding) {
+                verifyWrite(); resolveRoot()
+                cloneRecord(store, review.entry.id)
+                check(store.review(review.entry.id) { verify() }.fingerprint == review.fingerprint) { "克隆记录已变化，请重新审阅" }
+                verifyWrite()
+                // Only the registered private transaction is touched, even if the root changed.
+                store.retire(review.entry.id)
+                verify()
+            }
+        }
+    }
+
+    private suspend fun clonePrepared(store: CloneInstallTransactions, endpoint: GitRemoteEndpoint,
+        branch: String): WorkspaceRemoteGitSession.Fetch {
+        require(branch.length in 1..256 && !branch.startsWith('-') && org.eclipse.jgit.lib.Repository.isValidRefName("refs/heads/$branch"))
+        verifyRemote(endpoint)
+        val root = resolveRoot()
+        val transaction = store.begin(binding, root, endpoint.url, branch)
+        val staged = store.tree(transaction)
+        suspend fun checkpoint() {
             verifyRemote(endpoint)
-            val root = resolveRoot()
-            val initialRoot = android.system.Os.lstat(root.path).let { it.st_dev to it.st_ino }
-            fun sameRoot() {
-                check(root.canonicalFile == root.absoluteFile &&
-                    android.system.Os.lstat(root.path).let { it.st_dev to it.st_ino } == initialRoot) {
-                    "克隆期间工作目录已被替换"
-                }
-            }
-            fun emptyTarget() {
-                sameRoot()
-                check(root.isDirectory && root.canonicalFile == root.absoluteFile && root.listFiles()?.isEmpty() == true) {
-                    "克隆需要空工作目录，已有文件不会被覆盖"
-                }
-            }
-            emptyTarget()
-            val base = checkNotNull(cloneStagingDirectory) { "Git克隆暂存目录尚未配置" }.canonicalFile
-            check(base.mkdirs() || base.isDirectory) { "无法创建私有克隆暂存目录" }
-            check(!root.toPath().startsWith(base.toPath()) && !base.toPath().startsWith(root.toPath()))
-            val staged = Files.createTempDirectory(base.toPath(), "clone-").toFile()
-            try {
+            check(resolveRoot() == root) { "克隆期间工作目录已变化" }
+        }
+        try {
                 val fetched = Git.init().setDirectory(staged).setInitialBranch(branch).setFs(WorkspaceGitFileSystem()).call().use { git ->
                     val result = remoteTransport.fetch(git.repository, endpoint, branch, borrowCredentials(endpoint),
                         { verifyRemote(endpoint) }, { report("clone", it) })
@@ -184,35 +267,22 @@ class BoundWorkspaceGit(
                     }
                     result
                 }
-                verifyRemote(endpoint)
-                check(resolveRoot() == root) { "克隆期间工作目录已变化" }
-                emptyTarget() // A Shell may have created files while HTTPS was blocked.
-                // Preserve the root inode used by existing Shell working directories. Never use recursive cleanup on it.
-                val metadata = File(staged, ".git")
-                Files.walk(staged.toPath()).use { paths ->
-                    val iterator = paths.filter { it != staged.toPath() && !it.startsWith(metadata.toPath()) }.sorted().iterator()
-                    while (iterator.hasNext()) {
-                        verifyRemote(endpoint)
-                        sameRoot()
-                        val source = iterator.next()
-                        val target = root.toPath().resolve(staged.toPath().relativize(source))
-                        check(target.toFile().canonicalFile == target.toFile().absoluteFile) { "克隆目标路径已变化" }
-                        if (Files.isDirectory(source)) Files.createDirectory(target)
-                        else Files.copy(source, target, java.nio.file.StandardCopyOption.COPY_ATTRIBUTES)
-                    }
-                }
-                verifyRemote(endpoint)
-                sameRoot()
-                // No REPLACE_EXISTING or ATOMIC_MOVE: an existing destination must cause failure.
-                Files.move(metadata.toPath(), File(root, ".git").toPath())
-                validateRepository(root)
-                verifyRemote(endpoint)
-                WorkspaceRemoteGitSession.Fetch(fetched.branch, fetched.head, fetched.updates)
-            } finally {
-                // Only this operation's private temporary directory is owned for deletion.
-                withContext(NonCancellable + Dispatchers.IO) { staged.deleteRecursively() }
+            checkpoint()
+            store.seal(transaction.id, fetched.head) { checkpoint() }
+            store.install(transaction.id, retireOnSuccess = false) { checkpoint() }
+            validateRepository(root)
+            checkpoint()
+            // A completed metadata publication survives interruption during validation.
+            // Cleanup owns only the persistent private tree, never workspace children.
+            withContext(NonCancellable + Dispatchers.IO) { store.retire(transaction.id) }
+            return WorkspaceRemoteGitSession.Fetch(fetched.branch, fetched.head, fetched.updates)
+        } finally {
+            withContext(NonCancellable + Dispatchers.IO) {
+                val retained = runCatching { store.read(transaction.id) }.getOrNull()
+                if (retained?.phase == "DOWNLOADING") store.retire(transaction.id)
             }
-        } } }
+        }
+    }
 
     private fun report(operation: String, value: GitTransferProgress) {
         transferProgress.value = WorkspaceRemoteGitSession.Progress(operation, value.task, value.completed, value.total)

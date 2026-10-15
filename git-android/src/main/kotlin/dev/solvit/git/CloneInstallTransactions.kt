@@ -30,6 +30,9 @@ internal class CloneInstallTransactions(private val base: File,
         val bytes: Long, val sha256: String, val executable: Boolean)
     data class Observation(val record: Record, val status: String)
     data class Inventory(val records: List<Observation>, val incomplete: Boolean, val unreadable: Int)
+    data class Review(val record: Record, val fingerprint: String, val canResume: Boolean,
+        val canRestart: Boolean, val files: Int, val bytes: Long, val installedFiles: Int,
+        val problem: String?)
     companion object {
         private const val MARKER = "solvit-clone-origin"
         private const val MAX_MANIFEST = 32 * 1024 * 1024
@@ -241,13 +244,52 @@ internal class CloneInstallTransactions(private val base: File,
                 digest(source, entry.key, entry.bytes, checkpoint) == entry.sha256) { "克隆暂存内容已变化：${entry.path}" }
         }
     }
-    suspend fun install(transactionId: String, checkpoint: suspend () -> Unit = {}) {
+    /** Read-only bounded inspection. A failed inspection is never advertised as resumable.
+     * Error text deliberately excludes absolute private paths and underlying IO messages. */
+    suspend fun review(transactionId: String, checkpoint: suspend () -> Unit = {}): Review {
+        val record = read(transactionId)
+        val fingerprint = sha(readText(File(container(record.id), "record"), 16 * 1024).toByteArray(Charsets.UTF_8))
+        var files = 0; var bytes = 0L; var installed = 0
+        var resume = false; var restart = false; var problem: String? = null
+        try {
+            boundary(checkpoint)
+            when {
+                record.phase == "DISCARDING" -> problem = "私有暂存清理曾中断，可确认后继续关闭记录"
+                record.phase == "DOWNLOADING" -> {
+                    tree(record)
+                    restart = root(record).listFiles()?.isEmpty() == true
+                    problem = if (restart) "下载未完成，需要重新确认联网下载" else "工作目录已有文件，不能重新克隆；可保留文件并放弃暂存"
+                }
+                record.phase in setOf("PUBLISHING", "COMMITTED") && published(record) -> resume = true
+                record.phase == "COMMITTED" -> problem = "已发布仓库身份变化，文件与记录均保留"
+                else -> {
+                    val entries = manifest(record)
+                    files = entries.count { !it.directory }; bytes = entries.sumOf { it.bytes }
+                    validate(record, entries, checkpoint)
+                    val metadata = File(tree(record), ".git")
+                    directory(metadata)
+                    check(key(metadata) == record.metadataKey && readText(File(metadata, MARKER), 64) == record.id)
+                    check(attrs(File(root(record), ".git")) == null)
+                    installed = entries.count { !it.directory && attrs(child(root(record), it.path)) != null }
+                    resume = true
+                }
+            }
+            boundary(checkpoint)
+        } catch (failure: CancellationException) { throw failure }
+        catch (_: Exception) { problem = "工作区、暂存或审阅清单已变化，不能继续安装；请检查文件或保留文件并放弃暂存" }
+        boundary(checkpoint)
+        check(read(record.id) == record) { "克隆记录在审阅期间变化，请重新审阅" }
+        return Review(record, fingerprint, resume, restart, files, bytes, installed, problem)
+    }
+    suspend fun install(transactionId: String, retireOnSuccess: Boolean = true, checkpoint: suspend () -> Unit = {}) {
         var record = read(transactionId); check(record.phase !in setOf("DOWNLOADING", "DISCARDING")) { "下载未完成或记录正在关闭，请确认后重新下载" }
         boundary(checkpoint)
         if (record.phase in setOf("PUBLISHING", "COMMITTED") && published(record)) {
             // The rename is an already executed fact. Never recheck/rewrite user worktree
             // edits made after it; only retire this operation's private copy and record.
-            persist(record.copy(phase = "COMMITTED")); boundary(checkpoint); retire(record.id); return
+            persist(record.copy(phase = "COMMITTED")); boundary(checkpoint)
+            if (retireOnSuccess) retire(record.id)
+            return
         }
         check(record.phase != "COMMITTED") { "已发布仓库身份变化，保留文件待检查" }
         val entries = manifest(record); validate(record, entries, checkpoint)
@@ -268,7 +310,8 @@ internal class CloneInstallTransactions(private val base: File,
         publishMetadata(metadata, File(destination, ".git"))
         boundary(checkpoint) // External kill here must not replay installation on restart.
         check(published(record)) { "Git发布身份变化，文件与记录保留" }
-        persist(record.copy(phase = "COMMITTED")); boundary(checkpoint); retire(record.id)
+        persist(record.copy(phase = "COMMITTED")); boundary(checkpoint)
+        if (retireOnSuccess) retire(record.id)
     }
     /** Explicitly abandon/acknowledge; removes only the registered private directory.
      * Existing links in the workspace retain their inode and bytes. */
