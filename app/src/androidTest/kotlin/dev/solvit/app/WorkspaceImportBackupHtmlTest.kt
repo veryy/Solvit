@@ -84,6 +84,23 @@ class WorkspaceImportBackupHtmlTest {
             click("backupOpen")
             waitDom("document.querySelector('[data-node=backup_count]')?.textContent.includes('2')===true")
             html.screenshot("workspace-backup-restored-copies").recycle()
+            click("backup_view_0");click("backupReview")
+            waitDom("document.querySelector('[data-node=backup_current_sha]')?.textContent==='${sha(replacement)}'")
+            waitDom("(()=>{const b=document.querySelector('[data-node=backupClean]');const r=b?.getBoundingClientRect();return !!r&&r.height>0&&r.top>=0&&r.bottom<=innerHeight&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('[data-node]')?.dataset.node==='backupClean'})()")
+            html.tapElement("[data-node=backupClean]")
+            rule.waitUntil(10_000){rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty()}
+            rule.onNodeWithText("删除刚审阅的备份，当前目标文件会保留。此操作无法撤销。").assertIsDisplayed()
+            rule.onNodeWithText("取消").performClick()
+            rule.waitUntil(10_000){rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isEmpty()}
+            assertTrue(File(root,displaced.backupPath).exists())
+            html.tapElement("[data-node=backupClean]");confirm()
+            waitDom("document.querySelector('[data-node=backup_count]')?.textContent.includes('1')===true")
+            assertFalse(File(root,displaced.backupPath).exists())
+            assertArrayEquals(changed,File(root,"data.txt").readBytes());assertArrayEquals(changed,backup.readBytes())
+            assertEquals(1,runBlocking { native.importBackups(workspace.id) }.total)
+            click("cleanupOpen");waitDom("!!document.querySelector('[data-node=cleanup_empty]')")
+            html.screenshot("workspace-backup-cleanup-complete").recycle()
+
         }finally {
             rule.runOnUiThread { visible=false }
             runBlocking { bridge.close();native.close() };scope.cancel()

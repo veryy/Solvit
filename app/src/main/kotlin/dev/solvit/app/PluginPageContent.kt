@@ -111,7 +111,7 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                                 "selectImportBackup" -> "选择备份副本，源备份会保留。之后仍需确认导入目标。"
                                 "cleanupImportBackup" -> "删除刚审阅的备份，当前目标文件会保留。此操作无法撤销。"
                                 "restoreImportBackupCleanup" -> "将暂存文件退回原备份位置，同名文件不会被覆盖。"
-                                else -> "仅关闭清理记录，不删除文件，也不确认先前清理是否成功。"
+                                else -> "仅关闭清理和来源记录，不删除文件，也不确认先前清理是否成功。"
                             })
                             val arguments=Json.parseToJsonElement(directoryControl.argumentsJson).jsonObject
                             arguments["path"]?.jsonPrimitive?.content?.let { Text(it) }

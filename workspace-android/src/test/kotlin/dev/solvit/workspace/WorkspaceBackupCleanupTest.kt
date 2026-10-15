@@ -131,7 +131,7 @@ class WorkspaceBackupCleanupTest {
         cleanup.dismiss(r.id)
         assertEquals("concurrent file",File(root,r.backupPath).readText())
         assertEquals("current target",File(root,r.path).readText())
-        assertFalse(WorkspaceImportBackups(root,ledger).inventory().observations.single().pending)
+        assertTrue(WorkspaceImportBackups(root,ledger).inventory().observations.isEmpty())
         File(ledger,"backup-cleanup/${UUID.randomUUID()}.intent").writeText("bad private record")
         File(ledger,"backup-cleanup/${UUID.randomUUID()}.held").writeText("orphan; never auto-adopt")
         val inventory=cleanup.inventory();assertEquals(2,inventory.unreadableEntries);assertTrue(inventory.observations.isEmpty())

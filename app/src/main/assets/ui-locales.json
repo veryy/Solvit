@@ -5396,11 +5396,11 @@
     "es": "Devuelve el archivo retenido sin reemplazar ningún archivo.",
     "fr": "Remet le fichier retenu à sa place sans remplacer de fichier."
   },
-  "仅关闭清理记录，不删除文件，也不确认先前清理是否成功。": {
-    "en": "Dismiss the cleanup record only. No files are deleted and the earlier outcome stays unconfirmed.",
-    "ja": "記録のみ閉じます。ファイルは削除せず、以前の結果も確定しません。",
-    "ko": "기록만 닫습니다. 파일을 삭제하지 않으며 이전 결과도 확정하지 않습니다.",
-    "es": "Solo cierra el registro; no elimina archivos ni confirma el resultado anterior.",
-    "fr": "Ferme le suivi seulement, sans supprimer de fichier ni confirmer le résultat précédent."
+  "仅关闭清理和来源记录，不删除文件，也不确认先前清理是否成功。": {
+    "en": "Dismiss cleanup and provenance records only. No files are deleted and the earlier outcome stays unconfirmed.",
+    "ja": "削除と出所の記録のみ閉じます。ファイルは削除せず、以前の結果も確定しません。",
+    "ko": "정리 및 출처 기록만 닫습니다. 파일을 삭제하지 않으며 이전 결과도 확정하지 않습니다.",
+    "es": "Solo cierra los registros de limpieza y origen; no elimina archivos ni confirma el resultado anterior.",
+    "fr": "Ferme le suivi du nettoyage et de provenance, sans supprimer de fichier ni confirmer le résultat précédent."
   }
 }

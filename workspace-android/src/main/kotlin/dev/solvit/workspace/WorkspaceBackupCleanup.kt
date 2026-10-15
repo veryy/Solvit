@@ -50,7 +50,7 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
     private fun persist(intent:Intent) {
         val (file,_)=files(intent.record.id);val r=intent.record
         validateId(intent.operationId)
-        require(intent.phase in setOf("PREPARED","CLAIMED","DELETING","DELETED"))
+        require(intent.phase in setOf("PREPARED","CLAIMED","DELETING","DELETED","DISMISSED"))
         require(intent.sha256.matches(Regex("[a-f0-9]{64}")))
         val temp=File(directory,"${UUID.randomUUID()}.tmp")
         check(temp.createNewFile())
@@ -74,12 +74,12 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
         require(text.endsWith('\n'));val lines=text.removeSuffix("\n").split('\n')
         require(lines.size==10 && lines[0]==HEADER)
         val r=WorkspaceImportBackups.Record(id,dec(lines[1]),dec(lines[2]),dec(lines[3]),lines[4].toLong(),lines[5],lines[6].toLong())
-        require(lines[7].matches(Regex("[a-f0-9]{64}")) && lines[9] in setOf("PREPARED","CLAIMED","DELETING","DELETED"))
+        require(lines[7].matches(Regex("[a-f0-9]{64}")) && lines[9] in setOf("PREPARED","CLAIMED","DELETING","DELETED","DISMISSED"))
         catalog.validateCleanupRecord(r)
         // Only independently registered provenance can authorize a file mutation.
         // A completed deletion may already have retired its provenance before a kill.
         val registered=catalog.registeredOrNull(id)
-        check(registered==r || registered==null && lines[9]=="DELETED" && !Files.exists(files(id).second.toPath(),NOFOLLOW_LINKS)) { "备份来源登记与清理意图不一致" }
+        check(registered==r || registered==null && lines[9] in setOf("DELETED","DISMISSED") && !Files.exists(files(id).second.toPath(),NOFOLLOW_LINKS)) { "备份来源登记与清理意图不一致" }
         validateId(lines[8])
         return Intent(r,lines[7],lines[9],lines[8])
     }
@@ -149,9 +149,10 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
     }
     suspend fun dismiss(id:String,checkpoint:suspend ()->Unit={}) = lock.withLock {
         val observed=inspectLocked(id);val (intentFile,held)=files(id)
-        check(observed.status in setOf("DELETED","UNCONFIRMED") && !Files.exists(held.toPath(),NOFOLLOW_LINKS)) { "认领文件仍存在，不能关闭清理记录" }
+        check(observed.status in setOf("DELETED","UNCONFIRMED","DISMISSED") && !Files.exists(held.toPath(),NOFOLLOW_LINKS)) { "认领文件仍存在，不能关闭清理记录" }
         checkpoint()
-        if(observed.intent.phase=="DELETED")catalog.forgetDeleted(observed.intent.record)
+        persist(observed.intent.copy(phase="DISMISSED"))
+        catalog.forgetDeleted(observed.intent.record)
         Files.delete(intentFile.toPath())
     }
     private fun inspectLocked(id:String):Observation {
@@ -162,6 +163,7 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
             held!=null && source!=null -> "SOURCE_AND_HELD"
             held!=null -> "HELD"
             intent.phase=="DELETED" -> "DELETED"
+            intent.phase=="DISMISSED" -> "DISMISSED"
             source?.isRegularFile==true && source.fileKey()?.toString()==intent.record.originalKey && intent.phase!="DELETING" -> "SOURCE_AVAILABLE"
             else -> "UNCONFIRMED"
         }
