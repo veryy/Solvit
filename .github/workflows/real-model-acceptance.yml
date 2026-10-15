@@ -54,6 +54,7 @@ jobs:
       - name: Build actual app and instrumentation
         run: |
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
+          bash scripts/build-android-proot.sh
           ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs app/build/outputs/apk/debug/app-debug.apk > apk-signing.txt
           grep -F 'Signer #1 certificate SHA-256 digest: f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3' apk-signing.txt
