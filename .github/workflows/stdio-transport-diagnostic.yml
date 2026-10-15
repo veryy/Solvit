@@ -38,7 +38,7 @@ jobs:
           profile: pixel_2
           disable-animations: true
           script: |
-            ./gradlew :terminal-android:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=dev.solvit.terminal.StdioConnectionTest --stacktrace
+            ./gradlew :terminal-android:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=dev.solvit.terminal.StdioConnectionTest,dev.solvit.terminal.AndroidStdioProcessesTest --stacktrace
             bash scripts/verify-stdio-process-death.sh
       - uses: actions/upload-artifact@v4
         if: always()
