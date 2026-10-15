@@ -94,14 +94,15 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     override suspend fun cleanupImportBackup(workspaceId:String,backupId:String,expectedSha256:String):Unit = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         val cleanup=backupCleanup(workspaceId)
+        val operationId=UUID.randomUUID().toString()
         try {
-            cleanup.prepare(backupId,expectedSha256) { verifyPage(workspaceId) }
+            cleanup.prepare(backupId,expectedSha256,operationId) { verifyPage(workspaceId) }
             verifyPage(workspaceId)
-            cleanup.deleteReviewed(backupId,expectedSha256) { verifyPage(workspaceId) }
+            cleanup.deleteReviewed(backupId,expectedSha256,operationId) { verifyPage(workspaceId) }
         }catch(failure:Throwable) {
             // Compensation belongs to this authorized operation, never to startup replay.
             // A concurrent return name or an indeterminate deletion keeps its durable facts.
-            withContext(NonCancellable) { runCatching { cleanup.restore(backupId) } }
+            withContext(NonCancellable) { runCatching { cleanup.restore(backupId,operationId) } }
             throw failure
         }
     } }

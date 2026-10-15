@@ -45,6 +45,17 @@ class WorkspaceBackupCleanupTest {
         assertFalse(File(ledger,"backup-cleanup/${r.id}.held").exists())
         assertFalse(File(ledger,"backup-cleanup/${r.id}.intent").exists())
     }
+    @Test fun anotherOperationCannotCompensateOrDeleteAnExistingClaim()=fixture { root,ledger,r ->
+        val cleanup=WorkspaceBackupCleanup(root,ledger,mover)
+        val owner=UUID.randomUUID().toString();val other=UUID.randomUUID().toString()
+        cleanup.prepare(r.id,r.originalSha256,owner)
+        assertFails { cleanup.prepare(r.id,r.originalSha256,other) }
+        assertFails { cleanup.restore(r.id,other) }
+        assertFails { cleanup.deleteReviewed(r.id,r.originalSha256,other) }
+        assertEquals("HELD",cleanup.inspect(r.id).status)
+        cleanup.restore(r.id,owner)
+        assertEquals("original backup",File(root,r.backupPath).readText())
+    }
     @Test fun aNameReplacedImmediatelyBeforeClaimIsPreservedAndCanBeRestoredButNeverDeleted()=fixture { root,ledger,r ->
         val backup=File(root,r.backupPath);val elsewhere=File(root,"Shell-kept-original")
         val racingMover=WorkspaceImportPublisher { from,to ->

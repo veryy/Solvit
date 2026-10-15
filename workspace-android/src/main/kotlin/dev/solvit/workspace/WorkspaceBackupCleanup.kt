@@ -24,7 +24,7 @@ import java.util.UUID
  * Existing open descriptors/hardlinks are not locked; hashes are bounded observations. */
 internal class WorkspaceBackupCleanup(private val root:File,private val ledger:File,
     private val mover:WorkspaceImportPublisher) {
-    internal data class Intent(val record:WorkspaceImportBackups.Record,val sha256:String,val phase:String)
+    internal data class Intent(val record:WorkspaceImportBackups.Record,val sha256:String,val phase:String,val operationId:String)
     internal data class Observation(val intent:Intent,val status:String,val heldBytes:Long?)
     internal data class Inventory(val observations:List<Observation>,val incomplete:Boolean,val unreadableEntries:Int)
     companion object { private val lock=Mutex();private const val HEADER="SOLVIT_BACKUP_CLEANUP_1" }
@@ -49,6 +49,7 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
     private fun dec(s:String)=Charsets.UTF_8.newDecoder().decode(ByteBuffer.wrap(Base64.getDecoder().decode(s))).toString()
     private fun persist(intent:Intent) {
         val (file,_)=files(intent.record.id);val r=intent.record
+        validateId(intent.operationId)
         require(intent.phase in setOf("PREPARED","CLAIMED","DELETING","DELETED"))
         require(intent.sha256.matches(Regex("[a-f0-9]{64}")))
         val temp=File(directory,"${UUID.randomUUID()}.tmp")
@@ -56,7 +57,7 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
         try {
             FileOutputStream(temp).use { out ->
                 out.write(listOf(HEADER,enc(r.path),enc(r.backupPath),enc(r.originalKey),r.originalBytes.toString(),
-                    r.originalSha256,r.createdAt.toString(),intent.sha256,intent.phase).joinToString("\n",postfix="\n").toByteArray(Charsets.UTF_8))
+                    r.originalSha256,r.createdAt.toString(),intent.sha256,intent.operationId,intent.phase).joinToString("\n",postfix="\n").toByteArray(Charsets.UTF_8))
                 out.fd.sync()
             }
             Files.move(temp.toPath(),file.toPath(),ATOMIC_MOVE)
@@ -71,15 +72,16 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
             require(buffer.position()<=16_384);buffer.flip();Charsets.UTF_8.newDecoder().decode(buffer).toString()
         }
         require(text.endsWith('\n'));val lines=text.removeSuffix("\n").split('\n')
-        require(lines.size==9 && lines[0]==HEADER)
+        require(lines.size==10 && lines[0]==HEADER)
         val r=WorkspaceImportBackups.Record(id,dec(lines[1]),dec(lines[2]),dec(lines[3]),lines[4].toLong(),lines[5],lines[6].toLong())
-        require(lines[7].matches(Regex("[a-f0-9]{64}")) && lines[8] in setOf("PREPARED","CLAIMED","DELETING","DELETED"))
+        require(lines[7].matches(Regex("[a-f0-9]{64}")) && lines[9] in setOf("PREPARED","CLAIMED","DELETING","DELETED"))
         catalog.validateCleanupRecord(r)
         // Only independently registered provenance can authorize a file mutation.
         // A completed deletion may already have retired its provenance before a kill.
         val registered=catalog.registeredOrNull(id)
-        check(registered==r || registered==null && lines[8]=="DELETED" && !Files.exists(files(id).second.toPath(),NOFOLLOW_LINKS)) { "备份来源登记与清理意图不一致" }
-        return Intent(r,lines[7],lines[8])
+        check(registered==r || registered==null && lines[9]=="DELETED" && !Files.exists(files(id).second.toPath(),NOFOLLOW_LINKS)) { "备份来源登记与清理意图不一致" }
+        validateId(lines[8])
+        return Intent(r,lines[7],lines[9],lines[8])
     }
     private suspend fun hash(file:File,expectedKey:String,checkpoint:suspend ()->Unit):String {
         val before=checkNotNull(attrs(file)) { "待清理文件已不存在" }
@@ -102,23 +104,23 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
     }
     /** Persists intent before claiming. On ANY failure, inspection/restoration is still
      * available; no best-effort catch block unlinks an unverified workspace filename. */
-    suspend fun prepare(id:String,sha256:String,checkpoint:suspend ()->Unit={}):Observation = lock.withLock {
-        require(sha256.matches(Regex("[a-f0-9]{64}")));checkpoint()
+    suspend fun prepare(id:String,sha256:String,operationId:String=UUID.randomUUID().toString(),checkpoint:suspend ()->Unit={}):Observation = lock.withLock {
+        validateId(operationId);require(sha256.matches(Regex("[a-f0-9]{64}")));checkpoint()
         val coroutine=currentCoroutineContext()
         val (record,bytes)=catalog.readOwned(id) { coroutine.ensureActive() }
         try { check(MessageDigest.getInstance("SHA-256").digest(bytes).joinToString(""){"%02x".format(it)}==sha256) { "备份内容已变化，请重新审阅" } }
         finally { bytes.fill(0) }
         checkpoint();createDirectory();val (intentFile,held)=files(id)
         check(!Files.exists(intentFile.toPath(),NOFOLLOW_LINKS) && !Files.exists(held.toPath(),NOFOLLOW_LINKS)) { "已有未处理的清理操作" }
-        val intent=Intent(record,sha256,"PREPARED");persist(intent)
+        val intent=Intent(record,sha256,"PREPARED",operationId);persist(intent)
         checkpoint();mover.publish(catalog.location(record),held)
         checkpoint();check(hash(held,record.originalKey,checkpoint)==sha256) { "认领的备份内容已变化，文件保留待检查" }
         persist(intent.copy(phase="CLAIMED"));inspectLocked(id)
     }
     /** Call ONLY after explicit current approval. Process restart must inspect, not call
      * this method automatically. A missing held file is never treated as deletion proof. */
-    suspend fun deleteReviewed(id:String,sha256:String,checkpoint:suspend ()->Unit={}) = lock.withLock {
-        val intent=read(id);check(intent.phase=="CLAIMED" && intent.sha256==sha256) { "清理确认已失效" }
+    suspend fun deleteReviewed(id:String,sha256:String,operationId:String?=null,checkpoint:suspend ()->Unit={}) = lock.withLock {
+        val intent=read(id);check(operationId==null || intent.operationId==operationId) { "不能清理另一操作认领的文件" };check(intent.phase=="CLAIMED" && intent.sha256==sha256) { "清理确认已失效" }
         val (intentFile,held)=files(id)
         check(hash(held,intent.record.originalKey,checkpoint)==sha256) { "备份内容已变化，尚未删除" }
         checkpoint();check(key(held)==intent.record.originalKey) { "认领文件身份已变化" }
@@ -132,8 +134,8 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
     }
     /** Compensation/manual recovery moves back without replacing a concurrent name.
      * Even a mistakenly claimed foreign inode is preserved, never deleted as our backup. */
-    suspend fun restore(id:String,checkpoint:suspend ()->Unit={}):Observation? = lock.withLock {
-        val intent=read(id);val (intentFile,held)=files(id);val source=catalog.location(intent.record)
+    suspend fun restore(id:String,operationId:String?=null,checkpoint:suspend ()->Unit={}):Observation? = lock.withLock {
+        val intent=read(id);check(operationId==null || intent.operationId==operationId) { "不能补偿其他清理操作" };val (intentFile,held)=files(id);val source=catalog.location(intent.record)
         val heldAttrs=attrs(held)
         if(heldAttrs==null) {
             check(intent.phase!="DELETING" && intent.phase!="DELETED" && key(source)==intent.record.originalKey) { "认领文件已不存在，无法确认清理结果" }
