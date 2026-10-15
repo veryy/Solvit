@@ -76,6 +76,7 @@ class UbuntuProbeTest {
                 assertTrue(output, output.contains("v${dev.solvit.linux.NodeCatalog.VERSION}"))
                 assertEquals("pty-ok", File(workspace, "pty-python.txt").readText())
             }
+            verifyNativeStdioMcp(service, workspace)
             // Exercise the same post-authorization native path used by AI Shell tools.
             val workspaces = dev.solvit.workspace.AndroidWorkspaces(context, scope, linux = service)
             try {
@@ -104,6 +105,103 @@ class UbuntuProbeTest {
                 finally { restored.close() }
             } finally { workspaces.close() }
         } finally { service.close(); scope.cancel() }
+    }
+
+    /** Protocol fixtures in the actual production Ubuntu, not a desktop Node substitute. */
+    private fun verifyNativeStdioMcp(service: dev.solvit.core.LinuxEnvironmentService, workspace: File) {
+        val python = """
+            import sys, json, os
+            from pathlib import Path
+            print('stdio-fixture-diagnostic', file=sys.stderr, flush=True)
+            for raw in sys.stdin.buffer:
+                request = json.loads(raw)
+                if 'id' not in request:
+                    continue
+                method = request['method']
+                if method == 'initialize':
+                    result = {'protocolVersion': request['params']['protocolVersion'], 'capabilities': {'tools': {}}, 'serverInfo': {'name': 'python-fixture', 'version': '1'}}
+                elif method == 'tools/list':
+                    result = {'tools': [{'name': 'write_fixture', 'inputSchema': {'type': 'object', 'properties': {'text': {'type': 'string'}}, 'required': ['text']}}]}
+                elif method == 'tools/call':
+                    value = request['params']['arguments']['text']
+                    Path('stdio-python-result.txt').write_text(value)
+                    result = {'content': [{'type': 'text', 'text': json.dumps({'text': value, 'cwd': os.getcwd(), 'argument': sys.argv[1], 'explicit': os.getenv('MCP_FIXTURE_ONLY'), 'ambient': os.getenv('ANDROID_DATA')}, ensure_ascii=False)}]}
+                else:
+                    raise RuntimeError('unexpected fixture method')
+                print(json.dumps({'jsonrpc': '2.0', 'id': request['id'], 'result': result}, ensure_ascii=False), flush=True)
+        """.trimIndent()
+        val node = """
+            import readline from 'node:readline';
+            import {writeFileSync} from 'node:fs';
+            console.error('stdio-fixture-diagnostic');
+            const lines = readline.createInterface({input: process.stdin, crlfDelay: Infinity});
+            for await (const raw of lines) {
+              const request = JSON.parse(raw);
+              if (request.id === undefined) continue;
+              let result;
+              if (request.method === 'initialize') {
+                result = {protocolVersion: request.params.protocolVersion, capabilities: {tools: {}}, serverInfo: {name: 'node-fixture', version: '1'}};
+              } else if (request.method === 'tools/list') {
+                result = {tools: [{name: 'write_fixture', inputSchema: {type: 'object', properties: {text: {type: 'string'}}, required: ['text']}}]};
+              } else if (request.method === 'tools/call') {
+                const text = request.params.arguments.text;
+                writeFileSync('stdio-node-result.txt', text);
+                result = {content: [{type: 'text', text: JSON.stringify({text, cwd: process.cwd(), argument: process.argv[2], explicit: process.env.MCP_FIXTURE_ONLY, ambient: process.env.ANDROID_DATA ?? null})}]};
+              } else throw new Error('unexpected fixture method');
+              process.stdout.write(JSON.stringify({jsonrpc: '2.0', id: request.id, result}) + '\n');
+            }
+        """.trimIndent()
+        for ((executable, file, code, resultFile) in listOf(
+            listOf("python3", "stdio 服务🌌.py", python, "stdio-python-result.txt"),
+            listOf("node", "stdio 服务🌌.mjs", node, "stdio-node-result.txt"))) {
+            File(workspace, file).writeText(code)
+            val literal = "quoted ' \" ${'$'}(do-not-run); 中文🌌"
+            val plan = service.process(workspace.path, executable, listOf(file, literal), mapOf("MCP_FIXTURE_ONLY" to "explicit-fixture"))
+            val environment = plan.environment.filterValues { it != null }.mapValues { it.value!! }
+            dev.solvit.terminal.StdioConnection.open(workspace, plan.arguments, environment).use { connection ->
+                fun send(message: org.json.JSONObject) = connection.write((message.toString() + "\n").toByteArray())
+                fun response(id: Int): org.json.JSONObject {
+                    val bytes = java.io.ByteArrayOutputStream()
+                    val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(15)
+                    while (System.nanoTime() < deadline) {
+                        val chunk = connection.readStdout() ?: error("$executable stdio EOF before response $id")
+                        bytes.write(chunk)
+                        check(bytes.size() <= 16_384)
+                        if (chunk.contains(10.toByte())) {
+                            val message = org.json.JSONObject(bytes.toString("UTF-8"))
+                            assertEquals("2.0", message.getString("jsonrpc")); assertEquals(id, message.getInt("id"))
+                            return message.getJSONObject("result")
+                        }
+                    }
+                    error("$executable stdio request timed out")
+                }
+                send(org.json.JSONObject().put("jsonrpc", "2.0").put("id", 1).put("method", "initialize")
+                    .put("params", org.json.JSONObject().put("protocolVersion", "2025-11-25").put("capabilities", org.json.JSONObject())
+                        .put("clientInfo", org.json.JSONObject().put("name", "Solvit native probe").put("version", "1"))))
+                assertEquals("2025-11-25", response(1).getString("protocolVersion"))
+                send(org.json.JSONObject().put("jsonrpc", "2.0").put("method", "notifications/initialized"))
+                send(org.json.JSONObject().put("jsonrpc", "2.0").put("id", 2).put("method", "tools/list"))
+                assertEquals("write_fixture", response(2).getJSONArray("tools").getJSONObject(0).getString("name"))
+                val value = "$executable 实际 MCP 写入🌌"
+                send(org.json.JSONObject().put("jsonrpc", "2.0").put("id", 3).put("method", "tools/call")
+                    .put("params", org.json.JSONObject().put("name", "write_fixture").put("arguments", org.json.JSONObject().put("text", value))))
+                val tool = org.json.JSONObject(response(3).getJSONArray("content").getJSONObject(0).getString("text"))
+                assertEquals(value, tool.getString("text")); assertEquals("/workspace", tool.getString("cwd"))
+                assertEquals(literal, tool.getString("argument")); assertEquals("explicit-fixture", tool.getString("explicit"))
+                assertTrue(tool.isNull("ambient")); assertEquals(value, File(workspace, resultFile).readText())
+                val diagnostics = java.io.ByteArrayOutputStream()
+                val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
+                while ("stdio-fixture-diagnostic" !in diagnostics.toString("UTF-8") && System.nanoTime() < deadline) {
+                    diagnostics.write(connection.readStderr() ?: break)
+                }
+                assertTrue(diagnostics.toString("UTF-8").contains("stdio-fixture-diagnostic"))
+                connection.closeInput()
+                val end = System.nanoTime() + TimeUnit.SECONDS.toNanos(10)
+                while (connection.exitCode() == null && System.nanoTime() < end) Thread.sleep(10)
+                assertEquals(0, connection.exitCode())
+                android.util.Log.i("SolvitLinuxProbe", "STDIO_MCP_NATIVE|$executable|initialize|tools/list|tools/call|EOF|explicit-env|shared-workspace")
+            }
+        }
     }
 
     @Test fun ubuntuInstallsPythonAndNodeAndUsesSharedWorkspaceWithoutRoot(): Unit = runBlocking {

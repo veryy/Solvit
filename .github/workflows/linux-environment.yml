@@ -76,6 +76,8 @@ jobs:
           production = re.search(r'PRODUCTION_RUNTIME_VERSIONS\|(Python 3\.[0-9]+\.[0-9]+[^|\r\n]*)\|(v24\.21\.0)\|([0-9]+\.[0-9]+\.[0-9]+)', text)
           assert production, 'Production Node 24/Python/npm versions missing'
           assert 'JAVA_RUNTIME_VERIFIED|openjdk version "17.' in text, 'Production Java 17 execution missing'
+          for runtime in ('python3', 'node'):
+              assert f'STDIO_MCP_NATIVE|{runtime}|initialize|tools/list|tools/call|EOF|explicit-env|shared-workspace' in text, f'Actual {runtime} stdio MCP transport probe missing'
           Path('linux-probe/build/ubuntu-probe-production-versions.txt').write_text('\n'.join(production.groups()) + '\n')
           print('Production:', production.groups())
           PY_REPORT
