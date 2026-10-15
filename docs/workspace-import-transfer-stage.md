@@ -108,3 +108,6 @@ d6685d2的38655832380/116165253042成功：完整日志确认123 SDK、5市场�
 随后从公开HTTPS全新下载核对26个目录、46个历史包与两份新包。API1..19目录不变；API20..25仅选择兼容Git1.2.5，API25工作区仍1.8.0；API26工作区1.9.0/API26（773285字节，c4bd5bfa19dd9bca67d6913c02a48bc2624858d9be5eb32f7863c6a0273d5f5e）及Git1.2.5/API20（756073字节，ee8cab14b1992ee28651c0ce510d9e046d66a396bc559d2d7293a2aadeb277b4）与仓库原字节相同。此后不得覆盖已公开版本的包字节，插件修改须升版。
 
 公开核对成功后才切换MarketplacePlugin及HTTP请求回归到hostApi26。此提交仍需正式单元/插件/设备/Linux/发布门禁；当前候选38661532272锁定c1e655c，不能证明后续客户端切换已编译或执行。公开APK仍0.37.0。
+
+
+最新API26客户端07a089a的合同38661898678/116184877644通过，完整报告待下载核对。c1e655c的Android38661532272/build116183688161实际失败于LanguageTest.catalogCoversSixLanguagesAndPreservesTemplateArguments（LanguageTest.kt:34的getString），未进入UI。新增取消说明误漏目录要求的zh项，五种外语存在不满足六语完整目录契约；仅补中文原文项，保留原语言覆盖/占位符测试，再运行完整Android门禁。没有把合同编译成功当作应用单元全通过。
