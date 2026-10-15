@@ -116,8 +116,9 @@ class ScriptPageSession(
     private suspend fun render(event: kotlinx.serialization.json.JsonObject?, approvedAction: kotlinx.serialization.json.JsonObject? = null): ScriptPageView {
         check(!closed)
         ensureAuthorized()
-        val invocation = ScriptPageExecutionContext(authority.pluginId, { authorize() }, approvedAction, documents, workspace, git, gitCredentialPrompt)
-        val next = withContext(invocation) { executor.page(pageId, locale, event) }
+        val invocation = ScriptPageExecutionContext(authority.pluginId, { authorize() }, approvedAction, documents, workspace, git, gitCredentialPrompt, authority.stdioScope)
+        val next = try { withContext(invocation) { executor.page(pageId, locale, event) } }
+            finally { invocation.closeStdioResources() }
         check(!closed)
         ensureAuthorized()
         view = next

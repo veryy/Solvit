@@ -51,7 +51,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
         fun parseManifest(m: JsonObject): ScriptManifest {
             require(m.toString().toByteArray(Charsets.UTF_8).size <= MAX_BYTES)
             val apiVersion = m.getValue("apiVersion").jsonPrimitive.int
-            require(apiVersion in 1..29) { "插件需要其他版本的宿主 API" }
+            require(apiVersion in 1..30) { "插件需要其他版本的宿主 API" }
             fun string(key: String) = m.getValue(key).jsonPrimitive.content.also { require(it.isNotBlank()) { "插件字段 $key 为空" } }
             fun strings(key: String) = m.getValue(key).jsonArray.map { it.jsonPrimitive.content }.toSet()
             val id = string("id")
@@ -66,7 +66,7 @@ data class ScriptPackage(val manifest: ScriptManifest, val source: String, val p
             require(id !in dependencies) { "插件不能依赖自身" }
             val nativeServices = m["nativeServices"]?.jsonArray?.map { it.jsonPrimitive.also { p -> require(p.isString) }.content }?.toSet().orEmpty()
             require("nativeServices" !in m || apiVersion >= 12) { "原生服务声明需要 API12" }
-            require(nativeServices.all { apiVersion >= 22 && it == "workspace.files" && "workspace" in permissions || it == "terminal.pty" && "shell" in permissions || it == "web.pages" && "network" in permissions || apiVersion >= 19 && it == "workspace.git" && permissions.containsAll(setOf("git", "workspace")) || apiVersion >= 21 && it == "environment.linux" && permissions.containsAll(setOf("workspace", "shell", "network")) }) { "原生服务声明无效或缺少权限" }
+            require(nativeServices.all { apiVersion >= 22 && it == "workspace.files" && "workspace" in permissions || it == "terminal.pty" && "shell" in permissions || it == "web.pages" && "network" in permissions || apiVersion >= 19 && it == "workspace.git" && permissions.containsAll(setOf("git", "workspace")) || apiVersion >= 21 && it == "environment.linux" && permissions.containsAll(setOf("workspace", "shell", "network")) || apiVersion >= 30 && it == "process.stdio" && "environment.linux" in nativeServices && permissions.containsAll(setOf("workspace", "shell", "network")) }) { "原生服务声明无效或缺少权限" }
             val tools = m.getValue("tools").jsonArray.map { element ->
                 val tool = element.jsonObject
                 val name = tool.getValue("name").jsonPrimitive.content

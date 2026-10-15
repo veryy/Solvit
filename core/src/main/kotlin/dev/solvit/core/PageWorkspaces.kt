@@ -5,6 +5,8 @@ import kotlin.coroutines.CoroutineContext
 
 /** Human page capability attached by the host, never derived from a script-supplied chat id. */
 interface PageWorkspaceAccess {
+    /** Host-only captured identity; never supplied by or serialized into a page request. */
+    suspend fun conversation(authorize: suspend () -> Unit): ConversationContext { error("此页面没有聊天工作区授权") }
     /** Takes ownership only of this page's user-selected file; scripts receive metadata, never bytes. */
     suspend fun stageImport(document: PageBinaryDocument, authorize: suspend () -> Unit): String {
         document.close();error("此工作区页面不支持文件导入")

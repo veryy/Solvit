@@ -18,6 +18,10 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     init { require(chatId.isNotBlank() && chatId.length <= 128) }
     private val mutex = Mutex()
     private var binding = service.state.value.bindings[chatId]
+    override suspend fun conversation(authorize: suspend () -> Unit): ConversationContext = mutex.withLock {
+        verify(authorize)
+        ConversationContext(chatId, workspace())
+    }
     @Volatile private var closed = false
     private val importScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
     private val operationLock=Any()

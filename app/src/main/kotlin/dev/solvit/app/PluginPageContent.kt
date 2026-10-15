@@ -98,7 +98,8 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                     ?.let(ScriptPageHostAction::document)
                 val workspace = metadata?.takeIf { it["kind"] == JsonPrimitive("workspace.perform") }?.let(ScriptPageHostAction::workspace)
                 val git = metadata?.takeIf { it["kind"] == JsonPrimitive("git.perform") }?.let(ScriptPageHostAction::git)
-                val native = metadata?.takeIf { file == null && workspace == null && git == null }?.let(ScriptPageHostAction::parse)
+                val stdio = metadata?.takeIf { it["kind"] == JsonPrimitive("stdio.connect") }?.let(ScriptPageHostAction::stdio)
+                val native = metadata?.takeIf { file == null && workspace == null && git == null && stdio == null }?.let(ScriptPageHostAction::parse)
                 val directoryControl = workspace ?: git
                 if (directoryControl != null) {
                     Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -139,6 +140,9 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                         is PageDocumentControl.Open -> "在系统文件选择器中选择一个文本文件或文本ZIP。只读取选中的文件。"
                         is PageDocumentControl.Save -> "在系统文件选择器中选择保存位置：${file.name}"
                     })
+                } else if (stdio != null) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stdio.first)
+                    Text(node["confirm"]?.jsonPrimitive?.content ?: node.getValue("text").jsonPrimitive.content)
                 } else if (native == null) Text(node.getValue("confirm").jsonPrimitive.content)
                 else Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     UiText(when (native) {

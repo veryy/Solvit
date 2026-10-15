@@ -13,10 +13,25 @@ import java.util.concurrent.atomic.AtomicBoolean
 class ScriptPageExecutionContext(val pluginId: String, private val verify: suspend () -> Unit,
     private val approvedAction: JsonObject? = null, private val documents: PageDocumentAccess? = null,
     private val workspace: PageWorkspaceAccess? = null, private val git: PageGitAccess? = null,
-    private val gitCredentialPrompt: PageGitCredentialPrompt? = null) :
+    private val gitCredentialPrompt: PageGitCredentialPrompt? = null,
+    val stdioScope: String = java.util.UUID.randomUUID().toString()) :
     AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<ScriptPageExecutionContext>
     private val consumed = AtomicBoolean(false)
+    private val stdioResources = AgentExecutionContext()
+    fun ownStdio(id: String, close: suspend () -> Unit) = stdioResources.ownIfAbsent(id, close)
+    suspend fun closeStdioResources() = stdioResources.cancel()
+    suspend fun stdioConversation(): ConversationContext {
+        ensureAuthorized()
+        return checkNotNull(workspace) { "请从已绑定工作区的聊天打开本地MCP页面" }.conversation(::ensureAuthorized)
+    }
+    suspend fun consumeStdioStart(server: String): String {
+        ensureAuthorized()
+        val (approvedServer, review) = ScriptPageHostAction.stdio(checkNotNull(approvedAction))
+        check(approvedServer == server) { "本地MCP与确认的服务器不一致" }
+        check(consumed.compareAndSet(false, true)) { "此页面启动授权已使用" }
+        return review
+    }
     val documentInvocation: Boolean get() = approvedAction?.get("kind")?.toString()?.trim('"')?.startsWith("document.") == true
     val credentialInvocation: Boolean get() = approvedAction?.get("kind")?.toString()?.trim('"') == "git.credentials"
     suspend fun ensureAuthorized() = verify()

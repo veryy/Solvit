@@ -56,11 +56,16 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions", "workspacePage.query", "workspacePage.perform" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
                         "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
+                        "stdio.scope", "stdio.review", "stdio.open", "stdio.send", "stdio.receive", "stdio.close" -> "shell"
                         "plugins.draft" -> "plugins"
                         "settings.get", "settings.compareAndSet", "clock.now", "documents.open", "documents.save" -> null
                         else -> error("宿主未开放此操作")
                     }
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
+                    check(!operation.startsWith("stdio.") || pkg.manifest.apiVersion >= 30 && "process.stdio" in pkg.manifest.nativeServices &&
+                        "environment.linux" in pkg.manifest.nativeServices && pkg.manifest.permissions.containsAll(setOf("shell", "workspace", "network"))) {
+                        "本地MCP需要API30及进程/Linux服务和权限声明"
+                    }
                     check(operation != "workspace.instructions" || pkg.manifest.apiVersion >= 16 && readOnlyHost) { "项目规则读取仅供 API16 上下文 Hook 使用" }
                     if (operation == "workspace.instructions") require(arguments.isEmpty()) { "项目规则不接受路径或工作区参数" }
                     check(operation != "clock.now" || pkg.manifest.apiVersion >= 3) { "当前时间服务需要 API 3" }
@@ -148,6 +153,14 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                     try {
                     js.evaluate<Any?>("""
                         globalThis.ctx = Object.freeze({
+                          stdio: Object.freeze({
+                            scope: async () => JSON.parse(await __solvitHostCall('stdio.scope', '{}')),
+                            review: async server => JSON.parse(await __solvitHostCall('stdio.review', JSON.stringify({server}))),
+                            open: async server => JSON.parse(await __solvitHostCall('stdio.open', JSON.stringify({server}))),
+                            send: async (server, id, frame) => JSON.parse(await __solvitHostCall('stdio.send', JSON.stringify({server, id, frame}))),
+                            receive: async (server, id) => JSON.parse(await __solvitHostCall('stdio.receive', JSON.stringify({server, id}))),
+                            close: async (server, id) => JSON.parse(await __solvitHostCall('stdio.close', JSON.stringify({server, id})))
+                          }),
                           documents: Object.freeze({
                             open: async () => JSON.parse(await __solvitHostCall('documents.open', '{}')),
                             save: async text => JSON.parse(await __solvitHostCall('documents.save', JSON.stringify({text})))
@@ -370,6 +383,7 @@ class ScriptToolPlugin(
         if (pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }) add(WorkspaceServiceKey)
         if ("workspace.git" in pkg.manifest.nativeServices) add(WorkspaceGitServiceKey)
         if ("environment.linux" in pkg.manifest.nativeServices) add(LinuxEnvironmentServiceKey)
+        if ("process.stdio" in pkg.manifest.nativeServices) add(StdioProcessServiceKey)
         if ("terminal.pty" in pkg.manifest.nativeServices || pkg.manifest.apiVersion in 5..11 && "shell" in pkg.manifest.permissions) add(TerminalServiceKey)
         if ("web.pages" in pkg.manifest.nativeServices || pkg.manifest.apiVersion in 6..11 && "network" in pkg.manifest.permissions) add(WebPageServiceKey)
     }
@@ -377,6 +391,7 @@ class ScriptToolPlugin(
         val executor = ScriptExecutor(pkg, host)
         if (WorkspaceServiceKey in requires) context.own { context.require(WorkspaceServiceKey).cancelOwner(id) }
         if (TerminalServiceKey in requires) context.own { context.require(TerminalServiceKey).cancelOwner(id) }
+        if (StdioProcessServiceKey in requires) context.own { context.require(StdioProcessServiceKey).cancelOwner(id) }
         context.own { executor.stop() }
         executor.start()
         if (pkg.manifest.agentEnabledSetting != null) {

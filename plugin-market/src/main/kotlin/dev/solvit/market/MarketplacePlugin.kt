@@ -32,6 +32,8 @@ class AndroidMarketplace(
     private val terminals: TerminalService? = null,
     private val webPages: WebPageService? = null,
     private val git: WorkspaceGitService? = null,
+    private val stdio: StdioProcessService? = null,
+    private val linux: LinuxEnvironmentService? = null,
 ) : MarketplaceService {
     private val directory = File(context.filesDir, "extensions").apply { mkdirs() }
     private val prefs = context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
@@ -42,6 +44,19 @@ class AndroidMarketplace(
     private val mutableInstalled = MutableStateFlow<List<InstalledExtension>>(emptyList())
     override val installed = mutableInstalled.asStateFlow()
     private var latestCatalog = emptyList<MarketEntry>()
+    private val stdioBridge by lazy {
+        StdioMcpBridge(checkNotNull(stdio) { "本地MCP进程服务不可用" }, checkNotNull(linux) { "Linux服务不可用" },
+            checkNotNull(workspaces), if (manager.registry.contains(RoleServiceKey)) manager.registry.require(RoleServiceKey) else null,
+            configuration = { manifest -> configurationValues(manifest)["connections"] },
+            verifyPlugin = { manifest ->
+                check(packages[manifest.id]?.manifest == manifest && manager.states.value[manifest.id] == PluginState.ENABLED &&
+                    prefs.getBoolean("enabled.${manifest.id}", false) &&
+                    prefs.getStringSet("grants.${manifest.id}", emptySet()).orEmpty().containsAll(manifest.permissions)) {
+                    "MCP插件已停用、替换或撤销权限"
+                }
+            }, mode = { id -> if (manager.registry.contains(SystemExecutionServiceKey))
+                manager.registry.require(SystemExecutionServiceKey).modes.value[id] ?: ExecutionMode.APP else ExecutionMode.APP })
+    }
     private val pages = MarketplacePages(manager, { pkg ->
         check(manager.states.value[pkg.manifest.id] == PluginState.ENABLED && prefs.getBoolean("enabled.${pkg.manifest.id}", false)) { "请先启用插件" }
         check(prefs.getStringSet("grants.${pkg.manifest.id}", emptySet()).orEmpty().containsAll(pkg.manifest.permissions)) { "插件权限已撤销" }
@@ -136,7 +151,7 @@ class AndroidMarketplace(
     }
 
     override suspend fun catalog(): List<MarketEntry> {
-        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=29", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
+        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=30", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
         check(root.getValue("apiVersion").jsonPrimitive.int == 1) { "市场 API 版本不兼容" }
         val entries = root.getValue("plugins").jsonArray.map { element ->
             val m = element.jsonObject
@@ -305,6 +320,7 @@ class AndroidMarketplace(
                     val next = config.read(manifest.id) + (key to value)
                     validateConfiguration(manifest, next)
                     withContext(Dispatchers.IO) { page.ensureAuthorized(); config.write(manifest.id, next) }
+                    stdio?.cancelOwner(manifest.id)
                     JsonPrimitive(true)
                 }
             }
@@ -317,6 +333,7 @@ class AndroidMarketplace(
             "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions" -> "workspace"
             "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
             "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
+            "stdio.scope", "stdio.review", "stdio.open", "stdio.send", "stdio.receive", "stdio.close" -> "shell"
             "plugins.draft" -> "plugins"
             else -> error("未开放的宿主操作")
         }
@@ -332,6 +349,7 @@ class AndroidMarketplace(
             check(allowed) { "插件权限未授予" }
         }
         verifyGrants()
+        if (operation.startsWith("stdio.")) return stdioBridge.call(manifest, operation, arguments)
         if (operation == "workspace.instructions") {
             check(manifest.apiVersion >= 16 && page == null && background == null)
             require(arguments.isEmpty()) { "项目规则不接受参数" }
@@ -613,9 +631,10 @@ private fun terminalJson(session: TerminalSession): JsonObject = buildJsonObject
 
 class MarketplacePlugin(private val context: Context, private val manager: PluginManager,
     private val useWorkspaces: Boolean = false, private val drafts: (() -> PluginDraftService)? = null,
-    private val useWebPages: Boolean = false, private val useGit: Boolean = false) : SolvitPlugin {
+    private val useWebPages: Boolean = false, private val useGit: Boolean = false,
+    private val useStdio: Boolean = false) : SolvitPlugin {
     override val id = "builtin.plugins.marketplace"
-    override val requires = buildSet { add(Services.Tools); if (useWorkspaces) { add(WorkspaceServiceKey); add(TerminalServiceKey) }; if (useWebPages) add(WebPageServiceKey); if (useGit) { add(WorkspaceGitServiceKey); add(WorkspaceServiceKey) } }
+    override val requires = buildSet { add(Services.Tools); if (useWorkspaces) { add(WorkspaceServiceKey); add(TerminalServiceKey) }; if (useWebPages) add(WebPageServiceKey); if (useGit) { add(WorkspaceGitServiceKey); add(WorkspaceServiceKey) }; if (useStdio) { add(StdioProcessServiceKey); add(LinuxEnvironmentServiceKey); add(WorkspaceServiceKey) } }
     override val provides = setOf(MarketplaceServiceKey)
     lateinit var service: AndroidMarketplace
         private set
@@ -627,7 +646,9 @@ class MarketplacePlugin(private val context: Context, private val manager: Plugi
             workspaces = if (useWorkspaces) context.require(WorkspaceServiceKey) else null, drafts = drafts,
             terminals = if (useWorkspaces) context.require(TerminalServiceKey) else null,
             webPages = if (useWebPages) context.require(WebPageServiceKey) else null,
-            git = if (useGit) context.require(WorkspaceGitServiceKey) else null)
+            git = if (useGit) context.require(WorkspaceGitServiceKey) else null,
+            stdio = if (useStdio) context.require(StdioProcessServiceKey) else null,
+            linux = if (useStdio) context.require(LinuxEnvironmentServiceKey) else null)
         context.register(MarketplaceServiceKey, service)
     }
 }

@@ -18,6 +18,16 @@ export interface WorkspaceInstructionSource {
 }
 export interface WorkspaceInstructions {readonly available:boolean;readonly sources:readonly WorkspaceInstructionSource[]}
 export interface PluginContext {
+  /** API30, saved MCP stdio profiles only; identity and command settings are host checked. */
+  readonly stdio?: {
+    scope():Promise<string|null>;
+    /** Human page only: expiring one-use review, no arguments or environment values returned. */
+    review(server:string):Promise<{reviewId:string;command:string;argumentCount:number;environmentCount:number}>;
+    open(server:string):Promise<string>;
+    send(server:string,id:string,frame:JsonObject):Promise<null>;
+    receive(server:string,id:string):Promise<JsonObject>;
+    close(server:string,id:string):Promise<null>;
+  };
   /** API19, authorized AI tool only; root and chat selectors are owned by the host. */
   readonly git?: {call(operation:'status'|'diff'|'history',args?:JsonObject):Promise<JsonValue>};
   /** API19, page-only. Native reviews are opaque handles; perform consumes a displayed confirmed action. */
@@ -105,9 +115,9 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
-  nativeServices?: ('terminal.pty'|'web.pages'|'workspace.git'|'environment.linux'|'workspace.files')[];
+  nativeServices?: ('terminal.pty'|'web.pages'|'workspace.git'|'environment.linux'|'workspace.files'|'process.stdio')[];
   pages?: { id: string; title: string; entry?: string; context?: 'management'|'execution' }[];
   hooks?: ('beforeModel' | 'afterTurn')[];
   afterTurnEnabledSetting?: string;

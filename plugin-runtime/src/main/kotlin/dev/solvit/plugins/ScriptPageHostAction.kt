@@ -10,7 +10,19 @@ object ScriptPageHostAction {
         else if (value["kind"] == JsonPrimitive("workspace.perform")) workspace(value)
         else if (value["kind"] == JsonPrimitive("git.perform")) git(value)
         else if (value["kind"] == JsonPrimitive("git.credentials")) gitCredentials(value)
+        else if (value["kind"] == JsonPrimitive("stdio.connect")) stdio(value)
         else parse(value)
+    }
+    fun stdio(value: JsonObject): Pair<String, String> {
+        require(value.keys == setOf("kind", "server", "reviewId") && value["kind"] == JsonPrimitive("stdio.connect"))
+        val server = value.getValue("server").jsonPrimitive.also {
+            require(it.isString && it.content.isNotBlank() && it.content == it.content.trim() && it.content.length <= 40 &&
+                it.content.none { character -> character.code < 32 || character.code == 127 })
+        }.content
+        val review = value.getValue("reviewId").jsonPrimitive.also {
+            require(it.isString && runCatching { java.util.UUID.fromString(it.content).toString() == it.content }.getOrDefault(false))
+        }.content
+        return server to review
     }
     fun gitCredentials(value: JsonObject): GitRemoteEndpoint {
         require(value.keys == setOf("kind", "url") && value["kind"] == JsonPrimitive("git.credentials"))
