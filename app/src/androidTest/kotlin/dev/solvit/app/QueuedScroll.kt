@@ -21,16 +21,17 @@ internal fun SemanticsNodeInteraction.performQueuedScrollToNode(
         val viewport = fetchSemanticsNode().boundsInRoot
         check(viewport.height > 0f) { "Scroll viewport must be visible" }
         val target = rule.onAllNodes(matcher and inContainer).fetchSemanticsNodes().firstOrNull()
-        val coordinates = target?.layoutInfo?.coordinates
+        // LazyColumn can precompose an item without placing it. Its coordinates
+        // then describe a placeholder, not a visible item (as AndroidAssertions checks).
+        val coordinates = target?.layoutInfo?.takeIf { layout ->
+            generateSequence(layout) { it.parentInfo }.all { it.isPlaced }
+        }?.coordinates
         val top = coordinates?.localToRoot(Offset.Zero)?.y
         val bottom = if (top != null && coordinates != null) top + coordinates.size.height else null
         val visible = top != null && bottom != null &&
             ((top >= viewport.top && bottom <= viewport.bottom) ||
                 (top <= viewport.top && bottom >= viewport.bottom))
-        if (visible) {
-            android.util.Log.i("QUEUED_SCROLL_DIAG", "matcher=$matcher viewport=$viewport node=${target?.boundsInRoot} coordinates=$top..$bottom placed=${target?.layoutInfo?.isPlaced} parents=${generateSequence(target?.layoutInfo?.parentInfo) { it.parentInfo }.map { it.isPlaced }.toList()}")
-            true
-        } else {
+        if (visible) true else {
             val distance = when {
                 top == null || bottom == null -> viewport.height / 2f
                 top < viewport.top -> top - viewport.top

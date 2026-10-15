@@ -826,9 +826,6 @@ class ChatLayoutTest {
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("settings_list").fetchSemanticsNodes().isNotEmpty() }
         rule.onNodeWithTag("settings_list").performQueuedScrollToNode(rule, hasText("关于 Solvit"))
         rule.onNodeWithTag("settings_list").performQueuedScrollToNode(rule, hasText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。"))
-        screenshot("settings-before-legacy-scroll")
-        rule.onNodeWithText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。").assertIsDisplayed()
-        rule.onNodeWithText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。").performScrollTo()
         screenshot("settings-bottom-insets")
         rule.onNodeWithText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。").assertIsDisplayed()
     }
