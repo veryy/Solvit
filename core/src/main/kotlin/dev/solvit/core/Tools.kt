@@ -17,6 +17,8 @@ data class ToolDescriptor(
     val capabilities: Set<String> = emptySet(),
     val executionMode: ExecutionMode? = null,
     val pluginDigest: String = "",
+    /** Availability only. Native workspace/process operations still verify the current binding. */
+    val requiresWorkspace: Boolean = capabilities.any { it in setOf("workspace", "shell", "plugins") },
 )
 interface SolvitTool {
     val descriptor: ToolDescriptor

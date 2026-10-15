@@ -78,3 +78,5 @@ API30宿主桥提交`01fb9c2f`的[远程编译及单元38737631108](https://gith
 采用生成包的`75d34951`，[38740071929](https://github.com/veryy/Solvit/actions/runs/38740071929)再次通过TS/插件/市场、在线搜索/HTTPS MCP/Skills与提交包一致性检查。正式Ubuntu设备探针与全量APK验收仍在后续，公开版本保持0.41.0。
 
 市场API30已在部署服务器的私有before/next快照实际验证：API1..29的目录内容全部保持，54个既有版本完整下载字节一致，API30提供MCP1.2.0。SSH读取超时后没有重启核对进程，重新观察取得已完成`verified.json`。尚未切换公网服务；本次版本号准备0.42.0/build79，正式设备及全套发布门禁尚待通过。
+
+下一轮`d37b3933`只剩双HTTPS Agent回归失败，发现实际兼容问题：Agent原先把所有声明workspace/shell的工具隐藏于未绑定聊天，新MCP同时支持HTTPS/本地，导致普通聊天也看不到HTTPS工具。新增独立的工具可用性字段`requiresWorkspace`，默认保留原行为；声明原生stdio的混合插件允许先列服务器/使用HTTPS。本地启动仍由宿主要求捕获绑定，并未放宽进程授权。既有双TLS/实际Agent无工作区用例作为回归，工具策略摘要包含此字段变更。

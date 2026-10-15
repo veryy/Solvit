@@ -447,6 +447,10 @@ class ScriptToolPlugin(
                     chatVisible = tool.chatVisible,
                     pluginVersion = pkg.manifest.version,
                     capabilities = pkg.manifest.permissions,
+                    // Mixed HTTPS/local MCP tools can list/use HTTPS without a workspace;
+                    // stdio.open independently requires a live captured binding.
+                    requiresWorkspace = "process.stdio" !in pkg.manifest.nativeServices &&
+                        pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") },
                     pluginDigest = java.security.MessageDigest.getInstance("SHA-256").digest(pkg.payload).joinToString("") { "%02x".format(it) },
                 )
                 override suspend fun execute(argumentsJson: String): String = executor.execute(tool.name, argumentsJson)

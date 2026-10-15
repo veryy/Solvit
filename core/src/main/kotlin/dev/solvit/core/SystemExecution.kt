@@ -8,7 +8,7 @@ import kotlin.coroutines.CoroutineContext
 enum class ToolPolicy { ASK, ALLOW, DENY }
 fun toolPolicyKey(tool: ToolDescriptor): String {
     val identity = listOf(tool.pluginId, tool.pluginVersion, tool.name, tool.description, tool.inputSchema,
-        tool.capabilities.sorted().joinToString(","), tool.androidPermissions.sorted().joinToString(","), tool.requiresConfirmation.toString(), tool.executionMode?.name.orEmpty(), tool.pluginDigest).joinToString("\u0000")
+        tool.capabilities.sorted().joinToString(","), tool.androidPermissions.sorted().joinToString(","), tool.requiresConfirmation.toString(), tool.executionMode?.name.orEmpty(), tool.pluginDigest, tool.requiresWorkspace.toString()).joinToString("\u0000")
     return MessageDigest.getInstance("SHA-256").digest(identity.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 255) }
 }
 fun scopedToolPolicyKey(tool: ToolDescriptor, role: AgentRole?): String = toolPolicyKey(tool) + ":" +

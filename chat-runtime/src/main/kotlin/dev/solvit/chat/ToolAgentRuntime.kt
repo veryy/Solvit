@@ -52,7 +52,7 @@ class ToolAgentRuntime(
             request.executionJournal.append(listOf(ExecutionEvent(step,ExecutionKind.STEP_STARTED)))
             // Fresh context and tool availability for every step; do not accumulate old Hook text.
             advertised = tools.descriptors().filter { it.chatVisible && request.agentRole?.allows(it.pluginId) != false &&
-                (request.conversation != null || it.capabilities.none { permission -> permission in setOf("workspace","shell","plugins") }) }.take(64)
+                (request.conversation != null || !it.requiresWorkspace) }.take(64)
             val allowed = advertised.map { it.name }.toSet()
             val workspaceGuidance = if(advertised.any { it.capabilities.any { capability -> capability in setOf("workspace","shell") } })
                 "实际工作区任务先检查当前目录、相关文件和项目要求，再做有针对性的修改。Shell 启动返回任务 ID 只表示已启动，" +
