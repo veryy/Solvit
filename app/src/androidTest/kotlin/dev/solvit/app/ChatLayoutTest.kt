@@ -254,8 +254,11 @@ class ChatLayoutTest {
     }
     private fun selectBranchFixture() {
         rule.onNodeWithContentDescription("对话历史").performClick()
-        try { rule.onNodeWithText("branch original question").performClick() }
-        catch (failure:AssertionError) {
+        try {
+            rule.onNode(hasScrollToIndexAction() and hasAnyAncestor(hasTestTag("chat_drawer")))
+                .performScrollToNode(hasText("branch original question"))
+            rule.onNodeWithText("branch original question").assertIsDisplayed().performClick()
+        } catch (failure:AssertionError) {
             throw AssertionError("Branch history before selection:\n"+rule.onRoot(useUnmergedTree=true).printToString(),failure)
         }
         rule.waitUntil(10_000) { rule.onAllNodesWithText("later answer").fetchSemanticsNodes().isNotEmpty() }
