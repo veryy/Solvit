@@ -22,7 +22,9 @@ internal object WorkspaceImportCapacity {
         // All app workspaces normally share one private volume. Treat stores with the same
         // name/type as shared, conservatively, so independently opened services cannot both
         // spend the same reported free bytes. This is process-local accounting only.
-        val store=Files.getFileStore(root.toPath())
+        val store=try { Files.getFileStore(root.toPath()) } catch(failure:Exception) {
+            throw IllegalStateException("无法识别工作区存储卷；尚未开始导入",failure)
+        }
         val volume=store.name()+"\u0000"+store.type()
         val required=contentBytes.toLong()+HEADROOM_BYTES
         synchronized(lock) {
