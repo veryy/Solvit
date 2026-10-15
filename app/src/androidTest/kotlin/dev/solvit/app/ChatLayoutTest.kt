@@ -272,7 +272,23 @@ class ChatLayoutTest {
                 list.performScrollToIndex(count-1)
                 rule.onNodeWithText("branch original question").assertDoesNotExist()
             }
-            list.performScrollToNode(hasText("branch original question"))
+            // LazyColumn semantics enqueue scrolling on StandardTestDispatcher.
+            // Drive one UI frame after each action before inspecting its result;
+            // performScrollToNode otherwise observes the previous position.
+            list.performScrollToIndex(0)
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitUntil(10_000) {
+                val target=rule.onNodeWithText("branch original question")
+                if(target.isDisplayed()) true else {
+                    val height=list.fetchSemanticsNode().boundsInRoot.height
+                    check(height>0f) { "Chat history viewport must be visible before scrolling" }
+                    list.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) {
+                        it(0f,height/2f)
+                    }
+                    rule.mainClock.advanceTimeByFrame()
+                    false
+                }
+            }
             rule.onNodeWithText("branch original question").assertIsDisplayed().performClick()
         } catch (failure:AssertionError) {
             throw AssertionError("Branch history before selection:\n"+rule.onRoot(useUnmergedTree=true).printToString(),failure)
