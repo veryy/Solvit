@@ -105,6 +105,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     for(const [id,version,sha] of [
       ['workspace','1.10.0','e275e637b3cdbe3e56d800d9abbefc221169b7f1e07faed8f29c5d6a611cbfd9'],
       ['workspace','1.9.0','c4bd5bfa19dd9bca67d6913c02a48bc2624858d9be5eb32f7863c6a0273d5f5e'],
+      ['git','1.2.6','272b679dad15a9d595fe4299f931427cec4825a40442aebb93251dff9afa7bb8'],
       ['git','1.2.5','ee8cab14b1992ee28651c0ce510d9e046d66a396bc559d2d7293a2aadeb277b4']]){
       const original=Buffer.from(await(await fetch(base+`/api/v1/packages/dev.solvit.${id}/${version}`)).arrayBuffer());
       assert.equal(createHash('sha256').update(original).digest('hex'),sha);
@@ -220,7 +221,7 @@ test('API19 keeps the exact released Git bytes while API20 selects remote Git',a
   assert.deepEqual(oldBytes,await readFile(new URL('./packages/legacy/dev.solvit.git-1.1.1.solvit.json',import.meta.url)));
   assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd');
   const next=(await(await fetch(base+'/api/v1/plugins?hostApi=20')).json()).plugins.find(p=>p.id==='dev.solvit.git');
-  assert.equal(next.version,'1.2.6');assert.equal(next.apiVersion,20);
+  assert.equal(next.version,'1.2.7');assert.equal(next.apiVersion,20);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
 

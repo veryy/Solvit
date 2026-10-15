@@ -108,8 +108,12 @@ class WorkspaceInstructionsHookTest {
             "e275e637b3cdbe3e56d800d9abbefc221169b7f1e07faed8f29c5d6a611cbfd9",setOf("workspace","shell"))
     }
     @Test fun releasedGitRetainsDisabledStateGrantsCustomCodeAndUninstall()=runBlocking<Unit> {
-        releasedPackageUpgrade("dev.solvit.git","1.2.5","1.2.6",
+        releasedPackageUpgrade("dev.solvit.git","1.2.5","1.2.7",
             "ee8cab14b1992ee28651c0ce510d9e046d66a396bc559d2d7293a2aadeb277b4",setOf("workspace","git","network"))
+    }
+    @Test fun releasedCurrentGitRetainsDisabledStateGrantsCustomCodeAndUninstall()=runBlocking<Unit> {
+        releasedPackageUpgrade("dev.solvit.git","1.2.6","1.2.7",
+            "272b679dad15a9d595fe4299f931427cec4825a40442aebb93251dff9afa7bb8",setOf("workspace","git","network"))
     }
     private suspend fun releasedPackageUpgrade(plugin:String,oldVersion:String,newVersion:String,sha:String,grants:Set<String>) {
         fixture { market,_,_,_ ->
