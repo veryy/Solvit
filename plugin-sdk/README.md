@@ -142,9 +142,9 @@ beforeModel内可调用`ctx.workspace.instructions()`，需要apiVersion:16、wo
 内置workspace1.2.0由TS整理来源、去重、local优先及12KiB UTF-8预算；projectRules=false可关自动投影。更新和删除每步重读，资料不改变角色身份、系统规则或工具授权。宿主读前/读后核验授权和绑定，取消传播；旧API1–15目录继续使用原包。实际契约、请求回归和未完成范围见[阶段记录](../docs/workspace-instructions-stage.md)。
 
 
-### API19 Git 页面（开发候选）
+### API19：Git 页面
 
-清单声明 `permissions: ["workspace", "git"]` 和 `nativeServices: ["workspace.git"]`。页面可调用 `ctx.gitPage.query("status", {offset: 0, limit: 10})`、`diff`、`diffChunk`、`history` 和 `reviewCommit`。差异/暂存区审阅返回宿主句柄，JS不传根目录、patch或Git版本对象。`ctx.gitPage.perform()` 无参数，仅消费当前用户确认的 `git.perform` 按钮；支持 initialize、stage/unstage 的 reviewId 和 commit 的 revisionId/message/author/email。关闭页面收回句柄及绑定接口，旧宿主拒绝API19。此协议尚未在公开0.28 APK中提供，Git页面及工具接线仍在开发。
+清单声明 `permissions: ["workspace", "git"]` 和 `nativeServices: ["workspace.git"]`。页面可调用 `ctx.gitPage.query("status", {offset: 0, limit: 10})`、`diff`、`diffChunk`、`history` 和 `reviewCommit`。差异/暂存区审阅返回宿主句柄，JS不传根目录、patch或Git版本对象。`ctx.gitPage.perform()` 无参数，仅消费当前用户确认的 `git.perform` 按钮；支持 initialize、stage/unstage 的 reviewId 和 commit 的 revisionId/message/author/email。关闭页面收回句柄及绑定接口，旧宿主拒绝API19。Git工作区页面已在后续版本提供；下方API29克隆恢复仍以正式Release状态为准。
 
 ### API29：中断的 Git 克隆（候选，尚未发布 APK）
 
