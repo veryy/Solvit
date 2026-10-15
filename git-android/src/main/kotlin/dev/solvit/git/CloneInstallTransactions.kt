@@ -23,7 +23,8 @@ import java.util.UUID
  * Android forbids app hard links, so complete file inodes move from staging instead. */
 internal class CloneInstallTransactions(private val base: File,
     private val publishWorktreeFile: (File, File) -> Unit,
-    private val publishMetadata: (File, File) -> Unit) {
+    private val publishMetadata: (File, File) -> Unit,
+    private val observe: (String) -> Unit = {}) {
     data class Record(val id: String, val workspaceId: String, val rootPath: String,
         val rootKey: String, val treeKey: String, val endpoint: String, val branch: String,
         val phase: String, val createdAt: Long, val metadataKey: String = "",
@@ -320,15 +321,19 @@ internal class CloneInstallTransactions(private val base: File,
             val source = child(staged, entry.path); val target = child(destination, entry.path)
             if (attrs(target) != null) continue // Validated above; final validation repeats.
             if (entry.directory) Files.createDirectory(target.toPath())
-            else publishWorktreeFile(source, target) // Atomic complete inode, no replacement.
+            else {
+                publishWorktreeFile(source, target) // Atomic complete inode, no replacement.
+                observe("FILE_PUBLISHED")
+            }
             boundary(checkpoint)
         }
         validate(record, entries, checkpoint); boundary(checkpoint)
         persist(record.copy(phase = "PUBLISHING"))
         publishMetadata(metadata, File(destination, ".git"))
+        observe("METADATA_PUBLISHED")
         boundary(checkpoint) // External kill here must not replay installation on restart.
         check(published(record)) { "Git发布身份变化，文件与记录保留" }
-        persist(record.copy(phase = "COMMITTED")); boundary(checkpoint)
+        persist(record.copy(phase = "COMMITTED")); observe("COMMITTED"); boundary(checkpoint)
         if (retireOnSuccess) retire(record.id)
     }
     /** Explicitly abandon/acknowledge; removes only the registered private directory.
@@ -346,11 +351,11 @@ internal class CloneInstallTransactions(private val base: File,
         if (attrs(staged) != null) {
             Files.walkFileTree(staged.toPath(), object : java.nio.file.SimpleFileVisitor<java.nio.file.Path>() {
                 override fun visitFile(file: java.nio.file.Path, a: BasicFileAttributes): java.nio.file.FileVisitResult {
-                    Files.delete(file); return java.nio.file.FileVisitResult.CONTINUE
+                    Files.delete(file); observe("PRIVATE_ENTRY_REMOVED"); return java.nio.file.FileVisitResult.CONTINUE
                 }
                 override fun postVisitDirectory(dir: java.nio.file.Path, error: java.io.IOException?): java.nio.file.FileVisitResult {
                     if (error != null) throw error
-                    Files.delete(dir); return java.nio.file.FileVisitResult.CONTINUE
+                    Files.delete(dir); observe("PRIVATE_ENTRY_REMOVED"); return java.nio.file.FileVisitResult.CONTINUE
                 }
             })
         }

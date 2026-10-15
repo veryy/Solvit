@@ -112,6 +112,8 @@ jobs:
         with:
           name: solvit-linux-native
           path: linux-android/src/main/jniLibs/
+      - name: Prepare TLS Git backend for clone process death
+        run: bash scripts/prepare-clone-git-fixture.sh
       - name: Prepare UI APKs outside emulator
         timeout-minutes: 15
         run: |

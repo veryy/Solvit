@@ -79,7 +79,11 @@ class BoundWorkspaceGit(
     }
     // Android Context may return /data/user/0 aliases. Normalize the trusted host
     // location once at the boundary; transaction paths still require no-link identity.
-    private fun cloneStore() = CloneInstallTransactions(checkNotNull(cloneStagingDirectory) { "Git克隆暂存目录尚未配置" }.canonicalFile, cloneFilePublisher, cloneMetadataPublisher)
+    private suspend fun cloneStore(): CloneInstallTransactions {
+        val monitor = currentCoroutineContext()[dev.solvit.core.WorkspaceCloneMonitor]
+        return CloneInstallTransactions(checkNotNull(cloneStagingDirectory) { "Git克隆暂存目录尚未配置" }.canonicalFile,
+            cloneFilePublisher, cloneMetadataPublisher) { stage -> monitor?.update(stage) }
+    }
     internal var configuredCredentials: (GitRemoteEndpoint) -> Boolean = { false }
     internal var storeCredentials: (GitRemoteEndpoint, String, CharArray) -> Unit = { _, _, _ -> error("Git凭据库尚未配置") }
     internal var deleteCredentials: (GitRemoteEndpoint) -> Unit = { error("Git凭据库尚未配置") }

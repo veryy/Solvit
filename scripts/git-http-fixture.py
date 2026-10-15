@@ -31,7 +31,7 @@ git('init', '--initial-branch=main', str(source))
 git('add', 'content.txt', cwd=source)
 git('-c', 'user.name=Solvit fixture', '-c', 'user.email=fixture@example.invalid',
     'commit', '-m', 'Initial remote content', cwd=source)
-for name in ['roundtrip', 'conflict', 'auth', 'slow', 'bound', 'bound-slow', 'bound-pull', 'clone', 'clone-gated', 'clone-cancel']:
+for name in ['roundtrip', 'conflict', 'auth', 'slow', 'bound', 'bound-slow', 'bound-pull', 'clone', 'clone-gated', 'clone-cancel', 'clone-death-download']:
     repository = root / (name + '.git')
     git('clone', '--bare', str(source), str(repository))
     git('config', 'http.receivepack', 'true', cwd=repository)
@@ -41,6 +41,8 @@ bound_slow_started = threading.Event()
 clone_started = threading.Event()
 clone_release = threading.Event()
 clone_cancel_started = threading.Event()
+clone_death_started = threading.Event()
+clone_death_release = threading.Event()
 records = []
 record_lock = threading.Lock()
 
@@ -98,6 +100,11 @@ class Handler(BaseHTTPRequestHandler):
         if url.path == '/control/clone-release':
             clone_release.set()
             return self.response(200, b'OK')
+        if url.path == '/control/clone-death-started':
+            return self.response(200, json.dumps(clone_death_started.is_set()).encode())
+        if url.path == '/control/clone-death-release':
+            clone_death_release.set()
+            return self.response(200, b'OK')
         if url.path == '/control/clone-cancel-started':
             return self.response(200, json.dumps(clone_cancel_started.is_set()).encode())
         if url.path == '/control/records':
@@ -106,7 +113,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.response(200, data)
         if url.path.startswith('/redirect.git/'):
             return self.response(302, headers={'Location': '/roundtrip.git/info/refs?service=git-upload-pack'})
-        allowed = ['/roundtrip.git/', '/conflict.git/', '/auth.git/', '/slow.git/', '/bound.git/', '/bound-slow.git/', '/bound-pull.git/', '/clone.git/', '/clone-gated.git/', '/clone-cancel.git/']
+        allowed = ['/roundtrip.git/', '/conflict.git/', '/auth.git/', '/slow.git/', '/bound.git/', '/bound-slow.git/', '/bound-pull.git/', '/clone.git/', '/clone-gated.git/', '/clone-cancel.git/', '/clone-death-download.git/']
         if not any(url.path.startswith(path) for path in allowed):
             return self.response(404)
         expected = 'Basic ' + base64.b64encode(b'fixture-user:fixture-secret').decode()
@@ -128,6 +135,10 @@ class Handler(BaseHTTPRequestHandler):
         if url.path.startswith('/clone-gated.git/'):
             clone_started.set()
             if not clone_release.wait(15):
+                return self.response(504)
+        if url.path.startswith('/clone-death-download.git/'):
+            clone_death_started.set()
+            if not clone_death_release.wait(90):
                 return self.response(504)
         if url.path.startswith('/clone-cancel.git/'):
             clone_cancel_started.set()

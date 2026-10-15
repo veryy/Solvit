@@ -2,6 +2,13 @@
 # Focused reproduction only; never replaces full release gates.
 set -uo pipefail
 mkdir -p ui-screenshots
+if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = git-clone-recovery ]; then
+  bash scripts/verify-workspace-clone-process-death.sh
+  solvit_clone_status=$?
+  timeout 15s adb logcat -d -t 1500 > ui-screenshots/emulator-logcat.txt || true
+  timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
+  exit "$solvit_clone_status"
+fi
 timeout 90s adb install -r app/build/outputs/apk/debug/app-debug.apk || exit 1
 timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk || exit 1
 case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in

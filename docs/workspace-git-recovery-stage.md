@@ -47,3 +47,7 @@ HTML接入候选：Git TS页面启动先查恢复清单，即使status因缺少.
 Git1.3.0首轮[插件生成38714066212](https://github.com/veryy/Solvit/actions/runs/38714066212)typecheck通过，页面合同仅冲突放弃的最后一项失败：成功提示复用了git_error ID。修复为成功通知git_notice与错误状态区分，原断言保留。生成物未直接作为通过包或公开发布，须重生成并核对。
 
 第二轮TS合同38714538856在旧推送拒绝用例失败：任务执行结束SUCCEEDED不代表Git结果成功，REJECTED_NONFASTFORWARD必须仍显示git_error。修复只对已核对JGit RemoteRefUpdate.Status/MergeResult.MergeStatus的成功状态（或无状态的完成操作）显示成功通知，未知/冲突/拒绝仍为错误；不修改旧拒绝断言。
+
+[38714538919](https://github.com/veryy/Solvit/actions/runs/38714538919)在`ff225983`上API26和35两路均成功，各28个实际Android用例通过。TS第三轮38714988797的133项合同已通过，随后市场测试因新增previousGit与既有1.2.1变量重名而语法失败，改名previousGit127保留全部旧字节断言，仍须重新跑市场与公网门禁。
+
+外部进程死亡候选已接入原生产clone的宿主事实观察器（仅阶段名，不传路径或重放命令）：FILE_PUBLISHED在实际文件移动后、METADATA_PUBLISHED在实际.git移动后、COMMITTED在意图持久后、PRIVATE_ENTRY_REMOVED在实际私有删除后。新Android应用测试通过生产HTTPS/JGit/凭据库准备，独立adb进程记录PID并force-stop，再启动新进程操作真实Git插件HTML，先取消确认验证零重放，再明确继续/重新下载/关闭私有暂存。DOWNLOADING由实际TLS backend收到并阻塞请求后发标记，不以准备意图代替下载；另覆盖FILE、Shell CONFLICT、METADATA、COMMITTED和CLEANUP共6个窗口。验证根inode、共享Shell文件、已发布后删除/编辑、网络请求计数和无自动重试。TLS证书仅放测试APK，私钥留CI runner，不改系统信任/主机名校验。正式Android门禁保留旧9个强杀和常规套件，并加入这6个；测试源码与脚本尚未远程编译或运行。

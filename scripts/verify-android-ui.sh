@@ -3,7 +3,7 @@
 set -uo pipefail
 mkdir -p ui-screenshots
 # Live credentials are required by the separate real-model acceptance workflow.
-solvit_exclusions=dev.solvit.app.SeedUpgradeConfigurationTest,dev.solvit.app.RealModelAcceptanceTest,dev.solvit.app.WorkspaceImportProcessDeathTest,dev.solvit.app.WorkspaceBackupCleanupProcessDeathTest
+solvit_exclusions=dev.solvit.app.SeedUpgradeConfigurationTest,dev.solvit.app.RealModelAcceptanceTest,dev.solvit.app.WorkspaceImportProcessDeathTest,dev.solvit.app.WorkspaceBackupCleanupProcessDeathTest,dev.solvit.app.WorkspaceCloneProcessDeathTest
 if [ -f .signing/debug.keystore ]; then
   test -f ui-screenshots/previous.apk || exit 1
   printf '%s\n' '88684ed71af4c390217d4ee6f58e3a169d513e812744eb97af34318d71d5d631  ui-screenshots/previous.apk' | sha256sum --check || exit 1
@@ -29,6 +29,13 @@ if [ "$solvit_cleanup_status" -ne 0 ]; then
   timeout 15s adb logcat -d -t 1500 > ui-screenshots/emulator-logcat.txt || true
   timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
   exit "$solvit_cleanup_status"
+fi
+bash scripts/verify-workspace-clone-process-death.sh
+solvit_clone_status=$?
+if [ "$solvit_clone_status" -ne 0 ]; then
+  timeout 15s adb logcat -d -t 1500 > ui-screenshots/emulator-logcat.txt || true
+  timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
+  exit "$solvit_clone_status"
 fi
 case "${SOLVIT_UI_DIAGNOSTIC:-none}" in
   none) ;;
