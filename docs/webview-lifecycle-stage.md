@@ -191,3 +191,8 @@ PDF尚无实际挂起调用栈；不能仅因含performScrollTo就认定同源�
 0648be43的四项诊断38820755801以300秒上限退出，不能算四项通过。归档12013017526（892017字节，SHA256 `55d063312415e81e0639cef81f5b908dd453ad5eaecd6dcb2f4f3635ba12db1a`）完整下载/CRC：前三项nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations、actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard、languageSwitchesImmediatelyAndSurvivesRecreation在TestRunner逐项正常结束，迭代输出为ChatLayoutTest:...且无失败；PDF开始后，pdf_settings有before/after，pdf_apply仅23:06:22.863的before，此后未返回。该结果将PDF挂起明确缩小到原pdf_apply.performScrollTo调用，未取得线程栈，不能扩大为所有PDF处理同源或OCR已通过。
 
 核对实际PdfAttachmentPreview.kt的pdf_preview为LazyColumn，四个PDF目标均在该容器，重试目标在chat_messages；结合官方Actions.kt及已证实的queued ScrollBy行为，6843d44b以同一有界逐帧辅助替代这两类列表的旧performScrollTo，仍真实点击并保留读取范围、中文OCR、原图、HTTP失败/重试、历史选择与分支断言。已删除全部PDF_QUEUED_DIAG临时步骤标记；四项同APK复验[38822117302](https://github.com/veryy/Solvit/actions/runs/38822117302)待结果，不提前记作PDF通过。
+
+
+6843d44b/[38822117302](https://github.com/veryy/Solvit/actions/runs/38822117302)四项同APK复验成功。归档12013068593（1110359字节，SHA256 `72c7db817e0fec85272200cb8282bef9dccbdbe64902d8cd8b6202939045c61f`）完整下载/CRC：实际OK (4 tests)、56.391秒，TestRunner逐项正常结束，零Fatal signal/SnapshotStateObserver/临时PDF_QUEUED_DIAG。PDF完成原真实选择、中文OCR、原图、HTTP失败重试、历史与分支断言，原pdf_apply滚动未返回问题在同条件由超时到通过。前三项模型设置、流式完成状态和语言切换亦再次通过。
+
+清理后6843d44b的完整[38823261172](https://github.com/veryy/Solvit/actions/runs/38823261172)已实际启动；包含原构建/611单元/Lint/固定签名、覆盖升级、15场恢复、70应用/3Web/25终端下限与stdio宿主强杀，尚未完成。不能以四项定向替代全部设备门禁或真实模型/ARM64验收；候选仍未合入主线、未发布0.43.3，路线图与原生WebView失败证据继续保留。
