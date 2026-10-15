@@ -146,3 +146,16 @@ test('API 8 background hooks require an explicit default-off declaration', async
     assert.equal(JSON.parse(await readFile(output,'utf8')).manifest.apiVersion,8);
   } finally { await rm(dir,{recursive:true}); }
 });
+
+test('API30 local processes require Linux service and all three explicit permissions',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'solvit-stdio-'));
+ try{
+  const entry=join(dir,'entry.ts'),file=join(dir,'manifest.json'),output=join(dir,'output.json');
+  await writeFile(entry,'export default {tools:{}};');
+  const manifest={id:'test.stdio',name:'MCP',description:'Test',version:'1.0.0',apiVersion:30,permissions:['workspace','shell','network'],nativeServices:['environment.linux','process.stdio'],dependencies:[],tools:[]};
+  for(const invalid of [{...manifest,apiVersion:29},{...manifest,nativeServices:['process.stdio']},{...manifest,permissions:['network','shell']}]){
+   await writeFile(file,JSON.stringify(invalid));await assert.rejects(()=>buildPlugin(entry,file,output));
+  }
+  await writeFile(file,JSON.stringify(manifest));await buildPlugin(entry,file,output);
+ }finally{await rm(dir,{recursive:true})}
+});

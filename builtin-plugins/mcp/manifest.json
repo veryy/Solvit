@@ -1,11 +1,13 @@
 {
   "id": "dev.solvit.mcp",
   "name": "MCP 连接",
-  "description": "JS/TS 多服务器 MCP：插件页面管理具名 HTTPS Streamable HTTP 连接、加密认证和标准配置导入；AI 可按服务器发现及调用工具。",
-  "version": "1.1.1",
-  "apiVersion": 10,
+  "description": "JS/TS 多服务器 MCP：管理具名 HTTPS 和 Ubuntu 本地 stdio 连接；加密保存认证与环境，AI 按服务器发现及调用工具。",
+  "version": "1.2.0",
+  "apiVersion": 30,
   "permissions": [
-    "network"
+    "network",
+    "workspace",
+    "shell"
   ],
   "dependencies": [],
   "settings": [
@@ -33,7 +35,7 @@
   "tools": [
     {
       "name": "mcp_servers",
-      "description": "先列出已配置 MCP 服务器名称、启停与会话状态；多个服务器时后续工具必须指定 server。不会输出地址、令牌或请求头。",
+      "description": "列出已配置 MCP 服务器名称、传输、启停与当前聊天会话状态。不会输出地址、命令参数、环境变量或认证。多个服务器时后续工具必须指定 server。",
       "inputSchema": {
         "type": "object",
         "properties": {},
@@ -42,7 +44,7 @@
     },
     {
       "name": "mcp_connect",
-      "description": "连接指定的具名 MCP 服务器，协商会话并发现工具。",
+      "description": "连接已保存的具名 MCP 服务器并发现工具。本地 stdio 需要当前聊天已绑定工作区并安装 Ubuntu 及对应软件，不能传入临时命令。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -105,7 +107,7 @@
     },
     {
       "name": "mcp_disconnect",
-      "description": "关闭指定服务器会话；不传 server 时关闭全部会话。",
+      "description": "关闭指定服务器会话；不传 server 时关闭 HTTPS 与当前聊天作用域的本地会话。",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -125,5 +127,9 @@
       "title": "MCP 服务器",
       "entry": "ui/index.html"
     }
+  ],
+  "nativeServices": [
+    "environment.linux",
+    "process.stdio"
   ]
 }
