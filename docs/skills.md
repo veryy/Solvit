@@ -4,7 +4,7 @@ Skills 技能库是 TS 插件 `dev.solvit.skills`，逻辑和页面由 QuickJS�
 
 ## 先导入，再让角色使用
 
-1. 在「设置 → 插件」启用 Skills 技能库。原来的1.1.1只需要storage；0.43.0候选内置1.2.0增加workspace权限，旧用户需明确更新并重新授权，原来的技能数据保留。
+1. 在「设置 → 插件」启用 Skills 技能库。原来的1.1.1只需要storage；0.43.1候选内置1.2.0增加workspace权限，旧用户需明确更新并重新授权，原来的技能数据保留。
 2. 在设置里的角色管理选择角色，打开技能库，导入 SKILL.md、单个技能的 ZIP，或 Solvit 导出的 JSON。也可以从插件自己的 Skills 页面管理内容。替换同名技能需要确认。
 3. 在角色中勾选 Skills 插件和允许使用的技能，再应用到当前对话。新对话继承当前角色，已有对话的选择独立保存。
 4. 提出任务。模型先看到可用技能名称和简短描述，需要时调用 `skills_load` 读取正文，用 `skills_read` 读取引用文本。
@@ -13,7 +13,7 @@ Skills 技能库是 TS 插件 `dev.solvit.skills`，逻辑和页面由 QuickJS�
 
 ## 技能带脚本时怎么运行
 
-0.43.0候选的Skills1.2.0提供 `skills_prepare`。它把当前角色允许使用的技能文本包复制到当前工作区的新目录，返回实际的 `resourceBase`，例如 `/workspace/.solvit-resource-example-…`。导入、读取和准备都不会执行代码；不要猜测技能安装路径。
+0.43.1候选的Skills1.2.0提供 `skills_prepare`。它把当前角色允许使用的技能文本包复制到当前工作区的新目录，返回实际的 `resourceBase`，例如 `/workspace/.solvit-resource-example-…`。导入、读取和准备都不会执行代码；不要猜测技能安装路径。
 
 1. 给对话绑定工作区，在「工作区 → Linux」安装Ubuntu并新建Ubuntu Shell，见[Linux指南](linux-environment.md)。
 2. 启用工作区与Shell插件，并在当前角色里允许Skills和工作区插件。

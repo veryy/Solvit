@@ -166,7 +166,7 @@ API1–28 目录保留 Git1.2.7 的原始包，不能调用 API29 恢复动作�
 
 此服务是普通应用 UID 下的开发进程能力，不是 Android 权限提升或不可信代码隔离。QuickJS 插件不获得 Node 全局对象、JNI 句柄或任意宿主路径。协议范围及设备验证状态见[阶段记录](../docs/local-stdio-mcp-stage.md)。
 
-### API31：插件文本资源目录（0.43.0 候选）
+### API31：插件文本资源目录（0.43.1 候选）
 
 声明 `permissions: ["storage", "workspace"]`、`nativeServices: ["workspace.resources"]`。
 模型工具只接收 `{name}`，插件从自己的已授权存储取得文件后调用：
