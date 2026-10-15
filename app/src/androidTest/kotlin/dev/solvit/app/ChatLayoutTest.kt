@@ -739,10 +739,11 @@ class ChatLayoutTest {
     @Test fun configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation() {
         ready()
         val app = rule.activity.application as SolvitApplication
-        val previous = runBlocking { app.settings.load() }
+        val previous = app.modelProfiles.state.value
         try {
-            // Explicitly mark the existing configuration saved; no model is called.
-            runBlocking { app.settings.save(previous) }
+            // Use the live service, as settings UI does. Direct persistence does not
+            // notify its StateFlow when this test runs in a fresh app process.
+            runBlocking { app.modelProfiles.save(previous.selected(ModelTask.CHAT)!!) }
             repeat(3) {
                 rule.activityRule.scenario.recreate()
                 ready()
@@ -757,7 +758,7 @@ class ChatLayoutTest {
                 rule.onNodeWithContentDescription("关闭工作区").performClick()
                 rule.onNode(hasText("工作区：", substring = true)).assertIsDisplayed()
             }
-        } finally { runBlocking { app.settings.save(previous) } }
+        } finally { runBlocking { app.modelProfiles.replace(previous) } }
     }
     @Test fun startupFocusesInputAndFloatingComposerStaysAboveRealKeyboard() {
         ready()
