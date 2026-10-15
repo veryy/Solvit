@@ -69,7 +69,7 @@ export default definePlugin({
       const skill = await find(args, ctx);
       return { ...metadata(skill), instructions: skill.body, allowedTools: skill.allowedTools ?? null,
         resourceBase: { kind: 'opaque', description: '资源保存在技能库中。需要脚本时先调用 skills_prepare，使用返回的实际目录，不要猜测技能安装路径。' },
-        notice: 'allowed-tools 不授予执行权限。导入/读取不执行脚本；准备目录和 Ubuntu Shell 执行分别授权。' };
+        notice: 'allowed-tools 不会授予执行权限。导入/读取不执行脚本；准备目录和 Ubuntu Shell 执行分别授权。' };
     },
     async skills_read(args, ctx) {
       const skill = await find(args, ctx);
