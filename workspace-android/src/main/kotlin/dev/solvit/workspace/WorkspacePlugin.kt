@@ -20,6 +20,7 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     private val linux: LinuxEnvironmentService? = null,
     private val importPublisher: WorkspaceImportPublisher = WorkspaceImportPublisher { source,destination -> AndroidWorkspaceImportPublisher.publish(source,destination) }) : WorkspaceService {
     private val root = File(context.filesDir, "workspaces").apply { check(mkdirs() || isDirectory) }
+    private val importLedgerRoot=File(context.noBackupFilesDir.canonicalFile,"workspace-import-staging")
     private val prefs = context.getSharedPreferences("workspaces", Context.MODE_PRIVATE)
     private val lock = Mutex()
     private val mutableState = MutableStateFlow(load())
@@ -31,7 +32,12 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         // Cleanup is serialized with imports; it never blocks construction or follows Shell symlinks.
         scope.launch(Dispatchers.IO) { lock.withLock {
             state.value.workspaces.forEach { workspace ->
-                runCatching { WorkspaceFileImports.cleanup(File(root,workspace.id)) }
+                runCatching {
+                    val base=File(root,workspace.id)
+                    check(java.nio.file.Files.isDirectory(base.toPath(),java.nio.file.LinkOption.NOFOLLOW_LINKS) &&
+                        base.canonicalFile==File(root.canonicalFile,workspace.id))
+                    WorkspaceFileImports.cleanup(base.canonicalFile,WorkspaceImportStaging(base.canonicalFile,File(importLedgerRoot,workspace.id)))
+                }
             }
         } }
     }
@@ -254,7 +260,9 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         expectedSha256: String): WorkspaceImportedFile = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         val base=directory(workspaceId).canonicalFile
-        val result=WorkspaceFileImports.create(base,path,bytes,expectedSha256,importPublisher) { verifyPage(workspaceId) }
+        val result=withContext(WorkspaceImportStaging(base,File(importLedgerRoot,workspaceId))) {
+            WorkspaceFileImports.create(base,path,bytes,expectedSha256,importPublisher) { verifyPage(workspaceId) }
+        }
         WorkspaceImportedFile(workspaceId,path,result.first,result.second)
     } }
     override suspend fun reviewImportTarget(workspaceId:String,path:String):WorkspaceImportTarget? = withContext(Dispatchers.IO) { lock.withLock {
@@ -264,8 +272,9 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     override suspend fun replaceImportedFile(workspaceId:String,path:String,bytes:ByteArray,
         sourceSha256:String,targetSha256:String):WorkspaceImportedFile = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
-        val result=WorkspaceFileImports.replace(directory(workspaceId).canonicalFile,path,bytes,sourceSha256,targetSha256,importPublisher) {
-            verifyPage(workspaceId)
+        val base=directory(workspaceId).canonicalFile
+        val result=withContext(WorkspaceImportStaging(base,File(importLedgerRoot,workspaceId))) {
+            WorkspaceFileImports.replace(base,path,bytes,sourceSha256,targetSha256,importPublisher) { verifyPage(workspaceId) }
         }
         WorkspaceImportedFile(workspaceId,path,result.first,result.second,result.third)
     } }

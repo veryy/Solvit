@@ -19,7 +19,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
       - name: Verify actual QuickJS page authority and native workspace writes
-        run: ./gradlew :core:test :plugin-runtime:testDebugUnitTest :workspace-android:testDebugUnitTest :storage-sqlite:testDebugUnitTest :chat-runtime:test :plugin-market:testDebugUnitTest :app:compileDebugKotlin --stacktrace
+        run: ./gradlew :core:test :plugin-runtime:testDebugUnitTest :workspace-android:testDebugUnitTest :storage-sqlite:testDebugUnitTest :chat-runtime:test :plugin-market:testDebugUnitTest :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin --stacktrace
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -68,8 +68,24 @@ class WorkspaceImportProgressTest {
         assertEquals(0,WorkspaceFileImports.cleanup(root))
         assertEquals("Shell user data",userFile.readText())
     }
+    @Test fun cleanupDoesNotDeleteAUserReplacementAtAnOldRecordedStagingName()=fixture { root,_ ->
+        val ledger=Files.createTempDirectory("solvit-import-identity").toFile().canonicalFile
+        try {
+            val journal=WorkspaceImportStaging(root,ledger)
+            val old=File(root,".solvit-import-123456.partial").apply { writeText("staging") }
+            journal.register(old)
+            Files.move(old.toPath(),File(root,"moved-by-shell").toPath())
+            old.writeText("new user file")
+            assertEquals(0,WorkspaceFileImports.cleanup(root,journal))
+            assertEquals("new user file",old.readText())
+        }finally{ledger.deleteRecursively()}
+    }
     @Test fun cleanupRemovesOnlyOrphanRegularReservedFilesAndProtectsActiveImports()=fixture { root,bytes ->
+        val ledger=Files.createTempDirectory("solvit-import-ledger").toFile().canonicalFile
+        val journal=WorkspaceImportStaging(root,ledger)
         val orphan=File(root,"nested/.solvit-import-123456.partial").apply { parentFile!!.mkdir();writeText("orphan") }
+        journal.register(orphan)
+        val unknown=File(root,".solvit-import-userdata.partial").apply { writeText("user data") }
         val original=File(root,"solvit-backup-preserve").apply { writeText("original") }
         val ordinary=File(root,"document.partial").apply { writeText("user file") }
         val git=File(root,".git/.solvit-import-123.partial").apply { parentFile!!.mkdir();writeText("git file") }
@@ -78,14 +94,14 @@ class WorkspaceImportProgressTest {
             val external=File(outside,".solvit-import-321.partial").apply { writeText("external") }
             Files.createSymbolicLink(File(root,"linked").toPath(),outside.toPath())
             Files.createSymbolicLink(File(root,".solvit-import-link.partial").toPath(),external.toPath())
-            assertEquals(1,WorkspaceFileImports.cleanup(root));assertFalse(orphan.exists())
-            assertTrue(original.exists()&&ordinary.exists()&&git.exists()&&external.exists())
+            assertEquals(1,WorkspaceFileImports.cleanup(root,journal));assertFalse(orphan.exists())
+            assertTrue(original.exists()&&ordinary.exists()&&git.exists()&&external.exists());assertEquals("user data",unknown.readText())
             assertTrue(Files.isSymbolicLink(File(root,".solvit-import-link.partial").toPath()))
-            withContext(WorkspaceImportMonitor { if(it.stage=="WRITING") {
-                assertEquals(0,WorkspaceFileImports.cleanup(root))
-                assertEquals(1,root.listFiles()!!.count { f -> f.name.startsWith(".solvit-import-") && !Files.isSymbolicLink(f.toPath()) })
+            withContext(journal+WorkspaceImportMonitor { if(it.stage=="WRITING") {
+                assertEquals(0,WorkspaceFileImports.cleanup(root,journal))
+                assertEquals(2,root.listFiles()!!.count { f -> f.name.startsWith(".solvit-import-") && !Files.isSymbolicLink(f.toPath()) })
             } }) { WorkspaceFileImports.create(root,"complete",bytes,sha(bytes),publisher) {} }
             assertContentEquals(bytes,File(root,"complete").readBytes())
-        } finally { Files.deleteIfExists(File(root,"linked").toPath());Files.deleteIfExists(File(root,".solvit-import-link.partial").toPath());outside.deleteRecursively() }
+        } finally { Files.deleteIfExists(File(root,"linked").toPath());Files.deleteIfExists(File(root,".solvit-import-link.partial").toPath());outside.deleteRecursively();ledger.deleteRecursively() }
     }
 }

@@ -79,12 +79,20 @@ class WorkspaceImportProgressHtmlTest {
             // Recreate the native service with a crash-shaped reserved orphan. This verifies
             // Android startup cleanup, not an actual OS kill of the running test process.
             val orphan=File(root,"nested/.solvit-import-crash.partial").apply { parentFile!!.mkdir();writeText("orphan") }
+            // Persist the same path + fileKey record that production writes before copying.
+            val ledger=File(app.noBackupFilesDir,"workspace-import-staging/${workspace.id}").apply { mkdirs() }
+            val record=File(ledger,"${java.util.UUID.randomUUID()}.record")
+            val key=java.nio.file.Files.readAttributes(orphan.toPath(),java.nio.file.attribute.BasicFileAttributes::class.java,
+                java.nio.file.LinkOption.NOFOLLOW_LINKS).fileKey().toString()
+            val encode=java.util.Base64.getEncoder()
+            record.writeText(encode.encodeToString("nested/${orphan.name}".toByteArray())+"\n"+encode.encodeToString(key.toByteArray())+"\n")
+            val unknown=File(root,".solvit-import-user.partial").apply { writeText("user file") }
             val ordinary=File(root,"nested/user.partial").apply { writeText("keep") }
             val cleanupScope=CoroutineScope(SupervisorJob()+Dispatchers.IO)
             val reopened=dev.solvit.workspace.AndroidWorkspaces(app,cleanupScope)
             try {
                 rule.waitUntil(10_000){!orphan.exists()}
-                assertEquals("keep",ordinary.readText())
+                assertEquals("keep",ordinary.readText());assertEquals("user file",unknown.readText());assertFalse(record.exists())
                 assertArrayEquals(bytes,File(root,"data.bin").readBytes())
                 assertArrayEquals(original,root.listFiles()!!.single { it.name.startsWith("solvit-backup-") }.readBytes())
             }finally{runBlocking { reopened.close() };cleanupScope.cancel()}

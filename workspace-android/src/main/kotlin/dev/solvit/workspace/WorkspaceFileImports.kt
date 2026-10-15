@@ -26,32 +26,10 @@ internal object WorkspaceFileImports {
         currentCoroutineContext()[WorkspaceImportMonitor]?.update?.invoke(WorkspaceImportProgress(stage,completed,total))
         currentCoroutineContext().ensureActive()
     }
-    /** Reserved host staging only. No links, .git, original backups or published files are removed.
-     * A process-wide registry protects staging belonging to another live service instance.
-     * Bounded walks may leave deeper/large trees for a later pass; failures do not delete user data.
-     */
-    fun cleanup(root:File):Int {
-        if(root.absoluteFile!=root.canonicalFile || !Files.isDirectory(root.toPath(),NOFOLLOW_LINKS)) return 0
-        var visited=0;var removed=0
-        fun visit(directory:File,depth:Int) {
-            if(depth>32 || visited>=20_000 || directory.absoluteFile!=directory.canonicalFile ||
-                !Files.isDirectory(directory.toPath(),NOFOLLOW_LINKS))return
-            Files.newDirectoryStream(directory.toPath()).use { entries ->
-                for(entry in entries) {
-                    if(++visited>20_000)break
-                    val file=entry.toFile()
-                    if(Files.isDirectory(entry,NOFOLLOW_LINKS)) {
-                        if(file.name!=".git")visit(file,depth+1)
-                    } else if(file.name.matches(Regex("\\.solvit-import-[a-zA-Z0-9-]+\\.partial")) &&
-                        Files.isRegularFile(entry,NOFOLLOW_LINKS)) synchronized(stagingLock) {
-                        if(file.absolutePath !in activeStaging && runCatching { Files.deleteIfExists(entry) }.getOrDefault(false))removed++
-                    }
-                }
-            }
-        }
-        visit(root,0);return removed
+    /** No journal means no authority to delete, even if a filename resembles staging. */
+    fun cleanup(root:File,journal:WorkspaceImportStaging?=null):Int=synchronized(stagingLock) {
+        journal?.cleanup(activeStaging)?:0
     }
-
     private fun target(root: File, path: String): File {
         require(path.length in 1..1024 && '\u0000' !in path && !File(path).isAbsolute) { "导入路径无效" }
         val pieces=path.split('/')
@@ -142,7 +120,10 @@ internal object WorkspaceFileImports {
             val staged=synchronized(stagingLock) {
                 File.createTempFile(".solvit-import-",".partial",destination.parentFile).also { activeStaging.add(it.absolutePath) }
             }
+            var record:File?=null
+            val journal=currentCoroutineContext()[WorkspaceImportStaging]
             try {
+                synchronized(stagingLock) { record=journal?.register(staged) }
                 FileOutputStream(staged).use { output ->
                     var position=0
                     while(position<content.size) {
@@ -172,7 +153,10 @@ internal object WorkspaceFileImports {
                 return content.size.toLong() to expected
             } finally {
                 synchronized(stagingLock) {
-                    try { Files.deleteIfExists(staged.toPath()) } finally { activeStaging.remove(staged.absolutePath) }
+                    try {
+                        Files.deleteIfExists(staged.toPath())
+                        record?.let { runCatching { journal?.forget(it) } }
+                    } finally { activeStaging.remove(staged.absolutePath) }
                 }
             }
         } finally { content.fill(0) }
