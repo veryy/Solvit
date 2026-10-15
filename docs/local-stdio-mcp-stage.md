@@ -86,3 +86,7 @@ API30宿主桥提交`01fb9c2f`的[远程编译及单元38737631108](https://gith
 `75d34951`的[Ubuntu38740072541](https://github.com/veryy/Solvit/actions/runs/38740072541)成功，实际产物11975683743（37,915,103字节，SHA256 `803c48028c066fad1b04a1ee0cc0ff2d7b8825adcb3c6cf2e1b76a5e9497da85`）已完整下载核对CRC/摘要，3设备与11 Linux运行时单元无失败/跳过。设备日志分别有Python和Node的`STDIO_MCP_AGENT`标记，经过实际QuickJS包、宿主授权、发现、调用、后续模型步骤与共享文件；停用后两进程回收及其他聊天未连接也通过。Provider为确定性测试实现，不是外部模型。
 
 HTTPS普通聊天修复后的`1536823e`，[契约38742300979](https://github.com/veryy/Solvit/actions/runs/38742300979)成功，实际产物11975499486（108,314字节，SHA256 `1ebe184adf9b815813657424e40fdc19973284606e320445244d1e3f6d1ad0e4`）CRC/摘要正常，481单元（core75/runtime84/workspace82/git12/storage41/chat66/market121）均无失败/跳过；包含无工作区双HTTPS Agent回归和旧MCP配置/授权兼容，应用及设备源码编译通过。附加页面/取消/崩溃场景仍待新一轮Ubuntu设备结果，尚未正式发布。
+
+附加场景`1536823e`的[Ubuntu38742300168](https://github.com/veryy/Solvit/actions/runs/38742300168)成功。产物11976855995（37,931,917字节，SHA256 `efc9cbfdad0427687f83e1e2acd2e836edd881d9ad55daf898a203d1131b441d`）实际下载、CRC/摘要、3设备与11运行时XML均核对通过；日志包含页面未确认拒绝/确认发现后回收、等待中取消、崩溃不重放、独立Node存活、停用回收及聊天隔离。API26/35底层实际SIGKILL证据另见前文，未用普通close替代。
+
+代码已快进合入main，正式标签`v0.42.0`指向`3164c98e270b9dd914aa52d461be7dfbb38a89f4`；[完整正式流程38743958374](https://github.com/veryy/Solvit/actions/runs/38743958374)已启动，插件与搜索任务成功，完整APK/Lint/UI/Linux仍在进行。当前不能宣称新APK已发布。
