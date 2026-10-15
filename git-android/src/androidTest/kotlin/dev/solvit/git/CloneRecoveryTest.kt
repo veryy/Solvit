@@ -22,8 +22,12 @@ class CloneRecoveryTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val workspaces = AndroidWorkspaces(context, scope)
         val chat = "clone-recovery-${UUID.randomUUID()}"
-        val workspace = workspaces.forChat(chat)
-        val root = File(workspaces.location(workspace.id)).canonicalFile
+        lateinit var workspace: dev.solvit.core.Workspace
+        lateinit var root: File
+        suspend fun prepare() {
+            workspace = workspaces.forChat(chat)
+            root = File(workspaces.location(workspace.id)).canonicalFile
+        }
         val base = File(context.noBackupFilesDir, "clone-recovery-test-${UUID.randomUUID()}")
         var active: String? = chat
         var readable = true
@@ -45,13 +49,14 @@ class CloneRecoveryTest {
             }
             return store.seal(r.id, head)
         }
-        fun close() {
-            workspaces.unbind(chat); scope.cancel(); check(root.deleteRecursively())
+        suspend fun close() {
+            workspaces.unbind(chat); scope.cancel()
+            if (::root.isInitialized) check(root.deleteRecursively())
             if (base.exists()) check(base.deleteRecursively())
         }
     }
     private suspend fun fixture(block: suspend (Fixture) -> Unit) {
-        val f = Fixture(context); try { block(f) } finally { f.close() }
+        val f = Fixture(context); try { f.prepare(); block(f) } finally { f.close() }
     }
 
     @Test fun productionDirectoryPublisherNeverReplacesExistingDirectoryFileOrLink() {
