@@ -64,6 +64,27 @@ class ChatAttachmentsDeviceTest {
         android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
+    private data class AttachmentViewport(val bounds:androidx.compose.ui.geometry.Rect,val height:Int,val ime:Int,val keyboardVisible:Boolean)
+    private fun waitForStableAttachmentAfterBranchKeyboard(tag:String) {
+        var previous:AttachmentViewport?=null
+        var stableSince=0L
+        // Compose idle does not mean the separate OS keyboard animation has finished.
+        // Observe actual insets and card bounds across frames rather than tapping cached coordinates.
+        rule.waitUntil(10_000) {
+            val bounds=rule.onAllNodesWithTag(tag).fetchSemanticsNodes().singleOrNull()?.boundsInRoot
+            if(bounds==null)false else {
+                val current=rule.runOnUiThread {
+                    val decor=rule.activity.window.decorView
+                    val insets=decor.rootWindowInsets
+                    AttachmentViewport(bounds,decor.height,insets?.getInsets(android.view.WindowInsets.Type.ime())?.bottom?:0,
+                        insets?.isVisible(android.view.WindowInsets.Type.ime())==true)
+                }
+                val now=android.os.SystemClock.uptimeMillis()
+                if(current!=previous){previous=current;stableSince=now}
+                current.keyboardVisible&&current.ime>0&&current.bounds.bottom<=current.height-current.ime&&now-stableSince>=250
+            }
+        }
+    }
     @Test fun pickerImportsImagesAndTextThenHttpSendAndReopenPreserveTheirContent() {
         val app = rule.activity.application as SolvitApplication
         rule.waitUntil(15_000) { app.ready.value != null }
@@ -219,11 +240,15 @@ class ChatAttachmentsDeviceTest {
             val copiedImage = editCopies.single { it.mimeType == "image/png" }
             val copiedText = editCopies.single { it.mimeType == "text/plain" }
             assertArrayEquals(imageBytes, runBlocking { files.read(branch, copiedImage) })
-            val previewBounds=rule.onNodeWithTag("attachment_${copiedText.id}").fetchSemanticsNode().boundsInRoot
-            rule.onNodeWithTag("attachment_${copiedText.id}").performClick()
+            val previewTag="attachment_${copiedText.id}"
+            var previewBounds=rule.onNodeWithTag(previewTag).fetchSemanticsNode().boundsInRoot
             try {
+                waitForStableAttachmentAfterBranchKeyboard(previewTag)
+                rule.onNodeWithTag(previewTag).performScrollTo().assertIsDisplayed()
+                previewBounds=rule.onNodeWithTag(previewTag).fetchSemanticsNode().boundsInRoot
+                rule.onNodeWithTag(previewTag).performClick()
                 rule.waitUntil(10_000) { rule.onAllNodesWithTag("attachment_text_${copiedText.id}").fetchSemanticsNodes().isNotEmpty() }
-            } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+            } catch (timeout: Throwable) {
                 screenshot("chat-edit-attachment-preview-failure")
                 throw AssertionError("Branch preview: bounds=$previewBounds, selected=${vm.sessionId.value}, branch=$branch, refs=${vm.attachmentDrafts.value[branch].orEmpty().map { it.id }}, error=${vm.error.value}\n"+rule.onRoot(useUnmergedTree=true).printToString(),timeout)
             }
