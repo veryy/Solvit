@@ -169,3 +169,6 @@ b1ccb325/[38807773768](https://github.com/veryy/Solvit/actions/runs/38807773768)
 13dc7a6a/[38815402582](https://github.com/veryy/Solvit/actions/runs/38815402582)只在辅助代码决定可见处记录坐标/放置状态。归档12010981753（875349字节，SHA256 `6ff99f271a08e8d28f7ca3cf1d760b52f68cc55a7a1e540c35b6904ae63d33ed`）完整下载/CRC：关于标题坐标231..284、备份提示231..277，均处于视口231..1794内，但两者layoutInfo.isPlaced=false且父链含false。官方ui-test1.8.3 AndroidAssertions.android.kt的checkIsDisplayed先拒绝节点或任一祖先未放置，坐标本身不足以判定显示。此记录确认辅助代码把预组合但未放置的LazyColumn节点误判为已经显示。
 
 0aa4d573仅在QueuedScroll里按同一官方条件过滤未放置的节点/祖先，再计算坐标；无有效放置目标则继续逐帧滚动。删除临时QUEUED_SCROLL_DIAG、before-legacy截图/重复断言与已被逐帧处理替代的旧performScrollTo，保留原设置末行最终assertIsDisplayed及截图。三项同条件复验[38816285934](https://github.com/veryy/Solvit/actions/runs/38816285934)待结果，不改生产列表/布局、不降低断言、不加睡眠或无限循环。
+
+
+0aa4d573的同条件三项复验[38816285934](https://github.com/veryy/Solvit/actions/runs/38816285934)成功。归档12010474349（883188字节，SHA256 `310fb570ab98c3525883ac5be2221cb2962744439569a638709a8a354423b1d9`）完整下载/CRC，实际OK (3 tests)、19.482秒，零Fatal signal/Snapshot/临时QUEUED_SCROLL_DIAG。实际查看settings-bottom-insets PNG，关于标题、助手简介、备份提示完整显示在导航栏上方；保留原最后可见性断言。原设置失败的未放置节点判断在同一生产APK上由红到绿。完整[38817060892](https://github.com/veryy/Solvit/actions/runs/38817060892)已从清理后0aa4d573启动，仍待611单元/Lint/签名及全部设备门禁，未合入或发布。
