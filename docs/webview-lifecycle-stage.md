@@ -145,3 +145,6 @@ b1ccb325/[38807773768](https://github.com/veryy/Solvit/actions/runs/38807773768)
 3e2fccbf的[38808995127](https://github.com/veryy/Solvit/actions/runs/38808995127)成功；归档12006988560（630953字节，SHA256 `aeb537b49d605b91caece71d51277743fd8174df2efca3870f42358a6a1490ec`）完整下载/CRC，实际OK (1 test)、11.2秒，零Fatal signal/Snapshot多线程异常。同一APK、12个额外会话、真实列表先滚到末尾且确认目标不可见，再回找、真实点击、复制工具回合/角色/工作区、删除原对话后保留分支及Activity重建均通过。这个红绿结果证明显式推进解决了该长历史测试入口的旧位置检查问题，仍不能单独证明完整流程挂起同源。
 
 819bdef9将12会话与末尾起点作为普通回复分支测试固定条件，保留10秒有界查找和全部原断言；移除reply-branch-hang/sequence诊断选择、SIGQUIT后台轮询、adb root和/data/anr归档。源码扫描确认临时solvit_stack/WORKSPACE_CREATE_DIAG不存在。完整[38809890451](https://github.com/veryy/Solvit/actions/runs/38809890451)已由清理后提交启动，包含原覆盖升级、15场恢复、70应用/3Web/25终端下限；尚未结束，候选仍未合入/发布。
+
+
+819bdef9的38809890451/build116680162846已成功；最新原始单元归档12007773610（437941字节，SHA256 `ee82d6dd7389643ada8f4ca2ccf36558ef0651f8dfa4d1a09242788689a5b1f8`）完整下载/CRC/逐项XML核对611项，失败/错误/跳过均0；Lint/APK/固定签名门禁成功。verify-ui116683872050仍在准备界面测试APK，尚未得到整套结果，不提前合入或发布。
