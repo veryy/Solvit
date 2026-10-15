@@ -196,3 +196,11 @@ const result = await ctx.workspacePage.perform();
 关闭提示的控件须带原生确认：`{kind:'workspace.perform',operation:'dismissImportRecovery',arguments:{recoveryId}}`，确认后调用`workspacePage.perform()`。这只删除宿主恢复记录，不删除工作区文件或备份，不接受额外workspaceId，也不能关闭其他对话的提示。旧API26包字节保留，新协议须升级宿主；不能向旧宿主下发API27包。
 
 事务记录位于宿主私有目录。启动恢复先处理事务，再回收登记的暂存文件；保留已发布事实、原备份和并发修改。当前协议面向进程死亡，不承诺断电/存储损坏恢复，不自动重放模型或Shell任务。实际跨进程验收状态见[阶段记录](workspace-import-recovery-stage.md)。
+
+## API29：Git 克隆中断恢复（0.41.0）
+
+人工页面声明API29、`workspace`/`git`权限和`workspace.git`服务；重新下载或沿用既有`startRemote`时还须声明`network`。先调用`gitPage.query('cloneInstalls',{offset:0,limit:5})`查看当前工作区的记录；分页结果为`entries,nextOffset,incomplete,unreadable`。再调用`reviewCloneInstall`和`{id}`取得来源、阶段、可执行动作、问题说明及一次性`reviewId`。没有`.git`时也应提供记录入口；查看不会联网或重放安装。
+
+已显示且经用户确认的`git.perform`控件可使用`resumeCloneInstall`、`restartCloneDownload`或`discardCloneInstall`，参数只能是`{reviewId}`，再调用无参数`gitPage.perform()`。继续及重新下载也支持既有`startRemote`异步任务，沿用`remoteOperation`轮询和`cancelTransfer`。继续核对文件与原生授权但不联网；重新下载须另行网络授权。尝试前消耗句柄，失败须重新审阅，脚本不能传宿主指纹、工作区ID或任意目标路径。
+
+冲突保留工作区文件，校验未完成时不显示已验证统计。已发布仓库只确认和清理私有记录，保留之后的修改；放弃只删除登记的私有暂存，可能留下尚未包含`.git`的部分工作树，不能称为撤销克隆。页面关闭、绑定变化和撤权均受宿主校验。旧API1–28继续选择原始Git1.2.7，完整协议、边界和实际强杀证据见[阶段记录](workspace-git-recovery-stage.md)。

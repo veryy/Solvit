@@ -12,7 +12,7 @@ AI chat, plugins, and a project workspace on your Android phone. Connect your ow
 
 Android 8.0 及以上可用。界面默认中文，也支持英文、日文、韩文、西班牙文和法文；有浅色、深色和跟随系统主题，Android 12 及以上支持动态配色。
 
-当前公开版是 [0.40.0](https://github.com/veryy/Solvit/releases/tag/v0.40.0)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
+当前公开版是 [0.41.0](https://github.com/veryy/Solvit/releases/tag/v0.41.0)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
 
 ## 现在能做什么
 
@@ -26,14 +26,14 @@ Android 8.0 及以上可用。界面默认中文，也支持英文、日文、�
 - **工作区**：一个对话可绑定一个目录，多个 Shell 共用该目录。文件树、新建目录、重命名、删除、CodeMirror 文本/代码预览编辑，以及 xterm.js + Android PTY 交互终端。可以从系统选择器或当前对话已保存的附件导入最多20MiB的完整原文件，先看来源、信息、文本、图片或 PDF 原页预览再确认；同名文件先审阅大小与摘要，确认替换时检查文件版本并保留旧文件备份。导入前检查容量，已知空间不足时保留原文件和附件选择，释放空间后可重试；导入时显示实际写入进度，可以取消、等待清理后重试；应用被系统结束后可恢复未完成替换，插件页显示结果，保留备份和并发文件；文件树、Git和Shell共用。[工作区说明](docs/workspaces.md)
 - **导入备份**：查看来源、当前占用与状态；审阅后复制恢复或确认清理。清理中断时手动退回，同名文件保留双方，结果未确认时不自动重试删除。[使用说明](docs/workspaces.md#导入备份管理0400)
 - **Linux 开发环境**：无需 root，按需安装 Ubuntu 24.04、Python/venv、Node24/npm，可追加 Python/pip 或 Java17。在「工作区 → Linux」安装后新建 Ubuntu Shell，AI 命令、终端和文件管理使用同一目录。[上手指南](docs/linux-environment.md) · [验证记录](docs/linux-environment-stage.md)
-- **Git 工作台**：Changes、差异、暂存、提交和历史，与文件管理和终端使用同一目录。支持 HTTPS 克隆、fetch、拉取/推送审阅、合并冲突、进度和取消；凭据由原生安全表单加密保存。AI Git 工具目前只读。[Git 阶段记录](docs/workspace-github-stage.md)
+- **Git 工作台**：Changes、差异、暂存、提交和历史，与文件管理和终端使用同一目录。支持 HTTPS 克隆、fetch、拉取/推送审阅、合并冲突、进度和取消；凭据由原生安全表单加密保存。克隆被系统结束后，可审阅记录再继续或重新下载；遇到冲突保留文件，放弃只清私有暂存。AI Git 工具目前只读。[Git 阶段记录](docs/workspace-github-stage.md)
 - **更新**：应用内查看版本说明、下载进度和安装入口。配置中的 API Key 使用 Android Keystore 加密保存。
 
 ## 接下来先补齐日常功能
 
 图片、文本和代码附件已经能用，接下来继续补齐：
 
-1. Git 克隆中断恢复和真实 GitHub 账号读写验收；导入容量、备份管理和进程死亡恢复已交付。
+1. 真实 GitHub 账号读写和完整项目任务验收；Git 克隆中断恢复、导入容量、备份管理已交付。
 2. ARM64 真机与旧内核兼容、本地 stdio MCP 和 Skills 运行环境。
 3. 用真实模型验证角色、流式、工具选择和完整项目任务，继续改善插件管理与记忆体验。
 
@@ -51,14 +51,14 @@ Linux 环境仍使用 Android 内核和应用身份，不额外授予系统权�
 
 配置备份包含模型连接、API Key、角色、提示词、语言和外观等；不包含聊天、插件包、插件密钥和记忆。备份文件请保存在应用外。
 
-当前发布的是 debug APK。[0.40.0 远程验证](https://github.com/veryy/Solvit/actions/runs/38703876728)通过了测试、Lint、APK、签名与覆盖升级等门禁；真实模型完整任务与真机体验尚未验收。构建证据和 APK 摘要见[版本记录](docs/release-0.40.0.md)。
+当前发布的是 debug APK。[0.41.0 远程验证](https://github.com/veryy/Solvit/actions/runs/38721701886)通过了测试、Lint、APK、签名与覆盖升级等门禁；真实模型完整任务与真机体验尚未验收。构建证据和 APK 摘要见[版本记录](docs/release-0.41.0.md)。
 
 ## 构建
 
 GitHub Actions 从锁定源码编译 PRoot/loader，再构建 Android 应用；源码、补丁和许可随 Release 提供 `solvit-linux-sources.zip`。需要 JDK 17、Android SDK Platform 36、Build Tools 36.0.0、NDK 28.2.13676358。Android Studio 可自动安装 SDK；命令行设置 `ANDROID_HOME` 或在不提交的 `local.properties` 中填写 `sdk.dir`。
 
 ```sh
-./gradlew :core:test :linux-runtime:test :system-runtime:test :workspace-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest
+./gradlew :core:test :linux-runtime:test :system-runtime:test :workspace-android:testDebugUnitTest :git-android:testDebugUnitTest :web-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest :web-android:assembleDebugAndroidTest
 ```
 
 APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同命令并上传 APK 和测试报告。Gradle Wrapper 固定为 9.3.1，AGP 9.1.1 使用内置 Kotlin，项目 Kotlin 版本 2.4.10，以接入具有超时与取消能力的 QuickJS 插件引擎。
@@ -76,6 +76,7 @@ APK：`app/build/outputs/apk/debug/app-debug.apk`。GitHub Actions 使用相同�
 | `linux-runtime` / `linux-android` | 可信归档安装、共享 PRoot 启动、按需软件安装和原生环境服务 |
 | `system-runtime` | Shell 作业、流式输出与取消引擎 |
 | `workspace-android` | 持久工作区绑定、文件操作、多 Shell 会话与原生进程执行 |
+| `git-android` | 绑定工作区的 Git、HTTPS 传输、审阅确认与克隆中断恢复 |
 | `release-updates` | GitHub Release 更新检查 |
 | `plugin-runtime` | QuickJS 引擎、JS 工具适配、依赖、权限与执行限制 |
 | `plugin-market` | HTTPS 目录、包校验、安装启停、独立存储和权限配置 |
