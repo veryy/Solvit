@@ -179,9 +179,9 @@ const result = await ctx.workspacePage.perform();
 
 成功返回snapshot，额外`lastImport:{path,sha256,backupPath}`。新建时backupPath为null；替换时为同目录保留的原文件相对路径，页面应展示给用户。备份可以在文件管理中查看/改名/删除，也会出现在Git未跟踪文件中；不会自动删除。外部Shell不受互斥锁约束，提交过程中抢先创建的同名文件不覆盖，原文件保留供恢复。旧API22的importFile仍只新建，不因升级而变成盲目覆盖。
 
-## API26：导入任务、进度和取消（候选，未发布）
+## API26：导入任务、进度和取消（APK候选）
 
-本协议须声明API26、workspace权限和workspace.files服务，限人工页面；当前公开APK仍为0.37.0/API25。先按API25查询reviewImport，展示源/目标版本和保留原文件说明，再把同样的`{id,path,sha256,reviewId}`放入已确认控件：`{kind:'workspace.perform',operation:'startImport',arguments:{...}}`。`workspacePage.perform()`只返回`{operationId}`，不表示已写入。
+本协议须声明API26、workspace权限和workspace.files服务，限人工页面；当前公开APK仍为0.37.0/API25。市场已支持API26并提供workspace1.9.0；API25仍选择兼容的workspace1.8.0。新宿主0.38.0尚在远程验收，不能只更新插件就让旧宿主获得新协议。先按API25查询reviewImport，展示源/目标版本和保留原文件说明，再把同样的`{id,path,sha256,reviewId}`放入已确认控件：`{kind:'workspace.perform',operation:'startImport',arguments:{...}}`。`workspacePage.perform()`只返回`{operationId}`，不表示已写入。
 
 随后查询`workspacePage.query('importOperation',{operationId})`；返回`{operationId,status,progress?,result?,error?}`。状态为RUNNING、CANCELLING、SUCCEEDED、FAILED或CANCELLED；进度含`stage,completed,total`，是暂存写入字节，不包含系统选择器/网络下载。PREPARING、WRITING、SYNCING、VERIFYING、PUBLISHING与COMMITTED分别表示准备、复制、同步、校验、发布检查点和已提交事实；字节100%也不能当作成功。SUCCEEDED的result是原生snapshot，含lastImport及backupPath。
 
