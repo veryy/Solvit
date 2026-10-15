@@ -71,3 +71,5 @@ API29/Git1.3.0曾先完成独立私有兼容验证，再部署并从公网核对
 ![候选真实设备：中断文件发布后审阅](screenshots/0.41.0/git-clone-file-candidate.png)
 
 ![候选真实设备：Shell冲突保留文件，隐藏未完成的统计](screenshots/0.41.0/git-clone-conflict-candidate.png)
+
+Git1.3.1市场补丁已完成部署后公网核对：API1..28目录与发布前一致，API29选择1.3.1；完整下载53个历史包核对字节数/摘要，包括旧Git1.3.0，当前Git与仓库生成包逐字节一致。不是仅依靠服务健康检查。完整候选38718561877的build已成功，UI仍在运行；正式标签与公开APK仍待完成。
