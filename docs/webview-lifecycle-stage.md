@@ -121,3 +121,8 @@ c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/3878892612
 [38801340744](https://github.com/veryy/Solvit/actions/runs/38801340744)终态失败，build成功但verify-ui/116654832079在常规Gradle测试12分钟上限以124退出。完整下载UI归档12005223531（2251329字节，SHA256 `9a57eb31d4e9e1612725faced512a46a4caaca529c9da8ba2ab608b29ae938ed`）并核对CRC/原始XML：Web3、终端25零失败；应用仅11项正常完成，第12个replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal自20:40:48开始后没有结束，XML含该未完成项及负时间，不能把“12项、failures0”当作通过。未达到应用70下限，release未执行，不能用240次独立压力代替整体验收。
 
 实际日志未提供挂起线程栈。排序假设为侧栏滚动等待、测试dispatcher排队任务不被自动推进、分支或存储调用阻塞；需实际栈区分，暂不修改生产分支逻辑。新增单场reply-branch-hang诊断：保留相同已构建候选APK与原测试，60秒仍在执行时发送一次SIGQUIT，120秒原单场上限不变，归档logcat及ART的/data/anr文件。仅对一次性CI模拟器使用adb root读取诊断文件，不更改产品权限。a45dc66e初轮38805573819因补齐ART文件归档被主动替代，不能算成功或产品失败；执行以7306d88e新轮为准。诊断结束后清理临时入口/计时器。
+
+
+单场诊断38805645701初次在NDK28.2下载的ZipFile unknown archive失败，尚未编译/执行设备测试；只重跑相同代码的失败任务一次。attempt2任务116666797091成功，归档12007195343（599367字节，SHA256 `d37422c9c55ed8f6561bd6dccf17c015b84e9471e79c03767020ad61d2800ab1`）完整下载/CRC核对，实际OK (1 test)、9.552秒。单场未挂起，不证明完整状态下的问题已解决，没有因此修改产品分支逻辑。
+
+53d0cf0c的[38807004179](https://github.com/veryy/Solvit/actions/runs/38807004179)重放完整失败轮此前实际完成的11项应用用例，再接原回复分支用例；使用同一生产APK，300秒序列上限、首错停止，TestRunner明确开始目标用例后20秒才发SIGQUIT，避免在前置用例尚未结束时采错栈。原常规12分钟上限与应用70项门禁不变。单场和序列诊断均不替代完整回归；实际结果待回收。
