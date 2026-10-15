@@ -123,6 +123,9 @@ API26客户端合同报告11939117980（93730字节）已实际下载并完整ZI
 
 1e44b4e的38662248469/verify-ui116187970855终态失败。已下载11939499016（3488706字节）完整ZIP CRC：web3/terminal11通过，app仅执行28/65项后进程退出，不能宣称剩余用例通过。logcat定位ChatLayoutTest.configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation附近，主进程SIGSEGV唯一native栈帧为系统WebView124.0.6367.219的libwebviewchromium.so，非Kotlin异常；模拟器同时有ColorBuffer错误，尚不能据此认定纯基础设施故障或已定位应用根因。
 
-排序假设为快速打开/关闭的回调与销毁时序、旧WebView图形故障、Activity重建后的遗留页面状态。读取Operit固定版本ToolPkgComposeDslWebView.kt的onDispose与TokenConfigWebViewScreen.kt，以及Android官方WebView.destroy/onRenderProcessGone契约：销毁后不得再调用方法，render-gone须清理对应实例。未因单帧native堆栈直接改动生产生命周期，也未切换渲染器/禁用用例。
+排序假设为快速打开/关闭的回调与销毁时序、旧WebView图形故障、Activity重建后的遗留页面状态。读取Operit固定版本ToolPkgComposeDslWebView.kt的onDispose与TokenConfigWebViewScreen.kt，以及Android官方[WebView.destroy](https://developer.android.com/reference/android/webkit/WebView#destroy())/[onRenderProcessGone](https://developer.android.com/reference/android/webkit/WebViewClient#onRenderProcessGone(android.webkit.WebView,%20android.webkit.RenderProcessGoneDetail))契约：销毁后不得再调用方法，render-gone须清理对应实例。未因单帧native堆栈直接改动生产生命周期，也未切换渲染器/禁用用例。
 
 复用原1e44b4e生产APK，扩展既有独立诊断入口：workspace-startup在同一测试重复三次重建/新对话/创建并关闭工作区，原断言全部保留；独立运行仍保留原显式保存配置前置，不添加模型请求。再跨instrumentation重复五轮，首错即停。plugin-resume独立重跑MCP/任务/记忆/HTML笔记四个恢复点击及新导入场景，原确认与存储断言保留。额外捕获native logcat和WebView provider，源码一致性门禁继续拒绝生产代码差异。此诊断不替代完整UI和正式APK验收。
+
+
+诊断38664146811和38664146876已启动，锁定7844d27e；两份输入分别为workspace-startup五轮（每轮同一用例内部三次）及plugin-resume三轮五项，具体任务与输入对应以实际日志为准。同时对原38662248469失败UI执行一次同源attempt2，生产仍锁定1e44b4e，供原全套行为复现比较；不把单次重跑转绿解释为根因已修复。两个诊断都先通过生产APK源码一致性检查，原523单元/Lint/签名仍保留。
