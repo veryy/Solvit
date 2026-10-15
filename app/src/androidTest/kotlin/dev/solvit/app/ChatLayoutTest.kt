@@ -741,8 +741,8 @@ class ChatLayoutTest {
         val app = rule.activity.application as SolvitApplication
         val previous = runBlocking { app.settings.load() }
         try {
-            // Independent of the upgrade fixture when run alone; no model is called.
-            runBlocking { app.settings.save(previous.copy(apiKey=previous.apiKey.ifBlank { "workspace-layout-fixture-key" })) }
+            // Explicitly mark the existing configuration saved; no model is called.
+            runBlocking { app.settings.save(previous) }
             repeat(3) {
                 rule.activityRule.scenario.recreate()
                 ready()

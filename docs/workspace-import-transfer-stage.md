@@ -125,4 +125,4 @@ API26客户端合同报告11939117980（93730字节）已实际下载并完整ZI
 
 排序假设为快速打开/关闭的回调与销毁时序、旧WebView图形故障、Activity重建后的遗留页面状态。读取Operit固定版本ToolPkgComposeDslWebView.kt的onDispose与TokenConfigWebViewScreen.kt，以及Android官方WebView.destroy/onRenderProcessGone契约：销毁后不得再调用方法，render-gone须清理对应实例。未因单帧native堆栈直接改动生产生命周期，也未切换渲染器/禁用用例。
 
-复用原1e44b4e生产APK，扩展既有独立诊断入口：workspace-startup在同一测试重复三次重建/新对话/创建并关闭工作区，原断言全部保留；独立运行时仅补假模型配置前置，仍不请求模型。再跨instrumentation重复五轮，首错即停。plugin-resume独立重跑MCP/任务/记忆/HTML笔记四个恢复点击及新导入场景，原确认与存储断言保留。额外捕获native logcat和WebView provider，源码一致性门禁继续拒绝生产代码差异。此诊断不替代完整UI和正式APK验收。
+复用原1e44b4e生产APK，扩展既有独立诊断入口：workspace-startup在同一测试重复三次重建/新对话/创建并关闭工作区，原断言全部保留；独立运行仍保留原显式保存配置前置，不添加模型请求。再跨instrumentation重复五轮，首错即停。plugin-resume独立重跑MCP/任务/记忆/HTML笔记四个恢复点击及新导入场景，原确认与存储断言保留。额外捕获native logcat和WebView provider，源码一致性门禁继续拒绝生产代码差异。此诊断不替代完整UI和正式APK验收。
