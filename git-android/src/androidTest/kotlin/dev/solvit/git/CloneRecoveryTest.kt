@@ -28,7 +28,7 @@ class CloneRecoveryTest {
             workspace = workspaces.forChat(chat)
             root = File(workspaces.location(workspace.id)).canonicalFile
         }
-        val base = File(context.noBackupFilesDir, "clone-recovery-test-${UUID.randomUUID()}")
+        val base = File(context.noBackupFilesDir, "clone-recovery-test-${UUID.randomUUID()}").canonicalFile
         var active: String? = chat
         var readable = true
         var writable = true
@@ -60,7 +60,7 @@ class CloneRecoveryTest {
     }
 
     @Test fun productionDirectoryPublisherNeverReplacesExistingDirectoryFileOrLink() {
-        val parent = File(context.cacheDir, "directory-publisher-${UUID.randomUUID()}").apply { check(mkdir()) }
+        val parent = File(context.cacheDir, "directory-publisher-${UUID.randomUUID()}").canonicalFile.apply { check(mkdir()) }
         val from = File(parent, "source").apply { check(mkdir()); File(this, "source.txt").writeText("source") }
         val target = File(parent, ".git").apply { check(mkdir()); File(this, "keep.txt").writeText("keep") }
         try {
