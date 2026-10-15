@@ -5,6 +5,7 @@ solvit_diagnostic_expected='OK (1 test)'
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
   workspace-editor) solvit_diagnostic_test='dev.solvit.app.WorkspaceHtmlPageTest#htmlCreatesBindsBrowsesAndSavesThroughActualNativeConfirmationAndRejectsStaleFiles' ;;
   workspace-startup) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation' ;;
+  workspace-startup-stress) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation' ;;
   workspace-startup-sequence)
     # Preserve the actual preceding WebView/PTY/memory scenarios in the failed full run.
     solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace,dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput,dev.solvit.app.ChatLayoutTest#memoryManagementEditsAndDeletesWithPluginDisabled,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending,dev.solvit.app.ChatLayoutTest#pluginPageCanReachBottomAndReturnToChat,dev.solvit.app.ChatLayoutTest#actualAndroidJsMemoryReachesPreparedModelRequestWithoutSearchToolCalls,dev.solvit.app.ChatLayoutTest#configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation'
@@ -39,9 +40,14 @@ timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-and
 for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   echo "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor} diagnostic iteration $iteration/$solvit_diagnostic_repetitions"
   solvit_iteration_timeout=120s
-  if [ "${SOLVIT_DIAGNOSTIC_CASE:-}" = workspace-startup-sequence ]; then solvit_iteration_timeout=300s; fi
+  solvit_recreations=3
+  case "${SOLVIT_DIAGNOSTIC_CASE:-}" in
+    workspace-startup-sequence) solvit_iteration_timeout=300s ;;
+    workspace-startup-stress) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
+  esac
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
+    -e workspaceRecreations "$solvit_recreations" \
     -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \
     | tee "ui-screenshots/page-diagnostic-iteration-$iteration.txt"
