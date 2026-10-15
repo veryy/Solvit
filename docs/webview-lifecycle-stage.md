@@ -138,3 +138,10 @@ c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/3878892612
 b1ccb325/[38807773768](https://github.com/veryy/Solvit/actions/runs/38807773768)失败；归档12006229893（500598字节，SHA256 `3c454511aa1ce392c8b7344c4ea0a01e66458dc1e565b8d28c6a8e22ef8ba6ec`）完整下载/CRC，实际失败栈是selectBranchFixture中的performScrollToNode报找不到目标，侧栏语义VerticalScrollAxisRange(value=3517,maxValue=3517)，处在列表末尾。这轮快速断言失败，未到SIGQUIT时间，也没有ART栈；不能谎称取得挂起线程栈或已完全复现12分钟挂起。
 
 实际读取官方ui-test1.8.3 Actions.kt：performScrollToNode在lazy列表末尾先调用scrollToIndex(0)，随后立即重取节点并检查是否在末尾；ScrollToIndex/ScrollBy经宿主节点的协程执行。结合此前排队侧栏关闭证据，待验证假设是StandardTestDispatcher使滚动操作仍在队列中，后续检查观察旧位置。3e2fccbf只在selectBranchFixture替换滚动驱动：先回到开头并推进一个UI帧，10秒有界等待目标显示；若仍不可见，每次滚动半个实际视口后推进UI帧，再检查。不直接跳到目标索引、不重试点击、不变更生产分支/存储逻辑；真实选择、工具回合复制、角色、工作区及原对话保留断言全部保留。同一长历史条件正在复验，完整流程挂起是否同源仍待回归。
+
+
+## 同一长历史回归由失败到通过，临时抓栈已清理
+
+3e2fccbf的[38808995127](https://github.com/veryy/Solvit/actions/runs/38808995127)成功；归档12006988560（630953字节，SHA256 `aeb537b49d605b91caece71d51277743fd8174df2efca3870f42358a6a1490ec`）完整下载/CRC，实际OK (1 test)、11.2秒，零Fatal signal/Snapshot多线程异常。同一APK、12个额外会话、真实列表先滚到末尾且确认目标不可见，再回找、真实点击、复制工具回合/角色/工作区、删除原对话后保留分支及Activity重建均通过。这个红绿结果证明显式推进解决了该长历史测试入口的旧位置检查问题，仍不能单独证明完整流程挂起同源。
+
+819bdef9将12会话与末尾起点作为普通回复分支测试固定条件，保留10秒有界查找和全部原断言；移除reply-branch-hang/sequence诊断选择、SIGQUIT后台轮询、adb root和/data/anr归档。源码扫描确认临时solvit_stack/WORKSPACE_CREATE_DIAG不存在。完整[38809890451](https://github.com/veryy/Solvit/actions/runs/38809890451)已由清理后提交启动，包含原覆盖升级、15场恢复、70应用/3Web/25终端下限；尚未结束，候选仍未合入/发布。
