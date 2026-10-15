@@ -50,7 +50,8 @@ case "${SOLVIT_UI_DIAGNOSTIC:-none}" in
     ;;
   *) echo 'Unknown UI diagnostic mode'; exit 1 ;;
 esac
-timeout --signal=TERM --kill-after=30s 12m ./gradlew :web-android:connectedDebugAndroidTest :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions" --stacktrace
+timeout --signal=TERM --kill-after=30s 12m ./gradlew :web-android:connectedDebugAndroidTest :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions,dev.solvit.terminal.StdioProcessDeathTest" --stacktrace
+SOLVIT_STDIO_DEATH_OUTPUT=ui-screenshots/stdio-process-death bash scripts/verify-stdio-process-death.sh
 solvit_test_status=$?
 if [ "$solvit_test_status" -ne 0 ]; then
   timeout 15s adb logcat -d -t 1500 > ui-screenshots/emulator-logcat.txt || true
