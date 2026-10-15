@@ -18,7 +18,8 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     launcher: ShellLauncher = ShellLauncher(ShellPaths("/system/bin/sh", "/system/bin/toybox", setsidArguments = listOf("setsid"))),
     rootAccess: RootAccess = AndroidRootAccess(),
     private val linux: LinuxEnvironmentService? = null,
-    private val importPublisher: WorkspaceImportPublisher = WorkspaceImportPublisher { source,destination -> AndroidWorkspaceImportPublisher.publish(source,destination) }) : WorkspaceService {
+    private val importPublisher: WorkspaceImportPublisher = WorkspaceImportPublisher { source,destination -> AndroidWorkspaceImportPublisher.publish(source,destination) },
+    private val importAvailableBytes:(File)->Long={it.usableSpace}) : WorkspaceService {
     private val root = File(context.filesDir, "workspaces").apply { check(mkdirs() || isDirectory) }
     private val importLedgerRoot=File(context.noBackupFilesDir.canonicalFile,"workspace-import-staging")
     private val prefs = context.getSharedPreferences("workspaces", Context.MODE_PRIVATE)
@@ -274,8 +275,10 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         expectedSha256: String): WorkspaceImportedFile = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         val base=directory(workspaceId).canonicalFile
-        val result=withContext(WorkspaceImportStaging(base,File(importLedgerRoot,workspaceId))) {
-            WorkspaceFileImports.create(base,path,bytes,expectedSha256,importPublisher) { verifyPage(workspaceId) }
+        val result=WorkspaceImportCapacity.admit(base,bytes.size,importAvailableBytes) {
+            withContext(WorkspaceImportStaging(base,File(importLedgerRoot,workspaceId))) {
+                WorkspaceFileImports.create(base,path,bytes,expectedSha256,importPublisher) { verifyPage(workspaceId) }
+            }
         }
         WorkspaceImportedFile(workspaceId,path,result.first,result.second)
     } }
@@ -288,8 +291,10 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         verifyPage(workspaceId)
         val base=directory(workspaceId).canonicalFile
         val ledger=File(importLedgerRoot,workspaceId)
-        val result=withContext(WorkspaceImportStaging(base,ledger)+WorkspaceImportTransactions(base,ledger)) {
-            WorkspaceFileImports.replace(base,path,bytes,sourceSha256,targetSha256,importPublisher) { verifyPage(workspaceId) }
+        val result=WorkspaceImportCapacity.admit(base,bytes.size,importAvailableBytes) {
+            withContext(WorkspaceImportStaging(base,ledger)+WorkspaceImportTransactions(base,ledger)) {
+                WorkspaceFileImports.replace(base,path,bytes,sourceSha256,targetSha256,importPublisher) { verifyPage(workspaceId) }
+            }
         }
         WorkspaceImportedFile(workspaceId,path,result.first,result.second,result.third)
     } }
