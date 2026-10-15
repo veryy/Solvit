@@ -82,7 +82,7 @@ jobs:
   verify-ui:
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 45
     env:
       SOLVIT_UI_DIAGNOSTIC: ${{ inputs.ui_diagnostic || 'none' }}
     steps:
@@ -130,7 +130,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
       - uses: reactivecircus/android-emulator-runner@v2
-        timeout-minutes: 18
+        timeout-minutes: 25
         with:
           api-level: 35
           arch: x86_64

@@ -3,7 +3,7 @@
 set -uo pipefail
 mkdir -p ui-screenshots
 # Live credentials are required by the separate real-model acceptance workflow.
-solvit_exclusions=dev.solvit.app.SeedUpgradeConfigurationTest,dev.solvit.app.RealModelAcceptanceTest
+solvit_exclusions=dev.solvit.app.SeedUpgradeConfigurationTest,dev.solvit.app.RealModelAcceptanceTest,dev.solvit.app.WorkspaceImportProcessDeathTest
 if [ -f .signing/debug.keystore ]; then
   test -f ui-screenshots/previous.apk || exit 1
   printf '%s\n' '88684ed71af4c390217d4ee6f58e3a169d513e812744eb97af34318d71d5d631  ui-screenshots/previous.apk' | sha256sum --check || exit 1
@@ -15,6 +15,13 @@ if [ -f .signing/debug.keystore ]; then
 else
   # Fork PRs have no signing secret and cannot install over the signed release.
   solvit_exclusions="$solvit_exclusions,dev.solvit.app.UpgradePersistenceTest"
+fi
+bash scripts/verify-workspace-import-process-death.sh
+solvit_recovery_status=$?
+if [ "$solvit_recovery_status" -ne 0 ]; then
+  timeout 15s adb logcat -d -t 1500 > ui-screenshots/emulator-logcat.txt || true
+  timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
+  exit "$solvit_recovery_status"
 fi
 case "${SOLVIT_UI_DIAGNOSTIC:-none}" in
   none) ;;
