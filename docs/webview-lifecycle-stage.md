@@ -104,3 +104,6 @@ c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/3878892612
 将推进移到真实触摸之前，ef507892在[38800178350](https://github.com/veryy/Solvit/actions/runs/38800178350)通过：归档12003768443（569334字节，SHA256 `d301ad644b70c221193edc3c39b944178cff3834c4d76e99bb66b5096b2f8bd9`）完整下载/CRC，实际OK (1 test)、101.013秒、30个完整计数，零Fatal signal/Snapshot。边界日志确认第一次触摸前侧栏范围为Rect(0,0,809,1731)，推进测试时钟后变为Rect(0,0,0,0)。新对话按钮已调用，但StandardTestDispatcher尚未执行rememberCoroutineScope中的drawer.close；聊天背景节点虽存在，真实触摸先被仍打开的侧栏遮罩消费。直接语义动作因此能绕过遮罩，而在点击之后推进时钟已经太迟。
 
 最终a8833ed0恢复原真实触摸/创建/绑定/关闭/重建路径与10秒断言，仅在获取点击坐标前推进一个UI测试帧，明确断言侧栏已不可见；移除WORKSPACE_CREATE_DIAG日志、超时截图捕获和直接语义动作。没有增加固定睡眠、点击重试、吞异常或改动产品按钮。清理后的完整Android门禁和8×30压力仍待实际执行；该测试调度问题与WebView124原生SIGSEGV不能混为已修复。
+
+
+清理临时诊断后的a8833ed0候选在[38801340744](https://github.com/veryy/Solvit/actions/runs/38801340744)的build/116650858266成功，测试/Lint/APK/固定签名已完成。原始单元归档12005240519（438165字节，SHA256 `d9ae44dfa2b03c090391d9bfa6e9523082fc0be85264434ce1cd7f8959b0f462`）完整下载并通过CRC/逐项XML核对：611项，失败/错误/跳过均0。界面任务116654832079仍在准备测试APK；独立8轮压力[38801427414](https://github.com/veryy/Solvit/actions/runs/38801427414)任务116651161014仍在模拟器执行，尚无最终完成次数。未合入产品修改、未升级版本或替换公开APK。
