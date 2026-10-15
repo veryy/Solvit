@@ -229,10 +229,13 @@ class ChatLayoutTest {
         if (rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
             rule.onNode(hasText("工作区：",substring=true) and isEnabled()).performClick()
         } else {
-            rule.onNode(hasText("新建工作区") and isEnabled()).performClick()
-            // StandardTestDispatcher queues touch continuations. Drain one UI frame;
-            // idle detection alone does not include queued scheduler tasks.
+            android.util.Log.i("WORKSPACE_CREATE_DIAG", "before-frame drawer=" +
+                rule.onAllNodesWithTag("chat_drawer").fetchSemanticsNodes().map { it.boundsInRoot })
+            // Drain queued close work before computing touch coordinates.
             rule.mainClock.advanceTimeByFrame()
+            android.util.Log.i("WORKSPACE_CREATE_DIAG", "after-frame drawer=" +
+                rule.onAllNodesWithTag("chat_drawer").fetchSemanticsNodes().map { it.boundsInRoot })
+            rule.onNode(hasText("新建工作区") and isEnabled()).performClick()
             try {
                 rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().isNotEmpty() }
             } catch (timeout: ComposeTimeoutException) {
