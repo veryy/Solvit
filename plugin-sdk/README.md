@@ -145,3 +145,11 @@ beforeModel内可调用`ctx.workspace.instructions()`，需要apiVersion:16、wo
 ### API19 Git 页面（开发候选）
 
 清单声明 `permissions: ["workspace", "git"]` 和 `nativeServices: ["workspace.git"]`。页面可调用 `ctx.gitPage.query("status", {offset: 0, limit: 10})`、`diff`、`diffChunk`、`history` 和 `reviewCommit`。差异/暂存区审阅返回宿主句柄，JS不传根目录、patch或Git版本对象。`ctx.gitPage.perform()` 无参数，仅消费当前用户确认的 `git.perform` 按钮；支持 initialize、stage/unstage 的 reviewId 和 commit 的 revisionId/message/author/email。关闭页面收回句柄及绑定接口，旧宿主拒绝API19。此协议尚未在公开0.28 APK中提供，Git页面及工具接线仍在开发。
+
+### API29：中断的 Git 克隆（候选，尚未发布 APK）
+
+Git 1.3.0 页面使用 `gitPage.query("cloneInstalls", {offset: 0, limit: 5})` 查看当前工作区的持久记录，再通过 `reviewCloneInstall` 和 `{id}` 审阅。宿主返回来源、阶段、可继续/重新下载状态、文件统计、问题说明及一次性 `reviewId`，不返回私有暂存路径。
+
+用户明确确认 `git.perform` 后，页面调用 `gitPage.perform()`；支持 `resumeCloneInstall`、`restartCloneDownload`、`discardCloneInstall`，参数只能是 `{reviewId}`。继续和重新下载也可嵌入既有 `startRemote` 异步任务。句柄在尝试执行前消费，失败须重新审阅；页面关闭、工作区变化或权限撤销后不能复用。恢复不会自动执行：继续核对已安装文件，冲突不覆盖；放弃仅关闭登记的私有暂存，保留工作区文件。重新下载需要另行网络授权，已发布仓库的确认不会重置后续编辑。
+
+API1–28 目录保留 Git1.2.7 的原始包，不能调用 API29 恢复动作。测试结果和实际强杀验收进度见[阶段记录](../docs/workspace-git-recovery-stage.md)。
