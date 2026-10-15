@@ -757,6 +757,8 @@ class ChatLayoutTest {
         ready()
         val app = rule.activity.application as SolvitApplication
         val previous = app.modelProfiles.state.value
+        val diagnostic = if (InstrumentationRegistry.getArguments().getString("workspaceRecreations") == "30")
+            SnapshotThreadFailureProbe.install() else null
         try {
             // Use the live service, as settings UI does. Direct persistence does not
             // notify its StateFlow when this test runs in a fresh app process.
@@ -778,7 +780,10 @@ class ChatLayoutTest {
                 rule.onNode(hasText("工作区：", substring = true)).assertIsDisplayed()
                 android.util.Log.i("WORKSPACE_PAGE_DIAG", "STARTUP_RECREATION_COMPLETED|${iteration + 1}|$recreations")
             }
-        } finally { runBlocking { app.modelProfiles.replace(previous) } }
+        } finally {
+            diagnostic?.close()
+            runBlocking { app.modelProfiles.replace(previous) }
+        }
     }
     @Test fun startupFocusesInputAndFloatingComposerStaysAboveRealKeyboard() {
         ready()
