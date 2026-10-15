@@ -45,3 +45,5 @@ HTML接入候选：Git TS页面启动先查恢复清单，即使status因缺少.
 完整文件移动候选`4d39a948`的[38713572079](https://github.com/veryy/Solvit/actions/runs/38713572079)API26已28/28通过，API35为27/28通过，唯一失败为并发Shell克隆审阅时读取微小manifest仍分配33554452字节导致OOM。原子文件/目录移动、重建离线恢复和已发布后变更用例在两路均通过。修复readText先检查NOFOLLOW实际文件大小上限，再只分配实际大小+1并核对读取前后身份和长度，保留32MiB上限，不扩大堆或修改原设备断言。
 
 Git1.3.0首轮[插件生成38714066212](https://github.com/veryy/Solvit/actions/runs/38714066212)typecheck通过，页面合同仅冲突放弃的最后一项失败：成功提示复用了git_error ID。修复为成功通知git_notice与错误状态区分，原断言保留。生成物未直接作为通过包或公开发布，须重生成并核对。
+
+第二轮TS合同38714538856在旧推送拒绝用例失败：任务执行结束SUCCEEDED不代表Git结果成功，REJECTED_NONFASTFORWARD必须仍显示git_error。修复只对已核对JGit RemoteRefUpdate.Status/MergeResult.MergeStatus的成功状态（或无状态的完成操作）显示成功通知，未知/冲突/拒绝仍为错误；不修改旧拒绝断言。

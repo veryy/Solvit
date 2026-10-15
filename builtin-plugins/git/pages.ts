@@ -103,7 +103,7 @@ export function gitPage(){
      remoteUrl=(event.fields.git_remote_url??remoteUrl).trim();
      if(!remoteUrl)throw Error(rt[1]);mode='credentials';
     }else if(action==='gitCredentialsConfirm'){
-     const outcome=await api.credentials();mode='remote';message=outcome==='CANCELLED'?'':t[24];
+     const outcome=await api.credentials();mode='remote';message=outcome==='CANCELLED'?'':t[24];notice=true;
     }
     else if(action==='gitClone'||action==='gitFetch'||action==='gitPull'||action==='gitPush'){
      remoteUrl=(event.fields.git_remote_url??remoteUrl).trim();remoteBranch=(event.fields.git_remote_branch??remoteBranch).trim();
@@ -121,7 +121,12 @@ export function gitPage(){
       if(remoteTarget==='reviewPush'||remoteTarget==='reviewPull'){
        if(!state.result?.reviewId||!state.result.localHead||!state.result.remoteHead)throw Error('Incomplete remote review');
        remoteReview=state.result as {reviewId:string;localHead:string;remoteHead:string};mode='remote-review';
-      }else {message=state.result?.status??t[24];notice=true;mode='changes';await loadClones();await refresh()}
+      }else {
+       const resultStatus=state.result?.status;
+       message=resultStatus??t[24];
+       notice=!resultStatus||['OK','UP_TO_DATE','FAST_FORWARD','FAST_FORWARD_SQUASHED','ALREADY_UP_TO_DATE','MERGED','MERGED_NOT_COMMITTED','MERGED_SQUASHED','MERGED_SQUASHED_NOT_COMMITTED'].includes(resultStatus);
+       mode='changes';await loadClones();await refresh();
+      }
      }else if(state.status==='FAILED'||state.status==='CANCELLED'){
       operationId='';message=state.error??state.status;
       if(['clone','resumeCloneInstall','restartCloneDownload'].includes(remoteTarget)){mode='clones';await loadClones()}else mode='remote';
