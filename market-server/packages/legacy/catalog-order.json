@@ -42,5 +42,9 @@
   {
     "file": "dev.solvit.git-1.2.4.solvit.json",
     "after": "dev.solvit.git.solvit.json"
+  },
+  {
+    "file": "dev.solvit.git-1.2.5.solvit.json",
+    "after": "dev.solvit.git.solvit.json"
   }
 ]

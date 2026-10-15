@@ -15,7 +15,7 @@ class BuiltinWorkspaceManager(context: Context, private val pluginId: String = "
     private val app = context.applicationContext
     private val pkg by lazy {
         ScriptPackage.parse(app.assets.open("builtin-plugins/$pluginId.solvit.json").use { it.readBytes() })
-            .also { check(it.manifest.id == pluginId && (pluginId == "dev.solvit.workspace" && it.manifest.apiVersion == 26 || pluginId == "dev.solvit.terminal" && it.manifest.apiVersion == 13 || pluginId == "dev.solvit.git" && it.manifest.apiVersion == 20 || pluginId == "dev.solvit.environment" && it.manifest.apiVersion == 21)) }
+            .also { check(it.manifest.id == pluginId && (pluginId == "dev.solvit.workspace" && it.manifest.apiVersion == 27 || pluginId == "dev.solvit.terminal" && it.manifest.apiVersion == 13 || pluginId == "dev.solvit.git" && it.manifest.apiVersion == 20 || pluginId == "dev.solvit.environment" && it.manifest.apiVersion == 21)) }
     }
     fun openPage(locale: String, access: PageWorkspaceAccess? = null, terminal: PageTerminalAccess? = null, git: PageGitAccess? = null, pageId: String = "main"): ExtensionPageSession {
         require(locale.matches(Regex("[a-zA-Z0-9_-]{1,20}")))

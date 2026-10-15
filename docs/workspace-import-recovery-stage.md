@@ -23,3 +23,5 @@
 第一轮宿主合同已在远程 Actions 38668951906（e0a96825）通过：419项测试，失败/错误/跳过均为0，包含9项新增磁盘恢复用例；已下载完整报告并核对ZIP CRC和JUnit XML。此结果只覆盖该提交，不代表后续页面或真实进程强杀已经通过。插件HTML新增按页恢复报告与原生确认关闭，API27能力单独门禁，旧API26工作区1.9.0与Git1.2.5包保留原字节；这些后续变化仍待远程验证。跨进程强杀编排、市场兼容和正式APK仍待完成。整体目标中的容量/备份管理、Git克隆恢复、真实模型任务、ARM64真机及stdio MCP继续保留。
 
 实际强杀验收编排已写入 `scripts/verify-workspace-import-process-death.sh` 并接入正式Android UI门禁。五个生产检查点场景：PREPARING、PUBLISHING、COMMITTED、并发同名、已提交后删除目标。prepare方法在真实导入监控点挂起，外部adb确认marker和PID后am force-stop，确认PID消失，再独立instrumentation启动verify；验证实际文件、保留备份、Shell结果、QuickJS HTML提示与原生确认关闭。该类从普通connected测试排除，避免把故意等待外部强杀的prepare算作失败/跳过；脚本逐场核对verify OK，不允许prepare正常结束。仍待远程执行，不能以源码存在代替通过。
+
+插件工作流38670109733（347351bb）已通过125项SDK测试、5项市场测试和实际公开搜索/HTTPS MCP/Skills检查。远程生成产物11943720333完整ZIP CRC通过；只更换工作区1.10.0/API27及共享页面的Git1.2.6/API20，其余13个市场包原样。旧1.9.0与1.2.5包已独立保留，新增原始字节升级、修改包和卸载状态回归；仅确认原始hash才迁移。候选应用版本0.39.0/build75尚未发布；市场客户端仍请求API26，待公开API27市场验收后才切换。
