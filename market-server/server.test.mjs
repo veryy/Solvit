@@ -105,7 +105,9 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(api28.plugins.find(plugin=>plugin.id==='dev.solvit.git').version,'1.2.7');
     const api29=await(await fetch(base+'/api/v1/plugins?hostApi=29')).json();
     const recoveryGit=api29.plugins.find(plugin=>plugin.id==='dev.solvit.git');
-    assert.equal(recoveryGit.version,'1.3.0');assert.equal(recoveryGit.apiVersion,29);
+    assert.equal(recoveryGit.version,'1.3.1');assert.equal(recoveryGit.apiVersion,29);
+    const previousGit130=Buffer.from(await(await fetch(base+'/api/v1/packages/dev.solvit.git/1.3.0')).arrayBuffer());
+    assert.equal(createHash('sha256').update(previousGit130).digest('hex'),'0e2a8f1d09cf800530f4d0fd6000a0174a491c8d59a8e5843c221decbc795235');
     const previousGit127=Buffer.from(await(await fetch(base+'/api/v1/packages/dev.solvit.git/1.2.7')).arrayBuffer());
     assert.equal(createHash('sha256').update(previousGit127).digest('hex'),'96811c76f4b14800829de63ab1cc848d82892915472dcee0a3ea4ad29348b28c');
     for(const [id,version,sha] of [

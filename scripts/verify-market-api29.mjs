@@ -22,7 +22,7 @@ try {
   evidence.oldApisUnchanged.push(api);
  }
  const historical=await oldCatalog(root+'before/packages');
- assert.equal(historical.packages.size,52,'Unexpected historical version count; review live state');
+ assert.equal(historical.packages.size,53,'Unexpected historical version count; review live state');
  for(const [key,value] of historical.packages){
   const path=`/api/v1/packages/${key}`;
   const bytes=await Promise.all(bases.map(b=>get(b,path)));
@@ -31,7 +31,7 @@ try {
  }
  const latest=JSON.parse(await get(bases[1],'/api/v1/plugins?hostApi=29'));
  evidence.expectedCatalogs.push({api:29,catalog:latest});
- for(const [id,version,api] of [['workspace','1.11.0',28],['git','1.3.0',29]]){
+ for(const [id,version,api] of [['workspace','1.11.0',28],['git','1.3.1',29]]){
   const p=latest.plugins.find(p=>p.id===`dev.solvit.${id}`);assert.equal(p.version,version);assert.equal(p.apiVersion,api);
   if(id==='workspace') assert.deepEqual(p.nativeServices,['workspace.files']);
   const b=await get(bases[1],p.downloadPath);assert.equal(sha(b),p.sha256);

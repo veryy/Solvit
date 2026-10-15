@@ -152,6 +152,7 @@ class WorkspaceCloneProcessDeathTest {
             waitDom("!!document.querySelector('[data-node=git_clone_source]')")
             assertEquals(before,requests(endpoint));preserved()
             if(scenario in setOf("CONFLICT","CLEANUP")) {
+                assertEquals("false",html.js("!!document.querySelector('[data-node=git_clone_counts]')"))
                 assertEquals("false",html.js("!!document.querySelector('[data-node=git_clone_resume]')"))
                 click("git_clone_discard")
             } else if(scenario=="DOWNLOADING") {

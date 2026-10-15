@@ -202,6 +202,7 @@ test('Conflicting clone can only discard private staging and a failed confirmati
   await h.page(h.input(),h.ctx);await h.page(h.input(h.event('git_clones','gitClones')),h.ctx);
   let view=await h.page(h.input(h.event('git_clone_review_0','gitCloneReview')),h.ctx);
   assert.ok(view.nodes.some(n=>n.id==='git_clone_problem'&&n.text.includes('user.txt')));
+  assert.ok(!view.nodes.some(n=>n.id==='git_clone_counts'),'A failed validation has no verified installed-file count');
   assert.ok(!view.footer.some(n=>['git_clone_resume','git_clone_restart'].includes(n.id)));
   view=await h.page(h.input(h.event('git_clone_discard','gitCloneDiscard')),h.ctx);
   assert.deepEqual(JSON.parse(JSON.stringify(view.footer.find(n=>n.id==='git_clone_confirm').hostAction)),

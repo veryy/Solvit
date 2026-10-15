@@ -180,7 +180,7 @@ export function gitPage(){
    nodes.push(text('git_clone_source',cr[10]+' · '+cloneReview.entry.url+' · '+cloneReview.entry.branch),
     text('git_clone_fact',cloneReview.entry.status+' · '+cloneReview.entry.phase),
     text('git_clone_head',cloneReview.entry.head??'—'),text('git_clone_help',cr[11]));
-   if(!['PUBLISHED','DOWNLOAD_INTERRUPTED','CLEANUP_INTERRUPTED'].includes(cloneReview.entry.status))
+   if(!cloneReview.problem&&!['PUBLISHED','DOWNLOAD_INTERRUPTED','CLEANUP_INTERRUPTED'].includes(cloneReview.entry.status))
     nodes.push(text('git_clone_counts',cr[8]+' · '+cloneReview.files+' / '+cloneReview.bytes+' / '+cloneReview.installedFiles));
    if(cloneReview.problem)nodes.push(text('git_clone_problem',cloneReview.problem));
    footer.push(button('git_clone_back',t[18],'gitClones'));
