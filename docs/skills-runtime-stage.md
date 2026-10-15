@@ -1,6 +1,6 @@
 # Skills 资源目录与 Ubuntu 执行
 
-2026-10-16。上一轮0.42.3已发布；本阶段尚未发布，不把导入或准备资源等同于脚本执行成功。
+2026-10-16。0.43.1/build84已发布；[正式Actions](https://github.com/veryy/Solvit/actions/runs/38777281162)与[APK](https://github.com/veryy/Solvit/releases/download/v0.43.1/solvit-debug.apk)。以下保留逐轮失败和验证过程，不能把导入或准备资源等同于脚本执行成功。
 
 ## 上游实际核对
 
@@ -60,3 +60,11 @@ e81062ad最小复现[38770915001](https://github.com/veryy/Solvit/actions/runs/3
 正式重跑38777281162的Ubuntu原始归档11994363376已完整分段下载并核对38041051字节、SHA256 `8b27681263fe43ad951ca72b0598f0f9aa926ff50442eb3e1b99d4add8c5985f`、ZIP CRC与11项单元/3项设备原始XML。实际设备日志17:35:08.684 Python、17:35:10.014 Node均输出完整Skills prepare→Ubuntu→失败退出→修复→读取共享文件标记；原有两种stdio MCP及Java17、Python3.12.3、Node24.21.0/npm11.19.0均重新核对通过。构建日志的4项报告门禁、Lint/assemble与固定签名也已核对。
 
 本轮APK归档11994941185完整核对，实际APK58955031字节，SHA256仍为`7e078b242d6a4c173c8f648c19a336f89332d2cebc1d225517f04fda4267910f`，与首次候选逐字节一致。内置Skills1.2.0与1.1.1兼容包与提交一致。源码归档11994032408经完整下载/CRC核对，实际发布内层源码ZIP1072711字节、14条目，SHA256为`3ec996167107bb6d2b99008c5488407bece4a301337cb6fea04af0dea1759212`；源码归档时间信息使其与首轮摘要不同，不借用旧摘要。最后UI与公开发布仍待结果。
+
+## 正式发布完成
+
+[38777281162](https://github.com/veryy/Solvit/actions/runs/38777281162)六项任务全部成功，代码59a6174ed70f0480e67b0f8a9d699feb9fdb0f86。原始UI归档11994954330（7717840字节，SHA256 `81235d9c94c3cf65fd202955c2035cf084b8f6fc0aa98fe61147bebec35df684`）完整下载后CRC/所有原始JUnit与独立摘要核对：app68/Web3/终端25，无失败/错误/跳过；15份恢复verify均OK，覆盖升级seed通过。实际stdio宿主SIGKILL结果中host8873/supervisor8888/worker8889/descendant8890全部gone，未以包force-stop替代。
+
+公开Release414106303、v0.43.1为非草稿/非预发布且latest，APK资产644684750、源码644684860的大小与GitHub SHA256均与完整正式产物一致；APK公开链接实际返回206及PK文件头。未再次完整下载公开APK。工作流未复用先前通过另一凭据创建的空草稿414090255，而是创建了自己的公开Release；发现后立即把已知WebView崩溃说明同步到实际公开页，不能声称预备草稿已保证自动发布正文。公开记录保留首轮崩溃、24次未复现和后续完整成功，不称为已修复。准确资产摘要见[版本说明](release-0.43.1.md)。ARM64真机、第三方依赖与真实模型自主任务仍未验收。
+
+先前空草稿414090255经再次确认draft=true、assets为空后已删除，只保留实际公开Release414106303；没有移动标签或替换任何公开二进制。

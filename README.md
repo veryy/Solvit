@@ -12,7 +12,7 @@ AI chat, plugins, and a project workspace on your Android phone. Connect your ow
 
 Android 8.0 及以上可用。界面默认中文，也支持英文、日文、韩文、西班牙文和法文；有浅色、深色和跟随系统主题，Android 12 及以上支持动态配色。
 
-当前稳定版是 [0.42.3](https://github.com/veryy/Solvit/releases/tag/v0.42.3)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
+当前发布版是 [0.43.1](https://github.com/veryy/Solvit/releases/tag/v0.43.1)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
 
 ## 现在能做什么
 
@@ -22,7 +22,7 @@ Android 8.0 及以上可用。界面默认中文，也支持英文、日文、�
 - **插件**：安装、启用、停用 JS/TS 插件。插件可以带自己的离线 HTML/JS 页面；权限、系统能力和资源清理由 Android 宿主管理。[开发说明](docs/plugins.md)
 - **联网搜索**：启用搜索插件即可使用默认公开搜索，也可以选配其他引擎。搜索和网页正文带来源链接；公网搜索仍可能受网络和人机验证影响。[使用说明](docs/web-search.md)
 - **记忆**：本地记录、检索、关系图谱、编辑和删除；可以开启自动检索和后台保存。真实模型的记忆质量仍需验证。[记忆说明](docs/memory.md)
-- **MCP 和 Skills**：多个具名 HTTPS 或 Ubuntu 本地 stdio MCP 连接，Python/Node 服务可供 AI 调用；连接按聊天隔离，认证与环境加密保存。导入 SKILL.md 及文本资源，让角色按需使用。[MCP](docs/mcp.md) · [Skills](docs/skills.md)
+- **MCP 和 Skills**：多个具名 HTTPS 或 Ubuntu 本地 stdio MCP 连接，Python/Node 服务可供 AI 调用；连接按聊天隔离，认证与环境加密保存。导入 SKILL.md 及文本资源，让角色按需使用；Skills1.2.0可将自带Python/Node脚本准备到工作区，再经独立授权通过Ubuntu Shell运行。旧用户需明确更新并审阅新增工作区权限。[MCP](docs/mcp.md) · [Skills](docs/skills.md)
 - **工作区**：一个对话可绑定一个目录，多个 Shell 共用该目录。文件树、新建目录、重命名、删除、CodeMirror 文本/代码预览编辑，以及 xterm.js + Android PTY 交互终端。可以从系统选择器或当前对话已保存的附件导入最多20MiB的完整原文件，先看来源、信息、文本、图片或 PDF 原页预览再确认；同名文件先审阅大小与摘要，确认替换时检查文件版本并保留旧文件备份。导入前检查容量，已知空间不足时保留原文件和附件选择，释放空间后可重试；导入时显示实际写入进度，可以取消、等待清理后重试；应用被系统结束后可恢复未完成替换，插件页显示结果，保留备份和并发文件；文件树、Git和Shell共用。[工作区说明](docs/workspaces.md)
 - **导入备份**：查看来源、当前占用与状态；审阅后复制恢复或确认清理。清理中断时手动退回，同名文件保留双方，结果未确认时不自动重试删除。[使用说明](docs/workspaces.md#导入备份管理0400)
 - **Linux 开发环境**：无需 root，按需安装 Ubuntu 24.04、Python/venv、Node24/npm，可追加 Python/pip 或 Java17。在「工作区 → Linux」安装后新建 Ubuntu Shell，AI 命令、终端和文件管理使用同一目录。[上手指南](docs/linux-environment.md) · [验证记录](docs/linux-environment-stage.md)
@@ -34,7 +34,7 @@ Android 8.0 及以上可用。界面默认中文，也支持英文、日文、�
 图片、文本和代码附件已经能用，接下来继续补齐：
 
 1. 真实 GitHub 账号读写和完整项目任务验收；Git 克隆中断恢复、导入容量、备份管理已交付。
-2. ARM64 真机与旧内核兼容、第三方 MCP 服务和 Skills 运行环境。
+2. ARM64 真机与旧内核兼容、第三方 MCP 服务与 Skills 依赖兼容。
 3. 用真实模型验证角色、流式、工具选择和完整项目任务，继续改善插件管理与记忆体验。
 
 **屏幕操控暂缓。** 大文件编辑、AI Git 写操作和自主项目任务仍在计划里。具体状态见[产品进度](docs/product-roadmap.md)。
@@ -51,7 +51,7 @@ Linux 环境仍使用 Android 内核和应用身份，不额外授予系统权�
 
 配置备份包含模型连接、API Key、角色、提示词、语言和外观等；不包含聊天、插件包、插件密钥和记忆。备份文件请保存在应用外。
 
-当前发布的是 debug APK。[远程验证](https://github.com/veryy/Solvit/actions/runs/38759491362)已通过构建、600项单元、Lint、固定签名和完整设备回归，原始UI报告也已核对；真实模型完整任务与ARM64真机体验尚未验收。构建证据和APK摘要见[版本记录](docs/release-0.42.3.md)。
+当前发布的是 debug APK。[远程验证](https://github.com/veryy/Solvit/actions/runs/38777281162)已通过构建、611项单元、Lint、固定签名、完整设备回归及实际Ubuntu Python/Node脚本，原始报告也已核对。首轮曾出现系统WebView原生崩溃，后续重建循环与完整回归未复现，根因仍未确定；真实模型完整任务与ARM64真机体验尚未验收。[版本说明与已知问题](docs/release-0.43.1.md)。
 
 ## 构建
 
