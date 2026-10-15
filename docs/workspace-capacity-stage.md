@@ -25,3 +25,7 @@
 候选38681097149实际失败：完整单元541项通过，但Android设备第一项强杀准备阶段触发 `Files.getFileStore()` 的 `SecurityException: getFileStore`，尚未到强杀或新HTML用例。JVM通过不能证明Android API可用。改由Android宿主 `Os.stat(path).st_dev` 提供实际设备号，容量账本只接收明确卷标识、不读取挂载表；新增不同卷不共享预算用例，同卷共享/取消释放断言保留。修复尚待新一轮完整远程设备验收；0.39.1仍未发布。
 
 修复源d6d69b24的候选[38682740388](https://github.com/veryy/Solvit/actions/runs/38682740388)：build116250700094通过。完整393337字节报告11949500599已下载并核对ZIP CRC/JUnit XML，542项、失败/错误/跳过均0；容量纯JVM4项、真实服务1项通过。Lint、APK和固定签名f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3通过。设备任务116252869012仍在执行，不能据此称Android导入已修复或0.39.1已发布。
+
+同一修复源的设备任务116252869012已成功。完整6378025字节报告11948684945已下载并核对ZIP CRC/JUnit XML：80项常规设备用例、失败/错误/跳过均0，包括新增低空间HTML→重新审阅→同一附件真实JNI替换→Shell哈希核对（9.568秒）和覆盖升级保留配置/聊天。五场真实外部force-stop（PREPARING、PUBLISHING、COMMITTED、CONFLICT、DELETED）分别核对prepare未正常结束、PID存在后消失、独立重启verify为OK(1 test)，与80项分开计数。实际查看了低空间页面PNG，错误及保留的源附件可见；截图见下。此前getFileStore设备失败由同一导入/恢复路径通过证明修复，不以JVM结果替代。正式标签和公开下载仍待核对。
+
+![候选设备上的低空间提示](screenshots/0.39.1/workspace-import-insufficient-space.png)
