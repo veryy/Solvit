@@ -62,9 +62,15 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   esac
   if [[ "${SOLVIT_DIAGNOSTIC_CASE:-}" == reply-branch-* ]]; then
     (
-      sleep 60
-      solvit_stack_target=$(adb shell pidof dev.solvit.app | tr -d '\r')
-      if [[ "$solvit_stack_target" =~ ^[0-9]+$ ]]; then adb shell run-as dev.solvit.app kill -3 "$solvit_stack_target"; fi
+      for solvit_stack_poll in $(seq 1 48); do
+        if adb logcat -d -s TestRunner:I '*:S' | grep -F 'started: replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal'; then
+          sleep 20
+          solvit_stack_target=$(adb shell pidof dev.solvit.app | tr -d '\r')
+          if [[ "$solvit_stack_target" =~ ^[0-9]+$ ]]; then adb shell run-as dev.solvit.app kill -3 "$solvit_stack_target"; fi
+          break
+        fi
+        sleep 5
+      done
     ) &
     solvit_stack_watch_pid=$!
   fi
