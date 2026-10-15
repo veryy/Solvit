@@ -134,3 +134,8 @@ API26客户端合同报告11939117980（93730字节）已实际下载并完整ZI
 独立workspace-startup诊断38664146876未重现native崩溃，而是在“配置你的模型”应隐藏处失败。实际读取SettingsModelProfiles与ChatViewModel确认：直接settings.save只更新磁盘，已初始化的profiles.state仍为configured=false；完整套件曾有升级预置，所以掩盖此前置依赖。测试改走实际模型配置服务save，并在finally replace恢复完整profiles/routes/configured状态，保留三次重建与原UI断言，不请求模型，也不修改生产代码。修正后仍须独立重复，不能把此夹具问题当作原WebView崩溃根因。
 
 另一项plugin-resume诊断38664146811/116192059830终态成功，包含MCP、任务成本确认、记忆编辑删除、HTML笔记删除和真实导入进度取消五项，跨三次instrumentation执行。完整归档精确内容待下载核对。原38662248469/attempt2整套设备仍在执行，公开APK保持0.37.0。
+
+
+插件恢复专项归档11940521978（451500字节）已完整ZIP CRC核对，iteration1/2/3分别实际OK (5 tests)，共15次场景全部通过；实际查看最新取消确认截图，中文说明可见且不再展示内部操作名。原1e44b4e整套同源attempt2成功；下载11940782074（6014488字节）完整ZIP CRC/XML确认app65、web3、terminal11，共79设备零失败/错误/跳过。该成功不意味着首次WebView原生崩溃根因已消除。
+
+修正前置后的workspace-startup独立诊断38665554749锁定d64cabda，复用同一1e44b4e生产APK并已通过源码一致性检查；正在远程编译测试APK，后续执行五轮、每轮三次Activity重建/创建/关闭工作区。生产代码没有因原生单帧堆栈而变更，正式发布仍待此复验及标签六项门禁。
