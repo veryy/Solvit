@@ -40,7 +40,10 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class PdfChatDeviceTest {
-    @get:Rule val rule=createAndroidComposeRule<MainActivity>()
+    @OptIn(ExperimentalTestApi::class)
+    @get:Rule val rule=createAndroidComposeRule<MainActivity>(
+        effectContext=kotlinx.coroutines.test.StandardTestDispatcher()
+    )
     private fun screenshot(name:String="pdf-chat-selected-scan") {
         rule.waitForIdle()
         runBlocking {
@@ -133,20 +136,24 @@ class PdfChatDeviceTest {
                 throw failure
             }
             rule.onNodeWithTag("pdf_text_1").assertTextEquals("SHORT")
-            rule.onNodeWithTag("pdf_settings").performScrollTo().performClick()
+            rule.onNodeWithTag("pdf_preview").performQueuedScrollToNode(rule, hasTestTag("pdf_settings"))
+            rule.onNodeWithTag("pdf_settings").performClick()
             rule.onNodeWithTag("pdf_first_page").performTextReplacement("2")
             rule.onNodeWithTag("pdf_last_page").performTextReplacement("2")
-            rule.onNodeWithTag("pdf_apply").performScrollTo().performClick()
+            rule.onNodeWithTag("pdf_preview").performQueuedScrollToNode(rule, hasTestTag("pdf_apply"))
+            rule.onNodeWithTag("pdf_apply").performClick()
             val selection=DocumentSelection(2,2,DocumentOcrScript.CHINESE)
             rule.waitUntil(10_000) { vm.attachmentDrafts.value[session]?.single()?.documentSelection==selection }
             rule.waitUntil(90_000) { rule.onAllNodesWithTag("pdf_text_2").fetchSemanticsNodes().isNotEmpty() }
             rule.onAllNodesWithTag("pdf_text_1").assertCountEquals(0)
             rule.onNodeWithTag("pdf_coverage").assertTextEquals("共2页，本次读取第2至2页")
-            rule.onNodeWithTag("pdf_text_2").performScrollTo().assertIsDisplayed()
+            rule.onNodeWithTag("pdf_preview").performQueuedScrollToNode(rule, hasTestTag("pdf_text_2"))
+            rule.onNodeWithTag("pdf_text_2").assertIsDisplayed()
             val scan=rule.onNodeWithTag("pdf_text_2").fetchSemanticsNode().config[SemanticsProperties.Text].joinToString("") { it.text }.replace(Regex("\\s"),"")
             assertTrue(scan.contains("扫描测试") && scan.contains("2026"));assertEquals(0,server.requestCount)
             screenshot()
-            rule.onNodeWithTag("pdf_original_2").performScrollTo().performClick()
+            rule.onNodeWithTag("pdf_preview").performQueuedScrollToNode(rule, hasTestTag("pdf_original_2"))
+            rule.onNodeWithTag("pdf_original_2").performClick()
             rule.waitUntil(30_000) { rule.onAllNodesWithTag("pdf_original_image").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("pdf_original_image").assertIsDisplayed()
             screenshot("pdf-chat-original-scan")
@@ -164,12 +171,13 @@ class PdfChatDeviceTest {
             val failed=vm.messages.value.last()
             server.enqueue(MockResponse().setHeader("Content-Type","text/event-stream")
                 .setBody("data: {\"choices\":[{\"delta\":{\"content\":\"pdf answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"))
-            rule.onNodeWithTag("retry_reply_${failed.id}").performScrollTo().performClick()
+            rule.onNodeWithTag("chat_messages").performQueuedScrollToNode(rule, hasTestTag("retry_reply_${failed.id}"))
+            rule.onNodeWithTag("retry_reply_${failed.id}").performClick()
             rule.waitUntil(90_000) { !vm.busy.value && vm.messages.value.lastOrNull()?.content=="pdf answer" }
             assertEquals(first,requestContent())
             val user=runBlocking { store.history(session).single { it.role==Role.USER } }
             assertEquals(selection,user.attachments.single().documentSelection)
-            rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_${user.id}"))
+            rule.onNodeWithTag("chat_messages").performQueuedScrollToNode(rule, hasTestTag("message_actions_${user.id}"))
             rule.onNodeWithTag("message_actions_${user.id}").performClick();rule.onNodeWithText("编辑并分支").performClick()
             rule.onNodeWithText("创建分支").performClick()
             rule.waitUntil(15_000) { vm.sessionId.value!=session && vm.attachmentDrafts.value[vm.sessionId.value].orEmpty().size==1 && !vm.branching.value }

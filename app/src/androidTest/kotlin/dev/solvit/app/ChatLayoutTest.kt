@@ -42,26 +42,7 @@ class ChatLayoutTest {
     }
 
     private fun scrollSettingsToLanguage() {
-        // Use the list's public scroll action on the UI thread, without 1.7.6's
-        // off-thread diagnostic traversal or a system swipe's asynchronous fling.
-        repeat(12) {
-            rule.waitForIdle()
-            val list = geometry("settings_list")
-            val target = rule.onAllNodesWithTag("language_settings").fetchSemanticsNodes().singleOrNull()
-            val visible = rule.runOnUiThread {
-                target?.boundsInRoot?.let { bounds ->
-                    bounds.width > 0 && bounds.height > 0 && bounds.top >= list.bounds.top &&
-                        bounds.bottom <= list.bounds.bottom
-                } == true
-            }
-            if (visible) return
-            val container = rule.onAllNodesWithTag("settings_list").fetchSemanticsNodes().single()
-            rule.runOnUiThread {
-                val action = container.config[androidx.compose.ui.semantics.SemanticsActions.ScrollBy].action
-                check(action?.invoke(0f, list.bounds.height * .7f) == true) { "Settings did not accept scrolling" }
-            }
-        }
-        fail("Language settings were not fully visible after scrolling")
+        rule.onNodeWithTag("settings_list").performQueuedScrollToNode(rule, hasTestTag("language_settings"))
     }
 
     @Test fun actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat() {
@@ -174,7 +155,7 @@ class ChatLayoutTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithText("处理失败").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("模型请求失败。").assertIsDisplayed()
             rule.onNodeWithText("查看详情").performClick()
-            rule.onNodeWithTag("memory_tasks").performScrollToNode(hasText("来源消息：fixture-user"))
+            rule.onNodeWithTag("memory_tasks").performQueuedScrollToNode(rule, hasText("来源消息：fixture-user"))
             rule.onNodeWithText("来源消息：fixture-user").assertIsDisplayed()
             rule.onNodeWithText("重试").performClick()
             assertEquals(0, retries)
@@ -207,7 +188,12 @@ class ChatLayoutTest {
         rule.onNodeWithTag("save_context_budget").performClick()
         assertEquals(ContextBudgetPolicy(4_096, 512, 2_048, false), saved)
     }
-    @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    // ui-test 1.8.3 fixes interceptor replacement. Queue IO-triggered effects;
+    // Android's test clock drains their layout work on the UI thread.
+    @OptIn(ExperimentalTestApi::class)
+    @get:Rule val rule = createAndroidComposeRule<MainActivity>(
+        effectContext = kotlinx.coroutines.test.StandardTestDispatcher()
+    )
     private fun ready() {
         rule.waitUntil(30_000) { rule.onAllNodes(hasSetTextAction() and isFocused()).fetchSemanticsNodes().isNotEmpty() }
         rule.waitForIdle()
@@ -224,6 +210,11 @@ class ChatLayoutTest {
         if (rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
             rule.onNode(hasText("工作区：",substring=true) and isEnabled()).performClick()
         } else {
+            // The queued dispatcher can leave drawer.close() pending even when the
+            // background chat nodes exist. Drain it before computing touch coordinates;
+            // otherwise a real tap hits the drawer scrim and only closes the drawer.
+            rule.mainClock.advanceTimeByFrame()
+            rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed()
             rule.onNode(hasText("新建工作区") and isEnabled()).performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("workspace_create_name").performTextInput("测试工作区")
@@ -252,17 +243,18 @@ class ChatLayoutTest {
         app.ready.value!!.getOrThrow().createSession() // Refresh the application's storage Flow.
         session
     }
-    private fun selectBranchFixture() {
+    private fun selectBranchFixture(historyAtEnd: Boolean =
+        InstrumentationRegistry.getArguments().getString("branchHistoryAtEnd")=="true") {
         rule.onNodeWithContentDescription("对话历史").performClick()
         try {
             val list=rule.onNode(hasScrollToIndexAction() and hasAnyAncestor(hasTestTag("chat_drawer")))
-            if(InstrumentationRegistry.getArguments().getString("branchHistoryAtEnd")=="true") {
+            if(historyAtEnd) {
                 val app=rule.activity.application as SolvitApplication
                 val count=runBlocking { app.ready.value!!.getOrThrow().sessions().first().size }
                 list.performScrollToIndex(count-1)
                 rule.onNodeWithText("branch original question").assertDoesNotExist()
             }
-            list.performScrollToNode(hasText("branch original question"))
+            list.performQueuedScrollToNode(rule, hasText("branch original question"))
             rule.onNodeWithText("branch original question").assertIsDisplayed().performClick()
         } catch (failure:AssertionError) {
             throw AssertionError("Branch history before selection:\n"+rule.onRoot(useUnmergedTree=true).printToString(),failure)
@@ -486,18 +478,20 @@ class ChatLayoutTest {
             screenshot("chat-live-stream-before-done")
             finish.complete(Unit)
             rule.waitUntil(8000) { !vm.busy.value }
+            rule.mainClock.advanceTimeByFrame()
             rule.onNodeWithTag("streaming_body").assertDoesNotExist()
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithTag("settings_list").performScrollToIndex(6)
+            rule.mainClock.advanceTimeByFrame()
             rule.onNodeWithText("最近请求诊断").performClick()
             rule.onNodeWithText("实际角色：Solvit").assertIsDisplayed()
-            rule.onNodeWithTag("request_diagnostics").performScrollToNode(hasText("插件资料未获得：test.broken"))
+            rule.onNodeWithTag("request_diagnostics").performQueuedScrollToNode(rule, hasText("插件资料未获得：test.broken"))
             rule.onNodeWithText("插件资料未获得：test.broken").assertIsDisplayed()
             rule.onNodeWithText("读取失败").assertIsDisplayed()
             rule.onNodeWithText("PRIVATE_SECRET_SENTINEL").assertDoesNotExist()
-            rule.onNodeWithTag("request_diagnostics").performScrollToNode(hasText("提供的工具数：0"))
+            rule.onNodeWithTag("request_diagnostics").performQueuedScrollToNode(rule, hasText("提供的工具数：0"))
             rule.onNodeWithText("提供的工具数：0").assertExists()
-            rule.onNodeWithTag("request_diagnostics").performScrollToNode(hasText("首段文字显示：", substring = true))
+            rule.onNodeWithTag("request_diagnostics").performQueuedScrollToNode(rule, hasText("首段文字显示：", substring = true))
             rule.onNode(hasText("首段文字显示：", substring = true)).assertExists()
             screenshot("request-diagnostics")
         } catch (e: Throwable) {
@@ -649,6 +643,8 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("对话历史").performClick()
             rule.onNodeWithTag("new_chat").performClick()
             rule.waitUntil(8000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
+            rule.mainClock.advanceTimeByFrame()
+            rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed()
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithText("角色管理与 Skills").performClick()
             rule.onNodeWithTag("apply_role_${role.id}").performScrollTo()
@@ -670,6 +666,8 @@ class ChatLayoutTest {
     @Test fun replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal() {
         ready()
         val app=rule.activity.application as SolvitApplication
+        // Keep the target initially outside the history viewport in the normal suite.
+        val precedingChats=runBlocking { List(12){app.ready.value!!.getOrThrow().createSession()} }
         val source=seedBranchConversation(app)
         val workspace=runBlocking {
             app.roles.save(AgentRole("branch-role","Branch role",pluginIds=emptySet()))
@@ -679,8 +677,8 @@ class ChatLayoutTest {
             }
         }
         try {
-            selectBranchFixture()
-            rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_branch-final"))
+            selectBranchFixture(historyAtEnd=true)
+            rule.onNodeWithTag("chat_messages").performQueuedScrollToNode(rule, hasTestTag("message_actions_branch-final"))
             rule.onNodeWithTag("message_actions_branch-final").performClick()
             rule.onNodeWithText("从这里分支").performClick()
             rule.onNodeWithText("创建分支").performClick()
@@ -704,7 +702,10 @@ class ChatLayoutTest {
             screenshot("chat-reply-branch")
             runBlocking { app.ready.value!!.getOrThrow().deleteSession(branch.id) }
         } finally {
-            runBlocking { app.ready.value!!.getOrThrow().deleteSession(source.id); app.roles.delete("branch-role") }
+            runBlocking {
+                app.ready.value!!.getOrThrow().deleteSession(source.id); app.roles.delete("branch-role")
+                precedingChats.forEach { app.ready.value!!.getOrThrow().deleteSession(it.id) }
+            }
         }
     }
     @Test fun editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending() {
@@ -715,7 +716,7 @@ class ChatLayoutTest {
         val source=seedBranchConversation(app)
         try {
             selectBranchFixture()
-            rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_branch-user"))
+            rule.onNodeWithTag("chat_messages").performQueuedScrollToNode(rule, hasTestTag("message_actions_branch-user"))
             rule.onNodeWithTag("message_actions_branch-user").performClick()
             rule.onNodeWithText("编辑并分支").performClick()
             rule.onNodeWithTag("branch_edit").performTextReplacement("edited branch question")
@@ -806,9 +807,8 @@ class ChatLayoutTest {
         assertEquals(rule.activity.window.decorView.width * 0.75f, bounds.width, 3f)
         rule.onNodeWithText("设置", useUnmergedTree = true).performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("settings_list").fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithTag("settings_list").performScrollToNode(hasText("关于 Solvit"))
-        rule.onNodeWithTag("settings_list").performScrollToNode(hasText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。"))
-        rule.onNodeWithText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。").performScrollTo()
+        rule.onNodeWithTag("settings_list").performQueuedScrollToNode(rule, hasText("关于 Solvit"))
+        rule.onNodeWithTag("settings_list").performQueuedScrollToNode(rule, hasText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。"))
         screenshot("settings-bottom-insets")
         rule.onNodeWithText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。").assertIsDisplayed()
     }
@@ -928,7 +928,7 @@ class ChatLayoutTest {
             // Choosing a non-text control must release the edited name before later scrolling.
             rule.onAllNodes(hasTestTag("model_profile_name") and isFocused()).assertCountEquals(0)
             rule.onNodeWithTag("save_model_profile").assertIsNotEnabled()
-            rule.onNodeWithTag("model_settings_list").performScrollToKey("model_name")
+            rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "model_name")
             // Focusing a lazy-list field can replace its semantics node during IME layout.
             // Establish focus first, then acquire the current node for text input.
             rule.onNodeWithTag("model_name").performClick()
@@ -936,9 +936,9 @@ class ChatLayoutTest {
                 rule.onAllNodes(hasTestTag("model_name") and isFocused()).fetchSemanticsNodes().isNotEmpty()
             }
             rule.onNodeWithTag("model_name").performTextInput("native-test-model")
-            rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_max_tokens")
+            rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "provider_option_anthropic_max_tokens")
             rule.onNodeWithTag("provider_option_max_tokens").performClick().performTextReplacement("16384")
-            rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_thinking_mode")
+            rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "provider_option_anthropic_thinking_mode")
             rule.onNodeWithTag("provider_option_thinking_mode").performClick()
             rule.onNodeWithText("自适应思考").performClick()
             rule.onNodeWithTag("save_model_profile").assertIsEnabled().performClick()
@@ -949,12 +949,12 @@ class ChatLayoutTest {
             assertEquals("adaptive",stored.providerOptions["thinking_mode"])
             assertEquals("16384",stored.providerOptions["max_tokens"])
             repeat(3) {
-                rule.onNodeWithTag("model_profiles_list").performScrollToKey(profile.id)
+                rule.onNodeWithTag("model_profiles_list").performQueuedScrollToKey(rule, profile.id)
                 rule.onNodeWithTag("edit_model_${profile.id}").performClick()
                 rule.onNodeWithTag("model_protocol").assertTextContains("Claude / Anthropic")
-                rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_max_tokens")
+                rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "provider_option_anthropic_max_tokens")
                 rule.onNodeWithTag("provider_option_max_tokens").assertTextContains("16384")
-                rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_thinking_mode")
+                rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "provider_option_anthropic_thinking_mode")
                 rule.onNodeWithTag("provider_option_thinking_mode").assertTextContains("自适应思考")
                 rule.onNodeWithContentDescription("关闭设置").performClick()
             }
@@ -1001,16 +1001,16 @@ class ChatLayoutTest {
             val profile=app.modelProfiles.state.value.profiles.single { it.name=="UI task model" }
             // Saving publishes the data before the editor coroutine dismisses its window.
             rule.waitUntil(8000) { rule.onAllNodesWithTag("save_model_profile").fetchSemanticsNodes().isEmpty() }
-            rule.onNodeWithTag("model_profiles_list").performScrollToNode(hasTestTag("model_task_TOOL_FOLLOW_UP"))
+            rule.onNodeWithTag("model_profiles_list").performQueuedScrollToNode(rule, hasTestTag("model_task_TOOL_FOLLOW_UP"))
             rule.waitUntil(8000) { rule.onAllNodes(hasTestTag("model_task_TOOL_FOLLOW_UP") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("model_task_TOOL_FOLLOW_UP").performClick()
             rule.waitUntil(8000) { rule.onAllNodesWithTag("model_task_choices").fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("model_task_choices").performScrollToNode(hasTestTag("choose_model_${profile.id}"))
+            rule.onNodeWithTag("model_task_choices").performQueuedScrollToNode(rule, hasTestTag("choose_model_${profile.id}"))
             rule.onNodeWithTag("choose_model_${profile.id}").assertIsEnabled().performClick()
             rule.waitUntil(8000) { app.modelProfiles.state.value.routes[ModelTask.TOOL_FOLLOW_UP]==profile.id }
             val stored=runBlocking { app.settings.loadProfiles() }
             assertEquals(profile.id,stored.routes[ModelTask.TOOL_FOLLOW_UP])
-            rule.onNodeWithTag("model_profiles_list").performScrollToNode(hasTestTag("edit_model_${profile.id}"))
+            rule.onNodeWithTag("model_profiles_list").performQueuedScrollToNode(rule, hasTestTag("edit_model_${profile.id}"))
             rule.onNodeWithTag("edit_model_${profile.id}").performClick()
             rule.onNodeWithTag("model_profile_name").assertTextContains("UI task model")
         } finally { runBlocking { app.modelProfiles.replace(previous) } }

@@ -196,3 +196,12 @@ PDF尚无实际挂起调用栈；不能仅因含performScrollTo就认定同源�
 6843d44b/[38822117302](https://github.com/veryy/Solvit/actions/runs/38822117302)四项同APK复验成功。归档12013068593（1110359字节，SHA256 `72c7db817e0fec85272200cb8282bef9dccbdbe64902d8cd8b6202939045c61f`）完整下载/CRC：实际OK (4 tests)、56.391秒，TestRunner逐项正常结束，零Fatal signal/SnapshotStateObserver/临时PDF_QUEUED_DIAG。PDF完成原真实选择、中文OCR、原图、HTTP失败重试、历史与分支断言，原pdf_apply滚动未返回问题在同条件由超时到通过。前三项模型设置、流式完成状态和语言切换亦再次通过。
 
 清理后6843d44b的完整[38823261172](https://github.com/veryy/Solvit/actions/runs/38823261172)已实际启动；包含原构建/611单元/Lint/固定签名、覆盖升级、15场恢复、70应用/3Web/25终端下限与stdio宿主强杀，尚未完成。不能以四项定向替代全部设备门禁或真实模型/ARM64验收；候选仍未合入主线、未发布0.43.3，路线图与原生WebView失败证据继续保留。
+
+
+## 清理后完整候选已通过，开始合入及正式标签验证
+
+6843d44b/[38823261172](https://github.com/veryy/Solvit/actions/runs/38823261172)的build116724642016与verify-ui116727294891均成功。单元归档12013574166（438137字节，SHA256 `8aacd6d0a7902b93e4a89a0499c7403fff8a8b1e29e84b5fb80100f64c8540c3`）完整下载/CRC/逐项XML核对611项，失败/错误/跳过均0；Lint、APK及固定签名检查通过。
+
+UI归档12014903088（7691182字节，SHA256 `5722fd89f785c99923765fca2757d7c1389dc57768688fc1411be18027bb0277`）完整下载/CRC并直接读取原始XML：app70/Web3/终端25共98项，零失败/错误/跳过，全部用例时间非负；包含文档更换、Compose生命周期回归、原PDF及全部后续用例。15份独立恢复verify均OK (1 test)，覆盖升级seed通过；实际stdio宿主SIGKILL记录中host/supervisor/worker/descendant四个独立PID均gone，报告门禁独立汇总与原始数量一致。定向结果终于在完整升级/恢复流程后复现通过，不能将此前失败报告删除。
+
+据此合入候选，保留主线全部阶段证据和分支历史；仅诊断选项及本文件发生文本冲突，已保留清理后的组合入口和更完整的主线记录。准备0.43.3/build86正式标签，仍需标签的完整六任务门禁及公开资产核对，未提前发布或宣称原生WebView根因已解决。原240次排队压力通过与另一默认dispatcher原生SIGSEGV失败继续各按实际范围保留；ARM64真机/真实模型任务和完整路线图继续未完成。
