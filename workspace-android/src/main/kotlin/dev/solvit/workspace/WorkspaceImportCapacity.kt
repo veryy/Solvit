@@ -4,7 +4,6 @@ import dev.solvit.core.MAX_WORKSPACE_IMPORT_BYTES
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import java.io.File
-import java.nio.file.Files
 
 /** Admission check, not an OS allocation or a filesystem quota. Other apps and Shell can
  * consume space afterwards. Keep the original untouched when rejection is already known. */
@@ -15,17 +14,13 @@ internal object WorkspaceImportCapacity {
     private val lock=Any()
     private val outstanding=mutableMapOf<String,Long>()
 
-    suspend fun <T> admit(root:File,contentBytes:Int,availableBytes:(File)->Long,
+    suspend fun <T> admit(root:File,contentBytes:Int,availableBytes:(File)->Long,volume:String,
         block:suspend()->T):T {
         require(contentBytes in 0..MAX_WORKSPACE_IMPORT_BYTES) { "导入文件超过20MiB" }
         currentCoroutineContext().ensureActive()
-        // All app workspaces normally share one private volume. Treat stores with the same
-        // name/type as shared, conservatively, so independently opened services cannot both
-        // spend the same reported free bytes. This is process-local accounting only.
-        val store=try { Files.getFileStore(root.toPath()) } catch(failure:Exception) {
-            throw IllegalStateException("无法识别工作区存储卷；尚未开始导入",failure)
-        }
-        val volume=store.name()+"\u0000"+store.type()
+        // Android supplies stat(2)'s device identity. Do not inspect mount tables here:
+        // Files.getFileStore is blocked by Android even for our own private directory.
+        require(volume.isNotBlank()) { "无法识别工作区存储卷；尚未开始导入" }
         val required=contentBytes.toLong()+HEADROOM_BYTES
         synchronized(lock) {
             val reserved=outstanding[volume]?:0L

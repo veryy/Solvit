@@ -1,5 +1,6 @@
 package dev.solvit.workspace
 
+import android.system.Os
 import android.content.Context
 import android.util.AtomicFile
 import dev.solvit.core.*
@@ -41,6 +42,11 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
                 }
             }
         } }
+    }
+    private fun importVolume(base:File):String = try {
+        Os.stat(base.absolutePath).st_dev.toString()
+    } catch(failure:Exception) {
+        throw IllegalStateException("无法识别工作区存储卷；尚未开始导入",failure)
     }
     private fun recoverImports(base:File,id:String) {
         val ledger=File(importLedgerRoot,id)
@@ -275,7 +281,7 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         expectedSha256: String): WorkspaceImportedFile = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         val base=directory(workspaceId).canonicalFile
-        val result=WorkspaceImportCapacity.admit(base,bytes.size,importAvailableBytes) {
+        val result=WorkspaceImportCapacity.admit(base,bytes.size,importAvailableBytes,importVolume(base)) {
             withContext(WorkspaceImportStaging(base,File(importLedgerRoot,workspaceId))) {
                 WorkspaceFileImports.create(base,path,bytes,expectedSha256,importPublisher) { verifyPage(workspaceId) }
             }
@@ -291,7 +297,7 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         verifyPage(workspaceId)
         val base=directory(workspaceId).canonicalFile
         val ledger=File(importLedgerRoot,workspaceId)
-        val result=WorkspaceImportCapacity.admit(base,bytes.size,importAvailableBytes) {
+        val result=WorkspaceImportCapacity.admit(base,bytes.size,importAvailableBytes,importVolume(base)) {
             withContext(WorkspaceImportStaging(base,ledger)+WorkspaceImportTransactions(base,ledger)) {
                 WorkspaceFileImports.replace(base,path,bytes,sourceSha256,targetSha256,importPublisher) { verifyPage(workspaceId) }
             }
