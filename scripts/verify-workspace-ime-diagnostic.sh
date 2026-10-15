@@ -16,6 +16,7 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
     solvit_diagnostic_test='dev.solvit.app.McpPageUiTest,dev.solvit.app.PluginPageUiTest#packagedTaskPageShowsSourcesAndUsesNativeCostConfirmationBeforeServiceControl,dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin,dev.solvit.app.PluginWebPageUiTest,dev.solvit.app.WorkspaceImportProgressHtmlTest'
     solvit_diagnostic_expected='OK (5 tests)' ;;
   chat-interaction) solvit_diagnostic_test='dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole' ;;
+  reply-branch-sequence) solvit_diagnostic_test='dev.solvit.app.ChatAttachmentWorkspaceHtmlTest,dev.solvit.app.ChatAttachmentsDeviceTest,dev.solvit.app.ChatInteractionDeviceTest,dev.solvit.app.ChatLayoutTest#javascriptPluginUsesPersistentPtyAndDisableClosesItsProcess,dev.solvit.app.ChatLayoutTest#largeNativeTranscriptReopensAndBranchesThroughRealAndroidCursorWindows,dev.solvit.app.ChatLayoutTest#roleAppliedThroughSettingsReachesProviderAndNewChatRequest,dev.solvit.app.ChatLayoutTest#contextBudgetDialogValidatesAndReturnsSavedValues,dev.solvit.app.ChatLayoutTest#memoryTaskRetryRequiresConfirmationAndDisplaysSource,dev.solvit.app.ChatLayoutTest#actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat,dev.solvit.app.ChatLayoutTest#javascriptPluginCanCreateShellAndRunActualAndroidCommand,dev.solvit.app.ChatLayoutTest#replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal'; solvit_diagnostic_expected='OK (12 tests)' ;;
   reply-branch-hang) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal' ;;
   chat-branches)
     solvit_diagnostic_test='dev.solvit.app.ChatAttachmentsDeviceTest#pickerImportsImagesAndTextThenHttpSendAndReopenPreserveTheirContent,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending'
@@ -35,7 +36,7 @@ capture() {
   timeout 15s adb logcat -d > ui-screenshots/page-diagnostic-native-logcat.txt || true
   timeout 15s adb shell dumpsys webviewupdate > ui-screenshots/page-diagnostic-webview-provider.txt || true
   timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
-  if [ "${SOLVIT_DIAGNOSTIC_CASE:-}" = reply-branch-hang ]; then
+  if [[ "${SOLVIT_DIAGNOSTIC_CASE:-}" == reply-branch-* ]]; then
     # ART writes SIGQUIT stacks to /data/anr, not necessarily to logcat.
     # Root only the disposable CI emulator to read its diagnostic file.
     timeout 15s adb root || true
@@ -56,10 +57,10 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   solvit_iteration_timeout=120s
   solvit_recreations=3
   case "${SOLVIT_DIAGNOSTIC_CASE:-}" in
-    workspace-startup-sequence) solvit_iteration_timeout=300s ;;
+    workspace-startup-sequence|reply-branch-sequence) solvit_iteration_timeout=300s ;;
     workspace-startup-stress) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
   esac
-  if [ "${SOLVIT_DIAGNOSTIC_CASE:-}" = reply-branch-hang ]; then
+  if [[ "${SOLVIT_DIAGNOSTIC_CASE:-}" == reply-branch-* ]]; then
     (
       sleep 60
       solvit_stack_target=$(adb shell pidof dev.solvit.app | tr -d '\r')
