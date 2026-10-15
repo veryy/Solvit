@@ -48,3 +48,19 @@ TS 测试覆盖会话协商、工具分页、JSON/SSE、未知工具、过期会
 干净候选包已由远程生成38294468996取回并提交，37,381字节、SHA256 `111d17a33de9272b9b645e54ddc599aaed909e45960231b3254ba4dcb05f0f2c`。完整候选38295011493运行中，市场未部署、0.22.0未发布。
 
 干净候选38295011493的实际285个单元及44个模拟器测试全部通过，包含双HTTPS同名工具正确路由、两连接加密保存重开、禁用和取消/确认删除。72 SDK/2市场及提交包一致性通过。0.22.0正式发布仍待完成。
+
+## 本地 stdio 开发候选（API30，尚未发布）
+
+1.2.0 候选允许 HTTPS 与本地服务共存。先在工作区安装 Ubuntu，再准备 Python/Node 服务脚本和依赖；然后从已绑定该工作区的聊天打开 MCP 页面，选择「本地 stdio」。填启动命令、字面参数 JSON 数组、可选环境 JSON 和工作区内相对目录。保存不启动服务；「测试连接」需确认，只协商并发现工具，完成后关闭。
+
+例如工作区有 `servers/example.py`，可导入：
+
+```json
+{"mcpServers":{"local-example":{"type":"stdio","command":"python3","args":["servers/example.py"],"cwd":"","env":{}}}}
+```
+
+脚本必须实现 MCP 的逐行 JSON-RPC，普通 Python 脚本不会自动变成 MCP 服务。Python 项目可将 command 设为 `.venv/bin/python`；Node 服务可用 `node` 配合脚本路径。参数不经过 Shell 展开，日志请写 stderr。需要安装的软件或依赖不会在连接失败后自动下载。
+
+启用新版需明确审阅 network、workspace、shell 权限；旧用户自动兼容升级保留1.1.1及原HTTPS授权，需自行选择安装新版。模型仍通过 `mcp_servers`、`mcp_tools`、`mcp_call` 使用具名服务器，不会获得命令、参数或环境配置。每个聊天/角色/工作区有独立本地连接；工具调用失败不自动重放。
+
+当前候选支持标准工具协议的有限子集，不包括 OAuth、resources/prompts、sampling 或完整 SDK 的全部能力。原生服务有4连接上限、空闲回收和帧/队列限制。PRoot不是权限提升或恶意代码沙箱；代码仍以应用UID运行。最终可下载版本与真实设备执行状态以[阶段记录](local-stdio-mcp-stage.md)为准。

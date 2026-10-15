@@ -153,3 +153,15 @@ Git 1.3.1 页面使用 `gitPage.query("cloneInstalls", {offset: 0, limit: 5})` �
 用户明确确认 `git.perform` 后，页面调用 `gitPage.perform()`；支持 `resumeCloneInstall`、`restartCloneDownload`、`discardCloneInstall`，参数只能是 `{reviewId}`。继续和重新下载也可嵌入既有 `startRemote` 异步任务。句柄在尝试执行前消费，失败须重新审阅；页面关闭、工作区变化或权限撤销后不能复用。恢复不会自动执行：继续核对已安装文件，冲突不覆盖；放弃仅关闭登记的私有暂存，保留工作区文件。重新下载需要另行网络授权，已发布仓库的确认不会重置后续编辑。
 
 API1–28 目录保留 Git1.2.7 的原始包，不能调用 API29 恢复动作。测试结果和实际强杀验收进度见[阶段记录](../docs/workspace-git-recovery-stage.md)。
+
+### API30：本地 MCP 原始帧（开发候选，尚未发布）
+
+声明 `permissions: ["network", "workspace", "shell"]` 及 `nativeServices: ["environment.linux", "process.stdio"]`。`ctx.stdio` 只连接本插件加密 `connections` 内明确的 `type: "stdio"` 服务器；`open(server)` 不接受命令参数，宿主自行读取并校验保存配置。AI 只能选择具名服务器，不能替换命令或环境。
+
+- `scope()` 返回当前聊天/角色/工作区的不可解析作用域；未绑定工作区时为 null。
+- `open(server)` 返回不透明连接 ID；`send(server,id,frame)` 与 `receive(server,id)` 收发 JSON-RPC 对象，stdout 为逐行 UTF-8，stderr 不进入模型。MCP 协商、发现、分页、调用均由插件实现。
+- `close(server,id)` 只关闭当前作用域拥有的连接。旧进程完全清理后才启动下一代；空闲连接会退出，复用前需核对原生 ID，变化后重新协商。
+- 页面调用 `review(server)` 获得短期 `reviewId`、命令名、参数及环境项数，用于按钮的 `hostAction: {kind:"stdio.connect",server,reviewId}`。用户确认当前显示按钮后才能 `open`，审阅只用一次；页面不得 `tools/call`，事件完成关闭试连接。
+- 工具的 `tools/call` 名称和 arguments 必须与用户批准的当前调用一致。停止或失败关闭该执行拥有的进程；配置变化、撤权、插件停用、角色/绑定变化也会关闭。成功回合可以复用。
+
+此服务是普通应用 UID 下的开发进程能力，不是 Android 权限提升或不可信代码隔离。QuickJS 插件不获得 Node 全局对象、JNI 句柄或任意宿主路径。协议范围及设备验证状态见[阶段记录](../docs/local-stdio-mcp-stage.md)。
