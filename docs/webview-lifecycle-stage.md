@@ -160,3 +160,12 @@ b1ccb325/[38807773768](https://github.com/veryy/Solvit/actions/runs/38807773768)
 三项定向复验[38813907091](https://github.com/veryy/Solvit/actions/runs/38813907091)已结束：0fd02646实际2通过、1失败，14.306秒。归档12010710050（856981字节，SHA256 `c12ed49c25ae79dece7d4dc9ce263def13dc672cec1c8af302196bf9fcb89190`）完整下载/CRC核对；长历史回复分支与角色继承通过，设置末行在ChatLayoutTest.kt:831的最终assertIsDisplayed失败，本轮没有挂起。实际查看settings-bottom-insets截图停在语言区域，底部关于/备份提示未显示。
 
 此用例在新的逐帧滚动之后仍执行旧performScrollTo。721b6e6b仅在旧操作之前增加截图和同样的可见性断言，用于区分“逐帧处理已到达、旧操作又移动”与“处理本身错误判定可见”；保留旧操作和最终断言以对照。远程[38814607810](https://github.com/veryy/Solvit/actions/runs/38814607810)尚未结束，不能提前认定根因或修复完成。
+
+
+## 位置记录确认LazyColumn预组合节点被误判为可见
+
+721b6e6b/[38814607810](https://github.com/veryy/Solvit/actions/runs/38814607810)在旧滚动之前的可见性断言失败（ChatLayoutTest.kt:830），排除了“旧performScrollTo将已可见目标移走”的猜测。归档12010940559（882479字节，SHA256 `17558b986f865911d266b2d0df04b8cb63607cdca9c714db605f4f9ca59d9295`）完整下载/CRC，实际查看before-legacy截图仍停在语言卡片；不是最终截图时才发生移动。
+
+13dc7a6a/[38815402582](https://github.com/veryy/Solvit/actions/runs/38815402582)只在辅助代码决定可见处记录坐标/放置状态。归档12010981753（875349字节，SHA256 `6ff99f271a08e8d28f7ca3cf1d760b52f68cc55a7a1e540c35b6904ae63d33ed`）完整下载/CRC：关于标题坐标231..284、备份提示231..277，均处于视口231..1794内，但两者layoutInfo.isPlaced=false且父链含false。官方ui-test1.8.3 AndroidAssertions.android.kt的checkIsDisplayed先拒绝节点或任一祖先未放置，坐标本身不足以判定显示。此记录确认辅助代码把预组合但未放置的LazyColumn节点误判为已经显示。
+
+0aa4d573仅在QueuedScroll里按同一官方条件过滤未放置的节点/祖先，再计算坐标；无有效放置目标则继续逐帧滚动。删除临时QUEUED_SCROLL_DIAG、before-legacy截图/重复断言与已被逐帧处理替代的旧performScrollTo，保留原设置末行最终assertIsDisplayed及截图。三项同条件复验[38816285934](https://github.com/veryy/Solvit/actions/runs/38816285934)待结果，不改生产列表/布局、不降低断言、不加睡眠或无限循环。
