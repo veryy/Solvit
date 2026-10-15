@@ -16,6 +16,7 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
     solvit_diagnostic_test='dev.solvit.app.McpPageUiTest,dev.solvit.app.PluginPageUiTest#packagedTaskPageShowsSourcesAndUsesNativeCostConfirmationBeforeServiceControl,dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin,dev.solvit.app.PluginWebPageUiTest,dev.solvit.app.WorkspaceImportProgressHtmlTest'
     solvit_diagnostic_expected='OK (5 tests)' ;;
   chat-interaction) solvit_diagnostic_test='dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole' ;;
+  reply-branch-hang) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal' ;;
   chat-branches)
     solvit_diagnostic_test='dev.solvit.app.ChatAttachmentsDeviceTest#pickerImportsImagesAndTextThenHttpSendAndReopenPreserveTheirContent,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending'
     solvit_diagnostic_expected='OK (2 tests)' ;;
@@ -35,7 +36,12 @@ capture() {
   timeout 15s adb shell dumpsys webviewupdate > ui-screenshots/page-diagnostic-webview-provider.txt || true
   timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
 }
-trap capture EXIT
+solvit_stack_watch_pid=''
+finish() {
+  if [ -n "$solvit_stack_watch_pid" ]; then kill "$solvit_stack_watch_pid" 2>/dev/null || true; fi
+  capture
+}
+trap finish EXIT
 timeout 90s adb install -r diagnostic-apk/app-debug.apk
 timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
@@ -46,6 +52,14 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
     workspace-startup-sequence) solvit_iteration_timeout=300s ;;
     workspace-startup-stress) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
   esac
+  if [ "${SOLVIT_DIAGNOSTIC_CASE:-}" = reply-branch-hang ]; then
+    (
+      sleep 60
+      solvit_stack_target=$(adb shell pidof dev.solvit.app | tr -d '\r')
+      if [[ "$solvit_stack_target" =~ ^[0-9]+$ ]]; then adb shell run-as dev.solvit.app kill -3 "$solvit_stack_target"; fi
+    ) &
+    solvit_stack_watch_pid=$!
+  fi
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
     -e workspaceRecreations "$solvit_recreations" \
