@@ -57,3 +57,7 @@ Git1.3.0首轮[插件生成38714066212](https://github.com/veryy/Solvit/actions/
 外部强杀首轮[38716282303](https://github.com/veryy/Solvit/actions/runs/38716282303)未进入设备：新增测试最后调用挂起的removeCredentials不在协程内，主APK已编译，但测试APK编译失败。修复为runBlocking，不放宽进程/文件/网络或HTML断言，须重新远程运行。
 
 第二轮外部验收[38716925404](https://github.com/veryy/Solvit/actions/runs/38716925404)实际进入设备：DOWNLOADING在真实请求阻塞后完成force-stop，新进程已通过记录、空目录、请求计数、插件HTML审阅与取消确认断言；随后截图名含大写DOWNLOADING，被既有HtmlPageProbe的小写名称限制拒绝，尚未执行重新下载及后五场。仅将截图场景名用Locale.ROOT转小写，保留截图工具限制和全部业务断言。另合同38716752774在旧a2506cfe上仍是已知removeCredentials编译问题；新一轮APK编译已确认该问题修复，不把旧合同记为成功。
+
+[外部强杀38717787387](https://github.com/veryy/Solvit/actions/runs/38717787387)在2ee1687c上六场全部通过。完整下载831284字节报告归档并核对CRC/SHA256 `e8c2535cc3c2e42085f9d571d0dfc4fac03bcce84f23865d29edc1e76cbd1fc9`，逐场检查杀前PID、杀后为空、准备未正常结束、新进程OK (1 test)，并实际查看FILE/CONFLICT截图。未将6场算入普通Android用例。完整候选38717523453的build任务成功，下载单元XML核对585项、零失败/错误/跳过，Lint/实际APK与固定证书通过；因旧截图名已知错误，构建完成后取消旧UI并用2ee1687c开启完整38718561877，后者尚待结果。
+
+API29/Git1.3.0曾先完成独立私有兼容验证，再部署并从公网核对29组目录和52个历史包完整字节，备份 `/opt/solvit-market/.backup-api29-1792059230264`。随后实际截图发现冲突校验失败时installedFiles默认0仍被显示为已验证统计，信息不准确。修复只在完整校验成功时显示统计，新增TS和实际HTML断言；已公开的Git1.3.0不覆盖，原始803786字节、SHA `0e2a8f1d09cf800530f4d0fd6000a0174a491c8d59a8e5843c221decbc795235`保存legacy，当前源码补丁升1.3.1并增加其保留设置/权限/用户代码/卸载状态的升级合同。须重新生成、验证和兼容部署补丁，仍未正式发布0.41 APK。
