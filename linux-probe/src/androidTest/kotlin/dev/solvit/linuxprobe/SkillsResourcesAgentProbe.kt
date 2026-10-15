@@ -20,12 +20,13 @@ internal suspend fun verifySkillsResourcesAgent(context: Context, scope: Corouti
     val client = OkHttpClient()
     val allow = object : ToolAuthorization { override suspend fun authorize(descriptor: ToolDescriptor) = true }
     try {
-        manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin())
+        manager.load(ToolsPlugin(enforceSystem = true)); manager.load(ContextHooksPlugin())
         manager.load(object : SolvitPlugin {
             override val id = "fixture.skills.environment"
-            override val provides = setOf(WorkspaceServiceKey, LinuxEnvironmentServiceKey)
+            override val provides = setOf(WorkspaceServiceKey, LinuxEnvironmentServiceKey, SystemExecutionServiceKey)
             override suspend fun enable(context: PluginContext) {
                 context.register(WorkspaceServiceKey, workspaces); context.register(LinuxEnvironmentServiceKey, linux)
+                context.register(SystemExecutionServiceKey, workspaces.execution)
             }
         })
         manager.enableAll()
@@ -82,6 +83,7 @@ internal suspend fun verifySkillsResourcesAgent(context: Context, scope: Corouti
                     // Real processes run asynchronously; do not busy-poll or mock their completion.
                     delay(125)
                     assertTrue(request.tools.any { it.name == "dev_solvit_skills_skills_prepare" })
+                    assertEquals(ExecutionMode.APP, request.tools.single { it.name == "dev_solvit_workspace_shell_start" }.executionMode)
                     val last = request.messages.lastOrNull { it.role == Role.TOOL }?.content
                     fun args(vararg fields: Pair<String, String>) = buildJsonObject { fields.forEach { (key, value) -> put(key, value) } }.toString()
                     fun call(name: String, body: String = "{}") = ToolCall("skills-${phase}-${polls++}", name, body)

@@ -38,3 +38,6 @@ API31桥首次诊断38766584222失败于既有目录测试仍期待hostApi30；T
 e81062ad最小复现[38770915001](https://github.com/veryy/Solvit/actions/runs/38770915001)揭示原异常为“资源目录身份无效”。Android应用filesDir有系统路径别名，工作区旧directory()已按canonical根验证，但新增发布原语要求绝对路径本身等于canonical；宿主传入了别名。修复为仅在通过既有directory()根检查后传入canonicalFile，发布原语继续严格检查NOFOLLOW和目录身份，不允许用户任意符号链接，不修改模型参数或覆盖规则。保留最小调用和完整Agent失败→修复→读取断言，继续远程验证。
 
 版本准备3acbfa2b/v0.43.0/build83，完整发布[38772449349](https://github.com/veryy/Solvit/actions/runs/38772449349)已启动。5010efb3单独Linux重跑38772190191已取消，改由正式标签的同一Ubuntu测试继续，避免重复安装；这不算通过。正式流程仍包含全部单元、Lint、固定签名APK、独立设备报告门禁、UI/恢复/升级、TS/市场/公网搜索以及实际Ubuntu探针，尚未发布。不会用取消的运行替代任何门禁。
+
+
+0.43.0/38772449349的Android单元、Lint、APK、TS/市场/公网检查已通过，但Ubuntu探针在启动Shell后取不到job JSON，发布被阻止。资源准备和info已实际经过真实QuickJS通过；对照生产App与AndroidExecution.authorized发现新探针使用ToolsPlugin默认装配，未注入SystemExecutionService，确认描述缺executionMode被严格身份检查拒绝。修正仅测试：注册真实workspaces.execution并启用ToolsPlugin(enforceSystem=true)，增加模型工具描述的APP身份断言，不修改或放宽产品授权。版本递增0.43.1/build84，不移动已失败标签或替换资产。
