@@ -12,7 +12,7 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The latest public release is [0.42.1](https://github.com/veryy/Solvit/releases/tag/v0.42.1). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The stable release is [0.41.0](https://github.com/veryy/Solvit/releases/tag/v0.41.0). Version 0.42.1 has one failed UI test hidden by an exit-status bug and is marked prerelease; 0.42.2 is being validated. Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 
@@ -48,7 +48,7 @@ Unsent drafts and queued messages do not survive process death; startup cleans u
 
 Configuration backups include model connections, API keys, roles, prompts, language, and appearance, but exclude chats, plugin packages, plugin credentials, and memories. Keep backups outside the app. Conversation context is sent to your configured model service.
 
-The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38746331673) passed remote build, tests, lint, signing, and upgrade gates; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.42.1.md)
+The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38746331673) incorrectly reported all gates as green: build, 600 unit tests, lint, signing and Linux passed, but one raw UI test failed; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.42.1.md)
 
 ## Development
 

@@ -24,7 +24,7 @@ class McpPageUiTest {
             withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }
             app.marketplace.disable(id)
             app.marketplace.installLocal(app.assets.open("builtin-plugins/$id.solvit.json").use { it.readBytes() })
-            app.marketplace.configure(id, emptyMap()); app.marketplace.enable(id, setOf("network"))
+            app.marketplace.configure(id, emptyMap()); app.marketplace.enable(id, setOf("network", "workspace", "shell"))
         }
         val html = HtmlPageProbe(rule.activity)
         fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }

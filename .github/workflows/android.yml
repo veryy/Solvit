@@ -58,6 +58,8 @@ jobs:
             echo 'Missing stable APK signing key'
             exit 1
           fi
+      - name: Verify publication gate rejects failed or missing device reports
+        run: python3 -m unittest discover -s scripts/tests -p test_android_device_reports.py
       - name: Tests, lint and APK
         run: ./gradlew :core:test :linux-runtime:test :system-runtime:test :workspace-android:testDebugUnitTest :git-android:testDebugUnitTest :web-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest :web-android:assembleDebugAndroidTest --stacktrace
       - name: Verify published APK signing identity
@@ -140,6 +142,8 @@ jobs:
           emulator-boot-timeout: 180
           disable-animations: true
           script: bash scripts/verify-android-ui.sh
+      - name: Independently reject failed, skipped or missing device reports
+        run: python3 scripts/verify-android-device-reports.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
