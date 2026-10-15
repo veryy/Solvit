@@ -1,0 +1,434 @@
+{
+  "checkedAt": "2026-10-15T02:31:20.782202+00:00",
+  "publicBase": "https://solvit.207.57.126.73.sslip.io",
+  "oldApisUnchanged": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "compatibleGitPatchApis": [
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26
+  ],
+  "publicCatalogs": [
+    {
+      "hostApi": 1,
+      "bytes": 4118,
+      "sha256": "f8212b11666d42dcfdad8481b12a796e3a8a64af2e4a5d45a6b2e5218a656b3b"
+    },
+    {
+      "hostApi": 2,
+      "bytes": 7281,
+      "sha256": "13462c4287eaf93abdc1b6d7a6f88cedb35b2d99e9f777fdc10a8d5e59566422"
+    },
+    {
+      "hostApi": 3,
+      "bytes": 10224,
+      "sha256": "1609a3ab51b91e1cad5a6fcea88170af3091e01057db8c7b6c866fb60b1cf9fe"
+    },
+    {
+      "hostApi": 4,
+      "bytes": 13672,
+      "sha256": "4b8511888e763284c40bf809ffc6424b16bef15ccbb054b61218fa4dc2959a3e"
+    },
+    {
+      "hostApi": 5,
+      "bytes": 15644,
+      "sha256": "855a40d9dd1210af0ed42d8832fb14002c3846a43ea6354e1df5c20fef0b22b0"
+    },
+    {
+      "hostApi": 6,
+      "bytes": 15638,
+      "sha256": "d9bad1489b7b13167004c24e4041fa1c24cfb760adb18d530bd5840b8ec8b670"
+    },
+    {
+      "hostApi": 7,
+      "bytes": 15791,
+      "sha256": "625a64efc112e91c954aa52f3898ebb9f4e30fb7cf5e12a7c7c6382fee830786"
+    },
+    {
+      "hostApi": 8,
+      "bytes": 16014,
+      "sha256": "b8ad8f33ecacc192c4e76b313fe7c559e7f964cf9a557768f5c28aa88e7bd89b"
+    },
+    {
+      "hostApi": 9,
+      "bytes": 16536,
+      "sha256": "35b9a01c0e285ccb990745e127f2b10640649fac1e8f36e3ebc7e5b2ae26d878"
+    },
+    {
+      "hostApi": 10,
+      "bytes": 17589,
+      "sha256": "48786341c1b2e40cfefd944ee804027716a47dae100068b85f8fb20a8401867b"
+    },
+    {
+      "hostApi": 11,
+      "bytes": 17658,
+      "sha256": "9789ee40d6411c0b611cf9fc191deb0337a19b99b604f3455c8ea1ef79d3f3a6"
+    },
+    {
+      "hostApi": 12,
+      "bytes": 17728,
+      "sha256": "6cf4e2f81c616289f931bb0cad25928786b3e62245d2cd63617e65d69e0ed4ff"
+    },
+    {
+      "hostApi": 13,
+      "bytes": 17863,
+      "sha256": "967770af1448490738a14b65d56c18f507a6ed99646456f2bb61a0e452d476b0"
+    },
+    {
+      "hostApi": 14,
+      "bytes": 18425,
+      "sha256": "3a18e0ed29a4af598cb68cd863a38932763e5745c627f412e23f636cd50b9b11"
+    },
+    {
+      "hostApi": 15,
+      "bytes": 19020,
+      "sha256": "a3e0ad10b37d2be80b5efb0a19ef43a3891cff54c8caf39863f7eba320267253"
+    },
+    {
+      "hostApi": 16,
+      "bytes": 19169,
+      "sha256": "5b4325b09c2a521fb37a1e1a1b60a60d6110137a45d3af79156d2c1d72054fe4"
+    },
+    {
+      "hostApi": 17,
+      "bytes": 19259,
+      "sha256": "ae2bde136ba6b57af73398e50dcdb10e2204f630dafd1cff90d6e8dd8c2d910f"
+    },
+    {
+      "hostApi": 18,
+      "bytes": 19260,
+      "sha256": "265f8964e83c0c7daf2b2af3cb251ba3d4fdbf1b6bc428dacca5fef975e69353"
+    },
+    {
+      "hostApi": 19,
+      "bytes": 20929,
+      "sha256": "62d8a145d5094193a8c8413f75ebaf66723f73c8d9e0dfbd2ba7417f7ae7ddc9"
+    },
+    {
+      "hostApi": 20,
+      "bytes": 20937,
+      "sha256": "90732d66648f36d70414508062497264c1782e8e3c20b8b81828668e38da89b7"
+    },
+    {
+      "hostApi": 21,
+      "bytes": 21585,
+      "sha256": "8a2d2f6219ff8e38a314036568654165ba7dc12346d019ce67b0a4f02e76a32c"
+    },
+    {
+      "hostApi": 22,
+      "bytes": 21622,
+      "sha256": "4354c9e7e1cccbc674611fe9c1976cb9aef543df40ba291425385c859c74b397"
+    },
+    {
+      "hostApi": 23,
+      "bytes": 21622,
+      "sha256": "bd466e3ced63346d4a98d2c9ca28e182a6f1ed7021164e3d88b1114fb9a65056"
+    },
+    {
+      "hostApi": 24,
+      "bytes": 21622,
+      "sha256": "4035d663a9e078aa5c11b417098562f339dfb9cc5ee5add129ee76aa3fb8d07c"
+    },
+    {
+      "hostApi": 25,
+      "bytes": 21622,
+      "sha256": "ae7a1caeb78644847a81ef497c9860d7365403cda08d3cd91126ebb32d4c06ab"
+    },
+    {
+      "hostApi": 26,
+      "bytes": 21622,
+      "sha256": "261f07ec04284f40253461ed8d992dcb9928034ce364a993137e20c2c7dcf9d6"
+    },
+    {
+      "hostApi": 27,
+      "bytes": 21624,
+      "sha256": "635f28a17ca71041120fd0831e64998dbebb105c38ec32191ad7caf2ad08b653"
+    }
+  ],
+  "historicalPackages": [
+    {
+      "key": "dev.solvit.authoring/1.0.0",
+      "bytes": 3103,
+      "sha256": "94d53001ef5ca73698d6381e7dec01f78ad84c27acd2bb44ec16ecf8dbb00424"
+    },
+    {
+      "key": "dev.solvit.clock/1.2.0",
+      "bytes": 3501,
+      "sha256": "cf967a6cfbe065d2232a16a3edd0f1484b753a16639915313252d41eb16d6ad0"
+    },
+    {
+      "key": "dev.solvit.environment/1.0.2",
+      "bytes": 17969,
+      "sha256": "e0e2c433cde60f34147178c50e9c51748a6ff445c067dcd1753e861621e43783"
+    },
+    {
+      "key": "dev.solvit.git/1.2.5",
+      "bytes": 756073,
+      "sha256": "ee8cab14b1992ee28651c0ce510d9e046d66a396bc559d2d7293a2aadeb277b4"
+    },
+    {
+      "key": "dev.solvit.git/1.2.4",
+      "bytes": 749930,
+      "sha256": "c7c771112dbd15eea56144802306d4f9432e9061ea7047e2ceb765e5141e3da0"
+    },
+    {
+      "key": "dev.solvit.git/1.2.3",
+      "bytes": 746146,
+      "sha256": "f35a229cf891a942e6e099a4fd13cacc7367c09c0ce2f77e0fa1c293249a9e65"
+    },
+    {
+      "key": "dev.solvit.git/1.2.2",
+      "bytes": 741822,
+      "sha256": "1d7aa4b3556104907dac7e29d7ea4fb5e35a7f6565d3a6bf668771e643b8130b"
+    },
+    {
+      "key": "dev.solvit.git/1.2.1",
+      "bytes": 736820,
+      "sha256": "77454f4db363a764fafd507dc00a695dedb4fdc09f8f420d262d3b4d653d83f9"
+    },
+    {
+      "key": "dev.solvit.git/1.2.0",
+      "bytes": 725628,
+      "sha256": "4d76704c82d72c9b904d2eba6b2f5aea908cb48b495d439c9b9b1a36709d3f4a"
+    },
+    {
+      "key": "dev.solvit.git/1.1.1",
+      "bytes": 715915,
+      "sha256": "7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd"
+    },
+    {
+      "key": "dev.solvit.mcp/1.1.1",
+      "bytes": 37542,
+      "sha256": "1d437a9297e6d570ce34d8c306e2acae02d0b899a94f3d058f27835073a23a66"
+    },
+    {
+      "key": "dev.solvit.memory/1.0.0",
+      "bytes": 18996,
+      "sha256": "fd9e7e18c4bc9585d5e6827419971b62c36e9b1487bc9f0227164eaab093e93b"
+    },
+    {
+      "key": "dev.solvit.memory/1.4.1",
+      "bytes": 539688,
+      "sha256": "24620ba62dee1b98ce03b49fbb94524868947dc5b4a7f7f5135e5977d21fd7d9"
+    },
+    {
+      "key": "dev.solvit.skills/1.1.1",
+      "bytes": 255403,
+      "sha256": "83a8912346d3e120f8795a5f35a7ed41a97d90005706305031f3fe34e68bbebf"
+    },
+    {
+      "key": "dev.solvit.terminal/1.1.3",
+      "bytes": 327484,
+      "sha256": "a92b18a94aa53900d8a7dc3cca6ea61b7a9cecf8771f8583a3bbc0e12ad1b37d"
+    },
+    {
+      "key": "dev.solvit.web-search/1.1.0",
+      "bytes": 12431,
+      "sha256": "914771c881ee879d0abecaecca48bb5627f9c6509afdf9ff06efe5af90b218bd"
+    },
+    {
+      "key": "dev.solvit.web-search/1.2.2",
+      "bytes": 17353,
+      "sha256": "b31ec2d6f2ec2bcda7a772f5421cfc9c6a8f46e7949b2854d4b90f4bf77c5343"
+    },
+    {
+      "key": "dev.solvit.workspace/1.9.0",
+      "bytes": 773285,
+      "sha256": "c4bd5bfa19dd9bca67d6913c02a48bc2624858d9be5eb32f7863c6a0273d5f5e"
+    },
+    {
+      "key": "dev.solvit.workspace/1.8.0",
+      "bytes": 767142,
+      "sha256": "e5ad26b643d323bd3b622094121316b94eaaf17400d62397c91243c5e7a3fe5d"
+    },
+    {
+      "key": "dev.solvit.workspace/1.7.0",
+      "bytes": 763358,
+      "sha256": "d212d6741bde9a5db30a9d307c506389343d9c705f66011d4c0a50e54c041360"
+    },
+    {
+      "key": "dev.solvit.workspace/1.6.0",
+      "bytes": 759034,
+      "sha256": "7e365776b2df302b79d338980e5ce990f233d7f3a7762399a89c8fa3a50283b6"
+    },
+    {
+      "key": "dev.solvit.workspace/1.5.0",
+      "bytes": 754032,
+      "sha256": "399e6a23148c4043903788adeb2eb7203504710c3fe95b6af9a39d89b38bc72a"
+    },
+    {
+      "key": "dev.solvit.workspace/1.4.0",
+      "bytes": 742790,
+      "sha256": "675764bbd4c1b438b0c6de228aa865742d760521facf57e358e4abc8b931db41"
+    },
+    {
+      "key": "example.agent-policy/1.0.0",
+      "bytes": 2825,
+      "sha256": "528d480b937ea497c771e7cfcfc626e071bbce38a7433a0624151256a393ca4c"
+    },
+    {
+      "key": "example.agent/1.0.0",
+      "bytes": 2271,
+      "sha256": "8b90af409ab889496a3c568d29a6a29be56cb203733c5544ad2c534ae88c7925"
+    },
+    {
+      "key": "example.notes/1.0.0",
+      "bytes": 3492,
+      "sha256": "7bd92d6621a077965f41d60386e6cc7381660f70bbb13911be67c87d49c4fbf0"
+    },
+    {
+      "key": "dev.solvit.clock/1.0.0",
+      "bytes": 672,
+      "sha256": "511c83d2ad716cf0ddc9d343046cbd308fd0e178ad5ee0bbc6ad27e358a34445"
+    },
+    {
+      "key": "dev.solvit.mcp/1.0.0",
+      "bytes": 11858,
+      "sha256": "c2c4ad230e7ce37d841314deb162bc8e70d84ec40f1c1bbb8be47b0bb95d80fe"
+    },
+    {
+      "key": "dev.solvit.mcp/1.1.0",
+      "bytes": 37381,
+      "sha256": "111d17a33de9272b9b645e54ddc599aaed909e45960231b3254ba4dcb05f0f2c"
+    },
+    {
+      "key": "dev.solvit.memory/1.3.0",
+      "bytes": 75373,
+      "sha256": "7cce19572a842767f37dc21ade02762b08da4248a11558658debce9ebdd2915e"
+    },
+    {
+      "key": "dev.solvit.memory/1.3.1",
+      "bytes": 75285,
+      "sha256": "096b82abcd7f09de4a3445e05a13c3fc16c7f3a1c6e8b0d07c85f0bbd1741ffd"
+    },
+    {
+      "key": "dev.solvit.memory/1.4.0",
+      "bytes": 539542,
+      "sha256": "8650268525bf39cc49ce39f5e4bdfc3d3039c6f7e01ddd5829225bb98231c719"
+    },
+    {
+      "key": "dev.solvit.memory/1.1.0",
+      "bytes": 21824,
+      "sha256": "8845efcc0175c34995b8be576ef040d18bc05458003bf09770e6c2f4500bc323"
+    },
+    {
+      "key": "dev.solvit.memory/1.2.0",
+      "bytes": 33166,
+      "sha256": "14b2812beadd26c214b0712727d0316fb8fc1d0173da816b7290ee59a3b9c88f"
+    },
+    {
+      "key": "dev.solvit.skills/1.0.2",
+      "bytes": 233298,
+      "sha256": "0c51650719024e18c45a38b8e631946972881d1953302ea92751263a276308a6"
+    },
+    {
+      "key": "dev.solvit.skills/1.1.0",
+      "bytes": 255242,
+      "sha256": "585a182857fb58b2870f048cbdecef12d90b91859a09fe6870a3e0cbe359a3b2"
+    },
+    {
+      "key": "dev.solvit.terminal/1.0.0",
+      "bytes": 4552,
+      "sha256": "d124c4f16262d0d559eb0b45c21c790e79f8ee1aaacfc9b1464397a1520682a3"
+    },
+    {
+      "key": "dev.solvit.terminal/1.1.0",
+      "bytes": 322895,
+      "sha256": "e05c420559d3f6a14924fbc455cefe71f510844c3f0802a457ff754c3fd2f4d8"
+    },
+    {
+      "key": "dev.solvit.terminal/1.1.1",
+      "bytes": 326800,
+      "sha256": "443a011bc592520919740aa8784d87c01f5dacbf7ca612d8012114f7603d9f56"
+    },
+    {
+      "key": "dev.solvit.terminal/1.1.2",
+      "bytes": 326850,
+      "sha256": "eca040c2851d415ababda789a45d49bbbdb547c8173dd6db2616bc83c4678ee0"
+    },
+    {
+      "key": "dev.solvit.web-search/1.2.0",
+      "bytes": 17034,
+      "sha256": "175c0f5b7fdff2307d59462d31318a9773df27b8ac342a7376fc63c2bc96e39a"
+    },
+    {
+      "key": "dev.solvit.web-search/1.2.1",
+      "bytes": 17264,
+      "sha256": "0a7df3f273688fe4e49508c6c2f753a626cdee01f97245ce47c9580366bd3dda"
+    },
+    {
+      "key": "dev.solvit.workspace/1.0.0",
+      "bytes": 5508,
+      "sha256": "7d80dbfc71c177b3a2a81df5c15bfa05b6d0cb274baf536a5d179dad55ce0004"
+    },
+    {
+      "key": "dev.solvit.workspace/1.1.0",
+      "bytes": 27700,
+      "sha256": "4afcd1206d15bb0f1fba79a93f0e623b0a6e29ff3172b54cadb833b9ea8471e4"
+    },
+    {
+      "key": "dev.solvit.workspace/1.2.0",
+      "bytes": 31604,
+      "sha256": "545abc7b667f31468777e378d4c7620709f9e2e03fca6f4c1b490e24bd4b0bbe"
+    },
+    {
+      "key": "dev.solvit.workspace/1.3.0",
+      "bytes": 66826,
+      "sha256": "95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b"
+    },
+    {
+      "key": "dev.solvit.environment/1.0.0",
+      "bytes": 17745,
+      "sha256": "4d5d07cc8c8ed309ccc918b05cf3517a82c76bc80d3febce4506958d4c6f01b7"
+    },
+    {
+      "key": "dev.solvit.environment/1.0.1",
+      "bytes": 17753,
+      "sha256": "1856e4c2391b9d589b31095b5c8dae64d9e75311590d62b278c2419ba8c2d5f0"
+    }
+  ],
+  "currentPackages": [
+    {
+      "id": "dev.solvit.workspace",
+      "version": "1.10.0",
+      "api": 27,
+      "bytes": 780697,
+      "sha256": "e275e637b3cdbe3e56d800d9abbefc221169b7f1e07faed8f29c5d6a611cbfd9"
+    },
+    {
+      "id": "dev.solvit.git",
+      "version": "1.2.6",
+      "api": 20,
+      "bytes": 763484,
+      "sha256": "272b679dad15a9d595fe4299f931427cec4825a40442aebb93251dff9afa7bb8"
+    }
+  ],
+  "publicDownloadCounts": {
+    "historical": 48,
+    "new": 2
+  },
+  "allCompleteByteCountsAndHashesMatch": true
+}
