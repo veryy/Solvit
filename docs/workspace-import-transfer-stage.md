@@ -114,3 +114,6 @@ d6685d2的38655832380/116165253042成功：完整日志确认123 SDK、5市场�
 
 
 API26客户端合同报告11939117980（93730字节）已实际下载并完整ZIP CRC/XML核对：410单元、0失败/错误/跳过，包含BuiltinMemoryTest实际HTTP请求断言hostApi26。它锁定07a089a，不包含随后补齐语言目录的1e44b4e；后者已启动完整Android复验。
+
+
+1e44b4e的Android38662248469/build116186017642成功，实际下载11940080038（383661字节）完整ZIP CRC/XML为523单元、0失败/错误/跳过；LanguageTest两项及API26客户端BuiltinMemoryTest两项均通过。完整构建日志确认Lint/assembleDebug与固定签名f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3通过。此源码同时包含build74/API26客户端、六语取消说明、HTML确认冻结及四处恢复点击同步；设备116187970855已开始，尚未完成整套复验，正式标签/公开APK继续待验收。
