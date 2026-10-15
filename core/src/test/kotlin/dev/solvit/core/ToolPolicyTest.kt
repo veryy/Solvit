@@ -6,6 +6,16 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.*
 
 class ToolPolicyTest {
+    @Test fun existingApprovalKeysStayStableWhileOptionalWorkspaceChangesInvalidateApproval() {
+        val tool = ToolDescriptor("exec", "Execute", "{}", pluginId = "test.shell", capabilities = setOf("shell"))
+        val legacy = listOf(tool.pluginId, tool.pluginVersion, tool.name, tool.description, tool.inputSchema,
+            tool.capabilities.sorted().joinToString(","), tool.androidPermissions.sorted().joinToString(","),
+            tool.requiresConfirmation.toString(), tool.executionMode?.name.orEmpty(), tool.pluginDigest).joinToString("\u0000")
+        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(legacy.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it.toInt() and 255) }
+        assertEquals(digest, toolPolicyKey(tool))
+        assertNotEquals(digest, toolPolicyKey(tool.copy(requiresWorkspace = false)))
+    }
     private class Policies : ToolPolicyService {
         override val policies = MutableStateFlow<Map<String, ToolPolicy>>(emptyMap())
         override suspend fun set(tool: ToolDescriptor, policy: ToolPolicy) { policies.value = policies.value + (toolPolicyKey(tool) to policy) }
