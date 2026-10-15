@@ -1,6 +1,6 @@
 # 工作区容量与备份管理
 
-本阶段承接已发布0.39.0的进程死亡恢复。完整范围包括导入容量检查、备份来源与占用查看、人工确认管理、容量提示及实际页面验收；以下第一步只是容量准入，不等于整体已完成。
+本阶段承接已发布0.39.0的进程死亡恢复。完整范围包括导入容量检查、备份来源与占用查看、人工确认管理、容量提示及实际页面验收；容量准入已随0.39.1发布并核对公开APK；备份管理等后续范围仍未完成。
 
 ## 实际参考
 
@@ -28,4 +28,12 @@
 
 同一修复源的设备任务116252869012已成功。完整6378025字节报告11948684945已下载并核对ZIP CRC/JUnit XML：80项常规设备用例、失败/错误/跳过均0，包括新增低空间HTML→重新审阅→同一附件真实JNI替换→Shell哈希核对（9.568秒）和覆盖升级保留配置/聊天。五场真实外部force-stop（PREPARING、PUBLISHING、COMMITTED、CONFLICT、DELETED）分别核对prepare未正常结束、PID存在后消失、独立重启verify为OK(1 test)，与80项分开计数。实际查看了低空间页面PNG，错误及保留的源附件可见；截图见下。此前getFileStore设备失败由同一导入/恢复路径通过证明修复，不以JVM结果替代。正式标签和公开下载仍待核对。
 
-![候选设备上的低空间提示](screenshots/0.39.1/workspace-import-insufficient-space.png)
+![正式设备验收的低空间提示](screenshots/0.39.1/workspace-import-insufficient-space.png)
+
+## 0.39.1 正式发布与下载核对
+
+标签a62ebdb2901e72043bca047e4688283c30702160，[正式38685306367](https://github.com/veryy/Solvit/actions/runs/38685306367)六项成功。完整报告11950246124（393139字节）CRC/XML核对542单元；11949847975（6331897字节）核对80常规设备（app66/Web3/终端11），均零失败/错误/跳过。新增低空间真实HTML/JNI/Shell重试6.182秒；正式截图已实际查看并替换本文图片。五场PREPARING/PUBLISHING/COMMITTED/CONFLICT/DELETED外部force-stop逐项核对原PID消失、prepare未正常结束、独立重启verify成功，不混入80项。
+
+Linux11950425692完整35157422字节CRC/XML核对3个Android用例和9个Linux单元；生产Python3.12.3、Node24.21.0/npm11.19.0、OpenJDK17.0.20.1、共享目录和PTY通过。插件11949489053完整CRC、15市场/10内置包与仓库字节相同，125SDK/5市场与在线HTTPS MCP/Skills通过。搜索11949519142完整CRC/JSON核对3查询、主来源注入失败后的区域结果和来源正文。本次不涉及市场包或宿主API27变更。
+
+公开Release413449027已发布，实际下载APK58180970字节，SHA256 `19c69b9b70daf609f999794ce89c626236e1cd7d4b38d97f88068b1d5774b321`；源码1072569字节，SHA256 `a3120dded236d00d807b9f39cb91f0108f70c4835c7a7a91db634ba0a97f7f55`。分别与正式11950650211及11950305339内部文件逐字节相同，外层/内层/公开ZIP CRC均通过，固定签名指纹通过。APK另保存到Downloads/Solvit-0.39.1-build76.apk。未实际填满磁盘，不声称验证真实ENOSPC；ARM64真机、真实模型任务和stdio MCP仍未完成。[正式版本说明](release-0.39.1.md)

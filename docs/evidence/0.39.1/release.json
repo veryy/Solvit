@@ -1,0 +1,80 @@
+{
+  "unit": {
+    "tests": 542,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "sources": {
+    "bytes": 1072569,
+    "sha256": "a3120dded236d00d807b9f39cb91f0108f70c4835c7a7a91db634ba0a97f7f55"
+  },
+  "apk": {
+    "bytes": 58180970,
+    "sha256": "19c69b9b70daf609f999794ce89c626236e1cd7d4b38d97f88068b1d5774b321"
+  },
+  "linux": {
+    "production_versions": [
+      "Python 3.12.3",
+      "v24.21.0",
+      "11.19.0"
+    ],
+    "device_tests": 3,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "ui": {
+    "tests": 80,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "force_stop_scenarios": 5,
+  "tag": "v0.39.1",
+  "tag_sha": "a62ebdb2901e72043bca047e4688283c30702160",
+  "run": 38685306367,
+  "release": 413449027,
+  "artifacts": [
+    {
+      "id": 11950650211,
+      "name": "solvit-debug-apk",
+      "size_in_bytes": 56903527
+    },
+    {
+      "id": 11950425692,
+      "name": "android-proot-compatibility",
+      "size_in_bytes": 35157422
+    },
+    {
+      "id": 11950305339,
+      "name": "solvit-linux-sources",
+      "size_in_bytes": 1072220
+    },
+    {
+      "id": 11950246124,
+      "name": "test-and-lint-reports",
+      "size_in_bytes": 393139
+    },
+    {
+      "id": 11949945807,
+      "name": "solvit-linux-native",
+      "size_in_bytes": 278669
+    },
+    {
+      "id": 11949847975,
+      "name": "android-ui-reports",
+      "size_in_bytes": 6331897
+    },
+    {
+      "id": 11949519142,
+      "name": "solvit-public-search-evidence",
+      "size_in_bytes": 9865
+    },
+    {
+      "id": 11949489053,
+      "name": "solvit-builtin-plugins",
+      "size_in_bytes": 847621
+    }
+  ]
+}
