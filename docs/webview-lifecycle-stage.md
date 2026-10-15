@@ -7,3 +7,5 @@
 源码审查另发现可独立验证的文档更换风险：WebView由remember(document)与DisposableEffect(browser)管理，但AndroidView没有相同身份键。新增真实设备回归在同一个组合位置更换两个离线文档，断言挂载了新实例且实际DOM/消息桥接收当前状态；没有先改生产代码。它不是原生SIGSEGV根因的证据，需要分别报告。
 
 实际阅读上游Operit固定dbf71916的`ui/common/composedsl/ToolPkgComposeDslWebView.kt`（disposedRef、actionLane、onDispose与renderer回调）、`ui/features/token/TokenConfigWebViewScreen.kt`，以及DSH d7432673的`packages/client/ui-settings-shell/tests/apply.client.spec.ts`（销毁移除页面及延迟注册）。参考生命周期撤销与资源归属，独立适配，不复制LGPL源码。Android官方WebView.destroy契约要求先从视图树移除且销毁后不再调用；AndroidView的factory并不在每次update重新执行。后续修改仍需实际设备反证与回归，不能仅凭源码猜测宣称修复。
+
+8dc2144b首轮38782140560/38782145576在源码一致性检查即被阻止，未执行设备：正式APK之后仅更新的plugin-sdk/README.md未在文档白名单中。将这个精确文件加入既有README列表，不允许其他SDK/运行时代码差异；随后重新执行两种诊断。不能把这次工作流前置失败当作复现。

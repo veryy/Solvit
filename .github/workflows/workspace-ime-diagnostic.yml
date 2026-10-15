@@ -38,7 +38,7 @@ jobs:
             if (run.status !== 'completed') throw new Error('APK source run must be terminal');
             const {execFileSync} = require('child_process');
             const files = execFileSync('git', ['diff', '--name-only', run.head_sha, 'HEAD']).toString().trim().split('\n').filter(Boolean);
-            const allowed = p => p.startsWith('app/src/androidTest/') || p.startsWith('docs/') || p.startsWith('.github/workflows/') || p.startsWith('scripts/') || ['README.md','README.en.md'].includes(p);
+            const allowed = p => p.startsWith('app/src/androidTest/') || p.startsWith('docs/') || p.startsWith('.github/workflows/') || p.startsWith('scripts/') || ['README.md','README.en.md','plugin-sdk/README.md'].includes(p);
             if (files.some(p => !allowed(p))) throw new Error('Production source differs from APK: ' + files.filter(p => !allowed(p)).join(', '));
             console.log('Production APK source: ' + run.head_sha);
       - uses: actions/setup-java@v4
