@@ -9,6 +9,8 @@ data class WorkspaceFile(val name: String, val path: String, val directory: Bool
 /** A bounded UTF-16 slice of a strictly decoded UTF-8 file, tied to its content digest. */
 data class WorkspaceTextChunk(val text: String, val offset: Int, val nextOffset: Int,
     val total: Int, val sha256: String)
+/** A newly published copy, not an immutable cache or an execution permission. */
+data class WorkspaceResourceBundle(val path: String, val files: Int, val bytes: Long, val sourceSha256: String)
 enum class FileObservationKind { ABSENT, TEXT, BINARY, OVERSIZED, UNAVAILABLE }
 data class FileObservation(val kind: FileObservationKind, val bytes: Long? = null,
     val sha256: String? = null, val excerpt: String? = null, val excerptTruncated: Boolean = false,
@@ -86,6 +88,9 @@ interface WorkspaceService {
         return createShell(workspaceId, name)
     }
     suspend fun location(workspaceId: String): String { error("工作区目录服务不可用") }
+    /** Host chooses a fresh destination; callers cannot replace project files or execute code. */
+    suspend fun prepareResources(workspaceId: String, name: String, files: Map<String, String>,
+        authorize: suspend () -> Unit): WorkspaceResourceBundle { error("工作区资源准备服务不可用") }
     /** Fixed-name root instruction sources only. Recheck host authority around every read. */
     suspend fun instructionSources(workspaceId: String, authorize: suspend () -> Unit): List<WorkspaceInstructionSource> {
         error("工作区项目规则读取服务不可用")

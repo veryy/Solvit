@@ -24,6 +24,7 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     private val backupMover:WorkspaceImportPublisher=WorkspaceImportPublisher { source,destination -> AndroidWorkspaceBackupMover.publish(source,destination) }) : WorkspaceService {
     private val root = File(context.filesDir, "workspaces").apply { check(mkdirs() || isDirectory) }
     private val importLedgerRoot=File(context.noBackupFilesDir.canonicalFile,"workspace-import-staging")
+    private val resourceCache = File(context.cacheDir.canonicalFile, "workspace-resource-staging")
     private val prefs = context.getSharedPreferences("workspaces", Context.MODE_PRIVATE)
     private val lock = Mutex()
     private val mutableState = MutableStateFlow(load())
@@ -213,6 +214,12 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         save(state.value.copy(shells = state.value.shells + shell)); shell
     } }
     override suspend fun location(workspaceId: String): String = withContext(Dispatchers.IO) { lock.withLock { verifyPage(workspaceId); directory(workspaceId).canonicalPath } }
+    override suspend fun prepareResources(workspaceId: String, name: String, files: Map<String, String>,
+        authorize: suspend () -> Unit): WorkspaceResourceBundle = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        WorkspaceResourceBundles.prepare(directory(workspaceId), resourceCache, name, files,
+            AndroidWorkspaceDirectoryPublisher::publish) { verifyPage(workspaceId); authorize() }
+    } }
     override suspend fun instructionSources(workspaceId: String, authorize: suspend () -> Unit): List<WorkspaceInstructionSource> =
         withContext(Dispatchers.IO) { lock.withLock {
             WorkspaceInstructionFiles.capture(directory(workspaceId), authorize)
