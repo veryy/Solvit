@@ -86,3 +86,12 @@ c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/3878892612
 完整候选38792853101终态失败。原始UI归档12002256646（5109944字节，SHA256 `a7190cb39ff93cd5a2ed97750c22c4e6b1bc671b42793ca5be56b1c35751b25a`）完整下载/CRC/XML：app45项中2失败，Web3/终端25无失败；进程异常后没有完成app70下限。第一个失败是工作区创建入口等待名称框超时，尚未运行Shell命令；第二个是PDF附件导入的IO线程通过默认Unconfined测试dispatcher执行布局，与主线程竞争，原始THREAD_STATE链为ChatViewModel.importAttachment→StateFlow→Recomposer/TestMonotonicFrameClock→measureAndLayoutForTest。候选仅对已有直接竞争栈证据的ChatLayoutTest和PdfChatDeviceTest采用排队的StandardTestDispatcher，保留全部原断言，不修改生产Flow发布方式。
 
 排队版工作区压力 [38795835076](https://github.com/veryy/Solvit/actions/runs/38795835076) 在第一次创建入口超时，完整次数0，不能算计划的240次通过；归档12001733959（480557字节，SHA256 `2452a6147adf81a1e5e2b2b62faf008b4c398f9610a34fae59be091d6aa24e74`）完整下载/CRC，零Fatal signal/Snapshot。下一轮247bf39f仅在该原超时处捕获页面及四个固定标签计数，重新抛出原异常；不增加等待时间，不重试点击，不采集用户文本或凭据。候选尚未合入或发布。
+
+
+## 工作区创建的点击路径对照
+
+原真实触摸247bf39f在[38797250770](https://github.com/veryy/Solvit/actions/runs/38797250770)再次于创建名称框超时，0次完整操作。归档12003680432（585928字节，SHA256 `14d130367bc70719daab2f2adff1078bb391b67e45faa6a9305b0e82e22cbf68`）完整下载/CRC，实际查看超时PNG仍是聊天首页；固定标签计数为新建工作区1、未绑定提示0、创建并绑定0、绑定已有工作区0。并非创建框被另一个工作区窗口遮挡。
+
+89c936b8仅将这一次触摸替换为直接执行同一按钮的语义动作，保持相同a48f64c9生产APK、创建/绑定/关闭断言、Activity重建与正常收尾；[38798360630](https://github.com/veryy/Solvit/actions/runs/38798360630)成功。归档12003291979（545668字节，SHA256 `42c870cbce5db9f6be4b9ad4bb3f30012ec25f2d2982d5d82e9709abf50c6d37`）完整下载/CRC：OK (1 test)、74.689秒、30个完整操作，零Fatal signal/Snapshot。此对照只将故障缩小到触摸/调度路径，不将绕过触摸当作修复。
+
+实际读取官方ui-test1.8.3的Actions.android.kt确认performClick使用performTouchInput；ComposeIdlingResource.android.kt只根据帧等待、快照与重组决定推进时钟，不直接检查排队的TestCoroutineScheduler任务。下一轮e85f3228恢复真实触摸，单独在点击后推进一个UI测试帧，再保留原10秒等待和全部断言；不重复点击、不使用直接语义动作作为最终验收。远程[38799278434](https://github.com/veryy/Solvit/actions/runs/38799278434)尚未完成，不能提前写成修复通过。
