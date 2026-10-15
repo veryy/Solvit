@@ -175,3 +175,14 @@ b1ccb325/[38807773768](https://github.com/veryy/Solvit/actions/runs/38807773768)
 
 
 完整候选38817060892/build116704305024成功；归档12012155669（438102字节，SHA256 `68345513d4736464be02a435f756d6929f4950dc3834341b81f5b4884401acc9`）完整下载/CRC/逐项XML核对611项，失败/错误/跳过均0。Lint、APK及固定签名检查成功。verify-ui116707342633正在准备设备测试APK；不能以构建成功代替完整设备门禁，候选仍未合入/发布。
+
+
+## 完整回归越过设置，后续三项失败及PDF挂起仍待解决
+
+0aa4d573/[38817060892](https://github.com/veryy/Solvit/actions/runs/38817060892)终态失败，verify-ui116707342633的常规12分钟上限退出124。UI归档12011759935（5177528字节，SHA256 `06813c7f84836b1809d30a831e8a0bdc774e84c0162c76ced1df2646cd38bf09`）完整下载/CRC/原始XML核对：应用列45项，仅44项正常结束，其中3项失败；第45项PdfChatDeviceTest.pickerSelectedScanPreviewHttpRetryReopenAndEditPreserveTheSameSelection负时间未完成。Web3/终端25零失败，不能把应用45条目当作45通过。完整emulator-logcat零Fatal signal/SnapshotStateObserver。
+
+此前三项在完整流程均正常通过：replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal 6.486秒，applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist 6.337秒，wideDrawerOpensSettingsAndLastSettingsRowCanBeSeen 4.699秒。说明这轮越过原分支/角色/设置位置，不能声称整套通过。
+
+新增明确失败点：nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations在performScrollToKey后立即点model_name找不到节点（第951行）；actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard等待vm.busy=false后streaming_body仍存在（第500行）；languageSwitchesImmediatelyAndSurvivesRecreation的旧ScrollBy循环未推进queued dispatcher，最终报告语言行未完整可见。基于已经确认的异步滚动/Flow排队机制，0648be43仅为原测试补齐key滚动后UI帧、busy结束后的UI帧，并将语言旧循环改用已通过的QueuedScroll；保留原实际点击、流式中途断言、完成后streaming_body消失、语言即时切换/重建与数据存储断言，不改生产协议/流式/语言逻辑。
+
+PDF尚无实际挂起调用栈；不能仅因含performScrollTo就认定同源。只在5处原滚动调用前后加入PDF_QUEUED_DIAG步骤标记，用于区别设置/应用选择/扫描正文/原图/重试入口，未先修改这些操作。四项定向[38820755801](https://github.com/veryy/Solvit/actions/runs/38820755801)复用38817060892的同一生产APK与原断言，300秒诊断上限，待回收。该临时标记需诊断后清理；候选未合入、未发布0.43.3。
