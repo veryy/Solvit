@@ -80,3 +80,9 @@ API30宿主桥提交`01fb9c2f`的[远程编译及单元38737631108](https://gith
 市场API30已在部署服务器的私有before/next快照实际验证：API1..29的目录内容全部保持，54个既有版本完整下载字节一致，API30提供MCP1.2.0。SSH读取超时后没有重启核对进程，重新观察取得已完成`verified.json`。尚未切换公网服务；本次版本号准备0.42.0/build79，正式设备及全套发布门禁尚待通过。
 
 下一轮`d37b3933`只剩双HTTPS Agent回归失败，发现实际兼容问题：Agent原先把所有声明workspace/shell的工具隐藏于未绑定聊天，新MCP同时支持HTTPS/本地，导致普通聊天也看不到HTTPS工具。新增独立的工具可用性字段`requiresWorkspace`，默认保留原行为；声明原生stdio的混合插件允许先列服务器/使用HTTPS。本地启动仍由宿主要求捕获绑定，并未放宽进程授权。既有双TLS/实际Agent无工作区用例作为回归，工具策略摘要包含此字段变更。
+
+## 实际QuickJS/Agent链路证据
+
+`75d34951`的[Ubuntu38740072541](https://github.com/veryy/Solvit/actions/runs/38740072541)成功，实际产物11975683743（37,915,103字节，SHA256 `803c48028c066fad1b04a1ee0cc0ff2d7b8825adcb3c6cf2e1b76a5e9497da85`）已完整下载核对CRC/摘要，3设备与11 Linux运行时单元无失败/跳过。设备日志分别有Python和Node的`STDIO_MCP_AGENT`标记，经过实际QuickJS包、宿主授权、发现、调用、后续模型步骤与共享文件；停用后两进程回收及其他聊天未连接也通过。Provider为确定性测试实现，不是外部模型。
+
+HTTPS普通聊天修复后的`1536823e`，[契约38742300979](https://github.com/veryy/Solvit/actions/runs/38742300979)成功，实际产物11975499486（108,314字节，SHA256 `1ebe184adf9b815813657424e40fdc19973284606e320445244d1e3f6d1ad0e4`）CRC/摘要正常，481单元（core75/runtime84/workspace82/git12/storage41/chat66/market121）均无失败/跳过；包含无工作区双HTTPS Agent回归和旧MCP配置/授权兼容，应用及设备源码编译通过。附加页面/取消/崩溃场景仍待新一轮Ubuntu设备结果，尚未正式发布。
