@@ -42,7 +42,7 @@ node -e 'require("node:fs").writeFileSync("hello-node.txt", "Hello from Node.js\
 
 启用「工作区与 Shell」插件，并在当前角色中允许它使用。告诉 AI 使用刚创建的 Ubuntu Shell 运行命令；需要交互输入的程序另需启用终端插件。调用仍经过对话内的工具授权，失败可查看工具详情、退出码和输出。
 
-Linux 环境插件管理安装；工作区与终端插件负责执行。QuickJS 中运行的 JS/TS 插件不会因此自动获得 Node 的 `process`、`require` 或任意文件访问能力。本地 stdio MCP 进程接入仍未完成。
+Linux 环境插件管理安装；工作区与终端插件负责执行。QuickJS 中运行的 JS/TS 插件不会因此自动获得 Node 的 `process`、`require` 或任意文件访问能力。0.42.1新增本地stdio MCP，Python/Node服务可供AI发现和调用，需升级MCP插件并明确授权，见[MCP配置](mcp.md)。
 
 ## 它能做什么，权限到哪里
 

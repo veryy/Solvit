@@ -12,7 +12,7 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The latest public release is [0.41.0](https://github.com/veryy/Solvit/releases/tag/v0.41.0). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The latest public release is [0.42.1](https://github.com/veryy/Solvit/releases/tag/v0.42.1). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 
@@ -21,7 +21,7 @@ The latest public release is [0.41.0](https://github.com/veryy/Solvit/releases/t
 - **Personalization:** roles inherited by new conversations, plugin and Skills bindings, font size, text display speed, chat style, language, and theme. Multiple model connections, model discovery, error details, and encrypted configuration backup.
 - **Plugins:** install, enable, and disable JS/TS plugins. Plugins can ship offline HTML/JS pages; Android manages permissions, platform services, and resource cleanup. [Plugin API](docs/plugins.md)
 - **Search and memory:** default public web search with source links, local memory retrieval and relationship graphs, editing, deletion, and optional background saving. Public search can encounter network restrictions or challenges; real-model memory quality still needs validation.
-- **MCP and Skills:** multiple named HTTPS MCP connections with independent sessions and encrypted credentials; import SKILL.md and text resources. [MCP](docs/mcp.md) · [Skills](docs/skills.md)
+- **MCP and Skills:** named HTTPS or Ubuntu stdio MCP connections; AI can call Python/Node servers, with chat isolation and encrypted credentials/environment; import SKILL.md and text resources. [MCP](docs/mcp.md) · [Skills](docs/skills.md)
 - **Workspace:** one directory per conversation and multiple Shell sessions. File tree, directory creation, rename and delete, CodeMirror text/code preview and editing, and an xterm.js / Android PTY terminal share the same directory. Import complete original files up to 20MiB from the system picker or saved attachments in the current chat after reviewing provenance, metadata, and text/image/PDF page previews; existing files can be reviewed and replaced with a version check and a retained original backup. Import checks available storage before mutation; known low-space failures preserve the original file and selected attachment for retry after freeing space. Import shows actual write progress and supports cancellation, cleanup, and retry. Interrupted replacements recover after process death; plugin pages show the result and retain backups or concurrent changes. Git and Shell see the same imported file.
 - **Import backups:** view provenance, current logical sizes, and status; review a copy for restoration or confirm cleanup. Interrupted cleanup supports explicit recovery without replacing concurrent files; an unconfirmed outcome never retries deletion automatically. [Guide (中文)](docs/workspaces.md#导入备份管理0400)
 - **Linux environment:** install Ubuntu 24.04 without root, with Python/venv and Node24/npm; add Python/pip or Java17. Open Workspace → Linux, install it, then create an Ubuntu Shell. AI commands, the terminal, and file management share the same directory. [Getting started (中文)](docs/linux-environment.md) · [Verification](docs/linux-environment-stage.md)
@@ -33,22 +33,22 @@ The latest public release is [0.41.0](https://github.com/veryy/Solvit/releases/t
 Image, text, and code attachments are now available. Next priorities:
 
 1. Verify plugin operations with a real GitHub account and complete project tasks. Interrupted clone recovery, import capacity checks, and backup management are available.
-2. Validate ARM64 physical devices and older kernels, then add local stdio MCP and Skills execution environments.
+2. Validate ARM64 physical devices and older kernels, validate third-party MCP servers and add Skills execution environments.
 3. Validate roles, visible streaming, tool selection, and complete tasks with real models; improve plugins and memory.
 
 **Screen control is deferred.** Larger-file editing, AI Git writes, and autonomous project tasks remain on the [roadmap](docs/product-roadmap.md).
 
 ## Current limits
 
-Text editing is limited to 256KiB UTF-8 and checks for external changes before saving. MCP currently supports HTTPS Streamable HTTP; OAuth, stdio, and full resource/prompt support are unfinished. JS plugins do not have process isolation.
+Text editing is limited to 256KiB UTF-8 and checks for external changes before saving. MCP supports HTTPS Streamable HTTP and local stdio tool protocols; OAuth and full resource/prompt support are unfinished. JS plugins do not have process isolation.
 
-The Linux environment shares the Android kernel and app identity and grants no extra system permissions. ARM64/x86_64 binaries are included; Node24 officially targets kernel 4.18+. Older phones and ARM64 physical devices still need validation. QuickJS does not become Node, and local stdio MCP support remains unfinished.
+The Linux environment shares the Android kernel and app identity and grants no extra system permissions. ARM64/x86_64 binaries are included; Node24 officially targets kernel 4.18+. Older phones and ARM64 physical devices still need validation. QuickJS runs plugin logic; Ubuntu Node runs as a separate process. Local MCP requires an explicit plugin update, new permission review, and a bound workspace.
 
 Unsent drafts and queued messages do not survive process death; startup cleans up their orphan attachment files. Saved attachments remain available. [Attachment release and verification](docs/release-0.32.0.md)
 
 Configuration backups include model connections, API keys, roles, prompts, language, and appearance, but exclude chats, plugin packages, plugin credentials, and memories. Keep backups outside the app. Conversation context is sent to your configured model service.
 
-The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38721701886) passed remote build, tests, lint, signing, and upgrade gates; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.41.0.md)
+The published APK is a debug build. [Release validation](https://github.com/veryy/Solvit/actions/runs/38746331673) passed remote build, tests, lint, signing, and upgrade gates; full real-model tasks and physical-device experience have not been verified. [Release evidence](docs/release-0.42.1.md)
 
 ## Development
 

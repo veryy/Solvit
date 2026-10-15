@@ -1,12 +1,12 @@
 # MCP 连接插件
 
-`dev.solvit.mcp` 用 TypeScript 实现，当前发布包1.1.1使用 Solvit 插件宿主 API10，已包含在0.41.0。Kotlin 提供私有配置、加密存储、HTTPS 请求与取消；MCP 协商、工具发现和调用逻辑位于 [插件源码](../builtin-plugins/mcp/index.ts)。
+`dev.solvit.mcp` 用 TypeScript 实现，当前发布包1.2.0使用 Solvit 插件宿主 API30，已包含在0.42.1。Kotlin 提供私有配置、加密存储、HTTPS 请求、Ubuntu 原始进程帧与取消；MCP 协商、工具发现和调用逻辑位于 [插件源码](../builtin-plugins/mcp/index.ts)。
 
 ## 配置与使用
 
-支持最多8个具名 Streamable HTTP HTTPS 连接。授权network并启用后，从插件详情打开HTML管理页添加、修改、禁用、删除和连接测试；也可导入明确HTTP类型的`mcpServers`配置。配置及令牌使用Android Keystore AES-GCM加密，页面保存检查旧值以拒绝并发覆盖。敏感页面启用FLAG_SECURE，编辑时凭据留空保留原值，清除须单独确认。旧单地址配置作为default连接兼容。
+支持最多8个具名 HTTPS Streamable HTTP 或本地 stdio 连接。新版明确授予network、workspace、shell并启用后，从插件详情打开HTML管理页添加、修改、禁用、删除和连接测试；也可导入明确HTTP或stdio类型的`mcpServers`配置。本地服务须先安装Ubuntu并绑定工作区，配置步骤见下文。配置及令牌使用Android Keystore AES-GCM加密，页面保存检查旧值以拒绝并发覆盖。敏感页面启用FLAG_SECURE，编辑时凭据留空保留原值，清除须单独确认。旧单地址配置作为default连接兼容。
 
-授权 network 后，在聊天中请求“连接 MCP 并列出工具”。模型先调用 `mcp_connect` 或 `mcp_tools`，得到服务器的工具名和参数 schema，再通过 `mcp_call` 调用已发现工具。多个启用连接时必须传server名称，另包括远程工具名与arguments。`mcp_servers`只返回名称、状态和数量。远程同名工具靠server明确路由。页面连接测试使用独立页面实例并结束会话，不声称模型会话已连接。
+启用插件并绑定到当前角色后，在聊天中请求“连接 MCP 并列出工具”。模型先调用 `mcp_connect` 或 `mcp_tools`，得到服务器的工具名和参数 schema，再通过 `mcp_call` 调用已发现工具。多个启用连接时必须传server名称，另包括远程工具名与arguments。`mcp_servers`只返回名称、状态和数量。远程同名工具靠server明确路由。页面连接测试使用独立页面实例并结束会话，不声称模型会话已连接。
 
 MCP 配置不进入模型的工具参数和描述，但启用的插件可读取自己的配置；允许的远程工具结果会进入模型上下文。插件没有访问其他插件配置或模型 API Key 的接口。卸载移除配置及凭据，停用尝试关闭远程会话。
 
@@ -29,9 +29,9 @@ MCP 配置不进入模型的工具参数和描述，但启用的插件可读取�
 
 ## 仍待完善
 
-当前通过 `mcp_tools`/`mcp_call` 桥接远程工具，还未把每个远程工具动态注册成独立模型函数。每个远程工具的独立角色绑定、OAuth 登录、MCP resources/prompts、持续 GET 事件流、SSE 断线恢复，以及老式 HTTP+SSE 和 stdio/Linux 进程传输尚未实现。当前不声称完整 MCP 协议兼容。
+当前通过 `mcp_tools`/`mcp_call` 桥接远程工具，还未把每个远程工具动态注册成独立模型函数。每个远程工具的独立角色绑定、OAuth 登录、MCP resources/prompts、持续 GET 事件流、SSE 断线恢复，以及老式 HTTP+SSE 传输尚未实现。当前不声称完整 MCP 协议兼容。
 
-Ubuntu环境已经可以在Shell运行Node/Python；这不代表MCP插件已能启动stdio服务。本地进程接入在独立分支开发，原生管道和协议探针的[阶段记录](local-stdio-mcp-stage.md)不等同于已发布功能。
+0.42.1已接入Ubuntu本地stdio，实际QuickJS/Python/Node/Agent调用、取消和进程回收已验证；[阶段记录](local-stdio-mcp-stage.md)区分确定性Provider、真实模型和真机范围。
 
 ## 验证
 
@@ -49,9 +49,9 @@ TS 测试覆盖会话协商、工具分页、JSON/SSE、未知工具、过期会
 
 干净候选38295011493的实际285个单元及44个模拟器测试全部通过，包含双HTTPS同名工具正确路由、两连接加密保存重开、禁用和取消/确认删除。72 SDK/2市场及提交包一致性通过。0.22.0正式发布仍待完成。
 
-## 本地 stdio 开发候选（API30，尚未发布）
+## 本地 stdio 配置（API30，0.42.1）
 
-1.2.0 候选允许 HTTPS 与本地服务共存。先在工作区安装 Ubuntu，再准备 Python/Node 服务脚本和依赖；然后从已绑定该工作区的聊天打开 MCP 页面，选择「本地 stdio」。填启动命令、字面参数 JSON 数组、可选环境 JSON 和工作区内相对目录。保存不启动服务；「测试连接」需确认，只协商并发现工具，完成后关闭。
+1.2.0 允许 HTTPS 与本地服务共存。先在工作区安装 Ubuntu，再准备 Python/Node 服务脚本和依赖；然后从已绑定该工作区的聊天打开 MCP 页面，选择「本地 stdio」。填启动命令、字面参数 JSON 数组、可选环境 JSON 和工作区内相对目录。保存不启动服务；「测试连接」需确认，只协商并发现工具，完成后关闭。
 
 例如工作区有 `servers/example.py`，可导入：
 
@@ -63,4 +63,4 @@ TS 测试覆盖会话协商、工具分页、JSON/SSE、未知工具、过期会
 
 启用新版需明确审阅 network、workspace、shell 权限；旧用户自动兼容升级保留1.1.1及原HTTPS授权，需自行选择安装新版。模型仍通过 `mcp_servers`、`mcp_tools`、`mcp_call` 使用具名服务器，不会获得命令、参数或环境配置。每个聊天/角色/工作区有独立本地连接；工具调用失败不自动重放。
 
-当前候选支持标准工具协议的有限子集，不包括 OAuth、resources/prompts、sampling 或完整 SDK 的全部能力。原生服务有4连接上限、空闲回收和帧/队列限制。PRoot不是权限提升或恶意代码沙箱；代码仍以应用UID运行。最终可下载版本与真实设备执行状态以[阶段记录](local-stdio-mcp-stage.md)为准。
+当前支持标准工具协议的有限子集，不包括 OAuth、resources/prompts、sampling 或完整 SDK 的全部能力。原生服务有4连接上限、空闲回收和帧/队列限制。PRoot不是权限提升或恶意代码沙箱；代码仍以应用UID运行。最终可下载版本与真实设备执行状态以[阶段记录](local-stdio-mcp-stage.md)为准。

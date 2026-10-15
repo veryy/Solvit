@@ -154,7 +154,7 @@ Git 1.3.1 页面使用 `gitPage.query("cloneInstalls", {offset: 0, limit: 5})` �
 
 API1–28 目录保留 Git1.2.7 的原始包，不能调用 API29 恢复动作。测试结果和实际强杀验收进度见[阶段记录](../docs/workspace-git-recovery-stage.md)。
 
-### API30：本地 MCP 原始帧（开发候选，尚未发布）
+### API30：本地 MCP 原始帧（0.42.1）
 
 声明 `permissions: ["network", "workspace", "shell"]` 及 `nativeServices: ["environment.linux", "process.stdio"]`。`ctx.stdio` 只连接本插件加密 `connections` 内明确的 `type: "stdio"` 服务器；`open(server)` 不接受命令参数，宿主自行读取并校验保存配置。AI 只能选择具名服务器，不能替换命令或环境。
 
