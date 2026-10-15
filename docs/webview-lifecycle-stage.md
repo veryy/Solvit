@@ -95,3 +95,12 @@ c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/3878892612
 89c936b8仅将这一次触摸替换为直接执行同一按钮的语义动作，保持相同a48f64c9生产APK、创建/绑定/关闭断言、Activity重建与正常收尾；[38798360630](https://github.com/veryy/Solvit/actions/runs/38798360630)成功。归档12003291979（545668字节，SHA256 `42c870cbce5db9f6be4b9ad4bb3f30012ec25f2d2982d5d82e9709abf50c6d37`）完整下载/CRC：OK (1 test)、74.689秒、30个完整操作，零Fatal signal/Snapshot。此对照只将故障缩小到触摸/调度路径，不将绕过触摸当作修复。
 
 实际读取官方ui-test1.8.3的Actions.android.kt确认performClick使用performTouchInput；ComposeIdlingResource.android.kt只根据帧等待、快照与重组决定推进时钟，不直接检查排队的TestCoroutineScheduler任务。下一轮e85f3228恢复真实触摸，单独在点击后推进一个UI测试帧，再保留原10秒等待和全部断言；不重复点击、不使用直接语义动作作为最终验收。远程[38799278434](https://github.com/veryy/Solvit/actions/runs/38799278434)尚未完成，不能提前写成修复通过。
+
+
+## 确认排队的侧栏关闭任务抢占真实触摸
+
+点击后推进一帧的e85f3228在[38799278434](https://github.com/veryy/Solvit/actions/runs/38799278434)仍于第一次创建超时，0次完整操作；归档12003727374（567472字节，SHA256 `47357b4112401eefd816c9948375bf84808646826d0123144a61825385c9b951`）完整下载/CRC核对同一异常，零Fatal signal/Snapshot。该假设被否定，不保留这个无效改动。
+
+将推进移到真实触摸之前，ef507892在[38800178350](https://github.com/veryy/Solvit/actions/runs/38800178350)通过：归档12003768443（569334字节，SHA256 `d301ad644b70c221193edc3c39b944178cff3834c4d76e99bb66b5096b2f8bd9`）完整下载/CRC，实际OK (1 test)、101.013秒、30个完整计数，零Fatal signal/Snapshot。边界日志确认第一次触摸前侧栏范围为Rect(0,0,809,1731)，推进测试时钟后变为Rect(0,0,0,0)。新对话按钮已调用，但StandardTestDispatcher尚未执行rememberCoroutineScope中的drawer.close；聊天背景节点虽存在，真实触摸先被仍打开的侧栏遮罩消费。直接语义动作因此能绕过遮罩，而在点击之后推进时钟已经太迟。
+
+最终a8833ed0恢复原真实触摸/创建/绑定/关闭/重建路径与10秒断言，仅在获取点击坐标前推进一个UI测试帧，明确断言侧栏已不可见；移除WORKSPACE_CREATE_DIAG日志、超时截图捕获和直接语义动作。没有增加固定睡眠、点击重试、吞异常或改动产品按钮。清理后的完整Android门禁和8×30压力仍待实际执行；该测试调度问题与WebView124原生SIGSEGV不能混为已修复。
