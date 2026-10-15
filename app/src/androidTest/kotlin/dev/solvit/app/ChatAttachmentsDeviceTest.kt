@@ -171,8 +171,19 @@ class ChatAttachmentsDeviceTest {
             val image = attachments.single { it.mimeType == "image/png" }
             val document = attachments.single { it.mimeType == "text/plain" }
             screenshot("chat-attachment-drafts")
+            val imageBoundsBeforeClick = rule.onNodeWithTag("attachment_${image.id}").fetchSemanticsNode().boundsInRoot
+            val imageInsetsBeforeClick = rule.runOnUiThread {
+                val decor = rule.activity.window.decorView
+                val insets = decor.rootWindowInsets
+                "height=${decor.height}, ime=${insets?.getInsets(android.view.WindowInsets.Type.ime())?.bottom}, visible=${insets?.isVisible(android.view.WindowInsets.Type.ime())}"
+            }
             rule.onNodeWithTag("attachment_${image.id}").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodesWithTag("attachment_image_${image.id}").fetchSemanticsNodes().isNotEmpty() }
+            try {
+                rule.waitUntil(10_000) { rule.onAllNodesWithTag("attachment_image_${image.id}").fetchSemanticsNodes().isNotEmpty() }
+            } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+                screenshot("chat-attachment-initial-preview-failure")
+                throw AssertionError("Initial image preview: bounds=$imageBoundsBeforeClick, $imageInsetsBeforeClick, selected=${vm.sessionId.value}, refs=${vm.attachmentDrafts.value[session].orEmpty().map { it.id }}, error=${vm.error.value}\n" + rule.onRoot(useUnmergedTree=true).printToString(), timeout)
+            }
             screenshot("chat-attachment-image-preview")
             rule.onNodeWithTag("attachment_preview_close").performClick()
             rule.onNodeWithTag("chat_send").assertIsEnabled().performClick()
