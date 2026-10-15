@@ -15,6 +15,32 @@ import kotlin.test.*
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28])
 class BuiltinMcpUpgradeTest {
+    @Test fun releasedSkillsStayReadOnlyUntilExplicitResourceUpdateAndFreshConsent() = runBlocking<Unit> {
+        fixture { market, _, _ ->
+            val app = RuntimeEnvironment.getApplication()
+            val id = "dev.solvit.skills"
+            val old = app.assets.open("builtin-compat/skills-1.1.1.solvit.json").use { it.readBytes() }
+            val file = File(app.filesDir, "extensions/$id.solvit.json")
+            file.writeBytes(old)
+            val prefs = app.getSharedPreferences("extension_permissions", 0)
+            prefs.edit().putBoolean("seeded.$id.solvit.json", true).putBoolean("enabled.$id", true)
+                .putStringSet("grants.$id", setOf("storage")).commit()
+            val data = app.getSharedPreferences("extension_data.$id", 0)
+            val saved = """{"format":1,"skills":[]}"""
+            data.edit().putString("skills.v1", saved).commit()
+            market.restore()
+            assertContentEquals(old, file.readBytes())
+            assertTrue(market.installed.value.single { it.id == id }.enabled)
+            assertEquals(setOf("storage"), prefs.getStringSet("grants.$id", emptySet()))
+            market.installLocal(app.assets.open("builtin-plugins/$id.solvit.json").use { it.readBytes() })
+            val updated = market.installed.value.single { it.id == id }
+            assertEquals("1.2.0", updated.version); assertFalse(updated.enabled)
+            assertFalse(prefs.contains("grants.$id"))
+            assertEquals(saved, data.getString("skills.v1", null))
+            assertFailsWith<IllegalStateException> { market.enable(id, setOf("storage")) }
+            assertFalse(market.installed.value.single { it.id == id }.enabled)
+        }
+    }
     @Test fun originalHtmlPackagesUpgradeWithoutChangingSkillsOrMultipleEncryptedConnections() = runBlocking<Unit> {
         fixture { market, config, mcpFile ->
             val app = RuntimeEnvironment.getApplication()
