@@ -55,3 +55,9 @@ Ubuntu正式任务116589760648成功，已下载完整日志；其原有实际�
 实际核对Google Maven原始ui-test/ui-test-junit4 Android 1.7.6源码：ComposeUiTest.android.kt默认UnconfinedTestDispatcher；FrameDeferringContinuationInterceptor在父dispatcher无需调度时直接resume；TestMonotonicFrameClock在帧末执行measureAndLayoutForTest；MainTestClockImpl/AbstractMainTestClock将显式推进scheduler包装到UI线程。准备仅将ChatLayoutTest的effectContext设为StandardTestDispatcher，让IO发布者只排队、不直接执行重组/布局，保留全部原操作、断言、次数和超时；不更改生产StateFlow的正确后台发布方式、不升级Compose、不捕获产品异常。工作流38787642743仍在旧默认dispatcher上取证，保留独立结果。此项是否有效以相同压力复验为准，尚未称已修复，更不将其等同于WebView SIGSEGV根因。
 
 源码来源：`https://dl.google.com/dl/android/maven2/androidx/compose/ui/ui-test/1.7.6/ui-test-1.7.6-sources.jar`、`https://dl.google.com/dl/android/maven2/androidx/compose/ui/ui-test-junit4-android/1.7.6/ui-test-junit4-android-1.7.6-sources.jar`。只读取源码，没有运行本地构建或测试。
+
+## 单换 dispatcher 的实验失败，已撤回
+
+c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/38788926124)终态失败。原始归档12000375188（548081字节，SHA256 `49305b69cd22cd3b18655bd6eb55a2001d1b6fbdeed0e24f784d099404f75d35`）完整下载/CRC核对：第一轮30个操作完成，未出现Fatal signal或Snapshot异常，但测试收尾在`repeatOnLifecycle.removeObserver → TestCoroutineScheduler → withTestCoroutines.runTest`抛出必须在主线程执行的异常。不能算第一轮通过，更不能写成240次通过。单换StandardTestDispatcher不足，已撤回；同配置旧APK对照38790008135和完整回归38789402515主动取消，不当作验证成功。
+
+继续只读取官方源码：1.7.8仍保留ApplyingContinuationInterceptor的AbstractCoroutineContextKey，1.8.0/1.8.3已经移除。该差异可能涉及withContext(Main)无法正确替换被包装的拦截器，但需核对实际上游修复与测试，不能仅凭版本较新宣称解决；尚未升级生产依赖，也不以自定义清理时机掩盖测试收尾异常。
