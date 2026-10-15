@@ -761,7 +761,9 @@ class ChatLayoutTest {
             // Use the live service, as settings UI does. Direct persistence does not
             // notify its StateFlow when this test runs in a fresh app process.
             runBlocking { app.modelProfiles.save(previous.selected(ModelTask.CHAT)!!) }
-            repeat(3) {
+            val recreations = InstrumentationRegistry.getArguments().getString("workspaceRecreations")?.toInt() ?: 3
+            require(recreations in 3..30) { "Keep at least the original three Activity recreations" }
+            repeat(recreations) { iteration ->
                 rule.activityRule.scenario.recreate()
                 ready()
                 rule.onNodeWithContentDescription("对话历史").performClick()
@@ -774,6 +776,7 @@ class ChatLayoutTest {
                 openWorkspace()
                 rule.onNodeWithContentDescription("关闭工作区").performClick()
                 rule.onNode(hasText("工作区：", substring = true)).assertIsDisplayed()
+                android.util.Log.i("WORKSPACE_PAGE_DIAG", "STARTUP_RECREATION_COMPLETED|${iteration + 1}|$recreations")
             }
         } finally { runBlocking { app.modelProfiles.replace(previous) } }
     }
