@@ -3,6 +3,18 @@ set -euo pipefail
 solvit_package=dev.solvit.terminal.test
 solvit_output=${SOLVIT_STDIO_DEATH_OUTPUT:-terminal-android/build/stdio-process-death}
 mkdir -p "$solvit_output"
+# Gradle/UTP uninstalls the library test APK after connectedDebugAndroidTest.
+# Restore the exact just-built APK before using its run-as identity externally.
+solvit_test_apk=$(python3 - <<'PY_APK'
+from pathlib import Path
+matches = list(Path('terminal-android/build/outputs/apk/androidTest/debug').glob('*.apk'))
+assert len(matches) == 1, 'Expected the single current terminal instrumentation APK'
+print(matches[0])
+PY_APK
+)
+adb install -r -t "$solvit_test_apk" > "$solvit_output/install.txt"
+adb shell pm path "$solvit_package" > "$solvit_output/installed-package.txt"
+test -s "$solvit_output/installed-package.txt"
 adb shell run-as "$solvit_package" rm -f files/stdio-process-death.json files/stdio-process-death.pending
 timeout --signal=TERM --kill-after=5s 110s adb shell am instrument -w \
   -e class dev.solvit.terminal.StdioProcessDeathTest \

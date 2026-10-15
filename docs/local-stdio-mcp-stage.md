@@ -31,6 +31,13 @@
 
 随后增加严格逐行UTF-8边界：保留跨读取的多字节码点、按字节限制单帧、拒绝非法编码/空行/未完成EOF，失败后不继续解析。Ubuntu生产环境探针增加Python和Node两个真实stdio JSON-RPC测试服务：初始化、工具发现、调用后写入共享工作区、独立stderr、显式环境和EOF退出。它们是确定性协议fixture，不是第三方MCP兼容或真实模型验收。最新提交的远程结果待取回记录。
 
+### 后续实际取回的报告
+
+- `62a4c315`，[38729523268](https://github.com/veryy/Solvit/actions/runs/38729523268)：API26/35各9设备、11 Linux单元、12系统执行单元全部通过，包含TERM忽略后的直接worker回收。两份产物11969673338/11969388476已下载、SHA256及CRC核对，实际XML无失败/错误/跳过。
+- `f9bff109`，[38729749733](https://github.com/veryy/Solvit/actions/runs/38729749733)：应用和测试源码集成编译通过；产物11969249069已下载核对，实际473单元通过，覆盖core74/runtime84/workspace82/git12/storage41/chat66/market114。未运行本地构建。
+- `9e4000ce`，[38729208323](https://github.com/veryy/Solvit/actions/runs/38729208323)：真实Ubuntu的3设备及11运行时单元通过；产物11969798780，35,472,172字节，SHA256 `eba9b885cf1dc5d49e7b2e8ea8830c3dd155bcf27dd97ad487fdd3efe8d09a6e`，已下载并核对元数据、CRC与XML。实际日志确认Python3.12.3、Node24.21.0/npm11.19.0、Java17.0.20.1，以及Python/Node各自的initialize/tools-list/tools-call/EOF/显式环境/共享文件结果。探针在同一生产安装流程中执行，不是桌面模拟。
+- `afe83683`，[38730705181](https://github.com/veryy/Solvit/actions/runs/38730705181)：新增外部SIGKILL脚本的首轮失败在`run-as: unknown package: dev.solvit.terminal.test`，9常规设备测试已成功，强杀尚未开始。Gradle/UTP完成常规连接测试后移除测试APK；脚本需重新安装本次构建的唯一测试APK，并确认实际包路径，再启动外部强杀用例。此轮不能算宿主死亡验收通过。
+
 ## 插件桥下一步必须满足的约束
 
 - Kotlin只持有平台进程/原始帧/取消/限额，MCP版本协商、工具发现、调用和页面继续位于JS。不得往QuickJS伪装注入Node全局对象。
