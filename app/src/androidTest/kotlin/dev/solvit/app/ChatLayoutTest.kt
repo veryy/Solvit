@@ -207,7 +207,12 @@ class ChatLayoutTest {
         rule.onNodeWithTag("save_context_budget").performClick()
         assertEquals(ContextBudgetPolicy(4_096, 512, 2_048, false), saved)
     }
-    @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    // ui-test 1.8.3 fixes interceptor replacement. Queue IO-triggered effects;
+    // Android's test clock drains their layout work on the UI thread.
+    @OptIn(ExperimentalTestApi::class)
+    @get:Rule val rule = createAndroidComposeRule<MainActivity>(
+        effectContext = kotlinx.coroutines.test.StandardTestDispatcher()
+    )
     private fun ready() {
         rule.waitUntil(30_000) { rule.onAllNodes(hasSetTextAction() and isFocused()).fetchSemanticsNodes().isNotEmpty() }
         rule.waitForIdle()
