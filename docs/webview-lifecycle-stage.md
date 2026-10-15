@@ -114,3 +114,10 @@ c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/3878892612
 候选a8833ed0的[38801427414](https://github.com/veryy/Solvit/actions/runs/38801427414)成功。原始归档12005077143（1268273字节，SHA256 `84554ff27b7297f38d5ec76e9bf2d98f188d1b9c4bc43e2a49efc93ec91863b9`）完整下载/CRC核对8份iteration均OK (1 test)，用时98.210、101.149、97.370、96.613、98.243、100.725、102.636、96.793秒。原始日志恰好240个STARTUP_RECREATION_COMPLETED、8个30/30终项，零Fatal signal、零SnapshotStateObserver多线程异常、零removeObserver主线程错误。真实触摸、创建/绑定/关闭、30次Activity重建以及正常规则收尾全部保留。
 
 仍记录15次Chromium内部destroyed-WebView警告，不能由本轮无崩溃推出其根因已经消失。旧正式APK也有独立240次通过但其他轮失败；当前结论限定为清理后的候选压力通过。候选38794154761默认dispatcher的同原生地址SIGSEGV仍为真实失败证据。完整应用38801340744/verify-ui仍在模拟器运行，尚未合入或发布新版本；ARM64真机和真实模型任务边界不变。
+
+
+## 完整候选在回复分支用例挂起，尚未通过
+
+[38801340744](https://github.com/veryy/Solvit/actions/runs/38801340744)终态失败，build成功但verify-ui/116654832079在常规Gradle测试12分钟上限以124退出。完整下载UI归档12005223531（2251329字节，SHA256 `9a57eb31d4e9e1612725faced512a46a4caaca529c9da8ba2ab608b29ae938ed`）并核对CRC/原始XML：Web3、终端25零失败；应用仅11项正常完成，第12个replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal自20:40:48开始后没有结束，XML含该未完成项及负时间，不能把“12项、failures0”当作通过。未达到应用70下限，release未执行，不能用240次独立压力代替整体验收。
+
+实际日志未提供挂起线程栈。排序假设为侧栏滚动等待、测试dispatcher排队任务不被自动推进、分支或存储调用阻塞；需实际栈区分，暂不修改生产分支逻辑。新增单场reply-branch-hang诊断：保留相同已构建候选APK与原测试，60秒仍在执行时发送一次SIGQUIT，120秒原单场上限不变，归档logcat及ART的/data/anr文件。仅对一次性CI模拟器使用adb root读取诊断文件，不更改产品权限。a45dc66e初轮38805573819因补齐ART文件归档被主动替代，不能算成功或产品失败；执行以7306d88e新轮为准。诊断结束后清理临时入口/计时器。
