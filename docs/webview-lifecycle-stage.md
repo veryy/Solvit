@@ -107,3 +107,10 @@ c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/3878892612
 
 
 清理临时诊断后的a8833ed0候选在[38801340744](https://github.com/veryy/Solvit/actions/runs/38801340744)的build/116650858266成功，测试/Lint/APK/固定签名已完成。原始单元归档12005240519（438165字节，SHA256 `d9ae44dfa2b03c090391d9bfa6e9523082fc0be85264434ce1cd7f8959b0f462`）完整下载并通过CRC/逐项XML核对：611项，失败/错误/跳过均0。界面任务116654832079仍在准备测试APK；独立8轮压力[38801427414](https://github.com/veryy/Solvit/actions/runs/38801427414)任务116651161014仍在模拟器执行，尚无最终完成次数。未合入产品修改、未升级版本或替换公开APK。
+
+
+## 清理后的真实触摸压力完成240次
+
+候选a8833ed0的[38801427414](https://github.com/veryy/Solvit/actions/runs/38801427414)成功。原始归档12005077143（1268273字节，SHA256 `84554ff27b7297f38d5ec76e9bf2d98f188d1b9c4bc43e2a49efc93ec91863b9`）完整下载/CRC核对8份iteration均OK (1 test)，用时98.210、101.149、97.370、96.613、98.243、100.725、102.636、96.793秒。原始日志恰好240个STARTUP_RECREATION_COMPLETED、8个30/30终项，零Fatal signal、零SnapshotStateObserver多线程异常、零removeObserver主线程错误。真实触摸、创建/绑定/关闭、30次Activity重建以及正常规则收尾全部保留。
+
+仍记录15次Chromium内部destroyed-WebView警告，不能由本轮无崩溃推出其根因已经消失。旧正式APK也有独立240次通过但其他轮失败；当前结论限定为清理后的候选压力通过。候选38794154761默认dispatcher的同原生地址SIGSEGV仍为真实失败证据。完整应用38801340744/verify-ui仍在模拟器运行，尚未合入或发布新版本；ARM64真机和真实模型任务边界不变。
