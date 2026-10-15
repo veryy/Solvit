@@ -74,6 +74,20 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
                 WorkspaceBackupStatus.valueOf(item.status),item.currentBytes,item.pending)
         },offset,inventory.observations.size,inventory.logicalBytes,available,inventory.incomplete,inventory.unreadableRecords)
     } }
+    override suspend fun readImportBackup(workspaceId:String,backupId:String,expectedSha256:String?):WorkspaceImportBackupContent = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        require(expectedSha256==null || expectedSha256.matches(Regex("[a-f0-9]{64}")))
+        val coroutine=currentCoroutineContext()
+        val (r,bytes)=WorkspaceImportBackups(directory(workspaceId).canonicalFile,File(importLedgerRoot,workspaceId))
+            .readOwned(backupId) { coroutine.ensureActive() }
+        try {
+            val digest=java.security.MessageDigest.getInstance("SHA-256").digest(bytes).joinToString(""){"%02x".format(it)}
+            check(expectedSha256==null || digest==expectedSha256) { "备份内容已变化，请重新审阅" }
+            verifyPage(workspaceId)
+            WorkspaceImportBackupContent(WorkspaceImportBackup(r.id,r.path,r.backupPath,r.originalBytes,r.originalSha256,
+                r.createdAt,WorkspaceBackupStatus.PRESENT,bytes.size.toLong(),false),bytes,digest)
+        } catch(failure:Throwable) { bytes.fill(0);throw failure }
+    } }
     override suspend fun dismissImportRecovery(workspaceId:String,recoveryId:String):Unit = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         WorkspaceImportTransactions(directory(workspaceId).canonicalFile,File(importLedgerRoot,workspaceId)).dismiss(recoveryId)

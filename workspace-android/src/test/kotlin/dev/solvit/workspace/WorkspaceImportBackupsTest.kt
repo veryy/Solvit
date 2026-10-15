@@ -128,4 +128,22 @@ class WorkspaceImportBackupsTest {
         assertEquals("shared original".toByteArray().size.toLong(),inventory.logicalBytes)
         assertEquals(1,inventory.observations.map { it.record.originalKey }.toSet().size)
     }
+    @Test fun boundedOwnedReadRejectsActiveReplacementsNewInodesSymlinksAndGrowth()=fixture { root,ledger ->
+        val target=File(root,"file").apply { writeText("old") };val backup=File(root,"solvit-backup-${UUID.randomUUID()}")
+        val journal=WorkspaceImportTransactions(root,ledger)
+        val transaction=journal.begin(target,backup,sha(target.readBytes()));publisher.publish(target,backup)
+        val catalog=WorkspaceImportBackups(root,ledger);val id=catalog.inventory().observations.single().record.id
+        assertFails { catalog.readOwned(id) {} }
+        val staged=File.createTempFile(".solvit-import-",".partial",root).apply { writeText("new") }
+        transaction.publishing(staged);publisher.publish(staged,target);transaction.committed();transaction.forget()
+        val (_,bytes)=catalog.readOwned(id) {};assertEquals("old",bytes.toString(Charsets.UTF_8));bytes.fill(0)
+        RandomAccessFile(backup,"rw").use { it.setLength(dev.solvit.core.MAX_WORKSPACE_IMPORT_BYTES.toLong()+1) }
+        assertFails { catalog.readOwned(id) {} }
+        RandomAccessFile(backup,"rw").use { it.setLength(3) }
+        val kept=File(root,"kept-inode");Files.move(backup.toPath(),kept.toPath());backup.writeText("old")
+        assertFails { catalog.readOwned(id) {} }
+        assertTrue(backup.delete());Files.createSymbolicLink(backup.toPath(),kept.toPath())
+        assertFails { catalog.readOwned(id) {} }
+        assertTrue(kept.exists());assertEquals("new",target.readText())
+    }
 }

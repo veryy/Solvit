@@ -110,6 +110,36 @@ internal class WorkspaceImportBackups(private val root: File, private val ledger
         safeBackup(record)
         if (!Files.exists(backup.toPath(), NOFOLLOW_LINKS) && key(target) == originalKey) Files.delete(file.toPath())
     }
+    /** Read one currently owned backup for an explicit review/copy. Never follows a new
+     * inode at the old name, never reads an active replacement, and never removes a file. */
+    fun readOwned(id: String, checkpoint: () -> Unit): Pair<Record, ByteArray> {
+        checkpoint(); directory(create = false)
+        val record = read(recordFile(id))
+        val pending = File(ledger, "${record.id}.transaction")
+        check(!Files.exists(pending.toPath(), NOFOLLOW_LINKS)) { "该备份仍有未完成事务，请等待恢复或导入结束" }
+        val source = safeBackup(record)
+        val attrs = checkNotNull(attributes(source)) { "备份文件已不存在" }
+        check(attrs.isRegularFile && attrs.fileKey()?.toString() == record.originalKey) { "备份身份已变化，不能作为登记备份读取" }
+        require(attrs.size() in 0..MAX_WORKSPACE_IMPORT_BYTES.toLong()) { "备份超过20MiB，请使用文件管理或Shell处理" }
+        val bytes = ByteArray(attrs.size().toInt())
+        try {
+            Files.newByteChannel(source.toPath(), setOf(READ, NOFOLLOW_LINKS)).use { channel ->
+                val buffer = ByteBuffer.wrap(bytes)
+                while (buffer.hasRemaining()) {
+                    checkpoint(); check(channel.read(buffer) >= 0) { "备份内容已变化，请重新审阅" }
+                }
+                checkpoint()
+                check(channel.read(ByteBuffer.allocate(1)) == -1) { "备份内容已变化，请重新审阅" }
+            }
+            checkpoint()
+            val after = attributes(safeBackup(record))
+            check(after?.isRegularFile == true && after.fileKey()?.toString() == record.originalKey &&
+                after.size() == bytes.size.toLong() && !Files.exists(pending.toPath(), NOFOLLOW_LINKS)) {
+                "备份内容或身份已变化，请重新审阅"
+            }
+            return record to bytes
+        } catch (failure: Throwable) { bytes.fill(0); throw failure }
+    }
     fun inventory(checkpoint: () -> Unit = {}): Inventory = synchronized(lock) {
         checkpoint()
         if (!Files.exists(ledger.toPath(), NOFOLLOW_LINKS)) return@synchronized Inventory(emptyList(), 0, false, 0)

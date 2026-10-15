@@ -49,6 +49,13 @@ data class WorkspaceImportBackup(val id: String, val path: String, val backupPat
 data class WorkspaceImportBackupPage(val backups: List<WorkspaceImportBackup>, val offset: Int,
     val total: Int, val logicalBytes: Long, val availableBytes: Long?,
     val incomplete: Boolean, val unreadableRecords: Int)
+/** Trusted host-owned snapshot for review/copy; no absolute path or file identity leaves
+ * the provider. Consumers erase bytes after creating their own bounded document. */
+class WorkspaceImportBackupContent(val backup: WorkspaceImportBackup, val bytes: ByteArray,
+    val sha256: String) : AutoCloseable {
+    override fun close() { bytes.fill(0) }
+    override fun toString() = "WorkspaceImportBackupContent(bytes=${bytes.size}, content=<redacted>)"
+}
 const val MAX_WORKSPACE_IMPORT_BYTES = 20 * 1024 * 1024
 
 data class ShellSession(val id: String, val workspaceId: String, val name: String,
@@ -107,6 +114,8 @@ interface WorkspaceService {
     suspend fun importBackups(workspaceId: String, offset: Int = 0, limit: Int = 20): WorkspaceImportBackupPage {
         error("工作区备份登记服务不可用")
     }
+    suspend fun readImportBackup(workspaceId: String, backupId: String,
+        expectedSha256: String? = null): WorkspaceImportBackupContent { error("工作区备份读取服务不可用") }
     suspend fun importRecoveries(workspaceId: String): List<WorkspaceImportRecovery> = emptyList()
     suspend fun dismissImportRecovery(workspaceId: String, recoveryId: String) {
         error("工作区导入恢复记录服务不可用")
