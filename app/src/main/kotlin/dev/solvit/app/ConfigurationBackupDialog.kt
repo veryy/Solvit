@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.solvit.core.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
@@ -55,6 +56,8 @@ fun ConfigurationBackupDialog(vm: ChatViewModel, roles: RoleService, appearance:
     val app = context.applicationContext as SolvitApplication
     val language = app.language
     val modelProfiles = app.modelProfiles
+    val chatReady by vm.ready.collectAsStateWithLifecycle()
+    val chatBusy by vm.busy.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     var password by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
@@ -101,7 +104,7 @@ fun ConfigurationBackupDialog(vm: ChatViewModel, roles: RoleService, appearance:
             OutlinedTextField(password, { password = it }, label = { UiText("备份密码（至少 8 位）") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(), enabled = !busy, modifier = Modifier.fillMaxWidth())
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(enabled = !busy && password.length in 8..1024 && vm.ready.value && !vm.busy.value, onClick = {
+                Button(enabled = !busy && password.length in 8..1024 && chatReady && !chatBusy, onClick = {
                     busy = true; message = null
                     scope.launch {
                         val chars = password.toCharArray()
@@ -114,7 +117,7 @@ fun ConfigurationBackupDialog(vm: ChatViewModel, roles: RoleService, appearance:
                         finally { chars.fill('\u0000') }
                     }
                 }) { UiText("导出备份") }
-                OutlinedButton(enabled = !busy && password.length in 8..1024 && !vm.busy.value, onClick = { busy = true; import.launch(arrayOf("*/*")) }) { UiText("导入备份") }
+                OutlinedButton(enabled = !busy && password.length in 8..1024 && !chatBusy, onClick = { busy = true; import.launch(arrayOf("*/*")) }) { UiText("导入备份") }
             }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             message?.let { UiText(it, style = MaterialTheme.typography.bodySmall) }
@@ -122,7 +125,7 @@ fun ConfigurationBackupDialog(vm: ChatViewModel, roles: RoleService, appearance:
     }, confirmButton = { TextButton(onClick = onDismiss, enabled = !busy) { UiText("关闭") } })
     preview?.let { incoming -> AlertDialog(onDismissRequest = { if (!busy) preview = null }, title = { UiText("恢复这些配置？") },
         text = { UiText("模型：${incoming.model.model}\n角色：${incoming.roles.size} 个\n\n将替换全部模型配置、任务绑定和外观配置，并合并角色（相同 ID 会覆盖）。插件仍需重新安装和授权。") },
-        confirmButton = { TextButton(enabled = !busy && !vm.busy.value, onClick = {
+        confirmButton = { TextButton(enabled = !busy && !chatBusy, onClick = {
             busy = true
             scope.launch { withContext(NonCancellable) {
                 val previousProfiles = modelProfiles.state.value
