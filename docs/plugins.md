@@ -188,3 +188,11 @@ const result = await ctx.workspacePage.perform();
 取消按钮使用`{kind:'workspace.perform',operation:'cancelImport',arguments:{operationId}}`，确认后调用perform并继续轮询，直到原生回报清理后的终态。取消请求不保证成功撤销已经发布的完整文件；晚于提交的请求仍回报SUCCEEDED。取消/失败保留源选择，旧reviewId已消耗，重试必须重新审阅。页面关闭取消并等待任务清理、释放来源；不会转成后台长期任务。
 
 进度查询和取消不获取写入持有的普通页面锁。RUNNING/CANCELLING时不要轮询snapshot/list，否则普通文件操作仍会等待工作区写入锁。一个页面最多一个活动任务，operationId仅对该页可用，切换对话/工作区、撤权和关闭都会拒绝继续。旧API22/25同步接口继续兼容。实现和待验收范围见[传输阶段](workspace-import-transfer-stage.md)。
+
+## API27：导入恢复提示（0.39.0 候选，尚未发布）
+
+需要API27、`workspace`权限和`workspace.files`原生服务声明。`workspacePage.query('importRecoveries',{offset:0})`返回`{total,recoveries}`，每页最多5条、最多查询最近100条；每条是`{id,path,backupPath?,status}`，只提供当前对话工作区的相对路径。`ORIGINAL_AVAILABLE`表示原文件已在原路径；`PUBLISHED`表示保留发布事实、不自动回滚；`CONFLICT`保留并发同名及备份；`REVIEW_REQUIRED`需要人工检查。提示不证明当前文件仍未被Shell修改，查看文件应重新读版本。
+
+关闭提示的控件须带原生确认：`{kind:'workspace.perform',operation:'dismissImportRecovery',arguments:{recoveryId}}`，确认后调用`workspacePage.perform()`。这只删除宿主恢复记录，不删除工作区文件或备份，不接受额外workspaceId，也不能关闭其他对话的提示。旧API26包字节保留，新协议须升级宿主；不能向旧宿主下发API27包。
+
+事务记录位于宿主私有目录。启动恢复先处理事务，再回收登记的暂存文件；保留已发布事实、原备份和并发修改。当前协议面向进程死亡，不承诺断电/存储损坏恢复，不自动重放模型或Shell任务。实际跨进程验收状态见[阶段记录](workspace-import-recovery-stage.md)。

@@ -43,4 +43,8 @@ try {
  }
  await writeFile(root+'verified.json',JSON.stringify(evidence,null,2)+'\n');
  console.log(JSON.stringify({oldApisUnchanged:evidence.oldApisUnchanged,compatiblePatchApis:evidence.compatiblePatchApis,historicalPackages:evidence.historicalPackages.length,currentPackages:evidence.currentPackages}));
-} finally {await Promise.all([old,next].map(s=>new Promise(r=>s.close(r))));}
+} finally {
+ // Node 18 can otherwise wait on keep-alive sockets after all byte checks finish.
+ for(const server of [old,next])server.closeIdleConnections();
+ await Promise.all([old,next].map(s=>new Promise(r=>s.close(r))));
+}
