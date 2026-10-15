@@ -57,7 +57,7 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
     val latestEvent by rememberUpdatedState(onEvent)
     LaunchedEffect(view) { if (confirmation?.view !== view) confirmation = null }
     val deliver: (ScriptPageView, JsonObject, String?, Map<String, String>) -> Unit = { displayed, node, value, snapshot ->
-        if (!latestBusy) {
+        if (!latestBusy && confirmation == null) {
             keyboardController?.hide()
             focusManager.clearFocus()
             if (node["hostAction"]?.jsonObject?.get("kind") == JsonPrimitive("git.credentials")) {
@@ -69,7 +69,9 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
     }
     val dispatch: (JsonObject, String?) -> Unit = { node, value -> deliver(view, node, value, fields.toMap()) }
     if (document != null) {
-        PluginWebPage(view, document, checkNotNull(resource), busy, modifier, terminalAccess) { event ->
+        // Freeze background HTML polling while reviewing this exact native control.
+        // A poll would replace view and correctly invalidate the pending confirmation.
+        PluginWebPage(view, document, checkNotNull(resource), busy || confirmation != null, modifier, terminalAccess) { event ->
             deliver(event.view, event.node, event.value, event.fields)
         }
     } else Column(modifier.fillMaxSize()) {

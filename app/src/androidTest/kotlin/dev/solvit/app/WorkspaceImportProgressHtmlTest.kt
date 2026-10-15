@@ -60,7 +60,16 @@ class WorkspaceImportProgressHtmlTest {
             waitDom("(()=>{const p=document.getElementById('workspace-import-progress');return !!p&&p.value===65536&&p.max===200000&&p.getBoundingClientRect().height>0})()")
             waitDom("document.querySelector('[data-node=transfer_bytes]')?.textContent==='65536 / 200000 B'")
             html.screenshot("workspace-import-progress").recycle()
-            click("cancelImport");confirm()
+            click("cancelImport")
+            rule.waitUntil(10_000){rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty()}
+            waitDom("document.querySelector('[data-node=cancelImport]')?.disabled===true")
+            // Keep the real dialog open across three 150ms polling opportunities.
+            // HTML must stay blocked until the user confirms; do not retry a vanished dialog.
+            html.js("window.importConfirmationBlocked=false;setTimeout(()=>{window.importConfirmationBlocked=document.querySelector('[data-node=cancelImport]')?.disabled===true},450)")
+            waitDom("window.importConfirmationBlocked===true")
+            rule.onNodeWithTag("plugin_page_confirm").assertExists()
+            html.screenshot("workspace-import-cancel-confirmation").recycle()
+            confirm()
             waitDom("!!document.querySelector('[data-node=transfer_cancel_wait]')")
             release.complete(Unit)
             waitDom("!!document.getElementById('field-importPath')&&document.querySelector('[data-node=message]')?.textContent.includes('已取消')===true")
