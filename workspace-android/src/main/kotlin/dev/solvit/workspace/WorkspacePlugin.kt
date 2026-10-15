@@ -217,7 +217,10 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     override suspend fun prepareResources(workspaceId: String, name: String, files: Map<String, String>,
         authorize: suspend () -> Unit): WorkspaceResourceBundle = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
-        WorkspaceResourceBundles.prepare(directory(workspaceId), resourceCache, name, files,
+        // Android's app data path may be an OS alias (/data/user/0 vs /data/data).
+        // directory() already verifies the workspace against our trusted root;
+        // pin its canonical parent before the strict no-alias publication checks.
+        WorkspaceResourceBundles.prepare(directory(workspaceId).canonicalFile, resourceCache, name, files,
             AndroidWorkspaceDirectoryPublisher::publish) { verifyPage(workspaceId); authorize() }
     } }
     override suspend fun instructionSources(workspaceId: String, authorize: suspend () -> Unit): List<WorkspaceInstructionSource> =

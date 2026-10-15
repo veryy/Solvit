@@ -34,3 +34,5 @@ API31桥首次诊断38766584222失败于既有目录测试仍期待hostApi30；T
 19fc3d17的Ubuntu诊断38769171362已失败：生产环境下载、Java和此前MCP链路执行后，Skills资源准备返回了Agent脱敏的UNKNOWN，后续JSON解析失败；不能据此宣称脚本运行通过。e81062ad增加同一真实QuickJS工具的最小直接调用，在Agent脱敏前保留测试异常原因，仍不记录账号配置或密钥。尚待重新远程诊断。
 
 1b9bbd44的[TS38769510870](https://github.com/veryy/Solvit/actions/runs/38769510870)141/141、市场7/7全部通过。API31市场已经私有before/next逐项验证：API1..30目录内容完全保持、55个历史包完整字节不变；切换后服务active，备份`/opt/solvit-market/.backup-api31-1792082197283`。公网重新取得31个目录、59次完整包下载/56个不同版本，摘要和大小全部匹配。Skills1.2.0/API31主包258398字节，SHA256 `541c979ba8038b50a886680cfeb51d1bc59f66d51cc193186de687c009e3bfad`。SSH等待超时后没有重复切换或重启检查，读取原任务完成的verified.json；检查脚本见scripts/verify-market-api31.mjs。新APK仍待Ubuntu修复和完整发布门禁。
+
+e81062ad最小复现[38770915001](https://github.com/veryy/Solvit/actions/runs/38770915001)揭示原异常为“资源目录身份无效”。Android应用filesDir有系统路径别名，工作区旧directory()已按canonical根验证，但新增发布原语要求绝对路径本身等于canonical；宿主传入了别名。修复为仅在通过既有directory()根检查后传入canonicalFile，发布原语继续严格检查NOFOLLOW和目录身份，不允许用户任意符号链接，不修改模型参数或覆盖规则。保留最小调用和完整Agent失败→修复→读取断言，继续远程验证。
