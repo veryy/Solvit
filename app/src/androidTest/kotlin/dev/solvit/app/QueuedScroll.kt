@@ -27,7 +27,10 @@ internal fun SemanticsNodeInteraction.performQueuedScrollToNode(
         val visible = top != null && bottom != null &&
             ((top >= viewport.top && bottom <= viewport.bottom) ||
                 (top <= viewport.top && bottom >= viewport.bottom))
-        if (visible) true else {
+        if (visible) {
+            android.util.Log.i("QUEUED_SCROLL_DIAG", "matcher=$matcher viewport=$viewport node=${target?.boundsInRoot} coordinates=$top..$bottom placed=${target?.layoutInfo?.isPlaced} parents=${generateSequence(target?.layoutInfo?.parentInfo) { it.parentInfo }.map { it.isPlaced }.toList()}")
+            true
+        } else {
             val distance = when {
                 top == null || bottom == null -> viewport.height / 2f
                 top < viewport.top -> top - viewport.top
