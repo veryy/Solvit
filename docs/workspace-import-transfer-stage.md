@@ -111,3 +111,6 @@ d6685d2的38655832380/116165253042成功：完整日志确认123 SDK、5市场�
 
 
 最新API26客户端07a089a的合同38661898678/116184877644通过，完整报告待下载核对。c1e655c的Android38661532272/build116183688161实际失败于LanguageTest.catalogCoversSixLanguagesAndPreservesTemplateArguments（LanguageTest.kt:34的getString），未进入UI。新增取消说明误漏目录要求的zh项，五种外语存在不满足六语完整目录契约；仅补中文原文项，保留原语言覆盖/占位符测试，再运行完整Android门禁。没有把合同编译成功当作应用单元全通过。
+
+
+API26客户端合同报告11939117980（93730字节）已实际下载并完整ZIP CRC/XML核对：410单元、0失败/错误/跳过，包含BuiltinMemoryTest实际HTTP请求断言hostApi26。它锁定07a089a，不包含随后补齐语言目录的1e44b4e；后者已启动完整Android复验。
