@@ -94,3 +94,10 @@ Java_dev_solvit_workspace_AndroidWorkspaceDirectoryPublisher_publishNative(
         jstring source, jstring destination) {
     return transfer_entry(env, sourceDirectory, destinationDirectory, source, destination, true);
 }
+
+extern "C" JNIEXPORT jint JNICALL
+Java_dev_solvit_workspace_AndroidWorkspaceFilePublisher_publishNative(
+        JNIEnv* env, jobject, jstring sourceDirectory, jstring destinationDirectory,
+        jstring source, jstring destination) {
+    return transfer_entry(env, sourceDirectory, destinationDirectory, source, destination, false);
+}

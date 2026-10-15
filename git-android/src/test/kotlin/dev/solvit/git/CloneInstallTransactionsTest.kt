@@ -8,14 +8,15 @@ import java.nio.file.LinkOption.NOFOLLOW_LINKS
 import java.nio.file.attribute.BasicFileAttributes
 import kotlin.test.*
 
-/** Real temporary inodes and hard links. The directory mover here is a JVM fixture;
+/** Real temporary inodes and complete file moves. These movers are JVM fixtures;
  * Android RENAME_NOREPLACE and actual force-stop are separate required device gates. */
 class CloneInstallTransactionsTest {
     private class Fixture {
         val temp = Files.createTempDirectory("solvit-clone-recovery-").toFile().canonicalFile
         val root = File(temp, "workspace").apply { check(mkdir()) }
         val base = File(temp, "private-ledger")
-        fun store() = CloneInstallTransactions(base) { source, target -> Files.move(source.toPath(), target.toPath()); Unit }
+        private fun move(source: File, target: File) { Files.move(source.toPath(), target.toPath()) }
+        fun store() = CloneInstallTransactions(base, ::move, ::move)
         val store = store()
         val originalKey = key(root)
         fun begin() = store.begin("workspace-fixture", root, "https://github.com/veryy/Solvit", "main")
@@ -28,10 +29,11 @@ class CloneInstallTransactionsTest {
         }
         suspend fun interruptAfterFirstFile(r: CloneInstallTransactions.Record) {
             assertFailsWith<CancellationException> {
-                store.install(r.id) { if (File(root, "alpha.txt").exists()) throw CancellationException("after actual complete hard link") }
+                store.install(r.id) { if (File(root, "alpha.txt").exists()) throw CancellationException("after actual complete file move") }
             }
             assertEquals("INSTALLING", store.read(r.id).phase)
             assertEquals("complete original clone file", File(root, "alpha.txt").readText())
+            assertFalse(File(store.tree(store.read(r.id)), "alpha.txt").exists())
             assertFalse(File(root, ".git").exists())
         }
         fun close() { check(temp.deleteRecursively()) }
@@ -42,7 +44,7 @@ class CloneInstallTransactionsTest {
     private suspend fun fixture(block: suspend (Fixture) -> Unit) {
         val f = Fixture(); try { block(f) } finally { f.close() }
     }
-    @Test fun completeInstallPreservesRootIdentityAndRetiresPrivateLinks() = runBlocking {
+    @Test fun completeInstallPreservesRootIdentityAndRetiresPrivateStaging() = runBlocking {
         fixture { f ->
             val r = f.ready(); f.store.install(r.id)
             assertEquals(f.originalKey, key(f.root))
@@ -53,7 +55,7 @@ class CloneInstallTransactionsTest {
             assertTrue(f.store.inventory("workspace-fixture").records.isEmpty())
         }
     }
-    @Test fun interruptionAfterCompleteFileLinkSurvivesReconstructionAndExplicitlyFinishesMissingEntries() = runBlocking {
+    @Test fun interruptionAfterCompleteFileMoveSurvivesReconstructionAndExplicitlyFinishesMissingEntries() = runBlocking {
         fixture { f ->
             val r = f.ready(); f.interruptAfterFirstFile(r)
             val restarted = f.store()
@@ -75,7 +77,7 @@ class CloneInstallTransactionsTest {
             assertEquals("concurrent user file", File(f.root, "from-shell.txt").readText())
         }
     }
-    @Test fun modifyingPublishedHardLinkInvalidatesResumeAndAbandonNeverDeletesTheUserEdit() = runBlocking {
+    @Test fun modifyingPublishedFileInvalidatesResumeAndAbandonNeverDeletesTheUserEdit() = runBlocking {
         fixture { f ->
             val r = f.ready(); f.interruptAfterFirstFile(r)
             File(f.root, "alpha.txt").writeText("user edit after interruption")
@@ -88,9 +90,13 @@ class CloneInstallTransactionsTest {
     @Test fun sameBytesAtDifferentInodeAndSymlinkAreNotAdoptedOrOverwritten() = runBlocking {
         fixture { f ->
             val r = f.ready(); f.interruptAfterFirstFile(r)
-            val file = File(f.root, "alpha.txt"); val oldKey = key(file); assertTrue(file.delete())
-            file.writeText("complete original clone file"); assertNotEquals(oldKey, key(file))
-            assertFailsWith<IllegalStateException> { f.store().install(r.id) }
+            val file = File(f.root, "alpha.txt"); val oldKey = key(file)
+            // Keep the old inode allocated so this fixture deterministically creates
+            // a different inode instead of relying on filesystem allocator timing.
+            file.inputStream().use {
+                assertTrue(file.delete()); file.writeText("complete original clone file"); assertNotEquals(oldKey, key(file))
+                assertFailsWith<IllegalStateException> { f.store().install(r.id) }
+            }
             assertTrue(file.delete()); val outside = File(f.temp, "outside.txt").apply { writeText("external file") }
             Files.createSymbolicLink(file.toPath(), outside.toPath())
             assertFailsWith<IllegalStateException> { f.store().install(r.id) }
@@ -169,6 +175,16 @@ class CloneInstallTransactionsTest {
             assertFalse(conflict.canResume); assertFalse(conflict.canRestart)
             assertNotNull(conflict.problem); assertFalse(conflict.problem!!.contains(f.temp.path))
             assertEquals("concurrent edit", File(f.root, "alpha.txt").readText())
+        }
+    }
+    @Test fun missingMovedFileIsNotRecreatedOrMistakenForUnpublishedSource() = runBlocking {
+        fixture { f ->
+            val r = f.ready(); f.interruptAfterFirstFile(r)
+            assertTrue(File(f.root, "alpha.txt").delete())
+            assertFalse(f.store().review(r.id).canResume)
+            assertFailsWith<IllegalStateException> { f.store().install(r.id) }
+            assertFalse(File(f.root, "alpha.txt").exists()); assertFalse(File(f.root, ".git").exists())
+            f.store.retire(r.id); assertTrue(f.root.listFiles()!!.isEmpty())
         }
     }
     @Test fun publishedReviewDoesNotRequireOrReplayTheOriginalWorktreeAndCancellationEscapes() = runBlocking {

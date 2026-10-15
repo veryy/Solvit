@@ -12,7 +12,7 @@
 
 0.40.0从私有cache下载，准备工作树后向根目录逐个Files.copy，再移动.git；普通取消会清私有暂存，强杀留下的部分目标没有持久归属。根目录非空使下一次克隆拒绝，复制中的文件还可能不完整。不能对根目录递归回滚，不能自动重新联网或覆盖用户文件。
 
-候选采用应用持久私有暂存与同步意图，区分DOWNLOADING、READY、INSTALLING、PUBLISHING、COMMITTED。完整工作树审阅清单在发布前保存。普通文件以不覆盖硬链接一次发布完整inode，继续安装只认清单中的同一文件身份和摘要；新同名、变更和额外条目明确冲突，保留双方。目录与.git发布须拒绝替换，根inode保持。已发布.git用独立来源标记和身份识别；重启不自动重放，明确确认后只继续缺失步骤或关闭已发布记录，不重置用户后续修改。
+候选采用应用持久私有暂存与同步意图，区分DOWNLOADING、READY、INSTALLING、PUBLISHING、COMMITTED。完整工作树审阅清单在发布前保存。普通文件改为通过JNI不覆盖原子移动一次发布完整inode（最初硬链接候选被Android设备验证否决），继续安装核对清单中的同一文件身份和摘要，以及文件仍在暂存还是已移入工作区；新同名、变更和额外条目明确冲突，保留双方。目录与.git发布须拒绝替换，根inode保持。已发布.git用独立来源标记和身份识别；重启不自动重放，明确确认后只继续缺失步骤或关闭已发布记录，不重置用户后续修改。
 
 暂存和已执行事实由宿主管理，业务界面仍为JS/HTML。关闭/放弃只清经登记的私有暂存和记录，绝不递归清工作区。未登记的旧cache克隆目录不按名字认领。已有打开描述符/硬链接不被锁住，摘要为观察；不承诺断电、磁盘损坏或任意同UID私有目录修改下的恢复。
 
@@ -33,3 +33,7 @@
 页面宿主候选`af9c8da7`的[合同38711525341](https://github.com/veryy/Solvit/actions/runs/38711525341)成功；实际完整下载归档并核对CRC/XML为470项、零失败/错误，其中11个克隆事务、6个Git页面会话、4个Git页面桥。Android[38711525423](https://github.com/veryy/Solvit/actions/runs/38711525423)两路测试APK均成功编译，但各27设备用例中7个克隆相关失败。实际下载两路完整归档与任务日志：根检查通过、base目录检查在begin第115行失败，独立目录适配器在parent canonical要求失败；并发传输用例因克隆在下载前失败而等待超时。
 
 原因是Android Context的/data/user/0路径别名没有在宿主边界规范化，严格canonical目录检查将私有暂存误判变化。修复宿主noBackup路径/cloneStore与直接设备fixture路径为canonicalFile；不放宽事务中目录、inode、symlink或JNI不覆盖检查，不增加传输等待时间。保持原27个实际用例重跑，尚未得到修复后设备结果。
+
+路径修复后的[38712390857](https://github.com/veryy/Solvit/actions/runs/38712390857)仍未通过：两路实际日志都剩3个createLink的AccessDeniedException，其余用例已通过。独立目录移动用例通过，原路径别名失败不再出现。[AOSP app_neverallows.te](https://android.googlesource.com/platform/system/sepolicy/+/b5b796adcd99dce1822184e4859d91f3d1da2153/private/app_neverallows.te#84)明确禁止untrusted apps创建硬链接，确认原JVM方案不可直接用于Android，不申请root或关闭SELinux。
+
+修复为私有完整文件经JNI renameat2(RENAME_NOREPLACE)原子移入目标；先持久INSTALLING，移动后源缺失只在目标同inode/模式/摘要都匹配时接受，缺失不重建，冲突不覆盖。文件和.git均无copy/unlink fallback。私有清理不再依赖工作区硬链接。原JVM协议fixture同步改为完整文件移动，额外增加已移动文件被删除时拒绝恢复，以及Android真实文件移动同名/符号链接拒绝覆盖与inode保留。保留已发布后的用户变更和逆序私有清理约束；修复后尚待远程验证。

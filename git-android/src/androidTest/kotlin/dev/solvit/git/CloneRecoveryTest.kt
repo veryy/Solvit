@@ -4,6 +4,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import dev.solvit.workspace.AndroidWorkspaces
 import dev.solvit.workspace.AndroidWorkspaceDirectoryPublisher
+import dev.solvit.workspace.AndroidWorkspaceFilePublisher
 import kotlinx.coroutines.*
 import org.eclipse.jgit.api.Git
 import org.junit.Assert.*
@@ -36,7 +37,7 @@ class CloneRecoveryTest {
         fun page() = BoundWorkspaceGit(workspaces, chat, { active }, authorizeWrite = { check(writable) },
             authorizeNetwork = { networkCalls++; error("Offline recovery must not authorize network") }) { check(readable) }
             .also { it.cloneStagingDirectory = base }
-        val store = CloneInstallTransactions(base, AndroidWorkspaceDirectoryPublisher::publish)
+        val store = CloneInstallTransactions(base, AndroidWorkspaceFilePublisher::publish, AndroidWorkspaceDirectoryPublisher::publish)
         suspend fun ready(): CloneInstallTransactions.Record {
             val r = store.begin(workspace.id, root, "https://github.com/veryy/Solvit", "main")
             val tree = store.tree(r)
@@ -83,11 +84,32 @@ class CloneRecoveryTest {
         } finally { parent.deleteRecursively() }
     }
 
+    @Test fun productionFilePublisherMovesCompleteInodeAndRefusesSameNameAndSymlink() {
+        val parent = File(context.cacheDir, "clone-file-publisher-${UUID.randomUUID()}").canonicalFile.apply { check(mkdir()) }
+        val privateDir = File(parent, "private").apply { check(mkdir()) }
+        val targetDir = File(parent, "workspace").apply { check(mkdir()) }
+        val source = File(privateDir, "ready.txt").apply { writeText("complete contents\n") }
+        val target = File(targetDir, "ready.txt").apply { writeText("concurrent user contents\n") }
+        try {
+            try { AndroidWorkspaceFilePublisher.publish(source, target); fail("Must preserve existing target") }
+            catch (_: java.nio.file.FileAlreadyExistsException) { }
+            assertEquals("concurrent user contents\n", target.readText()); assertTrue(source.exists())
+            assertTrue(target.delete()); Files.createSymbolicLink(target.toPath(), source.toPath())
+            try { AndroidWorkspaceFilePublisher.publish(source, target); fail("Must preserve existing link") }
+            catch (_: java.nio.file.FileAlreadyExistsException) { }
+            assertTrue(Files.isSymbolicLink(target.toPath())); Files.delete(target.toPath())
+            val inode = android.system.Os.lstat(source.path).st_ino
+            AndroidWorkspaceFilePublisher.publish(source, target)
+            assertFalse(source.exists()); assertEquals(inode, android.system.Os.lstat(target.path).st_ino)
+            assertEquals("complete contents\n", target.readText())
+        } finally { parent.deleteRecursively() }
+    }
+
     @Test fun reconstructedSessionExplicitlyResumesOfflineAndPreservesRootAndShellCwd() = runBlocking<Unit> {
         fixture { f ->
             val r = f.ready(); val rootInode = android.system.Os.lstat(f.root.path).st_ino
             try {
-                f.store.install(r.id) { if (File(f.root, "a.txt").exists()) throw CancellationException("after first hard link") }
+                f.store.install(r.id) { if (File(f.root, "a.txt").exists()) throw CancellationException("after first file move") }
                 fail("Must retain interrupted installation")
             } catch (_: CancellationException) { }
             val shell = ProcessBuilder("/system/bin/sh").directory(f.root).start()

@@ -19,8 +19,10 @@ import java.util.UUID
 /** Durable host facts for installing an already downloaded clone. Construction and
  * inventory never replay network or workspace writes. No operation recursively deletes
  * the workspace; only a registered private transaction can be retired.
- * publishMetadata MUST atomically refuse an existing destination without a fallback. */
+ * Both publishers MUST atomically refuse an existing destination without a fallback.
+ * Android forbids app hard links, so complete file inodes move from staging instead. */
 internal class CloneInstallTransactions(private val base: File,
+    private val publishWorktreeFile: (File, File) -> Unit,
     private val publishMetadata: (File, File) -> Unit) {
     data class Record(val id: String, val workspaceId: String, val rootPath: String,
         val rootKey: String, val treeKey: String, val endpoint: String, val branch: String,
@@ -237,7 +239,18 @@ internal class CloneInstallTransactions(private val base: File,
             }
         }
         for (entry in entries) {
-            boundary(checkpoint); val source = child(staged, entry.path); val a = checkNotNull(attrs(source))
+            boundary(checkpoint); val source = child(staged, entry.path); val a = attrs(source)
+            if (a == null && !entry.directory && record.phase in setOf("INSTALLING", "PUBLISHING")) {
+                // A no-replace rename is already an executed fact. Missing source is
+                // accepted only with this exact complete inode at its recorded target.
+                val target = child(destination, entry.path); val installed = attrs(target)
+                check(installed?.isRegularFile == true && installed.fileKey()?.toString() == entry.key &&
+                    target.canExecute() == entry.executable && digest(target, entry.key, entry.bytes, checkpoint) == entry.sha256) {
+                    "克隆文件既不在暂存也没有完整发布：${entry.path}"
+                }
+                continue
+            }
+            checkNotNull(a) { "克隆暂存文件缺失：${entry.path}" }
             check(a.fileKey()?.toString() == entry.key) { "克隆暂存身份已变化：${entry.path}" }
             if (entry.directory) check(a.isDirectory)
             else check(a.isRegularFile && source.canExecute() == entry.executable &&
@@ -302,7 +315,7 @@ internal class CloneInstallTransactions(private val base: File,
             val source = child(staged, entry.path); val target = child(destination, entry.path)
             if (attrs(target) != null) continue // Validated above; final validation repeats.
             if (entry.directory) Files.createDirectory(target.toPath())
-            else Files.createLink(target.toPath(), source.toPath()) // Atomic, complete, no replacement.
+            else publishWorktreeFile(source, target) // Atomic complete inode, no replacement.
             boundary(checkpoint)
         }
         validate(record, entries, checkpoint); boundary(checkpoint)
@@ -314,7 +327,7 @@ internal class CloneInstallTransactions(private val base: File,
         if (retireOnSuccess) retire(record.id)
     }
     /** Explicitly abandon/acknowledge; removes only the registered private directory.
-     * Existing links in the workspace retain their inode and bytes. */
+     * Already moved workspace files retain their inode and bytes. */
     fun retire(transactionId: String) {
         val record = read(transactionId); val folder = container(record.id)
         val staged = File(folder, "tree")
