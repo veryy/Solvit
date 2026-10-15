@@ -10,13 +10,14 @@ const { createMarketServer: nextServer } = await import(pathToFileURL(root+'next
 const old = oldServer({directory:root+'before/packages'});
 const next = nextServer({directory:root+'next/packages'});
 const sha=b=>createHash('sha256').update(b).digest('hex');
-const evidence={oldApisUnchanged:[],compatiblePatchApis:[],historicalPackages:[]};
+const evidence={oldApisUnchanged:[],compatiblePatchApis:[],historicalPackages:[],expectedCatalogs:[]};
 try {
  await Promise.all([old,next].map(s=>new Promise(r=>s.listen(0,'127.0.0.1',r))));
  const bases=[old,next].map(s=>`http://127.0.0.1:${s.address().port}`);
  const get=async(base,path)=>{const r=await fetch(base+path);assert.equal(r.status,200);return Buffer.from(await r.arrayBuffer());};
  for(let api=1;api<=26;api++) {
   const catalogs=await Promise.all(bases.map(b=>get(b,`/api/v1/plugins?hostApi=${api}`).then(JSON.parse)));
+  evidence.expectedCatalogs.push({api,catalog:catalogs[1]});
   if(api<=19){assert.deepEqual(catalogs[1],catalogs[0]);evidence.oldApisUnchanged.push(api);}
   else {
    assert.deepEqual(catalogs[1].plugins.filter(p=>p.id!=='dev.solvit.git'),catalogs[0].plugins.filter(p=>p.id!=='dev.solvit.git'));
@@ -34,6 +35,7 @@ try {
   evidence.historicalPackages.push({key,bytes:value.bytes.length,sha256:sha(value.bytes)});
  }
  const latest=JSON.parse(await get(bases[1],'/api/v1/plugins?hostApi=27'));
+ evidence.expectedCatalogs.push({api:27,catalog:latest});
  for(const [id,version,api] of [['workspace','1.10.0',27],['git','1.2.6',20]]){
   const p=latest.plugins.find(p=>p.id===`dev.solvit.${id}`);assert.equal(p.version,version);assert.equal(p.apiVersion,api);
   if(id==='workspace') assert.deepEqual(p.nativeServices,['workspace.files']);

@@ -231,7 +231,7 @@ class WorkspaceInstructionsHookTest {
             assertEquals("false", market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
             val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
-            assertEquals(26, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
+            assertEquals(27, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
             market.disable(id)
             val modified = original + "\n".toByteArray(); file.writeBytes(modified); market.restore()
             assertContentEquals(modified, file.readBytes())
@@ -255,7 +255,7 @@ class WorkspaceInstructionsHookTest {
             assertEquals("false", market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
             val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
-            assertEquals(26, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
+            assertEquals(27, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
             market.disable(id)
             val modified = original + "\n".toByteArray(); file.writeBytes(modified); market.restore()
             assertContentEquals(modified, file.readBytes())
@@ -279,7 +279,7 @@ class WorkspaceInstructionsHookTest {
             assertEquals("false", market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
             val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
-            assertEquals(26, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
+            assertEquals(27, manifest.apiVersion); assertEquals(setOf("workspace.files"), manifest.nativeServices)
             market.disable(id)
             val modified = original + "\n".toByteArray(); file.writeBytes(modified); market.restore()
             assertContentEquals(modified, file.readBytes())

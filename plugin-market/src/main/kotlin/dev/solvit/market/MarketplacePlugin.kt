@@ -136,7 +136,7 @@ class AndroidMarketplace(
     }
 
     override suspend fun catalog(): List<MarketEntry> {
-        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=26", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
+        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=27", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
         check(root.getValue("apiVersion").jsonPrimitive.int == 1) { "市场 API 版本不兼容" }
         val entries = root.getValue("plugins").jsonArray.map { element ->
             val m = element.jsonObject
