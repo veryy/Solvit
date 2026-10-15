@@ -254,7 +254,10 @@ class ChatLayoutTest {
     }
     private fun selectBranchFixture() {
         rule.onNodeWithContentDescription("对话历史").performClick()
-        rule.onNodeWithText("branch original question").performClick()
+        try { rule.onNodeWithText("branch original question").performClick() }
+        catch (failure:AssertionError) {
+            throw AssertionError("Branch history before selection:\n"+rule.onRoot(useUnmergedTree=true).printToString(),failure)
+        }
         rule.waitUntil(10_000) { rule.onAllNodesWithText("later answer").fetchSemanticsNodes().isNotEmpty() }
     }
     @Test fun actualAndroidTsProjectRulesRefreshWithoutChangingRoleOrCreatingUnboundWorkspace() {

@@ -219,8 +219,14 @@ class ChatAttachmentsDeviceTest {
             val copiedImage = editCopies.single { it.mimeType == "image/png" }
             val copiedText = editCopies.single { it.mimeType == "text/plain" }
             assertArrayEquals(imageBytes, runBlocking { files.read(branch, copiedImage) })
+            val previewBounds=rule.onNodeWithTag("attachment_${copiedText.id}").fetchSemanticsNode().boundsInRoot
             rule.onNodeWithTag("attachment_${copiedText.id}").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodesWithTag("attachment_text_${copiedText.id}").fetchSemanticsNodes().isNotEmpty() }
+            try {
+                rule.waitUntil(10_000) { rule.onAllNodesWithTag("attachment_text_${copiedText.id}").fetchSemanticsNodes().isNotEmpty() }
+            } catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+                screenshot("chat-edit-attachment-preview-failure")
+                throw AssertionError("Branch preview: bounds=$previewBounds, selected=${vm.sessionId.value}, branch=$branch, refs=${vm.attachmentDrafts.value[branch].orEmpty().map { it.id }}, error=${vm.error.value}\n"+rule.onRoot(useUnmergedTree=true).printToString(),timeout)
+            }
             rule.onNodeWithTag("attachment_text_${copiedText.id}").assertTextEquals("中文 fixture code 😀\nprint(42)")
             rule.onNodeWithTag("attachment_preview_close").performClick()
             // The second card can be clipped by the horizontal row; bring its actual button into view.
