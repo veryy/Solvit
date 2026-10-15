@@ -87,3 +87,6 @@ d6685d2的38655832380/116165253042成功：完整日志确认123 SDK、5市场�
 
 
 246b034的Android38659044618/build116175656824成功，完整日志实际确认Lint/assembleDebug通过与固定签名f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3。实际下载11938766244（383902字节）完整ZIP CRC/XML为523单元零失败/错误/跳过，包含最新7项暂存来源与文件身份、5项异步导入桥用例。设备verify-ui116177919214已开始运行，真实确认冻结和Android登记回收尚未完成；此结果不冒充正式版本或新APK发布。
+
+
+同源38659044618首次verify-ui116177919214在Prepare UI APKs outside emulator下载NDK时实际失败：sdkmanager报“Error on ZipFile unknown archive”，没有执行Gradle设备测试或启动模拟器，亦没有设备报告。本地已读取完整日志定位，不改应用/测试以掩盖基础设施错误；仅调用rerun-failed-jobs，attempt2仍锁定246b034。523单元/Lint/签名结果保留，新的设备任务仍待执行。分支随后仅准备0.38.0/build74元信息，市场hostApi仍25，不声称旧候选已验证新版本元信息或正式发布。
