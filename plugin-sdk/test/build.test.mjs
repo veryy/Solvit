@@ -159,3 +159,18 @@ test('API30 local processes require Linux service and all three explicit permiss
   await writeFile(file,JSON.stringify(manifest));await buildPlugin(entry,file,output);
  }finally{await rm(dir,{recursive:true})}
 });
+
+test('API31 resource publication and per-tool workspace visibility require explicit compatible declarations', async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'solvit-resource-build-'));
+ try{
+  const entry=join(dir,'entry.ts'),file=join(dir,'manifest.json'),output=join(dir,'output.json');
+  await writeFile(entry,'export default {tools:{list:async()=>({ok:true})}}');
+  const manifest={id:'test.resources',name:'Resources',description:'Test',version:'1.0.0',apiVersion:31,
+   permissions:['workspace'],nativeServices:['workspace.resources'],dependencies:[],tools:[{name:'list',description:'List',requiresWorkspace:false,inputSchema:{type:'object'}}]};
+  for(const invalid of [{...manifest,apiVersion:30},{...manifest,permissions:[]},{...manifest,tools:[{...manifest.tools[0],requiresWorkspace:'false'}]}]){
+   await writeFile(file,JSON.stringify(invalid));await assert.rejects(()=>buildPlugin(entry,file,output));
+  }
+  await writeFile(file,JSON.stringify(manifest));await buildPlugin(entry,file,output);
+  assert.deepEqual(JSON.parse(await readFile(output,'utf8')).manifest,manifest);
+ }finally{await rm(dir,{recursive:true})}
+});

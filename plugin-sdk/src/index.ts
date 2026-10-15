@@ -54,6 +54,8 @@ export interface PluginContext {
   /** Optional on hosts older than Solvit 0.7.0; use JS Date as a UTC fallback. */
   /** API 4; operations are bound to the active chat and the exact approved tool arguments. */
   readonly workspace?: { call(operation: 'info' | 'read' | 'write' | 'createShell' | 'start' | 'status' | 'cancel', args?: JsonObject): Promise<JsonValue>;
+    /** API31, authorized tool only: new bounded text copy; no execution or replacement. */
+    prepareResources?(name:string,files:Record<string,string>):Promise<{path:string;files:number;bytes:number;sourceSha256:string}>;
     /** API16, beforeModel only + workspace grant; host captures the current conversation. */
     instructions?():Promise<WorkspaceInstructions> };
   readonly plugins?: { draft(args: { manifestJson: string; source: string }): Promise<JsonValue> };
@@ -115,9 +117,9 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
-  nativeServices?: ('terminal.pty'|'web.pages'|'workspace.git'|'environment.linux'|'workspace.files'|'process.stdio')[];
+  nativeServices?: ('terminal.pty'|'web.pages'|'workspace.git'|'environment.linux'|'workspace.files'|'process.stdio'|'workspace.resources')[];
   pages?: { id: string; title: string; entry?: string; context?: 'management'|'execution' }[];
   hooks?: ('beforeModel' | 'afterTurn')[];
   afterTurnEnabledSetting?: string;
@@ -126,7 +128,7 @@ export interface PluginManifest {
   settings?: { key: string; label: string; kind: 'text' | 'url' | 'secret' | 'boolean'; required?: boolean; defaultValue?: 'true' | 'false'; pageManaged?: boolean }[];
   permissions: ('storage' | 'network' | 'workspace' | 'shell' | 'plugins' | 'model' | 'agent' | 'agent.read' | 'git')[];
   dependencies: string[];
-  tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management' }[];
+  tools: { name: string; description: string; inputSchema: JsonObject; exposure?: 'chat' | 'management'; requiresWorkspace?: boolean }[];
 }
 export function definePlugin<T extends PluginDefinition>(definition: T): T { return definition; }
 export function textArgument(args: JsonObject, key: string, maxLength = 4000): string {

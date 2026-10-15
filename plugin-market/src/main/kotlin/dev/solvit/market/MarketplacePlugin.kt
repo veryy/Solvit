@@ -157,7 +157,7 @@ class AndroidMarketplace(
     }
 
     override suspend fun catalog(): List<MarketEntry> {
-        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=30", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
+        val root = Json.parseToJsonElement(getBytes("$MARKET_URL/api/v1/plugins?hostApi=31", 1024 * 1024).toString(Charsets.UTF_8)).jsonObject
         check(root.getValue("apiVersion").jsonPrimitive.int == 1) { "市场 API 版本不兼容" }
         val entries = root.getValue("plugins").jsonArray.map { element ->
             val m = element.jsonObject
@@ -336,7 +336,7 @@ class AndroidMarketplace(
             "model.complete" -> "model"
             "git.status", "git.diff", "git.history" -> "git"
             "http.request", "web.visit" -> "network"
-            "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions" -> "workspace"
+            "workspace.prepareResources", "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions" -> "workspace"
             "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
             "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
             "stdio.scope", "stdio.review", "stdio.open", "stdio.send", "stdio.receive", "stdio.close" -> "shell"
@@ -356,6 +356,17 @@ class AndroidMarketplace(
         }
         verifyGrants()
         if (operation.startsWith("stdio.")) return stdioBridge.call(manifest, operation, arguments)
+        if (operation == "workspace.prepareResources") {
+            val installed = checkNotNull(packages[manifest.id])
+            val invocation = currentCoroutineContext()[ToolInvocationContext] ?: error("资源准备必须通过聊天工具授权")
+            val digest = java.security.MessageDigest.getInstance("SHA-256").digest(installed.payload).joinToString("") { "%02x".format(it) }
+            check(invocation.descriptor.pluginDigest == digest) { "插件代码已变化，请重新调用" }
+            return WorkspaceResourcesBridge(checkNotNull(workspaces) { "工作区服务不可用" }) {
+                verifyGrants()
+                check(packages[manifest.id] === installed && installed.manifest == manifest &&
+                    manager.states.value[manifest.id] == PluginState.ENABLED && prefs.getBoolean("enabled.${manifest.id}", false)) { "插件已停用或替换" }
+            }.prepare(manifest, arguments)
+        }
         if (operation == "workspace.instructions") {
             check(manifest.apiVersion >= 16 && page == null && background == null)
             require(arguments.isEmpty()) { "项目规则不接受参数" }

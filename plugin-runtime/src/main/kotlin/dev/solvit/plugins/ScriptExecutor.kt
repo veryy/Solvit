@@ -53,7 +53,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         "model.complete" -> "model"
                         "gitPage.query", "gitPage.perform", "gitPage.credentials", "git.status", "git.diff", "git.history" -> "git"
                         "http.request", "web.visit" -> "network"
-                        "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions", "workspacePage.query", "workspacePage.perform" -> "workspace"
+                        "workspace.prepareResources", "workspace.info", "workspace.read", "workspace.write", "workspace.createShell", "workspace.instructions", "workspacePage.query", "workspacePage.perform" -> "workspace"
                         "workspace.start", "workspace.status", "workspace.cancel" -> "shell"
                         "terminal.open", "terminal.status", "terminal.input", "terminal.interrupt", "terminal.close" -> "shell"
                         "stdio.scope", "stdio.review", "stdio.open", "stdio.send", "stdio.receive", "stdio.close" -> "shell"
@@ -62,6 +62,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                         else -> error("宿主未开放此操作")
                     }
                     check(permission == null && pkg.manifest.apiVersion >= 2 || permission in pkg.manifest.permissions) { "插件未声明 $permission 权限" }
+                    check(operation != "workspace.prepareResources" || pkg.manifest.apiVersion >= 31 && "workspace.resources" in pkg.manifest.nativeServices) { "资源准备需要API31及workspace.resources声明" }
                     check(!operation.startsWith("stdio.") || pkg.manifest.apiVersion >= 30 && "process.stdio" in pkg.manifest.nativeServices &&
                         "environment.linux" in pkg.manifest.nativeServices && pkg.manifest.permissions.containsAll(setOf("shell", "workspace", "network"))) {
                         "本地MCP需要API30及进程/Linux服务和权限声明"
@@ -180,6 +181,7 @@ class ScriptExecutor(private val pkg: ScriptPackage, private val host: ScriptHos
                             perform: async () => JSON.parse(await __solvitHostCall('workspacePage.perform', '{}'))
                           }),
                           workspace: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('workspace.' + operation, JSON.stringify(args))),
+                            prepareResources: async (name, files) => JSON.parse(await __solvitHostCall('workspace.prepareResources', JSON.stringify({name,files}))),
                             instructions: async () => JSON.parse(await __solvitHostCall('workspace.instructions', '{}')) }),
                           terminal: Object.freeze({ call: async (operation,args = {}) => JSON.parse(await __solvitHostCall('terminal.' + operation, JSON.stringify(args))) }),
                           plugins: Object.freeze({ draft: async args => JSON.parse(await __solvitHostCall('plugins.draft', JSON.stringify(args))) }),
@@ -449,8 +451,8 @@ class ScriptToolPlugin(
                     capabilities = pkg.manifest.permissions,
                     // Mixed HTTPS/local MCP tools can list/use HTTPS without a workspace;
                     // stdio.open independently requires a live captured binding.
-                    requiresWorkspace = "process.stdio" !in pkg.manifest.nativeServices &&
-                        pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") },
+                    requiresWorkspace = tool.requiresWorkspace ?: ("process.stdio" !in pkg.manifest.nativeServices &&
+                        pkg.manifest.permissions.any { it in setOf("workspace", "shell", "plugins") }),
                     pluginDigest = java.security.MessageDigest.getInstance("SHA-256").digest(pkg.payload).joinToString("") { "%02x".format(it) },
                 )
                 override suspend fun execute(argumentsJson: String): String = executor.execute(tool.name, argumentsJson)
