@@ -63,3 +63,11 @@ Git1.3.0首轮[插件生成38714066212](https://github.com/veryy/Solvit/actions/
 API29/Git1.3.0曾先完成独立私有兼容验证，再部署并从公网核对29组目录和52个历史包完整字节，备份 `/opt/solvit-market/.backup-api29-1792059230264`。随后实际截图发现冲突校验失败时installedFiles默认0仍被显示为已验证统计，信息不准确。修复只在完整校验成功时显示统计，新增TS和实际HTML断言；已公开的Git1.3.0不覆盖，原始803786字节、SHA `0e2a8f1d09cf800530f4d0fd6000a0174a491c8d59a8e5843c221decbc795235`保存legacy，当前源码补丁升1.3.1并增加其保留设置/权限/用户代码/卸载状态的升级合同。须重新生成、验证和兼容部署补丁，仍未正式发布0.41 APK。
 
 统计补丁[38719110257](https://github.com/veryy/Solvit/actions/runs/38719110257)重新通过133项TS、5项市场、typecheck与搜索/MCP/Skills公网检查。完整下载862199字节生成归档，CRC/SHA256 `6a42e4f02eb5d323707a02fdbe34e896d8799f8fa01a11283a0ba5251a0f160c`一致；15包仅Git变化，已同步803810字节Git1.3.1，SHA256 `30f9fcbf60afd7cdfa177c19f212ef53ae9d56c39a6bbe0f11c540d0257feffe`。新实际HTML断言和1.3.0→1.3.1保留状态的宿主合同仍待远程执行；API29补丁私有市场验证尚在进行，不记作已部署。
+
+统计修复后的[实际页面强杀38719113831](https://github.com/veryy/Solvit/actions/runs/38719113831)六场重新通过，完整822570字节归档CRC/SHA256 `6fee666d444514603f670b94a300b051e14ad5bbda392fe107fed12a1fb463c6`及每场PID/准备未正常结束/新进程通过均已核对，实际查看冲突截图确认未验证统计已隐藏。候选截图保存在screenshots/0.41.0。
+
+[API29补丁宿主合同38719506010](https://github.com/veryy/Solvit/actions/runs/38719506010)通过，完整106348字节报告CRC/SHA256 `ef85a20ffae809d382b8a5fd26a5a6b03099c82b50b2db89ded2d33c912e55c1`核对473项、零失败/错误/跳过，其中releasedApi29GitPatchRetainsSettingsGrantsCustomCodeAndUninstall实际执行。市场补丁私有验证保留API1..28目录及53个历史包后已部署，备份 `/opt/solvit-market/.backup-api29patch-1792059911112`；公网部署后字节核对仍在进行。完整候选UI及最终APK未完成，不能用这些专项结果代替正式发布。
+
+![候选真实设备：中断文件发布后审阅](screenshots/0.41.0/git-clone-file-candidate.png)
+
+![候选真实设备：Shell冲突保留文件，隐藏未完成的统计](screenshots/0.41.0/git-clone-conflict-candidate.png)
