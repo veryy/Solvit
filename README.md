@@ -12,7 +12,7 @@ AI chat, plugins, and a project workspace on your Android phone. Connect your ow
 
 Android 8.0 及以上可用。界面默认中文，也支持英文、日文、韩文、西班牙文和法文；有浅色、深色和跟随系统主题，Android 12 及以上支持动态配色。
 
-当前稳定版是 [0.41.0](https://github.com/veryy/Solvit/releases/tag/v0.41.0)。0.42.1 的原始 UI 报告有一项失败，已标为预发布；门禁已修正，0.42.2因附件用例超时未发布，正在验证0.42.3。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
+当前稳定版是 [0.42.3](https://github.com/veryy/Solvit/releases/tag/v0.42.3)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
 
 ## 现在能做什么
 
@@ -51,7 +51,7 @@ Linux 环境仍使用 Android 内核和应用身份，不额外授予系统权�
 
 配置备份包含模型连接、API Key、角色、提示词、语言和外观等；不包含聊天、插件包、插件密钥和记忆。备份文件请保存在应用外。
 
-当前发布的是 debug APK。[0.42.1 远程验证](https://github.com/veryy/Solvit/actions/runs/38746331673)的绿色状态有误，600单元、Lint和Linux通过，但原始UI有1项失败；真实模型完整任务与真机体验尚未验收。构建证据和 APK 摘要见[版本记录](docs/release-0.42.1.md)。
+当前发布的是 debug APK。[远程验证](https://github.com/veryy/Solvit/actions/runs/38759491362)已通过构建、600项单元、Lint、固定签名和完整设备回归，原始UI报告也已核对；真实模型完整任务与ARM64真机体验尚未验收。构建证据和APK摘要见[版本记录](docs/release-0.42.3.md)。
 
 ## 构建
 

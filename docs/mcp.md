@@ -1,6 +1,6 @@
 # MCP 连接插件
 
-`dev.solvit.mcp` 用 TypeScript 实现，当前发布包1.2.0使用 Solvit 插件宿主 API30，已包含在0.42.1。Kotlin 提供私有配置、加密存储、HTTPS 请求、Ubuntu 原始进程帧与取消；MCP 协商、工具发现和调用逻辑位于 [插件源码](../builtin-plugins/mcp/index.ts)。
+`dev.solvit.mcp` 用 TypeScript 实现，当前发布包1.2.0使用 Solvit 插件宿主 API30，已包含在0.42.3。Kotlin 提供私有配置、加密存储、HTTPS 请求、Ubuntu 原始进程帧与取消；MCP 协商、工具发现和调用逻辑位于 [插件源码](../builtin-plugins/mcp/index.ts)。
 
 ## 配置与使用
 
@@ -31,7 +31,7 @@ MCP 配置不进入模型的工具参数和描述，但启用的插件可读取�
 
 当前通过 `mcp_tools`/`mcp_call` 桥接远程工具，还未把每个远程工具动态注册成独立模型函数。每个远程工具的独立角色绑定、OAuth 登录、MCP resources/prompts、持续 GET 事件流、SSE 断线恢复，以及老式 HTTP+SSE 传输尚未实现。当前不声称完整 MCP 协议兼容。
 
-0.42.1已接入Ubuntu本地stdio，实际QuickJS/Python/Node/Agent调用、取消和进程回收已验证；[阶段记录](local-stdio-mcp-stage.md)区分确定性Provider、真实模型和真机范围。
+0.42.3已接入Ubuntu本地stdio，实际QuickJS/Python/Node/Agent调用、取消和进程回收已验证；[阶段记录](local-stdio-mcp-stage.md)区分确定性Provider、真实模型和真机范围。
 
 ## 验证
 
@@ -49,7 +49,7 @@ TS 测试覆盖会话协商、工具分页、JSON/SSE、未知工具、过期会
 
 干净候选38295011493的实际285个单元及44个模拟器测试全部通过，包含双HTTPS同名工具正确路由、两连接加密保存重开、禁用和取消/确认删除。72 SDK/2市场及提交包一致性通过。0.22.0正式发布仍待完成。
 
-## 本地 stdio 配置（API30，0.42.1）
+## 本地 stdio 配置（API30，0.42.3）
 
 1.2.0 允许 HTTPS 与本地服务共存。先在工作区安装 Ubuntu，再准备 Python/Node 服务脚本和依赖；然后从已绑定该工作区的聊天打开 MCP 页面，选择「本地 stdio」。填启动命令、字面参数 JSON 数组、可选环境 JSON 和工作区内相对目录。保存不启动服务；「测试连接」需确认，只协商并发现工具，完成后关闭。
 
