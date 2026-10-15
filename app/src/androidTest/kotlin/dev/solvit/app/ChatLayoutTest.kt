@@ -229,24 +229,13 @@ class ChatLayoutTest {
         if (rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
             rule.onNode(hasText("工作区：",substring=true) and isEnabled()).performClick()
         } else {
-            android.util.Log.i("WORKSPACE_CREATE_DIAG", "before-frame drawer=" +
-                rule.onAllNodesWithTag("chat_drawer").fetchSemanticsNodes().map { it.boundsInRoot })
-            // Drain queued close work before computing touch coordinates.
+            // The queued dispatcher can leave drawer.close() pending even when the
+            // background chat nodes exist. Drain it before computing touch coordinates;
+            // otherwise a real tap hits the drawer scrim and only closes the drawer.
             rule.mainClock.advanceTimeByFrame()
-            android.util.Log.i("WORKSPACE_CREATE_DIAG", "after-frame drawer=" +
-                rule.onAllNodesWithTag("chat_drawer").fetchSemanticsNodes().map { it.boundsInRoot })
+            rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed()
             rule.onNode(hasText("新建工作区") and isEnabled()).performClick()
-            try {
-                rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().isNotEmpty() }
-            } catch (timeout: ComposeTimeoutException) {
-                runCatching { screenshot("workspace-create-timeout") }
-                val labels = listOf("新建工作区", "此对话尚未绑定工作区", "创建并绑定", "绑定已有工作区")
-                labels.forEach { label ->
-                    android.util.Log.e("WORKSPACE_CREATE_DIAG", "$label count=" +
-                        rule.onAllNodesWithText(label).fetchSemanticsNodes().size)
-                }
-                throw timeout
-            }
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("workspace_create_name").performTextInput("测试工作区")
             rule.onNodeWithText("创建并绑定").performClick()
         }
