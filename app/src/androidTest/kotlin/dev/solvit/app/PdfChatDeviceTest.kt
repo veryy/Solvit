@@ -136,20 +136,28 @@ class PdfChatDeviceTest {
                 throw failure
             }
             rule.onNodeWithTag("pdf_text_1").assertTextEquals("SHORT")
+            android.util.Log.i("PDF_QUEUED_DIAG", "before:pdf_settings")
             rule.onNodeWithTag("pdf_settings").performScrollTo().performClick()
+            android.util.Log.i("PDF_QUEUED_DIAG", "after:pdf_settings")
             rule.onNodeWithTag("pdf_first_page").performTextReplacement("2")
             rule.onNodeWithTag("pdf_last_page").performTextReplacement("2")
+            android.util.Log.i("PDF_QUEUED_DIAG", "before:pdf_apply")
             rule.onNodeWithTag("pdf_apply").performScrollTo().performClick()
+            android.util.Log.i("PDF_QUEUED_DIAG", "after:pdf_apply")
             val selection=DocumentSelection(2,2,DocumentOcrScript.CHINESE)
             rule.waitUntil(10_000) { vm.attachmentDrafts.value[session]?.single()?.documentSelection==selection }
             rule.waitUntil(90_000) { rule.onAllNodesWithTag("pdf_text_2").fetchSemanticsNodes().isNotEmpty() }
             rule.onAllNodesWithTag("pdf_text_1").assertCountEquals(0)
             rule.onNodeWithTag("pdf_coverage").assertTextEquals("共2页，本次读取第2至2页")
+            android.util.Log.i("PDF_QUEUED_DIAG", "before:pdf_text_2")
             rule.onNodeWithTag("pdf_text_2").performScrollTo().assertIsDisplayed()
+            android.util.Log.i("PDF_QUEUED_DIAG", "after:pdf_text_2")
             val scan=rule.onNodeWithTag("pdf_text_2").fetchSemanticsNode().config[SemanticsProperties.Text].joinToString("") { it.text }.replace(Regex("\\s"),"")
             assertTrue(scan.contains("扫描测试") && scan.contains("2026"));assertEquals(0,server.requestCount)
             screenshot()
+            android.util.Log.i("PDF_QUEUED_DIAG", "before:pdf_original_2")
             rule.onNodeWithTag("pdf_original_2").performScrollTo().performClick()
+            android.util.Log.i("PDF_QUEUED_DIAG", "after:pdf_original_2")
             rule.waitUntil(30_000) { rule.onAllNodesWithTag("pdf_original_image").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("pdf_original_image").assertIsDisplayed()
             screenshot("pdf-chat-original-scan")
@@ -167,7 +175,9 @@ class PdfChatDeviceTest {
             val failed=vm.messages.value.last()
             server.enqueue(MockResponse().setHeader("Content-Type","text/event-stream")
                 .setBody("data: {\"choices\":[{\"delta\":{\"content\":\"pdf answer\"},\"finish_reason\":\"stop\"}]}\n\ndata: [DONE]\n\n"))
+            android.util.Log.i("PDF_QUEUED_DIAG", "before:retry_reply")
             rule.onNodeWithTag("retry_reply_${failed.id}").performScrollTo().performClick()
+            android.util.Log.i("PDF_QUEUED_DIAG", "after:retry_reply")
             rule.waitUntil(90_000) { !vm.busy.value && vm.messages.value.lastOrNull()?.content=="pdf answer" }
             assertEquals(first,requestContent())
             val user=runBlocking { store.history(session).single { it.role==Role.USER } }

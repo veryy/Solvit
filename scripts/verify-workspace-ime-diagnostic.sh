@@ -19,6 +19,9 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
   queued-ui-scroll)
     solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal,dev.solvit.app.ChatLayoutTest#applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist,dev.solvit.app.ChatLayoutTest#wideDrawerOpensSettingsAndLastSettingsRowCanBeSeen'
     solvit_diagnostic_expected='OK (3 tests)' ;;
+  queued-ui-follow-up)
+    solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations,dev.solvit.app.ChatLayoutTest#actualChatShowsPartialTokensBeforeCompletionAndFollowsLongReplyAboveKeyboard,dev.solvit.app.ChatLayoutTest#languageSwitchesImmediatelyAndSurvivesRecreation,dev.solvit.app.PdfChatDeviceTest#pickerSelectedScanPreviewHttpRetryReopenAndEditPreserveTheSameSelection'
+    solvit_diagnostic_expected='OK (4 tests)' ;;
   chat-branches)
     solvit_diagnostic_test='dev.solvit.app.ChatAttachmentsDeviceTest#pickerImportsImagesAndTextThenHttpSendAndReopenPreserveTheirContent,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending'
     solvit_diagnostic_expected='OK (2 tests)' ;;
@@ -46,7 +49,7 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   solvit_iteration_timeout=120s
   solvit_recreations=3
   case "${SOLVIT_DIAGNOSTIC_CASE:-}" in
-    workspace-startup-sequence) solvit_iteration_timeout=300s ;;
+    workspace-startup-sequence|queued-ui-follow-up) solvit_iteration_timeout=300s ;;
     workspace-startup-stress) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
   esac
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \

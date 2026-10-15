@@ -44,3 +44,13 @@ internal fun SemanticsNodeInteraction.performQueuedScrollToNode(
     }
     return this
 }
+
+/** Key lookup schedules LazyColumn's scroll; drain it before acquiring target touch coordinates. */
+internal fun SemanticsNodeInteraction.performQueuedScrollToKey(
+    rule: ComposeTestRule,
+    key: Any
+): SemanticsNodeInteraction {
+    performScrollToKey(key)
+    rule.mainClock.advanceTimeByFrame()
+    return this
+}

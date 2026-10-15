@@ -42,26 +42,7 @@ class ChatLayoutTest {
     }
 
     private fun scrollSettingsToLanguage() {
-        // Use the list's public scroll action on the UI thread, without 1.7.6's
-        // off-thread diagnostic traversal or a system swipe's asynchronous fling.
-        repeat(12) {
-            rule.waitForIdle()
-            val list = geometry("settings_list")
-            val target = rule.onAllNodesWithTag("language_settings").fetchSemanticsNodes().singleOrNull()
-            val visible = rule.runOnUiThread {
-                target?.boundsInRoot?.let { bounds ->
-                    bounds.width > 0 && bounds.height > 0 && bounds.top >= list.bounds.top &&
-                        bounds.bottom <= list.bounds.bottom
-                } == true
-            }
-            if (visible) return
-            val container = rule.onAllNodesWithTag("settings_list").fetchSemanticsNodes().single()
-            rule.runOnUiThread {
-                val action = container.config[androidx.compose.ui.semantics.SemanticsActions.ScrollBy].action
-                check(action?.invoke(0f, list.bounds.height * .7f) == true) { "Settings did not accept scrolling" }
-            }
-        }
-        fail("Language settings were not fully visible after scrolling")
+        rule.onNodeWithTag("settings_list").performQueuedScrollToNode(rule, hasTestTag("language_settings"))
     }
 
     @Test fun actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat() {
@@ -497,9 +478,11 @@ class ChatLayoutTest {
             screenshot("chat-live-stream-before-done")
             finish.complete(Unit)
             rule.waitUntil(8000) { !vm.busy.value }
+            rule.mainClock.advanceTimeByFrame()
             rule.onNodeWithTag("streaming_body").assertDoesNotExist()
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithTag("settings_list").performScrollToIndex(6)
+            rule.mainClock.advanceTimeByFrame()
             rule.onNodeWithText("最近请求诊断").performClick()
             rule.onNodeWithText("实际角色：Solvit").assertIsDisplayed()
             rule.onNodeWithTag("request_diagnostics").performQueuedScrollToNode(rule, hasText("插件资料未获得：test.broken"))
@@ -945,7 +928,7 @@ class ChatLayoutTest {
             // Choosing a non-text control must release the edited name before later scrolling.
             rule.onAllNodes(hasTestTag("model_profile_name") and isFocused()).assertCountEquals(0)
             rule.onNodeWithTag("save_model_profile").assertIsNotEnabled()
-            rule.onNodeWithTag("model_settings_list").performScrollToKey("model_name")
+            rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "model_name")
             // Focusing a lazy-list field can replace its semantics node during IME layout.
             // Establish focus first, then acquire the current node for text input.
             rule.onNodeWithTag("model_name").performClick()
@@ -953,9 +936,9 @@ class ChatLayoutTest {
                 rule.onAllNodes(hasTestTag("model_name") and isFocused()).fetchSemanticsNodes().isNotEmpty()
             }
             rule.onNodeWithTag("model_name").performTextInput("native-test-model")
-            rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_max_tokens")
+            rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "provider_option_anthropic_max_tokens")
             rule.onNodeWithTag("provider_option_max_tokens").performClick().performTextReplacement("16384")
-            rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_thinking_mode")
+            rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "provider_option_anthropic_thinking_mode")
             rule.onNodeWithTag("provider_option_thinking_mode").performClick()
             rule.onNodeWithText("自适应思考").performClick()
             rule.onNodeWithTag("save_model_profile").assertIsEnabled().performClick()
@@ -966,12 +949,12 @@ class ChatLayoutTest {
             assertEquals("adaptive",stored.providerOptions["thinking_mode"])
             assertEquals("16384",stored.providerOptions["max_tokens"])
             repeat(3) {
-                rule.onNodeWithTag("model_profiles_list").performScrollToKey(profile.id)
+                rule.onNodeWithTag("model_profiles_list").performQueuedScrollToKey(rule, profile.id)
                 rule.onNodeWithTag("edit_model_${profile.id}").performClick()
                 rule.onNodeWithTag("model_protocol").assertTextContains("Claude / Anthropic")
-                rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_max_tokens")
+                rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "provider_option_anthropic_max_tokens")
                 rule.onNodeWithTag("provider_option_max_tokens").assertTextContains("16384")
-                rule.onNodeWithTag("model_settings_list").performScrollToKey("provider_option_anthropic_thinking_mode")
+                rule.onNodeWithTag("model_settings_list").performQueuedScrollToKey(rule, "provider_option_anthropic_thinking_mode")
                 rule.onNodeWithTag("provider_option_thinking_mode").assertTextContains("自适应思考")
                 rule.onNodeWithContentDescription("关闭设置").performClick()
             }
