@@ -229,9 +229,10 @@ class ChatLayoutTest {
         if (rule.onAllNodes(hasText("工作区：",substring=true) and isEnabled()).fetchSemanticsNodes().isNotEmpty()) {
             rule.onNode(hasText("工作区：",substring=true) and isEnabled()).performClick()
         } else {
-            // Temporary differential probe: bypass pointer dispatch once, not a retry.
-            rule.onNode(hasText("新建工作区") and isEnabled()).performSemanticsAction(
-                androidx.compose.ui.semantics.SemanticsActions.OnClick) { it() }
+            rule.onNode(hasText("新建工作区") and isEnabled()).performClick()
+            // StandardTestDispatcher queues touch continuations. Drain one UI frame;
+            // idle detection alone does not include queued scheduler tasks.
+            rule.mainClock.advanceTimeByFrame()
             try {
                 rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().isNotEmpty() }
             } catch (timeout: ComposeTimeoutException) {
