@@ -16,8 +16,6 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
     solvit_diagnostic_test='dev.solvit.app.McpPageUiTest,dev.solvit.app.PluginPageUiTest#packagedTaskPageShowsSourcesAndUsesNativeCostConfirmationBeforeServiceControl,dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin,dev.solvit.app.PluginWebPageUiTest,dev.solvit.app.WorkspaceImportProgressHtmlTest'
     solvit_diagnostic_expected='OK (5 tests)' ;;
   chat-interaction) solvit_diagnostic_test='dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole' ;;
-  reply-branch-sequence) solvit_diagnostic_test='dev.solvit.app.ChatAttachmentWorkspaceHtmlTest,dev.solvit.app.ChatAttachmentsDeviceTest,dev.solvit.app.ChatInteractionDeviceTest,dev.solvit.app.ChatLayoutTest#javascriptPluginUsesPersistentPtyAndDisableClosesItsProcess,dev.solvit.app.ChatLayoutTest#largeNativeTranscriptReopensAndBranchesThroughRealAndroidCursorWindows,dev.solvit.app.ChatLayoutTest#roleAppliedThroughSettingsReachesProviderAndNewChatRequest,dev.solvit.app.ChatLayoutTest#contextBudgetDialogValidatesAndReturnsSavedValues,dev.solvit.app.ChatLayoutTest#memoryTaskRetryRequiresConfirmationAndDisplaysSource,dev.solvit.app.ChatLayoutTest#actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat,dev.solvit.app.ChatLayoutTest#javascriptPluginCanCreateShellAndRunActualAndroidCommand,dev.solvit.app.ChatLayoutTest#replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal'; solvit_diagnostic_expected='OK (12 tests)' ;;
-  reply-branch-hang) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal' ;;
   chat-branches)
     solvit_diagnostic_test='dev.solvit.app.ChatAttachmentsDeviceTest#pickerImportsImagesAndTextThenHttpSendAndReopenPreserveTheirContent,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending'
     solvit_diagnostic_expected='OK (2 tests)' ;;
@@ -36,20 +34,8 @@ capture() {
   timeout 15s adb logcat -d > ui-screenshots/page-diagnostic-native-logcat.txt || true
   timeout 15s adb shell dumpsys webviewupdate > ui-screenshots/page-diagnostic-webview-provider.txt || true
   timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
-  if [[ "${SOLVIT_DIAGNOSTIC_CASE:-}" == reply-branch-* ]]; then
-    # ART writes SIGQUIT stacks to /data/anr, not necessarily to logcat.
-    # Root only the disposable CI emulator to read its diagnostic file.
-    timeout 15s adb root || true
-    timeout 15s adb wait-for-device || true
-    timeout 30s adb pull /data/anr ui-screenshots/reply-branch-anr || true
-  fi
 }
-solvit_stack_watch_pid=''
-finish() {
-  if [ -n "$solvit_stack_watch_pid" ]; then kill "$solvit_stack_watch_pid" 2>/dev/null || true; fi
-  capture
-}
-trap finish EXIT
+trap capture EXIT
 timeout 90s adb install -r diagnostic-apk/app-debug.apk
 timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
@@ -57,27 +43,13 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   solvit_iteration_timeout=120s
   solvit_recreations=3
   case "${SOLVIT_DIAGNOSTIC_CASE:-}" in
-    workspace-startup-sequence|reply-branch-sequence) solvit_iteration_timeout=300s ;;
+    workspace-startup-sequence) solvit_iteration_timeout=300s ;;
     workspace-startup-stress) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
   esac
-  if [[ "${SOLVIT_DIAGNOSTIC_CASE:-}" == reply-branch-* ]]; then
-    (
-      for solvit_stack_poll in $(seq 1 48); do
-        if adb logcat -d -s TestRunner:I '*:S' | grep -F 'started: replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal'; then
-          sleep 20
-          solvit_stack_target=$(adb shell pidof dev.solvit.app | tr -d '\r')
-          if [[ "$solvit_stack_target" =~ ^[0-9]+$ ]]; then adb shell run-as dev.solvit.app kill -3 "$solvit_stack_target"; fi
-          break
-        fi
-        sleep 5
-      done
-    ) &
-    solvit_stack_watch_pid=$!
-  fi
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
     -e workspaceRecreations "$solvit_recreations" \
-    -e branchHistoryAtEnd "$([[ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches || "${SOLVIT_DIAGNOSTIC_CASE:-}" = reply-branch-hang ]] && echo true || echo false)" \
+    -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \
     | tee "ui-screenshots/page-diagnostic-iteration-$iteration.txt"
   grep -F "$solvit_diagnostic_expected" "ui-screenshots/page-diagnostic-iteration-$iteration.txt"

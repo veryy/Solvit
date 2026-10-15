@@ -262,11 +262,12 @@ class ChatLayoutTest {
         app.ready.value!!.getOrThrow().createSession() // Refresh the application's storage Flow.
         session
     }
-    private fun selectBranchFixture() {
+    private fun selectBranchFixture(historyAtEnd: Boolean =
+        InstrumentationRegistry.getArguments().getString("branchHistoryAtEnd")=="true") {
         rule.onNodeWithContentDescription("对话历史").performClick()
         try {
             val list=rule.onNode(hasScrollToIndexAction() and hasAnyAncestor(hasTestTag("chat_drawer")))
-            if(InstrumentationRegistry.getArguments().getString("branchHistoryAtEnd")=="true") {
+            if(historyAtEnd) {
                 val app=rule.activity.application as SolvitApplication
                 val count=runBlocking { app.ready.value!!.getOrThrow().sessions().first().size }
                 list.performScrollToIndex(count-1)
@@ -696,8 +697,8 @@ class ChatLayoutTest {
     @Test fun replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal() {
         ready()
         val app=rule.activity.application as SolvitApplication
-        val diagnosticChats=if(InstrumentationRegistry.getArguments().getString("branchHistoryAtEnd")=="true")
-            runBlocking { List(12){app.ready.value!!.getOrThrow().createSession()} } else emptyList()
+        // Keep the target initially outside the history viewport in the normal suite.
+        val precedingChats=runBlocking { List(12){app.ready.value!!.getOrThrow().createSession()} }
         val source=seedBranchConversation(app)
         val workspace=runBlocking {
             app.roles.save(AgentRole("branch-role","Branch role",pluginIds=emptySet()))
@@ -707,7 +708,7 @@ class ChatLayoutTest {
             }
         }
         try {
-            selectBranchFixture()
+            selectBranchFixture(historyAtEnd=true)
             rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_branch-final"))
             rule.onNodeWithTag("message_actions_branch-final").performClick()
             rule.onNodeWithText("从这里分支").performClick()
@@ -734,7 +735,7 @@ class ChatLayoutTest {
         } finally {
             runBlocking {
                 app.ready.value!!.getOrThrow().deleteSession(source.id); app.roles.delete("branch-role")
-                diagnosticChats.forEach { app.ready.value!!.getOrThrow().deleteSession(it.id) }
+                precedingChats.forEach { app.ready.value!!.getOrThrow().deleteSession(it.id) }
             }
         }
     }
