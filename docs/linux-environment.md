@@ -2,6 +2,20 @@
 
 Solvit 的 Linux 环境已经随 0.31.1 发布，后续版本也包含它。先[安装最新版 APK](https://github.com/veryy/Solvit/releases/latest)，不需要 root，也不用另外安装 Termux。
 
+## 和 Operit 对照
+
+核对的是 OperitTerminalCore `045868988e4091d613cb34b2941057703899b96e` 的实际实现。两者都是用 PRoot 启动 Ubuntu，让普通应用身份也能运行 Linux 用户空间程序；不需要先取得 root。
+
+| 能力 | Operit 的实现 | Solvit 当前实现 |
+| --- | --- | --- |
+| Linux 环境 | PRoot + Ubuntu Noble；另有需要 root 的 chroot 模式 | PRoot + Ubuntu 24.04，按需下载，不要求 root |
+| Python | 软件安装页通过 apt 安装 pip、venv | Linux 插件安装 Python/pip；项目可创建 `.venv` |
+| Node.js | 安装页使用 NodeSource 24.x | 下载固定版本官方归档并核对 SHA256，提供 node/npm/npx |
+| Java | 软件安装页安装 OpenJDK 17 | Linux 插件提供 Java 17 安装入口 |
+| 工作目录与命令 | Linux 路径映射、终端会话 | 当前工作区映射到 `/workspace`，AI 命令、PTY 与文件管理使用同一份文件 |
+
+软件管理界面由 JS/HTML 环境插件提供；下载校验、PRoot 启动和进程清理由宿主服务处理。Python/Node 脚本、Skills 和本地 stdio MCP 可以使用这套环境，仍分别经过原有工具授权。详细版本、实际验证与未完成项见本文后半部分。
+
 ## 怎么开始
 
 1. 在对话里创建或绑定一个工作区。

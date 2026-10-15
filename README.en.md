@@ -12,7 +12,7 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The current release is [0.43.1](https://github.com/veryy/Solvit/releases/tag/v0.43.1). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The current release is [0.43.2](https://github.com/veryy/Solvit/releases/tag/v0.43.2). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 
@@ -48,7 +48,7 @@ Unsent drafts and queued messages do not survive process death; startup cleans u
 
 Configuration backups include model connections, API keys, roles, prompts, language, and appearance, but exclude chats, plugin packages, plugin credentials, and memories. Keep backups outside the app. Conversation context is sent to your configured model service.
 
-The published APK is a debug build. [Remote validation](https://github.com/veryy/Solvit/actions/runs/38777281162) passed build, 611 unit tests, lint, signing, the complete device suite, and actual Ubuntu Python/Node scripts; raw reports were independently checked. The first run encountered a native system WebView crash; repeated recreation and the complete rerun did not reproduce it, but its cause remains unresolved. Full real-model tasks and ARM64 physical-device experience remain unverified. [Release evidence and known issues](docs/release-0.43.1.md)
+The published APK is a debug build. [Remote validation](https://github.com/veryy/Solvit/actions/runs/38783582460) passed build, 611 unit tests, lint, signing, 97 regular device tests, recovery/upgrade checks, and Ubuntu scripts; raw unit and UI reports were independently checked. Version 0.43.2 fixes blank pages after plugin document replacement. Additional stress testing reproduced the old native WebView crash on the previous APK; the new APK encountered a separate Compose drawing/thread exception after 59 operations. Both remain under investigation; a green complete suite does not mean the stress check passed. Real-model tasks and ARM64 physical devices remain unverified. [Release evidence and known issues](docs/release-0.43.2.md)
 
 ## Development
 

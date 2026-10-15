@@ -18,7 +18,7 @@ README增加中英文简介和英文页面，GitHub仓库简介同步；未完�
 
 ## 当前交付清单（2026-10-16）
 
-最新公开版本为[0.43.1](release-0.43.1.md)，build84/API31；611单元、完整设备/恢复/覆盖升级、实际Ubuntu Python/Node Skills脚本和市场兼容已远程通过，原始报告与公开资产信息已核对。Skills增加显式资源准备，旧用户更新需重审workspace权限；stdio MCP沿用0.42.3。首轮WebView原生崩溃未定位，重复重建及完整回归未复现，保留[诊断证据](skills-runtime-stage.md)。真实模型任务、ARM64真机、第三方依赖和实际GitHub账号插件读写继续验收，屏幕操控暂缓。
+最新公开版本为[0.43.2](release-0.43.2.md)，build85/API31，新增文档替换实例/DOM回归并修复插件空白页；611单元、完整设备/恢复/覆盖升级、实际Ubuntu Python/Node Skills脚本和市场兼容已远程通过，原始报告与公开资产信息已核对。Skills增加显式资源准备，旧用户更新需重审workspace权限；stdio MCP沿用0.42.3。旧版压力检查已复现WebView原生崩溃，新版压力完成59次后由不同的Compose跨线程异常中断；正式97项常规设备通过不能替代压力通过，继续[定位并保留证据](webview-lifecycle-stage.md)。真实模型任务、ARM64真机、第三方依赖和实际GitHub账号插件读写继续验收，屏幕操控暂缓。
 
 ### 0.41.0 交付基线
 

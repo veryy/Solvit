@@ -2,7 +2,7 @@
 
 ## 当前交付顺序（2026-10-16）
 
-公开版本目前为[0.43.1](release-0.43.1.md)；Skills1.2.0已打通资源准备与实际Ubuntu Python/Node执行，旧用户需明确更新、审阅新增workspace权限。以下早期研究与阶段复核按时间保留，不代表所有差距仍未实现。Linux开发环境已经发布，Python、Node/npm、Java与共享工作区的实际验证和限制见[环境指南](linux-environment.md)。无需重新实现一套虚拟环境。
+公开版本目前为[0.43.2](release-0.43.2.md)，修复插件文档更换时的视图所有权与空白页面；Skills1.2.0已打通资源准备与实际Ubuntu Python/Node执行，旧用户需明确更新、审阅新增workspace权限。以下早期研究与阶段复核按时间保留，不代表所有差距仍未实现。Linux开发环境已经发布，Python、Node/npm、Java与共享工作区的实际验证和限制见[环境指南](linux-environment.md)。无需重新实现一套虚拟环境。
 
 此前交付基线：[0.39.0](release-0.39.0.md)已完成文件导入进度、取消恢复、登记暂存清理、持久事务及进程死亡恢复；正式Actions及公开APK字节核对通过。候选WebView原生崩溃未复现且根因未定，保留诊断记录。[完整证据](workspace-import-transfer-stage.md)。
 
@@ -13,6 +13,8 @@
 本地stdio的原生管道、API30授权桥、多连接HTML页面及JS协议/Agent路由已合入main。实际Ubuntu Python/Node调用、页面确认、取消/崩溃、聊天隔离和API26/35宿主SIGKILL清理已远程通过，[证据及边界](local-stdio-mcp-stage.md)。[0.42.3](release-0.42.3.md)已正式发布，600单元、96常规设备、15场恢复检查和stdio宿主实际强杀通过，原始XML及公开资产摘要已核对。0.42.0源码下载失败、0.42.1掩盖UI失败和0.42.2附件超时的记录均保留；0.42.1仍标预发布，修正后的独立报告门禁已启用。真实模型、ARM64真机、第三方服务、Skills运行环境和完整JS Agent/Provider协议继续保留。
 
 0.43.1的正式远程检查通过611单元、完整设备/恢复/覆盖升级、实际Ubuntu脚本及市场兼容。实际QuickJS→原生授权→Ubuntu→失败修复→共享文件由确定性Provider驱动，不能替代真实模型验收；首轮系统WebView原生崩溃仍未定位，后续24次重建与完整回归未复现，详见[Skills阶段记录](skills-runtime-stage.md)。下一步保留ARM64/旧内核、第三方依赖、真实模型与账号任务，以及完整JS Agent/Provider协议，不能因本次发布视为全部完成。
+
+0.43.2完整发布门禁及97常规设备通过，文档替换缺陷由原APK失败到同断言通过。但额外压力在旧版第33次操作期间复现原生SIGSEGV；新版完成59次后由另一个Compose SnapshotStateObserver跨线程异常中断，不能写成240次全部通过。继续定位指定的另一线程与原生时序，保持[失败证据](webview-lifecycle-stage.md)，不因正式流水线绿色而结束排查。
 
 2026-10-15再次核对实际GitHub Actions secret元数据，尚未配置 `SOLVIT_MODEL_API_KEY`；没有启动必然因缺少凭据而失败的真实模型任务，也不使用历史暴露的密钥。真实模型工作流补齐与正式APK相同的锁定PRoot/loader源码构建，避免将不含Linux可执行程序的诊断包当作完整生产环境验收。凭据配置与实际模型任务仍未完成。
 

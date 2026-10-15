@@ -12,7 +12,7 @@ AI chat, plugins, and a project workspace on your Android phone. Connect your ow
 
 Android 8.0 及以上可用。界面默认中文，也支持英文、日文、韩文、西班牙文和法文；有浅色、深色和跟随系统主题，Android 12 及以上支持动态配色。
 
-当前发布版是 [0.43.1](https://github.com/veryy/Solvit/releases/tag/v0.43.1)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
+当前发布版是 [0.43.2](https://github.com/veryy/Solvit/releases/tag/v0.43.2)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
 
 ## 现在能做什么
 
@@ -51,7 +51,7 @@ Linux 环境仍使用 Android 内核和应用身份，不额外授予系统权�
 
 配置备份包含模型连接、API Key、角色、提示词、语言和外观等；不包含聊天、插件包、插件密钥和记忆。备份文件请保存在应用外。
 
-当前发布的是 debug APK。[远程验证](https://github.com/veryy/Solvit/actions/runs/38777281162)已通过构建、611项单元、Lint、固定签名、完整设备回归及实际Ubuntu Python/Node脚本，原始报告也已核对。首轮曾出现系统WebView原生崩溃，后续重建循环与完整回归未复现，根因仍未确定；真实模型完整任务与ARM64真机体验尚未验收。[版本说明与已知问题](docs/release-0.43.1.md)。
+当前发布的是 debug APK。[远程验证](https://github.com/veryy/Solvit/actions/runs/38783582460)已通过构建、611项单元、Lint、固定签名、97项常规设备、恢复/覆盖升级及Ubuntu脚本检查；原始单元与UI报告已核对。0.43.2修复插件文档更换后的页面空白。额外压力诊断在旧版复现WebView原生崩溃，修复版另遇Compose跨线程绘制异常，两者继续排查，不能把完整回归通过等同于压力检查通过；真实模型与ARM64真机仍待验收。[版本说明与已知问题](docs/release-0.43.2.md)。
 
 ## 构建
 

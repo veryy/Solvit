@@ -1,6 +1,6 @@
 # WebView 生命周期排查
 
-2026-10-16。公开基线0.43.1/build84；历史两轮系统WebView124原生SIGSEGV与后续未复现记录保留，本阶段尚未修复或发布。
+2026-10-16。初始基线0.43.1/build84；文档所有权修复已随[0.43.2](release-0.43.2.md)发布。原生SIGSEGV在旧版压力中复现，新版压力又遇到不同的Compose异常，排查仍未完成。以下保留逐轮证据。
 
 沿用diagnose流程。此前单独重跑workspace-startup累计多轮未复现；本轮增加失败原始顺序中的七个现有场景，保留终端/PTY、记忆、编辑分支和插件管理前置，再到原有三次Activity重建/创建关闭工作区。仍使用正式0.43.1原APK和相同生产源码，遇首错停止，保留完整原生日志和provider信息。组合场景单轮300秒，其余原有场景120秒不变；不替代全套发布门禁。
 
@@ -33,3 +33,17 @@
 Ubuntu正式任务116589760648成功，已下载完整日志；其原有实际设备logcat门禁核对Python3.12.3/Node24.21.0/npm11.19.0、Java17、Skills/MCP Python与Node完整标记，日志实际输出Production版本元组。此次未重复下载整个38MB Linux归档，不声称已独立解析其XML或原始logcat。运行时代码未变，本轮专注页面行为的原始回归和正式安装包。
 
 修复版240次压力对照38784831983的首轮在sdkmanager安装NDK 28.2.13676358时返回“Error on ZipFile unknown archive”，未进入设备或编译产品。完整失败日志已保留，按已确认下载损坏在新runner重跑同一个已终态失败任务；不修改版本、测试超时或产品源码，不把该前置失败当作WebView复现。attempt2仍在进行。
+
+## 修复版压力失败，不能与正式检查混淆
+
+38784831983/attempt2终态失败，原始归档11998447014（790198字节，SHA256 `c097c28afaf454d716add76234c60f9fc15631b7e45ba93cc023f12752d5063a`）已完整下载/CRC。第一轮121.731秒、30次成功；第二轮29次成功后，下一次绘制抛出SnapshotStateObserver previousThreadId49/currentThread main2的IllegalArgumentException，主进程退出。两PID1933/3102分别有30/29个完整成功计数，共59次；没有Fatal signal，存在10条Chromium内部destroyed-WebView警告。因此该失败与旧版SIGSEGV不同，不能归为同一根因，也不能称原计划240次通过。
+
+保留原压力操作和异常默认处理器，下一轮只在测试中记录SnapshotStateObserver指定的另一个线程名与栈；唯一前缀SNAPSHOT_THREAD_DIAG，任何取证异常都在finally调用原fatal handler，不吞掉崩溃，不记录用户表单或密钥。排名假设是测试线程触发布局、后台资源回调访问UI、旧Owner跨重建复用；线程栈会分别反证，尚未改生产线程或升级Compose。官方SnapshotStateObserver源码明确其非线程安全，但这不是当前调用方已定位的证据。
+
+## 0.43.2正式发布核对
+
+[38783582460](https://github.com/veryy/Solvit/actions/runs/38783582460)六任务全部成功，代码35b91982。UI原始归档11997604017（7744481字节，SHA256 `3336b5b6218b4d107a3950cac2781937f26ca21609e709f5e09dda89ecb2976b`）完整下载/CRC/原始XML核对app69/Web3/终端25，共97项，无失败/错误/跳过，明确包含PluginWebPageLifecycleTest的文档实例/DOM断言。15份独立恢复verify、覆盖升级seed均OK；实际stdio宿主SIGKILL的host8774/supervisor8790/worker8791/descendant8792全部gone。独立报告摘要与原XML一致，不借用专项结果替代正式回归。
+
+公开Release414144215/v0.43.2为非草稿/非预发布且latest，APK644795283、源码644795433的大小与GitHub摘要均与完整下载的正式内层产物一致。APK58955111字节、SHA256 `d70b99e301c965c2f2d3692c372354486ce29acb6ec55d93419f777c7a235b23`；源码1072711字节、SHA256 `8159edb249dd29762134baaf8aa886744af689264287535bc815df4eb441f766`。实际公开正文已补充两个不同压力失败及不能声称240次通过；不将正式绿色与独立压力失败相互覆盖。ARM64真机、真实模型和第三方依赖仍待验收。
+
+公开 APK 与源码下载入口均另以范围请求返回 HTTP 206，并读取到 ZIP 文件头；完整内容校验来自前述正式 Actions 产物，不将范围请求视为公开文件完整下载。
