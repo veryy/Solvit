@@ -221,6 +221,9 @@ Java_dev_solvit_terminal_NativeStdio_open(JNIEnv *env, jobject, jbyteArray direc
             if (!reaped && wait(worker, &workerStatus, WNOHANG) == worker) reaped = true;
             pauseBriefly();
         }
+        // Reap our direct worker even when it ignored TERM. Ordinary orphaned
+        // descendants are killed by the group signal and reaped by Android init.
+        if (!reaped) { kill(worker, SIGKILL); wait(worker, &workerStatus, 0); }
         kill(-getpid(), SIGKILL);
         _exit(127);
     }

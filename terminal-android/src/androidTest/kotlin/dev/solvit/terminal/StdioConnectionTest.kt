@@ -105,8 +105,10 @@ class StdioConnectionTest {
             wait
         """.trimIndent())
         val pids = readUntil(connection, "READY").substringBefore('\n').split(' ').map(String::toInt)
+        pids.forEach { assertTrue("Fixture PID was not observable", File("/proc/$it/stat").readText().isNotEmpty()) }
         connection.close(); connection.close()
         pids.forEach(::assertStopped)
+        assertFalse("Direct worker was not reaped", File("/proc/${pids.first()}").exists())
         try { connection.write("after-close\n".toByteArray()); fail("Closed transport accepted input") }
         catch (_: IllegalStateException) { }
     }
