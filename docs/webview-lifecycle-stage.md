@@ -155,3 +155,8 @@ b1ccb325/[38807773768](https://github.com/veryy/Solvit/actions/runs/38807773768)
 819bdef9的38809890451终态失败。最新UI归档12009921148（2412952字节，SHA256 `3a346444e9716f0235751cf57b0544b8dac8bafc905292f2579bd725bfc83d0e`）完整下载/CRC/XML核对：replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal实际4.752秒结束，原完整流程的回复分支阻塞已越过。随后applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist在第二次打开设置后找不到角色管理入口（第680行），原先新对话后只等待背景“新建工作区”节点，仍可能有排队的drawer.close遮罩。wideDrawerOpensSettingsAndLastSettingsRowCanBeSeen开始后未结束，日志在14个已结束用例后静止，常规12分钟超时退出124。应用XML列15项但含1失败与1负时间未完成项，不能算通过。
 
 根据两个真实列表位置失败及官方Actions.kt的异步ScrollToIndex/ScrollBy机制，将已验证的逐帧滚动处理抽到仅供Android测试的QueuedScroll.kt，应用于使用StandardTestDispatcher的ChatLayoutTest/PdfChatDeviceTest里相同LazyColumn搜索调用；每次滚动后推进UI帧，并按目标未裁剪的真实位置检查完整可见（过高目标覆盖视口），保留10秒上限及后续真实点击/断言。角色继承用例在新对话后点击设置前推进侧栏关闭并断言侧栏不可见，与已通过工作区修正一致。不修改生产角色、分支、列表或存储逻辑。新增queued-ui-scroll诊断组合复验回复分支、角色继承、设置末行三项原用例；0fd02646尚待远程验证，不提前宣称完整流程已通过。
+
+
+三项定向复验[38813907091](https://github.com/veryy/Solvit/actions/runs/38813907091)已结束：0fd02646实际2通过、1失败，14.306秒。归档12010710050（856981字节，SHA256 `c12ed49c25ae79dece7d4dc9ce263def13dc672cec1c8af302196bf9fcb89190`）完整下载/CRC核对；长历史回复分支与角色继承通过，设置末行在ChatLayoutTest.kt:831的最终assertIsDisplayed失败，本轮没有挂起。实际查看settings-bottom-insets截图停在语言区域，底部关于/备份提示未显示。
+
+此用例在新的逐帧滚动之后仍执行旧performScrollTo。721b6e6b仅在旧操作之前增加截图和同样的可见性断言，用于区分“逐帧处理已到达、旧操作又移动”与“处理本身错误判定可见”；保留旧操作和最终断言以对照。远程[38814607810](https://github.com/veryy/Solvit/actions/runs/38814607810)尚未结束，不能提前认定根因或修复完成。
