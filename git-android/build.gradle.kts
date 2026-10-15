@@ -33,6 +33,7 @@ dependencies {
     implementation("commons-codec:commons-codec:1.22.1")
     implementation(project(":core"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
+    testImplementation(kotlin("test-junit"))
     androidTestImplementation(project(":workspace-android"))
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     androidTestImplementation("androidx.test:runner:1.6.2")

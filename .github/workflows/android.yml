@@ -59,7 +59,7 @@ jobs:
             exit 1
           fi
       - name: Tests, lint and APK
-        run: ./gradlew :core:test :linux-runtime:test :system-runtime:test :workspace-android:testDebugUnitTest :web-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest :web-android:assembleDebugAndroidTest --stacktrace
+        run: ./gradlew :core:test :linux-runtime:test :system-runtime:test :workspace-android:testDebugUnitTest :git-android:testDebugUnitTest :web-android:testDebugUnitTest :provider-http:test :provider-openai:test :provider-anthropic:test :chat-runtime:test :release-updates:test :plugin-runtime:testDebugUnitTest :storage-sqlite:testDebugUnitTest :plugin-market:testDebugUnitTest :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :terminal-android:assembleDebugAndroidTest :web-android:assembleDebugAndroidTest --stacktrace
       - name: Verify published APK signing identity
         if: github.event_name != 'pull_request'
         run: |
