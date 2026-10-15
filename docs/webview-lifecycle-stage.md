@@ -75,3 +75,14 @@ c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/3878892612
 候选eef47e23的38791334212在Lint失败，设备任务未执行。完整日志和原始报告11999389755（438798字节，SHA256 `157d2b8affcb91becce35f62a43535f36ee7421a6caf01b7859e5793d263e24c`）已下载/CRC/XML核对611单元零失败/错误/跳过；新的runtime Lint定位ConfigurationBackupDialog直接在composition读取StateFlow.value，3项错误。修复按钮绑定为collectAsStateWithLifecycle订阅chatReady/chatBusy，点击时的实时校验仍读取服务当前状态。不创建Lint baseline、不降低错误级别，不将单元通过当成整个候选通过。
 
 修复后的候选a48f64c9在[38792853101](https://github.com/veryy/Solvit/actions/runs/38792853101)的build任务116621581773成功，测试/Lint/APK/固定签名及上传完成。新单元归档12001351485（437975字节，SHA256 `16df71b6999ed63555be8d2cedffbe0d4cbbd051017acd76399a5778440b1662`）完整下载/CRC/逐个原始XML与所有失败/错误/跳过计数核对611项。全设备任务116625693306仍在准备UI APK；尚未核对新生命周期回归通过。独立压力[38794154761](https://github.com/veryy/Solvit/actions/runs/38794154761)使用这个已完成构建的同一个APK，计划三轮各30次，首错停止；任务116626056454尚在编译测试包，不能写成90次通过。分支fix/compose-owner-dispatch保留候选；正式版本仍为0.43.2，没有提前合入依赖更新或发布新版本。
+
+
+## 候选生命周期回归通过，完整回归仍失败
+
+最小生命周期用例在新依赖候选上 [38795874700](https://github.com/veryy/Solvit/actions/runs/38795874700) 通过；原始归档12002755592（473946字节，SHA256 `f535972ba9cb00a7cdb0679b7fcea86f570eeae187b05eb8ff4357e618b5d91a`）完整下载/CRC，实际OK (1 test)、7.305秒，零Fatal signal/Snapshot。与旧APK的红色回归形成同一实际Activity/collector/正常teardown入口的红绿对照。这只证明拦截器生命周期问题修复。
+
+默认dispatcher的候选压力 [38794154761](https://github.com/veryy/Solvit/actions/runs/38794154761) 在完成31次后、第32次出现原生SIGSEGV；原始归档12000953709（680252字节，SHA256 `e76dab5b1cceee8d8803f82399e59fd720784215a2f41794c8b1971ddd176b61`）完整下载/CRC，仍为WebView124相同pc0x357d7e5、BuildId68dabd72c6088238cbfc9a5fbfe211f916771df5。依赖升级不能单独宣称解决原生崩溃。
+
+完整候选38792853101终态失败。原始UI归档12002256646（5109944字节，SHA256 `a7190cb39ff93cd5a2ed97750c22c4e6b1bc671b42793ca5be56b1c35751b25a`）完整下载/CRC/XML：app45项中2失败，Web3/终端25无失败；进程异常后没有完成app70下限。第一个失败是工作区创建入口等待名称框超时，尚未运行Shell命令；第二个是PDF附件导入的IO线程通过默认Unconfined测试dispatcher执行布局，与主线程竞争，原始THREAD_STATE链为ChatViewModel.importAttachment→StateFlow→Recomposer/TestMonotonicFrameClock→measureAndLayoutForTest。候选仅对已有直接竞争栈证据的ChatLayoutTest和PdfChatDeviceTest采用排队的StandardTestDispatcher，保留全部原断言，不修改生产Flow发布方式。
+
+排队版工作区压力 [38795835076](https://github.com/veryy/Solvit/actions/runs/38795835076) 在第一次创建入口超时，完整次数0，不能算计划的240次通过；归档12001733959（480557字节，SHA256 `2452a6147adf81a1e5e2b2b62faf008b4c398f9610a34fae59be091d6aa24e74`）完整下载/CRC，零Fatal signal/Snapshot。下一轮247bf39f仅在该原超时处捕获页面及四个固定标签计数，重新抛出原异常；不增加等待时间，不重试点击，不采集用户文本或凭据。候选尚未合入或发布。
