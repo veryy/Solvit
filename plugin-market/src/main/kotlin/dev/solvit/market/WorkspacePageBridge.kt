@@ -48,12 +48,18 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
     private var importDraft:Pair<String,PageBinaryDocument>?=null
     private data class AttachmentOrigin(val messageId:String,val attachmentId:String,val sha256:String)
     private var importOrigin:AttachmentOrigin?=null
+    private data class BackupOrigin(val id:String,val sha256:String,val path:String,val backupPath:String)
+    private var importBackupOrigin:BackupOrigin?=null
+    private var backupReview:BackupOrigin?=null
     private data class ImportReview(val id:String,val selectionId:String,val path:String,val sourceSha256:String,
         val target:WorkspaceImportTarget?)
     private var importReview:ImportReview?=null
     private var lastImport:WorkspaceImportedFile?=null
     private fun importMetadata():JsonElement = importDraft?.let { (id,document) -> buildJsonObject {
         put("id",id);put("name",document.name);put("mimeType",document.mimeType);put("bytes",document.sizeBytes);put("sha256",document.sha256)
+        importBackupOrigin?.let { origin -> put("source",buildJsonObject {
+            put("kind","workspaceBackup");put("backupId",origin.id);put("path",origin.path);put("backupPath",origin.backupPath)
+        }) }
         importOrigin?.let { origin -> put("source",buildJsonObject {
             put("kind","chatAttachment");put("messageId",origin.messageId);put("attachmentId",origin.attachmentId)
         }) }
@@ -64,7 +70,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
             return mutex.withLock {
                 verify(authorize);workspace()
                 val next=java.util.UUID.randomUUID().toString() to document
-                importDraft?.second?.close();importDraft=next;importOrigin=null;importReview=null;adopted=true
+                importDraft?.second?.close();importDraft=next;importOrigin=null;importBackupOrigin=null;importReview=null;adopted=true
                 importMetadata().toString()
             }
         } finally { if(!adopted) document.close() }
@@ -115,6 +121,32 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                     }
                 }
                 "snapshot" -> { require(args.isEmpty()); snapshot() }
+                "importBackups" -> {
+                    require(args.keys==setOf("offset"))
+                    val offset=args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int
+                    val page=service.importBackups(workspace(),offset,5)
+                    buildJsonObject {
+                        put("offset",page.offset);put("total",page.total);put("logicalBytes",page.logicalBytes)
+                        put("availableBytes",page.availableBytes?.let(::JsonPrimitive)?:JsonNull)
+                        put("incomplete",page.incomplete);put("unreadableRecords",page.unreadableRecords)
+                        put("backups",buildJsonArray { page.backups.forEach { r -> add(buildJsonObject {
+                            put("id",r.id);put("path",r.path);put("backupPath",r.backupPath);put("createdAt",r.createdAt)
+                            put("originalBytes",r.originalBytes);put("originalSha256",r.originalSha256)
+                            put("status",r.status.name);put("pending",r.pending);put("currentBytes",r.currentBytes?.let(::JsonPrimitive)?:JsonNull)
+                        }) } })
+                    }
+                }
+                "reviewBackup" -> {
+                    require(args.keys==setOf("backupId"));backupReview=null
+                    val content=service.readImportBackup(workspace(),text("backupId"))
+                    try {
+                        verify(authorize)
+                        val r=content.backup
+                        backupReview=BackupOrigin(r.id,content.sha256,r.path,r.backupPath)
+                        buildJsonObject { put("backupId",r.id);put("path",r.path);put("backupPath",r.backupPath)
+                            put("bytes",content.bytes.size);put("sha256",content.sha256) }
+                    } finally { content.close() }
+                }
                 "importRecoveries" -> {
                     require(args.keys==setOf("offset"))
                     val offset=args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int.also { require(it in 0..100) }
@@ -351,6 +383,20 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         scoped(authorize, { created }) {
             when (control.operation) {
                 "dismissImportRecovery" -> service.dismissImportRecovery(workspace(),text("recoveryId"))
+                "selectImportBackup" -> {
+                    val reviewed=checkNotNull(backupReview) { "请先审阅备份" };backupReview=null
+                    check(reviewed.id==text("backupId") && reviewed.sha256==text("sha256") && reviewed.path==text("path")) { "备份审阅已失效" }
+                    val content=service.readImportBackup(workspace(),reviewed.id,reviewed.sha256)
+                    var document:PageBinaryDocument?=null;var adopted=false
+                    try {
+                        verify(authorize)
+                        val name=reviewed.path.substringAfterLast('/')
+                        val mime=java.net.URLConnection.guessContentTypeFromName(name)?:"application/octet-stream"
+                        val nextDocument=PageBinaryDocument(name,mime,content.bytes);document=nextDocument
+                        importDraft?.second?.close();importDraft=java.util.UUID.randomUUID().toString() to nextDocument
+                        importOrigin=null;importBackupOrigin=reviewed;importReview=null;adopted=true
+                    } finally { content.close();if(!adopted)document?.close() }
+                }
                 "selectChatAttachment" -> {
                     workspace()
                     val origin=AttachmentOrigin(text("messageId"),text("attachmentId"),text("sha256"))
@@ -360,7 +406,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                     try {
                         verify(authorize)
                         val next=java.util.UUID.randomUUID().toString() to document
-                        importDraft?.second?.close();importDraft=next;importOrigin=origin;importReview=null;adopted=true
+                        importDraft?.second?.close();importDraft=next;importOrigin=origin;importBackupOrigin=null;importReview=null;adopted=true
                     } finally { if(!adopted)document.close() }
                 }
                 "importFile", "importReviewed" -> {
@@ -374,6 +420,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                     importReview=null
                     importOrigin?.let { origin -> checkNotNull(chatAttachments).validate(
                         origin.messageId,origin.attachmentId,origin.sha256) { verify(authorize) } }
+                    importBackupOrigin?.let { origin -> service.readImportBackup(workspace(),origin.id,origin.sha256).close() }
                     val bytes=selected.second.readBytes()
                     try {
                         lastImport=if(review?.target!=null) service.replaceImportedFile(workspace(),review.path,bytes,selected.second.sha256,review.target.sha256)
@@ -381,12 +428,12 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                     }
                     finally { bytes.fill(0) }
                     verify(authorize)
-                    selected.second.close();importDraft=null;importOrigin=null;importReview=null
+                    selected.second.close();importDraft=null;importOrigin=null;importBackupOrigin=null;importReview=null
                 }
                 "dropImport" -> {
                     val selected=checkNotNull(importDraft) { "选择的文件已失效" }
                     check(selected.first==text("id")) { "选择的文件已改变" }
-                    selected.second.close();importDraft=null;importOrigin=null;importReview=null
+                    selected.second.close();importDraft=null;importOrigin=null;importBackupOrigin=null;importReview=null
                 }
 
                 "create" -> {
@@ -430,7 +477,7 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         withContext(NonCancellable) {
             synchronized(operationLock) { importJob?.cancel() }
             importJob?.join();importScope.cancel()
-            mutex.withLock { textDraft=null;importDraft?.second?.close();importDraft=null;importOrigin=null;importReview=null;lastImport=null }
+            mutex.withLock { textDraft=null;backupReview=null;importDraft?.second?.close();importDraft=null;importOrigin=null;importBackupOrigin=null;importReview=null;lastImport=null }
         }
     }
 }

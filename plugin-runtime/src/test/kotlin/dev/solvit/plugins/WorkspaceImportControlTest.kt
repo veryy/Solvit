@@ -7,6 +7,28 @@ import kotlin.test.*
 
 /** Exercise the host boundary before the API22 package/catalog rollout. */
 class WorkspaceImportControlTest {
+    @Test fun backupReviewAndCopyRequireApi28FilesAndOneDisplayedApproval():Unit=runBlocking {
+        var reads=0;var writes=0
+        val access=object:PageWorkspaceAccess {
+            override suspend fun query(operation:String,argumentsJson:String,authorize:suspend()->Unit):String { authorize();reads++;return "{}" }
+            override suspend fun perform(control:PageWorkspaceControl,authorize:suspend()->Unit):String { authorize();writes++;return "{}" }
+        }
+        val args=buildJsonObject { put("backupId",java.util.UUID.randomUUID().toString());put("sha256","a".repeat(64));put("path","original.txt") }
+        val approved=control("selectImportBackup",args)
+        for((api,declared)in listOf(26 to true,27 to true,28 to false)) {
+            val context=ScriptPageExecutionContext("test.backup",{},approved,workspace=access)
+            for(op in listOf("importBackups","reviewBackup"))assertFails { context.queryWorkspace(op,buildJsonObject {},api,declared) }
+            assertFails { context.performWorkspace(api,filesDeclared=declared) }
+        }
+        assertEquals(0,reads);assertEquals(0,writes)
+        val context=ScriptPageExecutionContext("test.backup",{},approved,workspace=access)
+        for(op in listOf("importBackups","reviewBackup"))context.queryWorkspace(op,buildJsonObject {},28,true)
+        context.performWorkspace(28,filesDeclared=true)
+        assertFails { context.performWorkspace(28,filesDeclared=true) }
+        assertEquals(2,reads);assertEquals(1,writes)
+        assertFails { ScriptPageHostAction.workspace(control("selectImportBackup",buildJsonObject { args.forEach { (k,v)->put(k,v) };put("backupId","../foreign") })) }
+        assertFails { ScriptPageHostAction.workspace(control("selectImportBackup",buildJsonObject { args.forEach { (k,v)->put(k,v) };put("command","rm") })) }
+    }
     @Test fun recoveryReportsRequireApi27DeclaredFilesAndOneDisplayedDismissal():Unit=runBlocking {
         var reads=0;var writes=0
         val access=object:PageWorkspaceAccess {

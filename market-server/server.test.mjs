@@ -99,7 +99,11 @@ test('catalog downloads match their declared integrity and expose no write API',
     const api27=await(await fetch(base+'/api/v1/plugins?hostApi=27')).json();
     const recoveryWorkspace=api27.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
     assert.equal(recoveryWorkspace.version,'1.10.0');assert.equal(recoveryWorkspace.apiVersion,27);
+    const api28=await(await fetch(base+'/api/v1/plugins?hostApi=28')).json();
+    const managedBackups=api28.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
+    assert.equal(managedBackups.version,'1.11.0');assert.equal(managedBackups.apiVersion,28);
     for(const [id,version,sha] of [
+      ['workspace','1.10.0','e275e637b3cdbe3e56d800d9abbefc221169b7f1e07faed8f29c5d6a611cbfd9'],
       ['workspace','1.9.0','c4bd5bfa19dd9bca67d6913c02a48bc2624858d9be5eb32f7863c6a0273d5f5e'],
       ['git','1.2.5','ee8cab14b1992ee28651c0ce510d9e046d66a396bc559d2d7293a2aadeb277b4']]){
       const original=Buffer.from(await(await fetch(base+`/api/v1/packages/dev.solvit.${id}/${version}`)).arrayBuffer());

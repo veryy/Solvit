@@ -46,6 +46,7 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     }
     suspend fun queryWorkspace(operation: String, args: JsonObject, apiVersion: Int = 12, filesDeclared: Boolean = false): String {
         ensureAuthorized()
+        if(operation in setOf("importBackups","reviewBackup")) check(apiVersion>=28 && filesDeclared) { "备份审阅需要API28及workspace.files声明" }
         if(operation=="importRecoveries") check(apiVersion>=27 && filesDeclared) { "导入恢复报告需要API27及workspace.files服务声明" }
         if(operation=="importOperation") check(apiVersion>=26 && filesDeclared) { "导入任务进度需要API26及workspace.files服务声明" }
         if (operation == "reviewImport") check(apiVersion >= 25 && filesDeclared) {
@@ -67,6 +68,7 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
     suspend fun performWorkspace(apiVersion: Int, linuxDeclared: Boolean = false, filesDeclared: Boolean = false): String {
         ensureAuthorized()
         val control = ScriptPageHostAction.workspace(checkNotNull(approvedAction))
+        if(control.operation=="selectImportBackup") check(apiVersion>=28 && filesDeclared) { "备份副本选择需要API28及workspace.files声明" }
         if(control.operation=="dismissImportRecovery") check(apiVersion>=27 && filesDeclared) { "关闭恢复提示需要API27及workspace.files服务声明" }
         if(control.operation in setOf("startImport","cancelImport")) check(apiVersion>=26 && filesDeclared) { "导入任务需要API26及workspace.files服务声明" }
         if (control.operation == "importReviewed") check(apiVersion >= 25 && filesDeclared) {

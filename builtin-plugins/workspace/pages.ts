@@ -4,10 +4,21 @@ type FileEntry={name:string;path:string;directory:boolean;bytes:number};
 type Draft={id:string;name:string;pluginId:string;version:string;sha256:string;permissions:string[]};
 type Button=Extract<PageNode,{kind:'button'}>;
 type TextChunk={text:string;offset:number;nextOffset:number;total:number;sha256:string};
-type ImportSelection={id:string;name:string;mimeType:string;bytes:number;sha256:string;source?:{kind:string;messageId:string;attachmentId:string}};
+type ImportSelection={id:string;name:string;mimeType:string;bytes:number;sha256:string;source?:{kind:string;messageId?:string;attachmentId?:string;backupId?:string;path?:string;backupPath?:string}};
 type ImportReview={reviewId:string;path:string;target:{bytes:number;sha256:string}|null};
 type ImportOperation={operationId:string;status:string;progress?:{stage:string;completed:number;total:number};result?:Snapshot;error?:string};
 type ImportRecovery={id:string;path:string;backupPath:string|null;status:string};
+type Backup={id:string;path:string;backupPath:string;originalBytes:number;originalSha256:string;createdAt:number;status:string;currentBytes:number|null;pending:boolean};
+type BackupPage={backups:Backup[];offset:number;total:number;logicalBytes:number;availableBytes:number|null;incomplete:boolean;unreadableRecords:number};
+type BackupReview={backupId:string;path:string;backupPath:string;bytes:number;sha256:string};
+const backupLabels={
+ zh:['备份管理','已登记备份','当前可用空间','独立备份文件逻辑大小','旧版未登记的文件可在目录里查看，不会自动认领或删除。','暂无登记的备份','导入中或等待恢复','文件仍在，内容可能已修改','文件已不存在','文件身份已变化','暂时无法读取','查看详情','创建时审阅','当前内容','审阅备份内容','选择副本恢复','源备份继续保留；目标同名时仍需审阅并确认替换。','扫描不完整或有无法读取的记录','备份位置','登记时间','返回备份列表','未知','可用空间只是当前观察；逻辑大小不等于可回收空间。','来源：工作区备份'],
+ en:['Manage backups','Registered backups','Available storage now','Unique backup logical bytes','Older unregistered files remain in the directory; no automatic adoption or deletion.','No registered backups','Importing or awaiting recovery','File present; contents may have changed','File missing','File identity changed','Temporarily unavailable','View details','Original reviewed content','Current content','Review backup content','Select a copy to restore','The source backup is kept. Existing destinations still require review and confirmation.','Scan incomplete or records unreadable','Backup path','Recorded at','Back to backups','Unknown','Free storage is an observation; logical size is not reclaimable space.','Source: workspace backup'],
+ ja:['バックアップ管理','登録済みバックアップ','現在の空き容量','重複を除く論理サイズ','旧版の未登録ファイルはディレクトリで確認できます。自動登録・削除はしません。','登録済みバックアップなし','インポート中・復旧待ち','ファイルあり。内容変更の可能性あり','ファイルがありません','ファイルの識別情報が変わりました','一時的に読み取れません','詳細','登録時の確認内容','現在の内容','内容を確認','コピーを復元用に選択','元のバックアップは保持します。同名の保存先は確認後に置換します。','走査が不完全、または読めない記録があります','バックアップ先','登録日時','一覧に戻る','不明','空き容量は現在の観測です。論理サイズは解放可能な容量ではありません。','ソース：ワークスペースのバックアップ'],
+ ko:['백업 관리','등록된 백업','현재 사용 가능 공간','중복을 제외한 논리 크기','이전 버전의 미등록 파일은 디렉터리에 유지됩니다. 자동 등록하거나 삭제하지 않습니다.','등록된 백업 없음','가져오는 중 또는 복구 대기','파일 있음; 내용은 변경될 수 있음','파일 없음','파일 식별 정보 변경됨','일시적으로 읽을 수 없음','자세히 보기','등록 당시 검토 내용','현재 내용','백업 내용 검토','복원할 복사본 선택','원본 백업은 유지됩니다. 동일 이름 대상은 검토 후 교체합니다.','검색 미완료 또는 읽을 수 없는 기록','백업 경로','등록 시간','백업 목록으로','알 수 없음','여유 공간은 현재 관측값이며 논리 크기는 회수 가능한 공간과 다릅니다.','출처: 작업 공간 백업'],
+ es:['Gestionar copias','Copias registradas','Espacio disponible ahora','Bytes lógicos únicos','Los archivos antiguos sin registrar siguen en el directorio; no se adoptan ni eliminan automáticamente.','Sin copias registradas','Importando o esperando recuperación','Archivo presente; el contenido puede cambiar','Archivo ausente','Identidad del archivo cambiada','No disponible temporalmente','Ver detalles','Contenido revisado originalmente','Contenido actual','Revisar contenido','Elegir copia para restaurar','Se conserva la copia de origen. Un destino existente requiere revisión y confirmación.','Análisis incompleto o registros ilegibles','Ruta de copia','Registrado el','Volver a copias','Desconocido','El espacio libre es una observación; el tamaño lógico no indica el espacio recuperable.','Origen: copia del espacio de trabajo'],
+ fr:['Gérer les copies','Copies enregistrées','Espace disponible','Taille logique unique','Les anciens fichiers non enregistrés restent dans le dossier ; aucun ajout ni effacement automatique.','Aucune copie enregistrée','Import en cours ou récupération en attente','Fichier présent, contenu modifiable','Fichier absent','Identité du fichier modifiée','Temporairement illisible','Voir les détails','Contenu vérifié à l’origine','Contenu actuel','Vérifier le contenu','Choisir une copie à restaurer','La copie source est conservée. Une cible existante exige vérification et confirmation.','Analyse incomplète ou registres illisibles','Chemin de copie','Date d’enregistrement','Retour aux copies','Inconnu','L’espace libre est une observation ; la taille logique ne prédit pas l’espace libérable.','Source : copie de l’espace de travail']
+};
 const recoveryLabels={
  zh:['上次导入恢复','查看详情','原文件已保留在原位置','保留已发布状态，未自动恢复旧文件','发现同名文件，已保留双方','请检查保留的备份','记录的备份位置','关闭提示','关闭提示不会删除文件或备份','暂无恢复提示','最多显示最近100条'],
  en:['Previous import recovery','View details','Original file is available at its original path','Publication retained; no automatic rollback','A concurrent name was kept; both files survive','Review the retained backup','Recorded backup path','Dismiss notice','Dismissing keeps files and backups','No recovery notices','Shows up to 100 recent notices'],
@@ -93,6 +104,9 @@ export function workspacePage(importsEnabled=true){
  let importOperation:ImportOperation|null=null;
  let recoveryWorkspace:string|null=null,recoveryOffset=0,recoveryTotal=0,recoveryReturnMode='home';
  let recoveries:ImportRecovery[]=[];
+ let backupOffset=0,backupReturnMode='home';
+ let backupPage:BackupPage={backups:[],offset:0,total:0,logicalBytes:0,availableBytes:null,incomplete:false,unreadableRecords:0};
+ let backup:Backup|null=null,backupReview:BackupReview|null=null;
  let snapshot:Snapshot={workspaceId:null,workspaces:[],shells:[],draftInstallAllowed:false};
  let importPreview:{kind:string;text:string|null;truncated:boolean}|null=null;
  let importPicture:{width:number;height:number;source:string}|null=null;
@@ -106,6 +120,7 @@ export function workspacePage(importsEnabled=true){
   const im=importLabels[locale.split(/[-_]/)[0] as keyof typeof importLabels]??importLabels.en;
   const tr=transferLabels[locale.split(/[-_]/)[0] as keyof typeof transferLabels]??transferLabels.en;
   const ir=replacementLabels[locale.split(/[-_]/)[0] as keyof typeof replacementLabels]??replacementLabels.en;
+  const bl=backupLabels[locale.split(/[-_]/)[0] as keyof typeof backupLabels]??backupLabels.en;
   const rl=recoveryLabels[locale.split(/[-_]/)[0] as keyof typeof recoveryLabels]??recoveryLabels.en;
   const ip=previewLabels[locale.split(/[-_]/)[0] as keyof typeof previewLabels]??previewLabels.en;
   const pic=pictureLabels[locale.split(/[-_]/)[0] as keyof typeof pictureLabels]??pictureLabels.en;
@@ -125,6 +140,10 @@ export function workspacePage(importsEnabled=true){
    if(recoveryWorkspace!==snapshot.workspaceId)recoveryOffset=0;
    recoveryWorkspace=snapshot.workspaceId;await loadRecoveries();
   }
+  const loadBackups=async()=>{
+   backupPage=await api.query('importBackups',{offset:backupOffset}) as unknown as BackupPage;
+   if(backupOffset>=backupPage.total&&backupOffset>0){backupOffset=Math.max(0,Math.floor((backupPage.total-1)/5)*5);backupPage=await api.query('importBackups',{offset:backupOffset}) as unknown as BackupPage}
+  };
   const list=async()=>{const result=await api.query('list',{path:directory,offset}) as unknown as {files:FileEntry[];total:number};files=result.files;total=result.total};
   const loadChatFiles=async()=>{const page=await api.query('chatAttachments',{offset:chatFileOffset}) as unknown as {attachments:ChatFile[];total:number};chatFiles=page.attachments;chatFileTotal=page.total};
   const loadDrafts=async()=>{drafts=await api.query('drafts') as unknown as Draft[]};
@@ -168,7 +187,26 @@ export function workspacePage(importsEnabled=true){
    // Passive tree fetches follow writes automatically; keep their result/backup visible.
    if(event.action!=='treeLoad')message='';try{
     const action=event.action;
-    if(action==='recoveryOpen'){recoveryReturnMode=mode;recoveryOffset=0;await loadRecoveries();mode='recoveries'}
+    if(action==='backupOpen'){backupReturnMode=mode;backupOffset=0;backup=null;backupReview=null;await loadBackups();mode='backups'}
+    else if(action==='backupPrev'||action==='backupNext'||action==='backupRefresh'){
+     backupOffset=action==='backupPrev'?Math.max(0,backupOffset-5):action==='backupNext'?backupOffset+5:0;await loadBackups();
+    }
+    else if(action==='backupBack'){backup=null;backupReview=null;mode=backupReturnMode}
+    else if(action==='backupView'){
+     const item=backupPage.backups[Number(event.nodeId.split('_').pop())];if(!item)throw Error('Backup list changed');
+     backup=item;backupReview=null;mode='backupDetail';
+    }
+    else if(action==='backupList'){backupReview=null;await loadBackups();mode='backups'}
+    else if(action==='backupReview'&&backup){
+     backupReview=null;backupReview=await api.query('reviewBackup',{backupId:backup.id}) as unknown as BackupReview;
+     if(backupReview.backupId!==backup.id||backupReview.path!==backup.path||backupReview.backupPath!==backup.backupPath)throw Error('Backup review changed');
+    }
+    else if(action==='backupSelect'&&backup&&backupReview){
+     await api.perform();const chosen=await api.query('importSelection') as unknown as ImportSelection|null;
+     if(chosen?.source?.kind!=='workspaceBackup'||chosen.source.backupId!==backup.id||chosen.sha256!==backupReview.sha256)throw Error('Backup selection changed');
+     importSelection=chosen;importPath=backup.path;importPreview=null;importPicture=null;importPdf=null;importReview=null;backupReview=null;mode='import';
+    }
+    else if(action==='recoveryOpen'){recoveryReturnMode=mode;recoveryOffset=0;await loadRecoveries();mode='recoveries'}
     else if(action==='recoveryPrev'||action==='recoveryNext'||action==='recoveryRefresh'){
      recoveryOffset=action==='recoveryPrev'?Math.max(0,recoveryOffset-5):action==='recoveryNext'?recoveryOffset+5:0;await loadRecoveries();
     }
@@ -326,13 +364,30 @@ export function workspacePage(importsEnabled=true){
   }else if(mode==='home'){
    nodes.push(text('name',current?.name??t[20],'title'));
    nodes.push(button('create',t[1]),button('choose',t[2]));
-   if(current){nodes.push(button('directory',t[7]),...(importsEnabled?[selectImport(),fromChat()]:[]),button('shell',t[31]),text('shells',snapshot.shells.map(s=>s.name).join(' · ')),button('drafts',t[23]),button('prepareUnbind',t[6]));if(importSelection)nodes.push(button('showImport',im[2]))}
+   if(current){nodes.push(button('directory',t[7]),...(importsEnabled?[selectImport(),fromChat(),button('backupOpen',bl[0])]:[]),button('shell',t[31]),text('shells',snapshot.shells.map(s=>s.name).join(' · ')),button('drafts',t[23]),button('prepareUnbind',t[6]));if(importSelection)nodes.push(button('showImport',im[2]))}
   }else if(mode==='create'||mode==='shell'){
    nodes.push({id:'name',kind:'field',label:mode==='create'?t[3]:t[30],value:mode==='create'?'':`Shell ${snapshot.shells.length+1}`});
    footer.push(button('home',t[8]),button(mode==='create'?'prepareCreate':'prepareShell',t[4]));
   }else if(mode==='choose'){
    names=snapshot.workspaces.slice(workspaceOffset,workspaceOffset+40);names.forEach((w,i)=>nodes.push(button(`bind_${i}`,w.name,'prepareBind')));
    footer.push(button('home',t[8]));if(workspaceOffset>0)footer.push(button('choosePrev',t[17]));if(workspaceOffset+40<snapshot.workspaces.length)footer.push(button('chooseNext',t[18]));
+  }else if(mode==='backups'){
+   nodes.push(text('backup_title',bl[0],'title'),text('backup_count',`${bl[1]}: ${backupPage.total}`),
+    text('backup_available',`${bl[2]}: ${backupPage.availableBytes===null?bl[21]:backupPage.availableBytes+' B'}`),
+    text('backup_logical',`${bl[3]}: ${backupPage.logicalBytes} B`),text('backup_space_note',bl[22],'caption'),text('backup_legacy_note',bl[4],'caption'));
+   if(backupPage.incomplete||backupPage.unreadableRecords)nodes.push(text('backup_scan_warning',`${bl[17]} (${backupPage.unreadableRecords})`));
+   if(!backupPage.backups.length)nodes.push(text('backup_empty',bl[5]));
+   backupPage.backups.forEach((r,i)=>nodes.push({id:`backup_${i}`,kind:'card',children:[
+    text(`backup_path_${i}`,r.path),text(`backup_status_${i}`,r.pending?bl[6]:r.status==='PRESENT'?bl[7]:r.status==='MISSING'?bl[8]:r.status==='CHANGED_IDENTITY'?bl[9]:bl[10],'caption'),
+    ...(r.currentBytes===null?[]:[text(`backup_bytes_${i}`,`${r.currentBytes} B`,'caption')]),button(`backup_view_${i}`,bl[11],'backupView')]}));
+   footer.push(button('backupBack',t[8]),button('backupRefresh',t[9]));if(backupOffset>0)footer.push(button('backupPrev',t[17]));if(backupOffset+5<backupPage.total)footer.push(button('backupNext',t[18]));
+  }else if(mode==='backupDetail'&&backup){
+   const date=new Date(backup.createdAt);const stamp=Number.isFinite(date.getTime())?date.toISOString():bl[21];
+   nodes.push(text('backup_detail_path',backup.path,'title'),text('backup_detail_location',`${bl[18]}: ${backup.backupPath}`),text('backup_created',`${bl[19]}: ${stamp}`,'caption'),
+    text('backup_original_bytes',`${bl[12]}: ${backup.originalBytes} B`),text('backup_original_sha',backup.originalSha256,'caption'),text('backup_restore_note',bl[16]));
+   if(backupReview)nodes.push(text('backup_current_bytes',`${bl[13]}: ${backupReview.bytes} B`),text('backup_current_sha',backupReview.sha256,'caption'));
+   footer.push(button('backupList',bl[20]),{...button('backupReview',bl[14]),enabled:backup.status==='PRESENT'&&!backup.pending});
+   if(backupReview)footer.push({...button('backupSelect',bl[15]),confirm:bl[16],hostAction:{kind:'workspace.perform',operation:'selectImportBackup',arguments:{backupId:backupReview.backupId,sha256:backupReview.sha256,path:backupReview.path}}});
   }else if(mode==='recoveries'){
    nodes.push(text('recovery_title',rl[0],'title'),text('recovery_limit',rl[10],'caption'));
    if(!recoveries.length)nodes.push(text('recovery_empty',rl[9]));
@@ -346,7 +401,7 @@ export function workspacePage(importsEnabled=true){
    if(recoveryOffset>0)footer.push(button('recoveryPrev',t[17]));if(recoveryOffset+5<recoveryTotal)footer.push(button('recoveryNext',t[18]));
   }else if(mode==='list'){
    nodes.push(text('directory',directory||'/','title'),{id:'directory_actions',kind:'row',children:[
-    ...(importsEnabled?[selectImport(),fromChat()]:[]),button('new',t[10]),button('mkdir',f[0])]});
+    ...(importsEnabled?[selectImport(),fromChat(),button('backupOpen',bl[0])]:[]),button('new',t[10]),button('mkdir',f[0])]});
    if(!files.length)nodes.push(text('empty',t[19]));
    files.forEach((entry,i)=>nodes.push({id:`entry_${i}`,kind:'card',children:[text(`file_name_${i}`,(entry.directory?'▸ ':'')+entry.name),text(`file_size_${i}`,entry.directory?t[7]:`${entry.bytes} B`,'caption'),button(`file_${i}`,t[24],'file'),
     button(`rename_${i}`,f[1],'renameEntry'),button(`delete_${i}`,f[2],'deleteEntry')]}));
@@ -357,7 +412,7 @@ export function workspacePage(importsEnabled=true){
    footer.push(button('chatFilesBack',t[8]),button('chatFilesRefresh',t[9]));if(chatFileOffset>0)footer.push(button('chatFilesPrev',t[17]));if(chatFileOffset+20<chatFileTotal)footer.push(button('chatFilesNext',t[18]));
   }else if(mode==='import'&&importSelection){
    nodes.push(text('import_name',importSelection.name,'title'),text('import_type',`${importSelection.mimeType} · ${importSelection.bytes} B`),
-    text('import_source',importSelection.source?.kind==='chatAttachment'?`${cf[4]} · ${importSelection.source.messageId}`:im[6],'caption'),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]),
+    text('import_source',importSelection.source?.kind==='workspaceBackup'?`${bl[23]} · ${importSelection.source.path}`:importSelection.source?.kind==='chatAttachment'?`${cf[4]} · ${importSelection.source.messageId}`:im[6],'caption'),text('import_sha',importSelection.sha256,'caption'),text('import_limit',im[4]),
     {id:'importPath',kind:'field',label:im[1],value:importPath});
    if(importSelection.mimeType.startsWith('image/'))nodes.push(button('importPicture',pic[0]));
    else if(importSelection.mimeType==='application/pdf')nodes.push(button('importPdf',pdf[0]));

@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import {createHash} from 'node:crypto';
 const pkg=JSON.parse(await readFile('../market-server/packages/dev.solvit.workspace.solvit.json','utf8'));
 const clone=value=>JSON.parse(JSON.stringify(value));
-function harness(bound=true,directories=null,notices=[]){
+function harness(bound=true,directories=null,notices=[],backups=[]){
  let recoveryNotices=clone(notices);
  const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
  let view,approved,created=0,writes=0,draft=null,document='old',importSelection=null,nextSelection=null,importConflict=false;
@@ -22,6 +22,8 @@ function harness(bound=true,directories=null,notices=[]){
    assert.ok(!operation||!['RUNNING','CANCELLING'].includes(operation.status),'snapshot must not block behind an active import');
    return clone(snapshot);
   }
+  if(op==='importBackups'){assert.ok(Number.isInteger(args.offset));return {backups:clone(backups.slice(args.offset,args.offset+5)),offset:args.offset,total:backups.length,logicalBytes:1234,availableBytes:null,incomplete:true,unreadableRecords:2}}
+  if(op==='reviewBackup'){const entry=backups.find(b=>b.id===args.backupId);assert.ok(entry);assert.equal(entry.status,'PRESENT');assert.equal(entry.pending,false);return {backupId:entry.id,path:entry.path,backupPath:entry.backupPath,bytes:entry.currentBytes,sha256:'e'.repeat(64)}}
   if(op==='importRecoveries'){assert.ok(Number.isInteger(args.offset));return {recoveries:clone(recoveryNotices.slice(args.offset,args.offset+5)),total:recoveryNotices.length}}
   if(op==='importOperation'){
    assert.equal(args.operationId,operation.operationId);
@@ -71,6 +73,7 @@ function harness(bound=true,directories=null,notices=[]){
   throw Error('unsupported');
  },perform:async()=>{
   assert.ok(approved);
+  if(approved.operation==='selectImportBackup'){const args=approved.arguments,entry=backups.find(b=>b.id===args.backupId);assert.ok(entry);assert.equal(args.sha256,'e'.repeat(64));assert.equal(args.path,entry.path);importSelection={id:'backup-choice',name:entry.path.split('/').pop(),mimeType:'text/plain',bytes:entry.currentBytes,sha256:args.sha256,source:{kind:'workspaceBackup',backupId:entry.id,path:entry.path,backupPath:entry.backupPath}};return clone(snapshot)}
   if(approved.operation==='dismissImportRecovery'){recoveryNotices=recoveryNotices.filter(n=>n.id!==approved.arguments.recoveryId);return clone(snapshot)}
   if(approved.operation==='selectChatAttachment'){
    const args=approved.arguments,entry=savedFiles.find(e=>e.messageId===args.messageId&&e.attachmentId===args.attachmentId);
@@ -189,7 +192,7 @@ test('image preview remains separate from original import and preserves its dest
  assert.ok(!h.nodes().some(n=>n.id==='import_picture'));
 });
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
- assert.equal(pkg.manifest.apiVersion,27);assert.equal(pkg.manifest.version,'1.10.0');assert.ok(pkg.resources['ui/main.js']);
+ assert.equal(pkg.manifest.apiVersion,28);assert.equal(pkg.manifest.version,'1.11.0');assert.ok(pkg.resources['ui/main.js']);
  assert.ok(pkg.resources['ui/editor-NOTICE.txt'].includes('Permission is hereby granted'));
  const api17=await readFile('../market-server/packages/legacy/dev.solvit.workspace-1.3.0.solvit.json');
  assert.equal(createHash('sha256').update(api17).digest('hex'),'95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b');
@@ -348,4 +351,41 @@ test('an unbound conversation does not query recovery records or create a worksp
  const h=harness(false,null,[{id:'hidden',path:'private',status:'CONFLICT',backupPath:'private-copy'}]);await h.render();
  assert.ok(!h.queries.some(([operation])=>operation==='importRecoveries'));assert.ok(!h.nodes().some(n=>n.id==='recovery_summary'));
  assert.equal(h.created,0);
+});
+
+const backupFixtures=()=>Array.from({length:7},(_,i)=>({id:`00000000-0000-4000-8000-${String(i).padStart(12,'0')}`,path:`src/file-${i}.txt`,backupPath:`src/solvit-backup-${i}`,originalBytes:12,originalSha256:'a'.repeat(64),createdAt:1700000000000,status:i===1?'MISSING':i===2?'CHANGED_IDENTITY':'PRESENT',currentBytes:i===1?null:19,pending:i===3}));
+test('backup page is explicit, five rows at a time and separates logical usage from available space',async()=>{
+ const h=harness(true,null,[],backupFixtures());await h.render();
+ assert.equal(h.queries.filter(([op])=>op==='importBackups').length,0);
+ await h.event('backupOpen');assert.equal(h.nodes().filter(n=>/^backup_view_/.test(n.id)).length,5);
+ assert.ok(h.nodes().find(n=>n.id==='backup_available').text.includes('Unknown'));
+ assert.ok(h.nodes().find(n=>n.id==='backup_logical').text.includes('1234 B'));
+ assert.ok(h.nodes().find(n=>n.id==='backup_scan_warning').text.includes('(2)'));
+ assert.ok(h.nodes().find(n=>n.id==='backup_legacy_note').text.includes('no automatic adoption or deletion'));
+ assert.ok(h.nodes().find(n=>n.id==='backup_space_note').text.includes('not reclaimable'));
+ await h.event('backupNext');assert.equal(h.nodes().filter(n=>/^backup_view_/.test(n.id)).length,2);
+ assert.ok(!h.nodes().some(n=>n.id==='backupNext'));await h.event('backupPrev');
+ assert.deepEqual(h.queries.filter(([op])=>op==='importBackups').map(([,args])=>args.offset),[0,5,0]);
+ assert.equal(h.imports.length,0);
+ const unbound=harness(false);await unbound.render();assert.ok(!unbound.nodes().some(n=>n.id==='backupOpen'));
+ assert.equal(unbound.queries.filter(([op])=>op==='importBackups').length,0);
+});
+test('backup restore reviews current content then explicitly selects a copy before the existing destination review',async()=>{
+ const h=harness(true,null,[],backupFixtures());await h.render();await h.event('backupOpen');await h.event('backup_view_0');
+ assert.ok(!h.nodes().some(n=>n.id==='backupSelect'));assert.equal(h.imports.length,0);
+ assert.equal(h.nodes().find(n=>n.id==='backup_original_sha').text,'a'.repeat(64));
+ await h.event('backupReview');assert.equal(h.nodes().find(n=>n.id==='backup_current_sha').text,'e'.repeat(64));
+ const select=h.nodes().find(n=>n.id==='backupSelect');assert.ok(select.confirm.includes('source backup is kept'));
+ assert.deepEqual(select.hostAction.arguments,{backupId:backupFixtures()[0].id,sha256:'e'.repeat(64),path:'src/file-0.txt'});
+ await h.event('backupSelect');assert.equal(h.imports.length,0);assert.equal(h.nodes().find(n=>n.id==='importPath').value,'src/file-0.txt');
+ assert.ok(h.nodes().find(n=>n.id==='import_source').text.includes('workspace backup'));
+ h.reviewTarget={bytes:80,sha256:'b'.repeat(64)};await h.event('prepareImport');
+ assert.equal(h.nodes().find(n=>n.id==='replace_sha').text,'b'.repeat(64));assert.equal(h.imports.length,0);
+ await h.event('cancel');await h.event('prepareImport');await h.event('confirm');assert.equal(h.imports.length,1);
+ assert.equal(h.imports[0].sha256,'e'.repeat(64));assert.equal(h.imports[0].path,'src/file-0.txt');
+});
+test('missing, replaced or pending backup rows never offer an enabled content review or a restore approval',async()=>{
+ const h=harness(true,null,[],backupFixtures());await h.render();await h.event('backupOpen');
+ for(const i of [1,2,3]){await h.event(`backup_view_${i}`);assert.equal(h.nodes().find(n=>n.id==='backupReview').enabled,false);assert.ok(!h.nodes().some(n=>n.id==='backupSelect'));await h.event('backupList')}
+ assert.equal(h.queries.filter(([op])=>op==='reviewBackup').length,0);assert.equal(h.imports.length,0);
 });
