@@ -680,6 +680,8 @@ class ChatLayoutTest {
     @Test fun replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal() {
         ready()
         val app=rule.activity.application as SolvitApplication
+        val diagnosticChats=if(InstrumentationRegistry.getArguments().getString("branchHistoryAtEnd")=="true")
+            runBlocking { List(12){app.ready.value!!.getOrThrow().createSession()} } else emptyList()
         val source=seedBranchConversation(app)
         val workspace=runBlocking {
             app.roles.save(AgentRole("branch-role","Branch role",pluginIds=emptySet()))
@@ -714,7 +716,10 @@ class ChatLayoutTest {
             screenshot("chat-reply-branch")
             runBlocking { app.ready.value!!.getOrThrow().deleteSession(branch.id) }
         } finally {
-            runBlocking { app.ready.value!!.getOrThrow().deleteSession(source.id); app.roles.delete("branch-role") }
+            runBlocking {
+                app.ready.value!!.getOrThrow().deleteSession(source.id); app.roles.delete("branch-role")
+                diagnosticChats.forEach { app.ready.value!!.getOrThrow().deleteSession(it.id) }
+            }
         }
     }
     @Test fun editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending() {

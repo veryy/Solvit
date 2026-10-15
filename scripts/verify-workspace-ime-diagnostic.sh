@@ -77,7 +77,7 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
     -e workspaceRecreations "$solvit_recreations" \
-    -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \
+    -e branchHistoryAtEnd "$([[ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches || "${SOLVIT_DIAGNOSTIC_CASE:-}" = reply-branch-hang ]] && echo true || echo false)" \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \
     | tee "ui-screenshots/page-diagnostic-iteration-$iteration.txt"
   grep -F "$solvit_diagnostic_expected" "ui-screenshots/page-diagnostic-iteration-$iteration.txt"
