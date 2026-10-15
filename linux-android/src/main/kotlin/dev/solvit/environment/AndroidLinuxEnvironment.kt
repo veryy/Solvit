@@ -197,6 +197,10 @@ class AndroidLinuxEnvironment(context: Context, private val scope: CoroutineScop
         launcher.command(root(), File(workspaceDirectory), command, File(cwd)).let { HostProcessPlan(it.arguments, it.environment) }
     override fun terminal(workspaceDirectory: String): HostProcessPlan =
         launcher.terminal(root(), File(workspaceDirectory)).let { HostProcessPlan(it.arguments, it.environment) }
+    override fun process(workspaceDirectory: String, executable: String, arguments: List<String>,
+        environment: Map<String, String>, cwd: String): HostProcessPlan =
+        launcher.process(root(), File(workspaceDirectory), executable, arguments, environment, File(cwd))
+            .let { HostProcessPlan(it.arguments, it.environment) }
     suspend fun close() { cancel(); engine.close(); http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll() }
 }
 

@@ -15,5 +15,7 @@ interface LinuxEnvironmentService {
     suspend fun cancel()
     fun command(workspaceDirectory: String, command: String, cwd: String = workspaceDirectory): HostProcessPlan
     fun terminal(workspaceDirectory: String): HostProcessPlan
+    fun process(workspaceDirectory: String, executable: String, arguments: List<String>,
+        environment: Map<String, String> = emptyMap(), cwd: String = workspaceDirectory): HostProcessPlan
 }
 val LinuxEnvironmentServiceKey = ServiceKey("environment.linux", LinuxEnvironmentService::class)

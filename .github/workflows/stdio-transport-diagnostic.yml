@@ -25,7 +25,7 @@ jobs:
       - name: Compile native transport and instrumentation
         run: |
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
-          ./gradlew :terminal-android:assembleDebug :terminal-android:assembleDebugAndroidTest --stacktrace
+          ./gradlew :linux-runtime:test :linux-android:compileDebugKotlin :terminal-android:assembleDebug :terminal-android:assembleDebugAndroidTest --stacktrace
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -45,3 +45,4 @@ jobs:
           path: |
             terminal-android/build/reports/androidTests/
             terminal-android/build/outputs/androidTest-results/
+            linux-runtime/build/test-results/test/

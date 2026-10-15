@@ -20,7 +20,20 @@ class LinuxLaunch(private val nativeDirectory: File, private val temporaryDirect
     fun terminal(root: File, workspace: File, cwd: File = workspace): Plan =
         plan(root, workspace, cwd, listOf("/bin/bash", "-i"))
 
-    private fun plan(root: File, workspace: File, cwd: File, guestCommand: List<String>): Plan {
+    /** Direct argv for protocol subprocesses: never parse a user command with bash -c. */
+    fun process(root: File, workspace: File, executable: String, arguments: List<String>,
+        environment: Map<String, String> = emptyMap(), cwd: File = workspace): Plan {
+        require(executable.isNotBlank() && !executable.startsWith('-') && '=' !in executable)
+        require(arguments.size <= 64 && environment.size <= 32)
+        require(environment.keys.all { it.matches(Regex("[A-Za-z_][A-Za-z0-9_]{0,127}")) })
+        val strings = listOf(executable) + arguments + environment.map { (key, value) -> "$key=$value" }
+        require(strings.all { '\u0000' !in it && it.length <= 16_000 })
+        require(strings.sumOf { it.toByteArray(Charsets.UTF_8).size.toLong() + 1 } <= 48 * 1024)
+        return plan(root, workspace, cwd, listOf(executable) + arguments, environment)
+    }
+
+    private fun plan(root: File, workspace: File, cwd: File, guestCommand: List<String>,
+        guestEnvironment: Map<String, String> = emptyMap()): Plan {
         val base = workspace.canonicalFile
         val directory = cwd.canonicalFile
         require(base.isDirectory && directory.isDirectory)
@@ -39,10 +52,11 @@ class LinuxLaunch(private val nativeDirectory: File, private val temporaryDirect
         check(links.isDirectory || links.mkdir())
         val relative = base.toPath().relativize(directory.toPath()).toString().replace(File.separatorChar, '/')
         val guestCwd = if (relative.isEmpty()) "/workspace" else "/workspace/$relative"
+        val defaults = linkedMapOf("HOME" to "/root", "PATH" to "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "TERM" to "xterm-256color", "LANG" to "C.UTF-8", "DEBIAN_FRONTEND" to "noninteractive")
         val args = listOf(proot.absolutePath, "-0", "--link2symlink", "-r", rootDirectory.path,
             "-b", "/dev", "-b", "/proc", "-b", "/sys", "-b", "${base.path}:/workspace", "-w", guestCwd,
-            "/usr/bin/env", "-i", "HOME=/root", "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "TERM=xterm-256color", "LANG=C.UTF-8", "DEBIAN_FRONTEND=noninteractive") + guestCommand
+            "/usr/bin/env", "-i") + (defaults + guestEnvironment).map { (key, value) -> "$key=$value" } + guestCommand
         return Plan(args, mapOf("PROOT_LOADER" to loader.absolutePath,
             "PROOT_TMP_DIR" to temporaryDirectory.absolutePath, "PROOT_L2S_DIR" to links.absolutePath,
             "PROOT_NO_SECCOMP" to null, "LD_LIBRARY_PATH" to null))
