@@ -10,6 +10,8 @@
 2. 验收实际Agent任务：角色切换/新对话、网络接收与可见流式、搜索正文与引用、Linux工作区建项目→运行失败→修复→再验证，以及真实GitHub账号读写。原生和模拟模型测试不能替代这些验收；不得使用历史暴露的API密钥。
 3. 继续Linux运行环境与插件组合：ARM64真机及旧内核兼容、本地stdio MCP进程生命周期与取消、Skills脚本运行环境；保留完整JS Agent/Provider替换协议作为独立阶段。QuickJS与Ubuntu中的Node仍是两种运行环境。
 
+本地stdio进行到独立分支`feat/local-stdio-mcp`：原生管道、UTF-8分帧、实际Ubuntu Python/Node协议fixture及API26/35宿主SIGKILL清理已远程通过，[证据及下一步授权约束](local-stdio-mcp-stage.md)。当前公开0.41.0的MCP仍仅HTTPS；插件页面、具名进程授权和AI路由尚待接入，不能将底层探针通过写成已发布功能。
+
 2026-10-15再次核对实际GitHub Actions secret元数据，尚未配置 `SOLVIT_MODEL_API_KEY`；没有启动必然因缺少凭据而失败的真实模型任务，也不使用历史暴露的密钥。真实模型工作流补齐与正式APK相同的锁定PRoot/loader源码构建，避免将不含Linux可执行程序的诊断包当作完整生产环境验收。凭据配置与实际模型任务仍未完成。
 
 附件、插件HTML页面、记忆关系图、多MCP、真实PTY、Git文件预览和界面设置继续保留回归。屏幕操控按用户后续要求暂缓，不因下面早期顺序提到手机操作而重新启动。上述范围不因本次导入版本通过而视为全部完成。

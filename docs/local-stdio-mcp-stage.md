@@ -29,7 +29,7 @@
 
 第二轮`f8b432b9`，[38728185095](https://github.com/veryy/Solvit/actions/runs/38728185095)两任务均成功。已实际下载产物11969591375/API26与11969461342/API35，SHA256与GitHub元数据一致、ZIP CRC正常；XML分别为9设备用例和11 Linux运行时单元用例，无失败、错误或跳过。四架构编译成功不能替代ARM真机验收。
 
-随后增加严格逐行UTF-8边界：保留跨读取的多字节码点、按字节限制单帧、拒绝非法编码/空行/未完成EOF，失败后不继续解析。Ubuntu生产环境探针增加Python和Node两个真实stdio JSON-RPC测试服务：初始化、工具发现、调用后写入共享工作区、独立stderr、显式环境和EOF退出。它们是确定性协议fixture，不是第三方MCP兼容或真实模型验收。最新提交的远程结果待取回记录。
+随后增加严格逐行UTF-8边界：保留跨读取的多字节码点、按字节限制单帧、拒绝非法编码/空行/未完成EOF，失败后不继续解析。Ubuntu生产环境探针增加Python和Node两个真实stdio JSON-RPC测试服务：初始化、工具发现、调用后写入共享工作区、独立stderr、显式环境和EOF退出。它们是确定性协议fixture，不是第三方MCP兼容或真实模型验收；实际结果如下。
 
 ### 后续实际取回的报告
 
@@ -37,6 +37,9 @@
 - `f9bff109`，[38729749733](https://github.com/veryy/Solvit/actions/runs/38729749733)：应用和测试源码集成编译通过；产物11969249069已下载核对，实际473单元通过，覆盖core74/runtime84/workspace82/git12/storage41/chat66/market114。未运行本地构建。
 - `9e4000ce`，[38729208323](https://github.com/veryy/Solvit/actions/runs/38729208323)：真实Ubuntu的3设备及11运行时单元通过；产物11969798780，35,472,172字节，SHA256 `eba9b885cf1dc5d49e7b2e8ea8830c3dd155bcf27dd97ad487fdd3efe8d09a6e`，已下载并核对元数据、CRC与XML。实际日志确认Python3.12.3、Node24.21.0/npm11.19.0、Java17.0.20.1，以及Python/Node各自的initialize/tools-list/tools-call/EOF/显式环境/共享文件结果。探针在同一生产安装流程中执行，不是桌面模拟。
 - `afe83683`，[38730705181](https://github.com/veryy/Solvit/actions/runs/38730705181)：新增外部SIGKILL脚本的首轮失败在`run-as: unknown package: dev.solvit.terminal.test`，9常规设备测试已成功，强杀尚未开始。Gradle/UTP完成常规连接测试后移除测试APK；脚本需重新安装本次构建的唯一测试APK，并确认实际包路径，再启动外部强杀用例。此轮不能算宿主死亡验收通过。
+- 修复后的`0d79682c`，[38731662908](https://github.com/veryy/Solvit/actions/runs/38731662908)：API26/35两任务成功，各9设备、11 Linux单元及12系统执行单元通过；另外各自实际SIGKILL一次JVM，记录的宿主、监督进程、worker及后代四个PID均消失，包含僵尸回收检查。已下载产物11971021756/API26（28,837字节，SHA256 `37626a69b91c0a6b1bcac043dcd1e0e0c247a5d475be8a614faa032fdf3b784e`）与11971081609/API35（29,229字节，SHA256 `f9903caf99f145aca418facf8d90c132d136aff3b7b531625bdbf0669d099b0e`）；元数据、CRC、实际XML、APK安装成功及identity/result四PID对应全部核对。此实际强杀不等于仅调用`close()`；Android自身的进程清理也参与宿主死亡后的整体结果，测试不单独归因于watchdog。
+
+交付状态：`feat/local-stdio-mcp`已提交上述内部传输及证据，公开版本仍为0.41.0。下一步为插件授权/多连接页面/AI路由；尚未生成宣称支持本地MCP的新版本APK。当前MCP插件依然仅开放HTTPS。
 
 ## 插件桥下一步必须满足的约束
 
