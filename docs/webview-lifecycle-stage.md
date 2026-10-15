@@ -172,3 +172,6 @@ b1ccb325/[38807773768](https://github.com/veryy/Solvit/actions/runs/38807773768)
 
 
 0aa4d573的同条件三项复验[38816285934](https://github.com/veryy/Solvit/actions/runs/38816285934)成功。归档12010474349（883188字节，SHA256 `310fb570ab98c3525883ac5be2221cb2962744439569a638709a8a354423b1d9`）完整下载/CRC，实际OK (3 tests)、19.482秒，零Fatal signal/Snapshot/临时QUEUED_SCROLL_DIAG。实际查看settings-bottom-insets PNG，关于标题、助手简介、备份提示完整显示在导航栏上方；保留原最后可见性断言。原设置失败的未放置节点判断在同一生产APK上由红到绿。完整[38817060892](https://github.com/veryy/Solvit/actions/runs/38817060892)已从清理后0aa4d573启动，仍待611单元/Lint/签名及全部设备门禁，未合入或发布。
+
+
+完整候选38817060892/build116704305024成功；归档12012155669（438102字节，SHA256 `68345513d4736464be02a435f756d6929f4950dc3834341b81f5b4884401acc9`）完整下载/CRC/逐项XML核对611项，失败/错误/跳过均0。Lint、APK及固定签名检查成功。verify-ui116707342633正在准备设备测试APK；不能以构建成功代替完整设备门禁，候选仍未合入/发布。
