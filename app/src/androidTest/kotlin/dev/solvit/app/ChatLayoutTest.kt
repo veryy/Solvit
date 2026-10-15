@@ -741,19 +741,22 @@ class ChatLayoutTest {
         val app = rule.activity.application as SolvitApplication
         val previous = runBlocking { app.settings.load() }
         try {
-            runBlocking { app.settings.save(previous) }
-            rule.activityRule.scenario.recreate()
-            ready()
-            rule.onNodeWithContentDescription("对话历史").performClick()
-            rule.onNodeWithTag("new_chat").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithText("配置你的模型").assertDoesNotExist()
-            rule.onNode(hasText("工作区：", substring = true)).assertDoesNotExist()
-            rule.onNodeWithContentDescription("新建对话").assertDoesNotExist()
-            rule.onNodeWithContentDescription("设置").assertIsDisplayed()
-            openWorkspace()
-            rule.onNodeWithContentDescription("关闭工作区").performClick()
-            rule.onNode(hasText("工作区：", substring = true)).assertIsDisplayed()
+            // Independent of the upgrade fixture when run alone; no model is called.
+            runBlocking { app.settings.save(previous.copy(apiKey=previous.apiKey.ifBlank { "workspace-layout-fixture-key" })) }
+            repeat(3) {
+                rule.activityRule.scenario.recreate()
+                ready()
+                rule.onNodeWithContentDescription("对话历史").performClick()
+                rule.onNodeWithTag("new_chat").performClick()
+                rule.waitUntil(10_000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
+                rule.onNodeWithText("配置你的模型").assertDoesNotExist()
+                rule.onNode(hasText("工作区：", substring = true)).assertDoesNotExist()
+                rule.onNodeWithContentDescription("新建对话").assertDoesNotExist()
+                rule.onNodeWithContentDescription("设置").assertIsDisplayed()
+                openWorkspace()
+                rule.onNodeWithContentDescription("关闭工作区").performClick()
+                rule.onNode(hasText("工作区：", substring = true)).assertIsDisplayed()
+            }
         } finally { runBlocking { app.settings.save(previous) } }
     }
     @Test fun startupFocusesInputAndFloatingComposerStaysAboveRealKeyboard() {
