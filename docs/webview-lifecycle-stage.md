@@ -1,0 +1,9 @@
+# WebView 生命周期排查
+
+2026-10-16。公开基线0.43.1/build84；历史两轮系统WebView124原生SIGSEGV与后续未复现记录保留，本阶段尚未修复或发布。
+
+沿用diagnose流程。此前单独重跑workspace-startup累计多轮未复现；本轮增加失败原始顺序中的七个现有场景，保留终端/PTY、记忆、编辑分支和插件管理前置，再到原有三次Activity重建/创建关闭工作区。仍使用正式0.43.1原APK和相同生产源码，遇首错停止，保留完整原生日志和provider信息。组合场景单轮300秒，其余原有场景120秒不变；不替代全套发布门禁。
+
+源码审查另发现可独立验证的文档更换风险：WebView由remember(document)与DisposableEffect(browser)管理，但AndroidView没有相同身份键。新增真实设备回归在同一个组合位置更换两个离线文档，断言挂载了新实例且实际DOM/消息桥接收当前状态；没有先改生产代码。它不是原生SIGSEGV根因的证据，需要分别报告。
+
+实际阅读上游Operit固定dbf71916的`ui/common/composedsl/ToolPkgComposeDslWebView.kt`（disposedRef、actionLane、onDispose与renderer回调）、`ui/features/token/TokenConfigWebViewScreen.kt`，以及DSH d7432673的`packages/client/ui-settings-shell/tests/apply.client.spec.ts`（销毁移除页面及延迟注册）。参考生命周期撤销与资源归属，独立适配，不复制LGPL源码。Android官方WebView.destroy契约要求先从视图树移除且销毁后不再调用；AndroidView的factory并不在每次update重新执行。后续修改仍需实际设备反证与回归，不能仅凭源码猜测宣称修复。

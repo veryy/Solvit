@@ -5,6 +5,11 @@ solvit_diagnostic_expected='OK (1 test)'
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
   workspace-editor) solvit_diagnostic_test='dev.solvit.app.WorkspaceHtmlPageTest#htmlCreatesBindsBrowsesAndSavesThroughActualNativeConfirmationAndRejectsStaleFiles' ;;
   workspace-startup) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation' ;;
+  workspace-startup-sequence)
+    # Preserve the actual preceding WebView/PTY/memory scenarios in the failed full run.
+    solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace,dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput,dev.solvit.app.ChatLayoutTest#memoryManagementEditsAndDeletesWithPluginDisabled,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending,dev.solvit.app.ChatLayoutTest#pluginPageCanReachBottomAndReturnToChat,dev.solvit.app.ChatLayoutTest#actualAndroidJsMemoryReachesPreparedModelRequestWithoutSearchToolCalls,dev.solvit.app.ChatLayoutTest#configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation'
+    solvit_diagnostic_expected='OK (7 tests)' ;;
+  plugin-document-lifecycle) solvit_diagnostic_test='dev.solvit.app.PluginWebPageLifecycleTest' ;;
   plugin-resume)
     solvit_diagnostic_test='dev.solvit.app.McpPageUiTest,dev.solvit.app.PluginPageUiTest#packagedTaskPageShowsSourcesAndUsesNativeCostConfirmationBeforeServiceControl,dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin,dev.solvit.app.PluginWebPageUiTest,dev.solvit.app.WorkspaceImportProgressHtmlTest'
     solvit_diagnostic_expected='OK (5 tests)' ;;
@@ -24,7 +29,7 @@ mkdir -p ui-screenshots
 capture() {
   timeout 15s adb logcat -d -s WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I TestRunner:I '*:S' > ui-screenshots/page-diagnostic-logcat.txt || true
   # Keep native Chromium crashes as well as test assertions; filtered logs hide SIGSEGV.
-  timeout 15s adb logcat -d -t 1500 > ui-screenshots/page-diagnostic-native-logcat.txt || true
+  timeout 15s adb logcat -d > ui-screenshots/page-diagnostic-native-logcat.txt || true
   timeout 15s adb shell dumpsys webviewupdate > ui-screenshots/page-diagnostic-webview-provider.txt || true
   timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
 }
@@ -33,7 +38,9 @@ timeout 90s adb install -r diagnostic-apk/app-debug.apk
 timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   echo "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor} diagnostic iteration $iteration/$solvit_diagnostic_repetitions"
-  timeout --signal=TERM --kill-after=10s 120s adb shell am instrument -w \
+  solvit_iteration_timeout=120s
+  if [ "${SOLVIT_DIAGNOSTIC_CASE:-}" = workspace-startup-sequence ]; then solvit_iteration_timeout=300s; fi
+  timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
     -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \
