@@ -61,3 +61,9 @@ Ubuntu正式任务116589760648成功，已下载完整日志；其原有实际�
 c157cfa9的[38788926124](https://github.com/veryy/Solvit/actions/runs/38788926124)终态失败。原始归档12000375188（548081字节，SHA256 `49305b69cd22cd3b18655bd6eb55a2001d1b6fbdeed0e24f784d099404f75d35`）完整下载/CRC核对：第一轮30个操作完成，未出现Fatal signal或Snapshot异常，但测试收尾在`repeatOnLifecycle.removeObserver → TestCoroutineScheduler → withTestCoroutines.runTest`抛出必须在主线程执行的异常。不能算第一轮通过，更不能写成240次通过。单换StandardTestDispatcher不足，已撤回；同配置旧APK对照38790008135和完整回归38789402515主动取消，不当作验证成功。
 
 继续只读取官方源码：1.7.8仍保留ApplyingContinuationInterceptor的AbstractCoroutineContextKey，1.8.0/1.8.3已经移除。该差异可能涉及withContext(Main)无法正确替换被包装的拦截器，但需核对实际上游修复与测试，不能仅凭版本较新宣称解决；尚未升级生产依赖，也不以自定义清理时机掩盖测试收尾异常。
+
+## 旧调度器专项完成240次，仍不能证明根因消失
+
+取证轮[38787642743](https://github.com/veryy/Solvit/actions/runs/38787642743)成功，实际使用正式0.43.2 APK及原默认dispatcher。原始归档12000345762（1289690字节，SHA256 `af083bee39da26ccd03d1139ab51253fb0b98639cf77d4aa388a8ca8c0515114`）完整下载/CRC：8份iteration各OK (1 test)，原生日志恰好240个完整计数、8个30/30末项，零Fatal signal、零Snapshot异常；仍有53个Chromium内部destroyed-WebView警告。此结论只属于该轮，不覆盖38784831983的59次后失败，也不证明警告是原生崩溃根因或已修好间歇问题。临时SNAPSHOT_THREAD_DIAG处理器已经删除；原始日志本身已有所需竞争栈，不再留全局fatal handler。
+
+已实际读取AndroidX上游[c500530fe429fb363e2aed6741a67c938b6f6891](https://github.com/androidx/androidx/commit/c500530fe429fb363e2aed6741a67c938b6f6891)源码与新增`ApplyingContinuationInterceptorTest`、`CustomEffectContextTest`修改：官方Bug358628457确认AbstractCoroutineContextKey使用错误，导致不能替换另一个ContinuationInterceptor。1.8.3官方Maven源码包含修复，1.7.6/1.7.8不含。后续在隔离候选分支对齐Compose BOM2025.06.01（UI/runtime/foundation1.8.3、Material3 1.3.2），保留默认规则先验证依赖修复本身；不同时引入自定义dispatcher或特殊teardown。候选未通过前不合入/发布、不宣称WebView原生根因已解决。
