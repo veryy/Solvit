@@ -261,3 +261,18 @@ test('API21 environment is offered only to compatible hosts and API20 remains in
   assert.deepEqual(latest.plugins.filter(p=>p.id!=='dev.solvit.environment'),previous.plugins);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
+
+test('API30 offers local MCP while API10 through API29 retain immutable HTTPS MCP',async()=>{
+ const server=createMarketServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+ const base=`http://127.0.0.1:${server.address().port}`;
+ try{
+  for(let api=10;api<=29;api++){
+   const catalog=await(await fetch(base+`/api/v1/plugins?hostApi=${api}`)).json();
+   const mcp=catalog.plugins.find(p=>p.id==='dev.solvit.mcp');assert.equal(mcp.version,'1.1.1');assert.equal(mcp.apiVersion,10);
+   const bytes=Buffer.from(await(await fetch(base+mcp.downloadPath)).arrayBuffer());
+   assert.deepEqual(bytes,await readFile(new URL('./packages/legacy/dev.solvit.mcp-1.1.1.solvit.json',import.meta.url)));
+  }
+  const catalog=await(await fetch(base+'/api/v1/plugins?hostApi=30')).json();const mcp=catalog.plugins.find(p=>p.id==='dev.solvit.mcp');
+  assert.equal(mcp.version,'1.2.0');assert.equal(mcp.apiVersion,30);assert.deepEqual(mcp.nativeServices,['environment.linux','process.stdio']);
+ }finally{await new Promise(resolve=>server.close(resolve))}
+});

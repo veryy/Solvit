@@ -54,5 +54,9 @@
   {
     "file": "dev.solvit.git-1.3.0.solvit.json",
     "after": "dev.solvit.git.solvit.json"
+  },
+  {
+    "file": "dev.solvit.mcp-1.1.1.solvit.json",
+    "after": "dev.solvit.mcp.solvit.json"
   }
 ]
