@@ -27,3 +27,9 @@
 1d4d91ef压力诊断38783699801终态失败。原始归档11997340813（623544字节，SHA256 `bd58ac51e5bd98d44325ecc0d0b825d09653a9cbde8d59a1f97a6e803c261b6b`）已完整下载/CRC及原始结果核对：第一轮74.775秒、30次重建全部通过；第二轮只完成2次，在第3次期间主进程SIGSEGV，instrumentation明确Process crashed，并首错停止。native pc仍为0x357d7e5、libwebviewchromium.so、BuildId 68dabd72c6088238cbfc9a5fbfe211f916771df5，信号code128/SI_KERNEL，r9=efefefefefefefef；与前两次正式失败同签名，不是另一项断言失败。此证据推翻“短循环未复现足够”的判断，但尚不能仅凭寄存器判定上层根因。
 
 将只有测试/诊断改动的压力入口cherry-pick到main，默认仍保留原三次重建。接下来以0.43.2正式产物在相同系统WebView124运行相同压力；未切provider、不增加产品延时。诊断来源准入从“整个流程终态”改为严格检查build任务已经终态success，APK与native产物已上传完成后可与独立UI任务并行诊断；原来的生产源码逐文件一致性检查继续执行，正式发布门禁完全保留。
+
+0.43.2正式构建单元原始归档11997171225（430442字节，SHA256 `60b92ca870bfd652bcd68df8028d32e4039fcb228f070f84d9771124f769d015`）已完整下载/CRC/全部原始XML核对611项，无失败、错误或跳过。任务日志核对4项报告门禁、Lint/assemble及固定证书f076abf8…通过。实际APK58955111字节、SHA256 `d70b99e301c965c2f2d3692c372354486ce29acb6ec55d93419f777c7a235b23`，正式归档及APK内层CRC通过，ARM64/x86_64 PRoot/loader ELF存在。源码ZIP1072711字节、14条目，SHA256 `8159edb249dd29762134baaf8aa886744af689264287535bc815df4eb441f766`，正式外层归档及内层CRC已核对。公开发布和UI仍待结果。
+
+Ubuntu正式任务116589760648成功，已下载完整日志；其原有实际设备logcat门禁核对Python3.12.3/Node24.21.0/npm11.19.0、Java17、Skills/MCP Python与Node完整标记，日志实际输出Production版本元组。此次未重复下载整个38MB Linux归档，不声称已独立解析其XML或原始logcat。运行时代码未变，本轮专注页面行为的原始回归和正式安装包。
+
+修复版240次压力对照38784831983的首轮在sdkmanager安装NDK 28.2.13676358时返回“Error on ZipFile unknown archive”，未进入设备或编译产品。完整失败日志已保留，按已确认下载损坏在新runner重跑同一个已终态失败任务；不修改版本、测试超时或产品源码，不把该前置失败当作WebView复现。attempt2仍在进行。
