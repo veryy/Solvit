@@ -44,3 +44,7 @@ e81062ad最小复现[38770915001](https://github.com/veryy/Solvit/actions/runs/3
 
 
 0.43.0原始单元报告11992981393已完整下载独立解析：611用例，无失败/错误/跳过，归档SHA256 `191a55789ffc77a3f2f420b6356b3f5d8afdebc8bdee3a33cd36d24b86932504`。这不是0.43.1的验证结果，也不抵消Ubuntu失败。59a6174e/v0.43.1已启动[完整发布38774027771](https://github.com/veryy/Solvit/actions/runs/38774027771)，所有门禁重新执行。
+
+0.43.1/38774027771的构建、TS/市场/公网搜索与Ubuntu检查已通过。正式单元报告11992618766已独立完整核对：611用例、无失败/错误/跳过；归档SHA256 `993500931d1fb1aaaa3cf9d7caecfe97b6051c2897f6e6aea64f20aea7c65f31`。构建日志实际显示4项发布报告门禁回归通过，Lint/assemble成功，签名仍为`f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。
+
+正式APK产物11992493971完整分段下载/组装并校验归档摘要`64d00b6d11b1741ee6b40e8fa33e5fc961005c591231543774b8fbfe8a65ec16`及CRC；实际APK58955031字节、SHA256 `7e078b242d6a4c173c8f648c19a336f89332d2cebc1d225517f04fda4267910f`，内置Skills1.2.0与兼容1.1.1完整字节均与提交一致，ARM64/x86_64 PRoot ELF均存在。Linux源码产物11991674948完整核对后，内层源码ZIP1072711字节、14条目、SHA256 `6ce7c9022da87c389ea8f4c8ae8d8f256b3c27e54faf73e2fdec929dc1cb11db`。尚未完成UI/覆盖升级/中断恢复及公开发布，不把本地产物当作已发布版本。
