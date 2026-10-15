@@ -5,7 +5,8 @@ import vm from 'node:vm';
 import {createHash} from 'node:crypto';
 const pkg=JSON.parse(await readFile('../market-server/packages/dev.solvit.workspace.solvit.json','utf8'));
 const clone=value=>JSON.parse(JSON.stringify(value));
-function harness(bound=true,directories=null,notices=[],backups=[]){
+function harness(bound=true,directories=null,notices=[],backups=[],cleanups=[]){
+ backups=clone(backups);let pendingCleanups=clone(cleanups);const cleanupActions=[];
  let recoveryNotices=clone(notices);
  const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
  let view,approved,created=0,writes=0,draft=null,document='old',importSelection=null,nextSelection=null,importConflict=false;
@@ -22,6 +23,7 @@ function harness(bound=true,directories=null,notices=[],backups=[]){
    assert.ok(!operation||!['RUNNING','CANCELLING'].includes(operation.status),'snapshot must not block behind an active import');
    return clone(snapshot);
   }
+  if(op==='importBackupCleanups')return {cleanups:clone(pendingCleanups.slice(args.offset,args.offset+5)),offset:args.offset,total:pendingCleanups.length,incomplete:false,unreadableEntries:0};
   if(op==='importBackups'){assert.ok(Number.isInteger(args.offset));return {backups:clone(backups.slice(args.offset,args.offset+5)),offset:args.offset,total:backups.length,logicalBytes:1234,availableBytes:null,incomplete:true,unreadableRecords:2}}
   if(op==='reviewBackup'){const entry=backups.find(b=>b.id===args.backupId);assert.ok(entry);assert.equal(entry.status,'PRESENT');assert.equal(entry.pending,false);return {backupId:entry.id,path:entry.path,backupPath:entry.backupPath,bytes:entry.currentBytes,sha256:'e'.repeat(64)}}
   if(op==='importRecoveries'){assert.ok(Number.isInteger(args.offset));return {recoveries:clone(recoveryNotices.slice(args.offset,args.offset+5)),total:recoveryNotices.length}}
@@ -73,6 +75,14 @@ function harness(bound=true,directories=null,notices=[],backups=[]){
   throw Error('unsupported');
  },perform:async()=>{
   assert.ok(approved);
+  if(approved.operation==='cleanupImportBackup'){
+   const args=approved.arguments;assert.ok(backups.some(b=>b.id===args.backupId));assert.equal(args.sha256,'e'.repeat(64));
+   cleanupActions.push(clone(approved));backups=backups.filter(b=>b.id!==args.backupId);return clone(snapshot);
+  }
+  if(['restoreImportBackupCleanup','dismissImportBackupCleanup'].includes(approved.operation)){
+   assert.ok(pendingCleanups.some(c=>c.id===approved.arguments.backupId));cleanupActions.push(clone(approved));
+   pendingCleanups=pendingCleanups.filter(c=>c.id!==approved.arguments.backupId);return clone(snapshot);
+  }
   if(approved.operation==='selectImportBackup'){const args=approved.arguments,entry=backups.find(b=>b.id===args.backupId);assert.ok(entry);assert.equal(args.sha256,'e'.repeat(64));assert.equal(args.path,entry.path);importSelection={id:'backup-choice',name:entry.path.split('/').pop(),mimeType:'text/plain',bytes:entry.currentBytes,sha256:args.sha256,source:{kind:'workspaceBackup',backupId:entry.id,path:entry.path,backupPath:entry.backupPath}};return clone(snapshot)}
   if(approved.operation==='dismissImportRecovery'){recoveryNotices=recoveryNotices.filter(n=>n.id!==approved.arguments.recoveryId);return clone(snapshot)}
   if(approved.operation==='selectChatAttachment'){
@@ -113,7 +123,7 @@ function harness(bound=true,directories=null,notices=[],backups=[]){
   return view;
  };
  const event=async(id,fields={})=>{const node=nodes().find(n=>n.id===id);assert.ok(node,`missing ${id}`);assert.notEqual(node.enabled,false);approved=node.hostAction;return render({nodeId:id,action:node.action,fields:{...Object.fromEntries(nodes().filter(n=>n.kind==='field').map(n=>[n.id,n.value])),...fields}})};
- return {render,event,nodes,queries,entryActions,set pauseImport(value){pauseImport=value},snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set reviewTarget(value){reviewTarget=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
+ return {render,event,nodes,queries,entryActions,cleanupActions,set pauseImport(value){pauseImport=value},snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set reviewTarget(value){reviewTarget=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
 }
 test('file imports preserve metadata and require a separate reviewed create; conflicts stay renameable',async()=>{
  const h=harness();await h.render();
@@ -388,4 +398,28 @@ test('missing, replaced or pending backup rows never offer an enabled content re
  const h=harness(true,null,[],backupFixtures());await h.render();await h.event('backupOpen');
  for(const i of [1,2,3]){await h.event(`backup_view_${i}`);assert.equal(h.nodes().find(n=>n.id==='backupReview').enabled,false);assert.ok(!h.nodes().some(n=>n.id==='backupSelect'));await h.event('backupList')}
  assert.equal(h.queries.filter(([op])=>op==='reviewBackup').length,0);assert.equal(h.imports.length,0);
+});
+
+test('backup cleanup needs current review and an explicit destructive control; browsing never cleans',async()=>{
+ const h=harness(true,null,[],backupFixtures());await h.render();await h.event('backupOpen');await h.event('backup_view_0');
+ assert.ok(!h.nodes().some(n=>n.id==='backupClean'));assert.equal(h.cleanupActions.length,0);
+ await h.event('backupReview');const control=h.nodes().find(n=>n.id==='backupClean');
+ assert.equal(control.hostAction.operation,'cleanupImportBackup');assert.ok(control.confirm.includes('Deletes the reviewed backup'));
+ assert.deepEqual(control.hostAction.arguments,{backupId:backupFixtures()[0].id,sha256:'e'.repeat(64),path:'src/file-0.txt'});
+ await h.event('backupClean');assert.equal(h.cleanupActions.length,1);assert.equal(h.imports.length,0);
+ assert.ok(h.nodes().find(n=>n.id==='backup_count').text.includes('6'));
+});
+test('interrupted cleanup pages offer safe return or record-only dismissal and never replay deletion',async()=>{
+ const states=['HELD','HELD_CHANGED','SOURCE_AND_HELD','SOURCE_AVAILABLE','UNCONFIRMED','DELETED','UNAVAILABLE'];
+ const cleanups=states.map((status,i)=>({id:backupFixtures()[i].id,path:`file-${i}`,backupPath:`solvit-backup-${i}`,phase:status==='UNCONFIRMED'?'DELETING':status==='DELETED'?'DELETED':'CLAIMED',status,heldBytes:i<4?15:null}));
+ const h=harness(true,null,[],backupFixtures(),cleanups);await h.render();await h.event('backupOpen');await h.event('cleanupOpen');
+ assert.equal(h.cleanupActions.length,0);assert.equal(h.nodes().filter(n=>/^cleanup_restore_/.test(n.id)).length,4);
+ assert.ok(h.nodes().find(n=>n.id==='cleanup_dismiss_4').confirm.includes('never files'));
+ assert.ok(!h.nodes().some(n=>n.hostAction?.operation==='cleanupImportBackup'));
+ await h.event('cleanupNext');assert.ok(!h.nodes().some(n=>/^cleanup_restore_/.test(n.id)));
+ assert.equal(h.nodes().find(n=>n.id==='cleanup_dismiss_0').hostAction.operation,'dismissImportBackupCleanup');
+ await h.event('cleanupPrev');await h.event('cleanup_restore_1');assert.equal(h.cleanupActions[0].operation,'restoreImportBackupCleanup');
+ assert.ok(h.nodes().find(n=>n.id==='message').text.includes('review again'));
+ await h.event('cleanup_dismiss_3');assert.equal(h.cleanupActions[1].operation,'dismissImportBackupCleanup');
+ assert.equal(h.cleanupActions.length,2);assert.equal(h.imports.length,0);
 });

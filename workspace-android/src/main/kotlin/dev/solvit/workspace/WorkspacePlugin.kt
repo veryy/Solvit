@@ -115,6 +115,10 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             WorkspaceBackupCleanupRecord(r.id,r.path,r.backupPath,item.intent.phase,item.status,item.heldBytes)
         },offset,inventory.observations.size,inventory.incomplete,inventory.unreadableEntries)
     } }
+    override suspend fun dismissImportBackupCleanup(workspaceId:String,backupId:String):Unit = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        backupCleanup(workspaceId).dismiss(backupId) { verifyPage(workspaceId) }
+    } }
     override suspend fun restoreImportBackupCleanup(workspaceId:String,backupId:String):Unit = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         backupCleanup(workspaceId).restore(backupId) { verifyPage(workspaceId) }

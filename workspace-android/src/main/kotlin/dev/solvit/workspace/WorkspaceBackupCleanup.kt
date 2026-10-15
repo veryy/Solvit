@@ -147,6 +147,13 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
         check(key(source)==heldKey && !Files.exists(held.toPath(),NOFOLLOW_LINKS)) { "恢复后文件身份变化，请检查" }
         Files.delete(intentFile.toPath());null
     }
+    suspend fun dismiss(id:String,checkpoint:suspend ()->Unit={}) = lock.withLock {
+        val observed=inspectLocked(id);val (intentFile,held)=files(id)
+        check(observed.status in setOf("DELETED","UNCONFIRMED") && !Files.exists(held.toPath(),NOFOLLOW_LINKS)) { "认领文件仍存在，不能关闭清理记录" }
+        checkpoint()
+        if(observed.intent.phase=="DELETED")catalog.forgetDeleted(observed.intent.record)
+        Files.delete(intentFile.toPath())
+    }
     private fun inspectLocked(id:String):Observation {
         val intent=read(id);val held=attrs(files(id).second)
         val source=try { attrs(catalog.location(intent.record)) }catch(_:Exception) { return Observation(intent,"UNAVAILABLE",held?.takeIf { it.isRegularFile }?.size()) }

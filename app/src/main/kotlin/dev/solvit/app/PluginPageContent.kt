@@ -106,6 +106,16 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                             UiText("停止当前文件导入并等待清理。若文件已经导入完成，会保留成功结果。")
                         } else if (directoryControl.operation == "dismissImportRecovery") {
                             UiText("仅关闭这条恢复提示，不删除工作区文件或原文件备份。")
+                        } else if (directoryControl.operation in setOf("selectImportBackup","cleanupImportBackup","restoreImportBackupCleanup","dismissImportBackupCleanup")) {
+                            UiText(when(directoryControl.operation) {
+                                "selectImportBackup" -> "选择备份副本，源备份会保留。之后仍需确认导入目标。"
+                                "cleanupImportBackup" -> "删除刚审阅的备份，当前目标文件会保留。此操作无法撤销。"
+                                "restoreImportBackupCleanup" -> "将暂存文件退回原备份位置，同名文件不会被覆盖。"
+                                else -> "仅关闭清理记录，不删除文件，也不确认先前清理是否成功。"
+                            })
+                            val arguments=Json.parseToJsonElement(directoryControl.argumentsJson).jsonObject
+                            arguments["path"]?.jsonPrimitive?.content?.let { Text(it) }
+                            arguments["sha256"]?.jsonPrimitive?.content?.let { SelectionContainer { Text("SHA-256: $it") } }
                         } else if (directoryControl.operation in setOf("installEnvironment", "cancelEnvironment", "installSoftware", "createLinuxShell")) {
                             // Fixed host controls already constrain their inputs; show the page's localized explanation.
                             val explanation = if (directoryControl.operation == "createLinuxShell") node.getValue("text").jsonPrimitive.content

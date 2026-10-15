@@ -120,6 +120,22 @@ class WorkspaceBackupCleanupTest {
         File(root,r.backupPath).writeText("new file after interrupted delete")
         assertFails { reopened.restore(r.id) };assertEquals("new file after interrupted delete",File(root,r.backupPath).readText())
     }
+    @Test fun unconfirmedDismissalRetiresOnlyMetadataAndMalformedOrOrphanedEntriesAreVisible()=fixture { root,ledger,r ->
+        val cleanup=WorkspaceBackupCleanup(root,ledger,mover);cleanup.prepare(r.id,r.originalSha256)
+        val held=File(ledger,"backup-cleanup/${r.id}.held")
+        assertFails { cleanup.dismiss(r.id) };assertTrue(held.exists())
+        assertFailsWith<CancellationException> {
+            cleanup.deleteReviewed(r.id,r.originalSha256) { if(!held.exists())throw CancellationException("kill window") }
+        }
+        File(root,r.backupPath).writeText("concurrent file")
+        cleanup.dismiss(r.id)
+        assertEquals("concurrent file",File(root,r.backupPath).readText())
+        assertEquals("current target",File(root,r.path).readText())
+        assertFalse(WorkspaceImportBackups(root,ledger).inventory().observations.single().pending)
+        File(ledger,"backup-cleanup/${UUID.randomUUID()}.intent").writeText("bad private record")
+        File(ledger,"backup-cleanup/${UUID.randomUUID()}.held").writeText("orphan; never auto-adopt")
+        val inventory=cleanup.inventory();assertEquals(2,inventory.unreadableEntries);assertTrue(inventory.observations.isEmpty())
+    }
     @Test fun cancellationBeforeClaimRetiresOnlyItsIntentOnExplicitRestore()=fixture { root,ledger,r ->
         val cleanup=WorkspaceBackupCleanup(root,ledger,mover)
         assertFailsWith<CancellationException> {

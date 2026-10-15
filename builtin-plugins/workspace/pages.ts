@@ -11,6 +11,16 @@ type ImportRecovery={id:string;path:string;backupPath:string|null;status:string}
 type Backup={id:string;path:string;backupPath:string;originalBytes:number;originalSha256:string;createdAt:number;status:string;currentBytes:number|null;pending:boolean};
 type BackupPage={backups:Backup[];offset:number;total:number;logicalBytes:number;availableBytes:number|null;incomplete:boolean;unreadableRecords:number};
 type BackupReview={backupId:string;path:string;backupPath:string;bytes:number;sha256:string};
+type Cleanup={id:string;path:string;backupPath:string;phase:string;status:string;heldBytes:number|null};
+type CleanupPage={cleanups:Cleanup[];offset:number;total:number;incomplete:boolean;unreadableEntries:number};
+const cleanupLabels={
+ zh:['清理这份备份','将删除刚审阅的备份，当前目标文件不受影响。已有打开文件或硬链接不受锁定。','备份已清理','未完成的清理','没有待处理的清理记录','退回原备份位置','已退回；请重新审阅后再决定是否清理。','结果未确认，不会自动重试删除。','认领文件保留在应用私有区，重启不会自动删除。','原备份仍在原处','文件已暂存，等待处理','认领的文件身份不同，禁止删除','原位置已有文件；两份文件都保留','原路径暂不可用，请先检查工作目录','结果未确认','已确认删除','仅关闭记录','只关闭记录，不删除任何文件；不能据此确认先前清理是否成功。','清理记录扫描不完整或不可读','返回备份列表','退回时不会覆盖原位置的同名文件。'],
+ en:['Clean this backup','Deletes the reviewed backup; the current target is kept. Existing open descriptors and hardlinks are not locked.','Backup cleaned','Unfinished cleanup','No pending cleanup records','Return to backup location','Returned; review again before deciding to clean.','Outcome unconfirmed; deletion is never retried automatically.','Claimed files stay private and are never deleted automatically on restart.','Original backup is still at its location','File held for review','Claimed file identity differs; deletion blocked','Original name is occupied; both files are kept','Original path unavailable; inspect the workspace first','Outcome unconfirmed','Deletion confirmed','Dismiss record only','Dismisses records only, never files; this does not confirm the earlier cleanup outcome.','Cleanup scan incomplete or entries unreadable','Back to backups','Returning never replaces a file at the original name.'],
+ ja:['このバックアップを削除','確認したバックアップを削除します。現在の対象ファイルは保持します。既存のFDやハードリンクはロックしません。','削除しました','未完了の削除','未処理の記録はありません','元の場所へ戻す','戻しました。削除する前に再確認してください。','結果未確認。自動で削除を再実行しません。','一時保管したファイルは再起動時に自動削除しません。','元の場所にあります','ファイルを一時保管中','ファイルIDが異なるため削除不可','元の名前が使用中。両方を保持','元のパスを確認してください','結果未確認','削除確認済み','記録のみ閉じる','ファイルは削除しません。以前の削除結果の確認にはなりません。','記録の走査が不完全、または読み取り不可','一覧へ戻る','元の場所の同名ファイルは上書きしません。'],
+ ko:['이 백업 정리','검토한 백업을 삭제하며 현재 대상은 유지합니다. 열린 파일 및 하드 링크는 잠그지 않습니다.','백업 정리 완료','미완료 정리','처리할 기록 없음','원래 위치로 반환','반환 완료. 정리하려면 다시 검토하세요.','결과 미확인. 자동으로 삭제를 재시도하지 않습니다.','임시 보관 파일은 재시작 시 자동 삭제하지 않습니다.','원래 위치에 있음','파일 보관 중','파일 식별자가 달라 삭제 차단','원래 이름 사용 중. 두 파일 유지','원래 경로를 확인하세요','결과 미확인','삭제 확인됨','기록만 닫기','파일을 삭제하지 않으며 이전 정리 결과를 확정하지 않습니다.','기록 검색 불완전 또는 읽기 실패','백업 목록으로','원래 위치의 동명 파일을 덮어쓰지 않습니다.'],
+ es:['Limpiar esta copia','Elimina la copia revisada; conserva el destino actual. Los descriptores abiertos y enlaces duros no se bloquean.','Copia eliminada','Limpieza pendiente','Sin registros pendientes','Devolver a su ubicación','Devuelta; revísala antes de limpiarla.','Resultado sin confirmar; nunca se repite la eliminación automáticamente.','Los archivos retenidos no se eliminan al reiniciar.','La copia sigue en su ubicación','Archivo retenido','Identidad distinta; eliminación bloqueada','Nombre ocupado; se conservan ambos','Revisa la ruta original','Resultado sin confirmar','Eliminación confirmada','Cerrar solo registro','Solo cierra registros, nunca archivos; no confirma el resultado anterior.','Exploración incompleta o registros ilegibles','Volver a copias','Nunca reemplaza un archivo en el nombre original.'],
+ fr:['Supprimer cette copie','Supprime la copie vérifiée et conserve la cible actuelle. Les descripteurs ouverts et liens physiques ne sont pas verrouillés.','Copie supprimée','Nettoyage inachevé','Aucun enregistrement en attente','Remettre à sa place','Remise en place ; vérifier avant de supprimer.','Résultat non confirmé ; aucune suppression automatique.','Les fichiers retenus ne sont pas supprimés au redémarrage.','Copie à sa place','Fichier retenu','Identité différente ; suppression bloquée','Nom occupé ; les deux fichiers sont conservés','Vérifier le chemin d’origine','Résultat non confirmé','Suppression confirmée','Fermer le suivi seulement','Ne supprime aucun fichier et ne confirme pas le résultat précédent.','Analyse incomplète ou données illisibles','Retour aux copies','Ne remplace jamais un fichier au nom d’origine.']
+};
 const backupLabels={
  zh:['备份管理','已登记备份','当前可用空间','独立备份文件逻辑大小','旧版未登记的文件可在目录里查看，不会自动认领或删除。','暂无登记的备份','导入中或等待恢复','文件仍在，内容可能已修改','文件已不存在','文件身份已变化','暂时无法读取','查看详情','创建时审阅','当前内容','审阅备份内容','选择副本恢复','源备份继续保留；目标同名时仍需审阅并确认替换。','扫描不完整或有无法读取的记录','备份位置','登记时间','返回备份列表','未知','可用空间只是当前观察；逻辑大小不等于可回收空间。','来源：工作区备份'],
  en:['Manage backups','Registered backups','Available storage now','Unique backup logical bytes','Older unregistered files remain in the directory; no automatic adoption or deletion.','No registered backups','Importing or awaiting recovery','File present; contents may have changed','File missing','File identity changed','Temporarily unavailable','View details','Original reviewed content','Current content','Review backup content','Select a copy to restore','The source backup is kept. Existing destinations still require review and confirmation.','Scan incomplete or records unreadable','Backup path','Recorded at','Back to backups','Unknown','Free storage is an observation; logical size is not reclaimable space.','Source: workspace backup'],
@@ -105,6 +115,7 @@ export function workspacePage(importsEnabled=true){
  let recoveryWorkspace:string|null=null,recoveryOffset=0,recoveryTotal=0,recoveryReturnMode='home';
  let recoveries:ImportRecovery[]=[];
  let backupOffset=0,backupReturnMode='home';
+ let cleanupOffset=0;let cleanupPage:CleanupPage={cleanups:[],offset:0,total:0,incomplete:false,unreadableEntries:0};
  let backupPage:BackupPage={backups:[],offset:0,total:0,logicalBytes:0,availableBytes:null,incomplete:false,unreadableRecords:0};
  let backup:Backup|null=null,backupReview:BackupReview|null=null;
  let snapshot:Snapshot={workspaceId:null,workspaces:[],shells:[],draftInstallAllowed:false};
@@ -120,6 +131,7 @@ export function workspacePage(importsEnabled=true){
   const im=importLabels[locale.split(/[-_]/)[0] as keyof typeof importLabels]??importLabels.en;
   const tr=transferLabels[locale.split(/[-_]/)[0] as keyof typeof transferLabels]??transferLabels.en;
   const ir=replacementLabels[locale.split(/[-_]/)[0] as keyof typeof replacementLabels]??replacementLabels.en;
+  const cl=cleanupLabels[locale.split(/[-_]/)[0] as keyof typeof cleanupLabels]??cleanupLabels.en;
   const bl=backupLabels[locale.split(/[-_]/)[0] as keyof typeof backupLabels]??backupLabels.en;
   const rl=recoveryLabels[locale.split(/[-_]/)[0] as keyof typeof recoveryLabels]??recoveryLabels.en;
   const ip=previewLabels[locale.split(/[-_]/)[0] as keyof typeof previewLabels]??previewLabels.en;
@@ -140,6 +152,10 @@ export function workspacePage(importsEnabled=true){
    if(recoveryWorkspace!==snapshot.workspaceId)recoveryOffset=0;
    recoveryWorkspace=snapshot.workspaceId;await loadRecoveries();
   }
+  const loadCleanups=async()=>{
+   cleanupPage=await api.query('importBackupCleanups',{offset:cleanupOffset}) as unknown as CleanupPage;
+   if(cleanupOffset>=cleanupPage.total&&cleanupOffset>0){cleanupOffset=Math.max(0,Math.floor((cleanupPage.total-1)/5)*5);cleanupPage=await api.query('importBackupCleanups',{offset:cleanupOffset}) as unknown as CleanupPage}
+  };
   const loadBackups=async()=>{
    backupPage=await api.query('importBackups',{offset:backupOffset}) as unknown as BackupPage;
    if(backupOffset>=backupPage.total&&backupOffset>0){backupOffset=Math.max(0,Math.floor((backupPage.total-1)/5)*5);backupPage=await api.query('importBackups',{offset:backupOffset}) as unknown as BackupPage}
@@ -187,7 +203,18 @@ export function workspacePage(importsEnabled=true){
    // Passive tree fetches follow writes automatically; keep their result/backup visible.
    if(event.action!=='treeLoad')message='';try{
     const action=event.action;
-    if(action==='backupOpen'){backupReturnMode=mode;backupOffset=0;backup=null;backupReview=null;await loadBackups();mode='backups'}
+    if(action==='cleanupOpen'){cleanupOffset=0;await loadCleanups();mode='cleanups'}
+    else if(action==='cleanupPrev'||action==='cleanupNext'||action==='cleanupRefresh'){
+     cleanupOffset=action==='cleanupPrev'?Math.max(0,cleanupOffset-5):action==='cleanupNext'?cleanupOffset+5:0;await loadCleanups();
+    }
+    else if(action==='cleanupBack'){await loadBackups();mode='backups'}
+    else if(action==='cleanupRestore'||action==='cleanupDismiss'){
+     await api.perform();message=action==='cleanupRestore'?cl[6]:cl[17];await loadCleanups();
+    }
+    else if(action==='backupClean'&&backup&&backupReview){
+     backupReview=null;await api.perform();message=cl[2];await loadBackups();mode='backups';
+    }
+    else if(action==='backupOpen'){backupReturnMode=mode;backupOffset=0;backup=null;backupReview=null;await loadBackups();mode='backups'}
     else if(action==='backupPrev'||action==='backupNext'||action==='backupRefresh'){
      backupOffset=action==='backupPrev'?Math.max(0,backupOffset-5):action==='backupNext'?backupOffset+5:0;await loadBackups();
     }
@@ -380,14 +407,27 @@ export function workspacePage(importsEnabled=true){
    backupPage.backups.forEach((r,i)=>nodes.push({id:`backup_${i}`,kind:'card',children:[
     text(`backup_path_${i}`,r.path),text(`backup_status_${i}`,r.pending?bl[6]:r.status==='PRESENT'?bl[7]:r.status==='MISSING'?bl[8]:r.status==='CHANGED_IDENTITY'?bl[9]:bl[10],'caption'),
     ...(r.currentBytes===null?[]:[text(`backup_bytes_${i}`,`${r.currentBytes} B`,'caption')]),button(`backup_view_${i}`,bl[11],'backupView')]}));
-   footer.push(button('backupBack',t[8]),button('backupRefresh',t[9]));if(backupOffset>0)footer.push(button('backupPrev',t[17]));if(backupOffset+5<backupPage.total)footer.push(button('backupNext',t[18]));
+   footer.push(button('backupBack',t[8]),button('backupRefresh',t[9]),button('cleanupOpen',cl[3]));if(backupOffset>0)footer.push(button('backupPrev',t[17]));if(backupOffset+5<backupPage.total)footer.push(button('backupNext',t[18]));
+  }else if(mode==='cleanups'){
+   nodes.push(text('cleanup_title',cl[3],'title'),text('cleanup_note',cl[8],'caption'));
+   if(cleanupPage.incomplete||cleanupPage.unreadableEntries)nodes.push(text('cleanup_warning',`${cl[18]} (${cleanupPage.unreadableEntries})`));
+   if(!cleanupPage.cleanups.length)nodes.push(text('cleanup_empty',cl[4]));
+   cleanupPage.cleanups.forEach((r,i)=>{
+    const state=r.status==='SOURCE_AVAILABLE'?cl[9]:r.status==='HELD'?cl[10]:r.status==='HELD_CHANGED'?cl[11]:r.status==='SOURCE_AND_HELD'?cl[12]:r.status==='UNAVAILABLE'?cl[13]:r.status==='DELETED'?cl[15]:cl[14];
+    nodes.push({id:`cleanup_${i}`,kind:'card',children:[text(`cleanup_path_${i}`,r.path),text(`cleanup_backup_${i}`,r.backupPath,'caption'),text(`cleanup_status_${i}`,state),
+     ...(r.heldBytes===null?[]:[text(`cleanup_bytes_${i}`,`${r.heldBytes} B`,'caption')]),
+     ...(['SOURCE_AVAILABLE','HELD','HELD_CHANGED','SOURCE_AND_HELD'].includes(r.status)?[{...button(`cleanup_restore_${i}`,cl[5],'cleanupRestore'),confirm:cl[20],hostAction:{kind:'workspace.perform' as const,operation:'restoreImportBackupCleanup' as const,arguments:{backupId:r.id}}}]:[]),
+     ...(['UNCONFIRMED','DELETED'].includes(r.status)?[text(`cleanup_unconfirmed_${i}`,cl[7],'caption'),{...button(`cleanup_dismiss_${i}`,cl[16],'cleanupDismiss'),confirm:cl[17],hostAction:{kind:'workspace.perform' as const,operation:'dismissImportBackupCleanup' as const,arguments:{backupId:r.id}}}]:[])]});
+   });
+   footer.push(button('cleanupBack',cl[19]),button('cleanupRefresh',t[9]));if(cleanupOffset>0)footer.push(button('cleanupPrev',t[17]));if(cleanupOffset+5<cleanupPage.total)footer.push(button('cleanupNext',t[18]));
   }else if(mode==='backupDetail'&&backup){
    const date=new Date(backup.createdAt);const stamp=Number.isFinite(date.getTime())?date.toISOString():bl[21];
    nodes.push(text('backup_detail_path',backup.path,'title'),text('backup_detail_location',`${bl[18]}: ${backup.backupPath}`),text('backup_created',`${bl[19]}: ${stamp}`,'caption'),
     text('backup_original_bytes',`${bl[12]}: ${backup.originalBytes} B`),text('backup_original_sha',backup.originalSha256,'caption'),text('backup_restore_note',bl[16]));
    if(backupReview)nodes.push(text('backup_current_bytes',`${bl[13]}: ${backupReview.bytes} B`),text('backup_current_sha',backupReview.sha256,'caption'));
-   footer.push(button('backupList',bl[20]),{...button('backupReview',bl[14]),enabled:backup.status==='PRESENT'&&!backup.pending});
+   footer.push(button('backupList',bl[20]),{...button('backupReview',bl[14]),enabled:backup.status==='PRESENT'&&!backup.pending},button('cleanupOpen',cl[3]));
    if(backupReview)footer.push({...button('backupSelect',bl[15]),confirm:bl[16],hostAction:{kind:'workspace.perform',operation:'selectImportBackup',arguments:{backupId:backupReview.backupId,sha256:backupReview.sha256,path:backupReview.path}}});
+   if(backupReview)footer.push({...button('backupClean',cl[0]),confirm:cl[1],hostAction:{kind:'workspace.perform',operation:'cleanupImportBackup',arguments:{backupId:backupReview.backupId,sha256:backupReview.sha256,path:backupReview.path}}});
   }else if(mode==='recoveries'){
    nodes.push(text('recovery_title',rl[0],'title'),text('recovery_limit',rl[10],'caption'));
    if(!recoveries.length)nodes.push(text('recovery_empty',rl[9]));

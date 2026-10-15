@@ -128,6 +128,10 @@ interface WorkspaceService {
     suspend fun importBackupCleanups(workspaceId:String,offset:Int=0,limit:Int=20):WorkspaceBackupCleanupPage {
         error("备份清理记录服务不可用")
     }
+    /** Acknowledge an absent claim; removes records only, never a workspace filename. */
+    suspend fun dismissImportBackupCleanup(workspaceId:String,backupId:String) {
+        error("备份清理记录确认服务不可用")
+    }
     suspend fun restoreImportBackupCleanup(workspaceId:String,backupId:String) {
         error("备份清理恢复服务不可用")
     }

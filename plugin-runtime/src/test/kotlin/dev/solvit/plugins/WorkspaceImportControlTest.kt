@@ -29,6 +29,29 @@ class WorkspaceImportControlTest {
         assertFails { ScriptPageHostAction.workspace(control("selectImportBackup",buildJsonObject { args.forEach { (k,v)->put(k,v) };put("backupId","../foreign") })) }
         assertFails { ScriptPageHostAction.workspace(control("selectImportBackup",buildJsonObject { args.forEach { (k,v)->put(k,v) };put("command","rm") })) }
     }
+    @Test fun cleanupActionsRequireApi28FilesAndFreshOneUseControls():Unit=runBlocking {
+        var writes=0;var reads=0
+        val access=object:PageWorkspaceAccess {
+            override suspend fun query(operation:String,argumentsJson:String,authorize:suspend()->Unit):String { authorize();reads++;return "{}" }
+            override suspend fun perform(control:PageWorkspaceControl,authorize:suspend()->Unit):String { authorize();writes++;return "{}" }
+        }
+        val id=java.util.UUID.randomUUID().toString()
+        for(operation in listOf("cleanupImportBackup","restoreImportBackupCleanup","dismissImportBackupCleanup")) {
+            val args=buildJsonObject { put("backupId",id);if(operation=="cleanupImportBackup"){put("sha256","a".repeat(64));put("path","original.txt")} }
+            val approved=control(operation,args)
+            for((api,declared)in listOf(27 to true,28 to false)) {
+                assertFails { ScriptPageExecutionContext("test.cleanup",{},approved,workspace=access).performWorkspace(api,filesDeclared=declared) }
+            }
+            val before=writes;val context=ScriptPageExecutionContext("test.cleanup",{},approved,workspace=access)
+            context.performWorkspace(28,filesDeclared=true);assertEquals(before+1,writes)
+            assertFails { context.performWorkspace(28,filesDeclared=true) }
+            assertFails { ScriptPageHostAction.workspace(control(operation,buildJsonObject { args.forEach { (k,v)->put(k,v) };put("destination","/foreign") })) }
+        }
+        val context=ScriptPageExecutionContext("test.cleanup",{},workspace=access)
+        assertFails { context.queryWorkspace("importBackupCleanups",buildJsonObject {},27,true) }
+        assertFails { context.queryWorkspace("importBackupCleanups",buildJsonObject {},28,false) }
+        assertEquals(0,reads);context.queryWorkspace("importBackupCleanups",buildJsonObject {},28,true);assertEquals(1,reads)
+    }
     @Test fun recoveryReportsRequireApi27DeclaredFilesAndOneDisplayedDismissal():Unit=runBlocking {
         var reads=0;var writes=0
         val access=object:PageWorkspaceAccess {

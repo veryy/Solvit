@@ -65,11 +65,16 @@ object ScriptPageHostAction {
                 if(operation in setOf("importReviewed","startImport")) { text("reviewId",128);setOf("id","path","sha256","reviewId") }
                 else setOf("id","path","sha256")
             }
-            "selectImportBackup" -> {
+            "selectImportBackup", "cleanupImportBackup" -> {
                 val id=text("backupId",36)
                 require(runCatching { java.util.UUID.fromString(id).toString()==id }.getOrDefault(false))
                 require(text("sha256",64).matches(Regex("[a-f0-9]{64}")))
                 text("path",1024);setOf("backupId","sha256","path")
+            }
+            "restoreImportBackupCleanup", "dismissImportBackupCleanup" -> {
+                val id=text("backupId",36)
+                require(runCatching { java.util.UUID.fromString(id).toString()==id }.getOrDefault(false))
+                setOf("backupId")
             }
             "cancelImport" -> { text("operationId",128);setOf("operationId") }
             "dismissImportRecovery" -> {

@@ -136,6 +136,18 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
                         }) } })
                     }
                 }
+                "importBackupCleanups" -> {
+                    require(args.keys==setOf("offset"))
+                    val offset=args.getValue("offset").jsonPrimitive.also { require(!it.isString) }.int
+                    val page=service.importBackupCleanups(workspace(),offset,5)
+                    buildJsonObject {
+                        put("offset",page.offset);put("total",page.total);put("incomplete",page.incomplete);put("unreadableEntries",page.unreadableEntries)
+                        put("cleanups",buildJsonArray { page.cleanups.forEach { r -> add(buildJsonObject {
+                            put("id",r.id);put("path",r.path);put("backupPath",r.backupPath);put("phase",r.phase);put("status",r.status)
+                            put("heldBytes",r.heldBytes?.let(::JsonPrimitive)?:JsonNull)
+                        }) } })
+                    }
+                }
                 "reviewBackup" -> {
                     require(args.keys==setOf("backupId"));backupReview=null
                     val content=service.readImportBackup(workspace(),text("backupId"))
@@ -383,6 +395,13 @@ class WorkspacePageBridge(private val service: WorkspaceService, private val dra
         scoped(authorize, { created }) {
             when (control.operation) {
                 "dismissImportRecovery" -> service.dismissImportRecovery(workspace(),text("recoveryId"))
+                "cleanupImportBackup" -> {
+                    val reviewed=checkNotNull(backupReview) { "请先审阅备份" };backupReview=null
+                    check(reviewed.id==text("backupId") && reviewed.sha256==text("sha256") && reviewed.path==text("path")) { "备份审阅已失效" }
+                    service.cleanupImportBackup(workspace(),reviewed.id,reviewed.sha256)
+                }
+                "restoreImportBackupCleanup" -> service.restoreImportBackupCleanup(workspace(),text("backupId"))
+                "dismissImportBackupCleanup" -> service.dismissImportBackupCleanup(workspace(),text("backupId"))
                 "selectImportBackup" -> {
                     val reviewed=checkNotNull(backupReview) { "请先审阅备份" };backupReview=null
                     check(reviewed.id==text("backupId") && reviewed.sha256==text("sha256") && reviewed.path==text("path")) { "备份审阅已失效" }
