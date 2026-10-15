@@ -121,7 +121,12 @@ class WorkspaceImportRecoveryTest {
             }) { WorkspaceFileImports.replace(root, target.name, bytes, sha(bytes), sha(original), publisher) {} }
             if (cancel) { assertFailsWith<CancellationException> { import() }; assertContentEquals(original, target.readBytes()) }
             else { val result = import(); assertContentEquals(bytes, target.readBytes()); assertContentEquals(original, File(root, result.third).readBytes()) }
-            assertTrue(ledger.listFiles()!!.isEmpty())
+            // Completed transactions and staging retire; the successful backup's provenance remains.
+            assertTrue(ledger.listFiles()!!.none { it.extension in setOf("transaction", "record", "notice", "tmp") })
+            val retained=WorkspaceImportBackups(root,ledger).inventory()
+            assertEquals(1,retained.observations.size)
+            assertEquals("PRESENT",retained.observations.single().status)
+            assertEquals("file-false",retained.observations.single().record.path)
         }
     }
     @Test fun shellDeletingAJustPublishedFileDoesNotResurrectOriginalDuringErrorSettlement() = fixture { root, ledger ->

@@ -39,6 +39,16 @@ data class WorkspaceImportedFile(val workspaceId: String, val path: String, val 
 data class WorkspaceImportTarget(val bytes: Long, val sha256: String)
 /** Recovery reports contain workspace-relative paths only; dismissing never removes a file. */
 data class WorkspaceImportRecovery(val id: String, val path: String, val backupPath: String?, val status: String)
+/** PRESENT means the retained inode still matches, not that its bytes are unchanged. */
+enum class WorkspaceBackupStatus { PRESENT, MISSING, CHANGED_IDENTITY, UNAVAILABLE }
+data class WorkspaceImportBackup(val id: String, val path: String, val backupPath: String,
+    val originalBytes: Long, val originalSha256: String, val createdAt: Long,
+    val status: WorkspaceBackupStatus, val currentBytes: Long?, val pending: Boolean)
+/** logicalBytes counts observed unique managed inodes, not physical blocks or reclaimable space.
+ * Incomplete scans and unreadable records must be visible in the page; no deletion is implied. */
+data class WorkspaceImportBackupPage(val backups: List<WorkspaceImportBackup>, val offset: Int,
+    val total: Int, val logicalBytes: Long, val availableBytes: Long?,
+    val incomplete: Boolean, val unreadableRecords: Int)
 const val MAX_WORKSPACE_IMPORT_BYTES = 20 * 1024 * 1024
 
 data class ShellSession(val id: String, val workspaceId: String, val name: String,
@@ -93,6 +103,9 @@ interface WorkspaceService {
     suspend fun replaceImportedFile(workspaceId: String, path: String, bytes: ByteArray,
         sourceSha256: String, targetSha256: String): WorkspaceImportedFile {
         error("工作区文件替换服务不可用")
+    }
+    suspend fun importBackups(workspaceId: String, offset: Int = 0, limit: Int = 20): WorkspaceImportBackupPage {
+        error("工作区备份登记服务不可用")
     }
     suspend fun importRecoveries(workspaceId: String): List<WorkspaceImportRecovery> = emptyList()
     suspend fun dismissImportRecovery(workspaceId: String, recoveryId: String) {

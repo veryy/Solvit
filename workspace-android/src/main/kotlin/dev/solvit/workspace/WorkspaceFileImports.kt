@@ -89,14 +89,15 @@ internal object WorkspaceFileImports {
         require(bytes.size<=MAX_WORKSPACE_IMPORT_BYTES && sourceSha256.matches(Regex("[a-f0-9]{64}")) &&
             targetSha256.matches(Regex("[a-f0-9]{64}"))) { "导入文件超过20MiB或版本无效" }
         require(sha(bytes)==sourceSha256) { "导入文件内容校验失败" }
-        check(review(root,path,authorize)?.sha256==targetSha256) { "目标文件已变化，请重新审阅" }
+        val reviewed=checkNotNull(review(root,path,authorize)) { "目标文件已变化，请重新审阅" }
+        check(reviewed.sha256==targetSha256) { "目标文件已变化，请重新审阅" }
         val destination=target(root,path)
         val backup=File(destination.parentFile,"solvit-backup-${java.util.UUID.randomUUID()}")
         authorize();currentCoroutineContext().ensureActive()
         check(target(root,path)==destination) { "导入目标目录已改变" }
         val journal=currentCoroutineContext()[WorkspaceImportTransactions]
         val transaction=synchronized(stagingLock) {
-            journal?.begin(destination,backup)?.also { activeTransactions.add(it.recordPath) }
+            journal?.begin(destination,backup,targetSha256,reviewed.bytes)?.also { activeTransactions.add(it.recordPath) }
         }
         var publicationCompleted=false
         val replacementPublisher=WorkspaceImportPublisher { source,destinationFile ->

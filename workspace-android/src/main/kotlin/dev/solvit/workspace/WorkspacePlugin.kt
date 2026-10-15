@@ -58,6 +58,22 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
         recoverImports(base,workspaceId)
         WorkspaceImportTransactions(base,File(importLedgerRoot,workspaceId)).notices().also { verifyPage(workspaceId) }
     } }
+    override suspend fun importBackups(workspaceId:String,offset:Int,limit:Int):WorkspaceImportBackupPage = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        require(offset in 0..20_000 && limit in 1..100) { "备份分页参数无效" }
+        val base=directory(workspaceId).canonicalFile
+        recoverImports(base,workspaceId)
+        val coroutine=currentCoroutineContext()
+        val inventory=WorkspaceImportBackups(base,File(importLedgerRoot,workspaceId)).inventory { coroutine.ensureActive() }
+        val available=try { importAvailableBytes(base).takeIf { it>=0 } }
+            catch(failure:CancellationException) { throw failure } catch(_:Exception) { null }
+        verifyPage(workspaceId)
+        WorkspaceImportBackupPage(inventory.observations.drop(offset).take(limit).map { item ->
+            val r=item.record
+            WorkspaceImportBackup(r.id,r.path,r.backupPath,r.originalBytes,r.originalSha256,r.createdAt,
+                WorkspaceBackupStatus.valueOf(item.status),item.currentBytes,item.pending)
+        },offset,inventory.observations.size,inventory.logicalBytes,available,inventory.incomplete,inventory.unreadableRecords)
+    } }
     override suspend fun dismissImportRecovery(workspaceId:String,recoveryId:String):Unit = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)
         WorkspaceImportTransactions(directory(workspaceId).canonicalFile,File(importLedgerRoot,workspaceId)).dismiss(recoveryId)

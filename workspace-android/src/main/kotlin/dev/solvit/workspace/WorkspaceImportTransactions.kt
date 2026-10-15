@@ -84,17 +84,30 @@ internal class WorkspaceImportTransactions(private val root: File, private val l
             checkNotNull(decoded(lines[4])).also { require(it.length in 1..1024) }, lines[1], decoded(lines[5]), decoded(lines[6]))
             .also { require((it.staged == null) == (it.stagedKey == null)); paths(it) }
     }.getOrNull()
-    fun begin(target: File, backup: File): WorkspaceImportTransaction {
+    fun begin(target: File, backup: File, reviewedSha256: String? = null, reviewedBytes: Long = target.length()): WorkspaceImportTransaction {
         val entry = Entry(UUID.randomUUID().toString(), target.relativeTo(root).invariantSeparatorsPath,
             backup.relativeTo(root).invariantSeparatorsPath, checkNotNull(identity(target)))
         store(entry) // Must finish before the original name is moved.
+        try {
+            reviewedSha256?.let { WorkspaceImportBackups(root, ledger).register(entry.id, target, backup, entry.originalKey, it, reviewedBytes) }
+        } catch (failure: Throwable) {
+            runCatching { forget(entry) }.onFailure { failure.addSuppressed(it) }
+            throw failure
+        }
         return WorkspaceImportTransaction(this, entry)
     }
     internal fun publishing(entry: Entry, staged: File): Entry = entry.copy(phase = "PUBLISHING",
         staged = staged.relativeTo(root).invariantSeparatorsPath, stagedKey = checkNotNull(identity(staged))).also(::store)
     internal fun phase(entry: Entry, phase: String): Entry = entry.copy(phase = phase).also(::store)
     internal fun ownsBackup(entry: Entry): Boolean = paths(entry).second.let { identity(it) == entry.originalKey }
-    internal fun forget(entry: Entry) { Files.deleteIfExists(file(entry.id, "transaction").toPath()) }
+    internal fun forget(entry: Entry) {
+        val (target, backup) = paths(entry)
+        // Auxiliary metadata cleanup must not prevent settlement of the primary recovery
+        // record. On failure keep the catalogue entry for inspection; never delete a file.
+        try { WorkspaceImportBackups(root, ledger).forgetIfRestored(entry.id, target, backup, entry.originalKey) }
+        catch (_: Exception) { /* inventory reports unreadable/missing provenance */ }
+        Files.deleteIfExists(file(entry.id, "transaction").toPath())
+    }
     internal fun retain(entry: Entry, status: String) {
         // Persist the report before retiring the replayable record. If the app dies between
         // these operations, the notice prevents another attempt after a user changes a name.
