@@ -10,7 +10,7 @@
 2. 验收实际Agent任务：角色切换/新对话、网络接收与可见流式、搜索正文与引用、Linux工作区建项目→运行失败→修复→再验证，以及真实GitHub账号读写。原生和模拟模型测试不能替代这些验收；不得使用历史暴露的API密钥。
 3. 继续Linux运行环境与插件组合：ARM64真机及旧内核兼容、本地stdio MCP进程生命周期与取消、Skills脚本运行环境；保留完整JS Agent/Provider替换协议作为独立阶段。QuickJS与Ubuntu中的Node仍是两种运行环境。
 
-本地stdio的原生管道、API30授权桥、多连接HTML页面及JS协议/Agent路由已合入main。实际Ubuntu Python/Node调用、页面确认、取消/崩溃、聊天隔离和API26/35宿主SIGKILL清理已远程通过，[证据及边界](local-stdio-mcp-stage.md)。0.42.0正式流程因外部源码下载失败，未发布APK；固定相同源码后，0.42.1已发布后核对原始报告发现MCP页面用例按旧权限启用失败，且清理脚本覆盖退出码导致假绿，现标为预发布；正在修正门禁并验证0.42.2。[问题记录](release-0.42.1.md)。真实模型、ARM64真机、第三方服务、Skills运行环境和完整JS Agent/Provider协议继续保留。
+本地stdio的原生管道、API30授权桥、多连接HTML页面及JS协议/Agent路由已合入main。实际Ubuntu Python/Node调用、页面确认、取消/崩溃、聊天隔离和API26/35宿主SIGKILL清理已远程通过，[证据及边界](local-stdio-mcp-stage.md)。0.42.0正式流程因外部源码下载失败，未发布APK；固定相同源码后，0.42.1已发布后核对原始报告发现MCP页面用例按旧权限启用失败，且清理脚本覆盖退出码导致假绿，现标为预发布；0.42.2的门禁已正确拒绝附件预览超时，MCP页面在完整套件通过；正在诊断附件用例。[问题记录](release-0.42.1.md)。真实模型、ARM64真机、第三方服务、Skills运行环境和完整JS Agent/Provider协议继续保留。
 
 2026-10-15再次核对实际GitHub Actions secret元数据，尚未配置 `SOLVIT_MODEL_API_KEY`；没有启动必然因缺少凭据而失败的真实模型任务，也不使用历史暴露的密钥。真实模型工作流补齐与正式APK相同的锁定PRoot/loader源码构建，避免将不含Linux可执行程序的诊断包当作完整生产环境验收。凭据配置与实际模型任务仍未完成。
 
