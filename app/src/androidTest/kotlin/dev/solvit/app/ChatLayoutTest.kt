@@ -230,7 +230,17 @@ class ChatLayoutTest {
             rule.onNode(hasText("工作区：",substring=true) and isEnabled()).performClick()
         } else {
             rule.onNode(hasText("新建工作区") and isEnabled()).performClick()
-            rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().isNotEmpty() }
+            try {
+                rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().isNotEmpty() }
+            } catch (timeout: ComposeTimeoutException) {
+                runCatching { screenshot("workspace-create-timeout") }
+                val labels = listOf("新建工作区", "此对话尚未绑定工作区", "创建并绑定", "绑定已有工作区")
+                labels.forEach { label ->
+                    android.util.Log.e("WORKSPACE_CREATE_DIAG", "$label count=" +
+                        rule.onAllNodesWithText(label).fetchSemanticsNodes().size)
+                }
+                throw timeout
+            }
             rule.onNodeWithTag("workspace_create_name").performTextInput("测试工作区")
             rule.onNodeWithText("创建并绑定").performClick()
         }
