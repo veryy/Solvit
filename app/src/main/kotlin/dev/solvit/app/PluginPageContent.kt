@@ -102,7 +102,15 @@ fun PluginPageContent(view: ScriptPageView, busy: Boolean, modifier: Modifier = 
                 val directoryControl = workspace ?: git
                 if (directoryControl != null) {
                     Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (directoryControl.operation == "cancelImport") {
+                        val gitOperation = if (git?.operation == "startRemote")
+                            Json.parseToJsonElement(git.argumentsJson).jsonObject["operation"]?.jsonPrimitive?.content else git?.operation
+                        if (gitOperation in setOf("resumeCloneInstall", "restartCloneDownload", "discardCloneInstall")) {
+                            UiText(when (gitOperation) {
+                                "resumeCloneInstall" -> "继续刚审阅的克隆安装，不联网下载，不覆盖并发修改的文件。仓库若已发布，只关闭私有暂存记录，保留之后的文件变更。"
+                                "restartCloneDownload" -> "放弃未完成的私有下载，重新连接刚审阅的远程地址和分支。工作目录必须仍为空，已有文件不会被删除。"
+                                else -> "仅删除这次克隆的私有暂存和恢复记录。工作区已有的完整文件与用户修改均会保留，不会回滚或递归清理工作区。"
+                            })
+                        } else if (directoryControl.operation == "cancelImport") {
                             UiText("停止当前文件导入并等待清理。若文件已经导入完成，会保留成功结果。")
                         } else if (directoryControl.operation == "dismissImportRecovery") {
                             UiText("仅关闭这条恢复提示，不删除工作区文件或原文件备份。")

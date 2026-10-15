@@ -4,6 +4,9 @@ import kotlin.coroutines.AbstractCoroutineContextElement
 import kotlin.coroutines.CoroutineContext
 import dev.solvit.core.*
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import java.util.concurrent.atomic.AtomicBoolean
 
 /** Carries live page authority all the way to the actual native storage write lock. */
@@ -27,6 +30,9 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
         return access.editCredentials(endpoint, prompt, ::ensureAuthorized).also { ensureAuthorized() }
     }
     private fun verifyRemoteGit(operation: String, apiVersion: Int, networkDeclared: Boolean) {
+        if (operation in setOf("cloneInstalls", "reviewCloneInstall", "resumeCloneInstall", "restartCloneDownload", "discardCloneInstall"))
+            check(apiVersion >= 29) { "克隆恢复需要API29" }
+        if (operation == "restartCloneDownload") check(networkDeclared) { "重新下载需要network权限声明" }
         if (operation in setOf("clone", "fetch", "reviewPush", "push", "reviewPull", "merge", "cancelTransfer", "transferProgress", "startRemote", "remoteOperation"))
             check(apiVersion >= 20 && networkDeclared) { "远程Git页面需要API20及network权限" }
     }
@@ -40,6 +46,10 @@ class ScriptPageExecutionContext(val pluginId: String, private val verify: suspe
         ensureAuthorized()
         val control = ScriptPageHostAction.git(checkNotNull(approvedAction))
         verifyRemoteGit(control.operation, apiVersion, networkDeclared)
+        if (control.operation == "startRemote") {
+            val target = Json.parseToJsonElement(control.argumentsJson).jsonObject.getValue("operation").jsonPrimitive.content
+            verifyRemoteGit(target, apiVersion, networkDeclared)
+        }
         check(consumed.compareAndSet(false, true)) { "Native page control already consumed" }
         return checkNotNull(git) { "此页面没有Git授权" }.perform(control, ::ensureAuthorized)
             .also { ensureAuthorized() }

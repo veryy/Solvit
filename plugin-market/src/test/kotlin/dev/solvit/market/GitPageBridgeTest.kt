@@ -6,6 +6,78 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class GitPageBridgeTest {
+    @Test fun cloneRecoveryRetainsNativeFactsConsumesReviewOnceAndKeepsOfflineActionsOffline() = runBlocking<Unit> {
+        val local = Fixture()
+        val entry = WorkspaceRemoteGitSession.CloneInstall("00000000-0000-0000-0000-000000000001",
+            "INSTALLING", "INSTALL_INTERRUPTED", "https://github.com/veryy/Solvit.git", "main", "a".repeat(40), 123)
+        val retained = WorkspaceRemoteGitSession.CloneInstallReview(entry, "host-only-fingerprint", true, true, 2, 100, 1, null)
+        var writes = 0; var network = 0
+        var received: WorkspaceRemoteGitSession.CloneInstallReview? = null
+        val service = object : WorkspaceRemoteGitService {
+            override fun bind(chatId: String, activeChat: () -> String?, authorizeRead: suspend () -> Unit,
+                authorizeWrite: suspend () -> Unit) = local.bind(chatId, activeChat, authorizeRead, authorizeWrite)
+            override suspend fun close() = local.close()
+            override fun bindRemote(chatId: String, activeChat: () -> String?, authorizeRead: suspend () -> Unit,
+                authorizeWrite: suspend () -> Unit, authorizeNetwork: suspend (GitRemoteEndpoint) -> Unit): WorkspaceRemoteGitSession {
+                val base = bind(chatId, activeChat, authorizeRead, authorizeWrite)
+                return object : WorkspaceRemoteGitSession, WorkspaceGitSession by base {
+                    override val progress = kotlinx.coroutines.flow.MutableStateFlow<WorkspaceRemoteGitSession.Progress?>(null)
+                    override suspend fun transferProgress(): WorkspaceRemoteGitSession.Progress? { authorizeRead(); return null }
+                    override suspend fun cloneInstalls(offset: Int, limit: Int): WorkspaceRemoteGitSession.CloneInstalls {
+                        authorizeRead(); return WorkspaceRemoteGitSession.CloneInstalls(listOf(entry), null, false, 0)
+                    }
+                    override suspend fun reviewCloneInstall(id: String): WorkspaceRemoteGitSession.CloneInstallReview {
+                        authorizeRead(); assertEquals(entry.id, id); return retained
+                    }
+                    override suspend fun resumeCloneInstall(review: WorkspaceRemoteGitSession.CloneInstallReview): WorkspaceRemoteGitSession.Fetch {
+                        authorizeRead(); authorizeWrite(); writes++; received = review
+                        return WorkspaceRemoteGitSession.Fetch(entry.branch, entry.head!!, emptyMap())
+                    }
+                    override suspend fun restartCloneDownload(review: WorkspaceRemoteGitSession.CloneInstallReview): WorkspaceRemoteGitSession.Fetch {
+                        authorizeNetwork(GitRemoteEndpoint.parse(entry.url)); network++; return resumeCloneInstall(review)
+                    }
+                    override suspend fun discardCloneInstall(review: WorkspaceRemoteGitSession.CloneInstallReview) {
+                        authorizeRead(); authorizeWrite(); writes++; received = review
+                    }
+                    override suspend fun fetch(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.Fetch = error("Not called")
+                    override suspend fun clone(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.Fetch = error("Not called")
+                    override suspend fun reviewPush(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.PushReview = error("Not called")
+                    override suspend fun push(review: WorkspaceRemoteGitSession.PushReview): WorkspaceRemoteGitSession.Push = error("Not called")
+                    override suspend fun reviewPull(endpoint: GitRemoteEndpoint, branch: String): WorkspaceRemoteGitSession.PullReview = error("Not called")
+                    override suspend fun merge(review: WorkspaceRemoteGitSession.PullReview): WorkspaceRemoteGitSession.Merge = error("Not called")
+                    override suspend fun cancelTransfer() { authorizeRead() }
+                }
+            }
+        }
+        val page = GitPageBridge(service, "chat", { "chat" })
+        try {
+            val inventory = Json.parseToJsonElement(page.query("cloneInstalls", """{"offset":0,"limit":20}""") {}).jsonObject
+            assertEquals(entry.id, inventory.getValue("entries").jsonArray.single().jsonObject.getValue("id").jsonPrimitive.content)
+            assertFails { page.query("cloneInstalls", """{"offset":0,"limit":20,"workspaceId":"other"}""") {} }
+            suspend fun review(): String {
+                val result = page.query("reviewCloneInstall", """{"id":"${entry.id}"}""") {}
+                assertFalse(result.contains(retained.fingerprint)); assertFalse(result.contains("rootPath"))
+                return Json.parseToJsonElement(result).jsonObject.getValue("reviewId").jsonPrimitive.content
+            }
+            val old = review()
+            val current = review()
+            assertFails { page.perform(PageWorkspaceControl("resumeCloneInstall", """{"reviewId":"$old"}""")) {} }
+            assertFails { page.perform(PageWorkspaceControl("resumeCloneInstall", """{"reviewId":"$current","head":"forged"}""")) {} }
+            assertFails { page.perform(PageWorkspaceControl("resumeCloneInstall", """{"reviewId":"$current"}""")) { error("revoked") } }
+            assertEquals(0, writes)
+            page.perform(PageWorkspaceControl("resumeCloneInstall", """{"reviewId":"$current"}""")) {}
+            assertSame(retained, received)
+            assertFails { page.perform(PageWorkspaceControl("discardCloneInstall", """{"reviewId":"$current"}""")) {} }
+            assertEquals(0, network)
+            val discard = review()
+            page.perform(PageWorkspaceControl("discardCloneInstall", """{"reviewId":"$discard"}""")) {}
+            assertEquals(0, network)
+            val restart = review()
+            page.perform(PageWorkspaceControl("restartCloneDownload", """{"reviewId":"$restart"}""")) {}
+            assertEquals(1, network); assertEquals(3, writes); assertSame(retained, received)
+        } finally { page.close() }
+        assertFails { page.query("cloneInstalls", """{"offset":0,"limit":20}""") {} }
+    }
     @Test fun remoteControlsRetainNativeReviewsRejectForgedFactsAndConsumePushOnce() = runBlocking<Unit> {
         val local = Fixture()
         var fetches = 0

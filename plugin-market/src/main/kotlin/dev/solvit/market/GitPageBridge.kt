@@ -36,6 +36,7 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
     private var index: Pair<String, WorkspaceGitSession.Revision>? = null
     private var pushReview: Pair<String, WorkspaceRemoteGitSession.PushReview>? = null
     private var pullReview: Pair<String, WorkspaceRemoteGitSession.PullReview>? = null
+    private var cloneInstallReview: Pair<String, WorkspaceRemoteGitSession.CloneInstallReview>? = null
     private val session = if (service is WorkspaceRemoteGitService) {
         service.bindRemote(chatId, activeChat, { verify(false) }, { verify(true) }, {
             verify(true)
@@ -86,6 +87,11 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
             put("working", entry.working?.let(::JsonPrimitive) ?: JsonNull); put("conflict", entry.conflict)
         }) } })
     }
+    private fun cloneInstall(value: WorkspaceRemoteGitSession.CloneInstall) = buildJsonObject {
+        put("id", value.id); put("phase", value.phase); put("status", value.status)
+        put("url", value.url); put("branch", value.branch); put("head", value.head)
+        put("createdAt", value.createdAt)
+    }
 
     override suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit): String {
         if (operation == "remoteOperation") return withContext(Authority(authorize, false)) {
@@ -118,6 +124,28 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
             verify(false)
             val args = arguments(argumentsJson)
             val result = when (operation) {
+                "cloneInstalls" -> {
+                    require(args.keys == setOf("offset", "limit"))
+                    val value = remote().cloneInstalls(args.number("offset"), args.number("limit"))
+                    buildJsonObject {
+                        put("entries", buildJsonArray { value.entries.forEach { add(cloneInstall(it)) } })
+                        put("nextOffset", value.nextOffset?.let(::JsonPrimitive) ?: JsonNull)
+                        put("incomplete", value.incomplete); put("unreadable", value.unreadable)
+                    }
+                }
+                "reviewCloneInstall" -> {
+                    require(args.keys == setOf("id"))
+                    cloneInstallReview = null
+                    val value = remote().reviewCloneInstall(args.text("id", 36))
+                    val id = UUID.randomUUID().toString()
+                    cloneInstallReview = id to value
+                    buildJsonObject {
+                        put("reviewId", id); put("entry", cloneInstall(value.entry))
+                        put("canResume", value.canResume); put("canRestart", value.canRestart)
+                        put("files", value.files); put("bytes", value.bytes); put("installedFiles", value.installedFiles)
+                        put("problem", value.problem)
+                    }
+                }
                 "status" -> {
                     require(args.keys == setOf("offset", "limit"))
                     status(session.status(args.number("offset"), args.number("limit")))
@@ -163,7 +191,7 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
             val args = arguments(control.argumentsJson)
             require(args.keys == setOf("operation", "arguments"))
             val target = args.text("operation", 32)
-            require(target in setOf("clone", "fetch", "reviewPush", "reviewPull", "push", "merge"))
+            require(target in setOf("clone", "fetch", "reviewPush", "reviewPull", "push", "merge", "resumeCloneInstall", "restartCloneDownload"))
             val metadata = buildJsonObject {
                 put("kind", "git.perform"); put("operation", target); put("arguments", args.getValue("arguments").jsonObject)
             }
@@ -198,10 +226,24 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
             buildJsonObject { put("cancelRequested", true) }.toString()
         }
         return mutex.withLock { withContext(Authority(authorize, true,
-            control.operation in setOf("clone", "fetch", "reviewPush", "push", "reviewPull"))) {
+            control.operation in setOf("clone", "fetch", "reviewPush", "push", "reviewPull", "restartCloneDownload"))) {
             verify(true)
             val args = arguments(control.argumentsJson)
             val result = when (control.operation) {
+                "resumeCloneInstall", "restartCloneDownload", "discardCloneInstall" -> {
+                    require(args.keys == setOf("reviewId"))
+                    val retained = checkNotNull(cloneInstallReview) { "请先审阅克隆记录" }
+                    check(retained.first == args.text("reviewId", 128)) { "克隆审阅已变化，请重新审阅" }
+                    cloneInstallReview = null // Consume before any native mutation, including a failed attempt.
+                    if (control.operation == "discardCloneInstall") {
+                        remote().discardCloneInstall(retained.second)
+                        buildJsonObject { put("discarded", true) }
+                    } else {
+                        val result = if (control.operation == "resumeCloneInstall") remote().resumeCloneInstall(retained.second)
+                            else remote().restartCloneDownload(retained.second)
+                        buildJsonObject { put("branch", result.branch); put("remoteHead", result.head) }
+                    }
+                }
                 "clone", "fetch", "reviewPush", "reviewPull" -> {
                     require(args.keys == setOf("url", "branch"))
                     val endpoint = GitRemoteEndpoint.parse(args.text("url", 2048))
@@ -288,7 +330,7 @@ class GitPageBridge(service: WorkspaceGitService, chatId: String, activeChat: ()
         session.close() // Cancels native transport before waiting behind the page operation.
         val owned = synchronized(operationLock) { operationJob }
         owned?.join()
-        mutex.withLock { review = null; index = null; pushReview = null; pullReview = null }
+        mutex.withLock { review = null; index = null; pushReview = null; pullReview = null; cloneInstallReview = null }
         synchronized(operationLock) { operation = null; operationJob = null }
     }
 }

@@ -6,6 +6,45 @@ import kotlinx.serialization.json.*
 import kotlin.test.*
 
 class GitPageSessionTest {
+    @Test fun cloneRecoveryRequiresApi29IncludingNestedStartAndRejectsScriptSuppliedFacts() = runBlocking<Unit> {
+        var reads = 0; var writes = 0
+        val access = object : PageGitAccess {
+            override suspend fun query(operation: String, argumentsJson: String, authorize: suspend () -> Unit): String {
+                authorize(); reads++; return "{}"
+            }
+            override suspend fun perform(control: PageWorkspaceControl, authorize: suspend () -> Unit): String {
+                authorize(); writes++; return "{}"
+            }
+        }
+        val args = buildJsonObject { put("reviewId", "host-retained-review") }
+        fun action(operation: String, nested: Boolean = false) = buildJsonObject {
+            put("kind", "git.perform"); put("operation", if (nested) "startRemote" else operation)
+            put("arguments", if (nested) buildJsonObject { put("operation", operation); put("arguments", args) } else args)
+        }
+        for (operation in listOf("resumeCloneInstall", "restartCloneDownload", "discardCloneInstall")) {
+            val metadata = action(operation)
+            val invocation = ScriptPageExecutionContext("test.git.page", {}, metadata, git = access)
+            assertFails { invocation.performGit(28, true) }
+            if (operation == "restartCloneDownload") assertFails { invocation.performGit(29, false) }
+            invocation.performGit(29, operation == "restartCloneDownload")
+            assertFails { invocation.performGit(29, true) }
+            val forged = metadata.toMutableMap().apply { put("arguments", buildJsonObject {
+                put("reviewId", "host-retained-review"); put("rootPath", "/caller-controlled")
+            }) }
+            assertFails { ScriptPageHostAction.git(JsonObject(forged)) }
+        }
+        for (operation in listOf("resumeCloneInstall", "restartCloneDownload")) {
+            val invocation = ScriptPageExecutionContext("test.git.page", {}, action(operation, true), git = access)
+            assertFails { invocation.performGit(28, true) }
+            invocation.performGit(29, true)
+        }
+        val query = ScriptPageExecutionContext("test.git.page", {}, git = access)
+        for (operation in listOf("cloneInstalls", "reviewCloneInstall")) {
+            assertFails { query.queryGit(operation, buildJsonObject {}, 28, true) }
+            query.queryGit(operation, buildJsonObject {}, 29, false)
+        }
+        assertEquals(5, writes); assertEquals(2, reads)
+    }
     @Test fun credentialControlPassesOnlyRepositoryToNativeFormAndReturnsOnlyOutcome() = runBlocking<Unit> {
         val endpoint = "https://github.com/fixture/repository.git"
         var edited = 0

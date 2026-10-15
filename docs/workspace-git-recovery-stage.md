@@ -25,3 +25,7 @@
 第二块候选已将真实clone入口接入noBackup持久暂存，保留既有JGit传输/对象限制/分支配置；普通下载失败只回收DOWNLOADING，准备好或已安装的记录保留。新增只读审阅与工作区绑定的显式离线继续、重新联网下载、只清私有暂存接口。审阅不暴露私有路径；继续前重新核对事实、文件和授权；已发布事实仅确认和清理，不重置后续工作树。生产.git发布通过已有workspace JNI共享的renameat2(RENAME_NOREPLACE)，原备份文件转移继续限定普通文件，新入口限定目录。没有替换移动的fallback。
 
 新增2个内部审阅用例与4个Android真实inode/服务测试，后者覆盖同名目录/文件/链接拒绝替换、实际JGit仓库离线继续及Shell cwd、编辑/撤权/跨对话隔离、实际.git移动后的后续编辑。并发Shell写入的原传输用例改为检查READY记录和显式放弃后仍保留Shell文件。尚未运行这批新增用例，生产适配仍待远程编译与API26/35验证；HTML审阅入口、API/SDK/市场升级、外部force-stop和最终APK尚未交付。不能以当前宿主接口称为完整恢复功能。
+
+`fa0d51e9`的[宿主合同38710759092](https://github.com/veryy/Solvit/actions/runs/38710759092)通过，实际XML核对468项、0失败/错误，其中CloneInstallTransactions为11项。Android双版本[38710758455](https://github.com/veryy/Solvit/actions/runs/38710758455)在测试源码编译阶段失败：Fixture普通初始化/清理调用forChat/location/unbind挂起函数，尚未进入设备测试。`9c1992e1`将准备和清理改为挂起调用；没有把编译失败记作设备通过。
+
+第三块候选补GitPageBridge的安全清单/审阅查询、宿主保留事实的一次性reviewId、显式继续/重新下载/放弃及页面关闭清理。ScriptPageExecutionContext对直接和startRemote内嵌的恢复动作要求API29；离线动作不要求网络授权，重新下载要求声明且经过原生网络授权。新增2项页面宿主合同，检查旧API拒绝、嵌套门禁、防伪造工作区/提交事实、过期/复用handle与离线动作。宿主确认使用固定中文解释，避免仅显示内部JSON。当前包解析器上限仍为28，API29尚未正式开启；待HTML/SDK与兼容包整批完成后启用、远程生成并发布，旧插件不会提前获得这些能力。
