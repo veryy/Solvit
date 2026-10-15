@@ -175,7 +175,7 @@ class WorkspaceCloneProcessDeathTest {
             assertEquals(saved.getValue("rootInode").jsonPrimitive.long,android.system.Os.lstat(root.path).st_ino)
             val listing=runBlocking { runShell(workspace,shell,"pwd && ls -a") }
             assertTrue(listing.contains(root.name));assertTrue(listing.contains(if(published)"later.txt" else "content.txt"))
-            native.removeCredentials(endpoint)
+            runBlocking { native.removeCredentials(endpoint) }
             assertTrue(marker.delete());assertTrue(fixture.delete())
         } finally {
             runBlocking { native.close();workspaceBridge.close() }

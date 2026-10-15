@@ -53,3 +53,5 @@ Git1.3.0首轮[插件生成38714066212](https://github.com/veryy/Solvit/actions/
 外部进程死亡候选已接入原生产clone的宿主事实观察器（仅阶段名，不传路径或重放命令）：FILE_PUBLISHED在实际文件移动后、METADATA_PUBLISHED在实际.git移动后、COMMITTED在意图持久后、PRIVATE_ENTRY_REMOVED在实际私有删除后。新Android应用测试通过生产HTTPS/JGit/凭据库准备，独立adb进程记录PID并force-stop，再启动新进程操作真实Git插件HTML，先取消确认验证零重放，再明确继续/重新下载/关闭私有暂存。DOWNLOADING由实际TLS backend收到并阻塞请求后发标记，不以准备意图代替下载；另覆盖FILE、Shell CONFLICT、METADATA、COMMITTED和CLEANUP共6个窗口。验证根inode、共享Shell文件、已发布后删除/编辑、网络请求计数和无自动重试。TLS证书仅放测试APK，私钥留CI runner，不改系统信任/主机名校验。正式Android门禁保留旧9个强杀和常规套件，并加入这6个；测试源码与脚本尚未远程编译或运行。
 
 候选`ec2147d4`的[插件远程生成38716258761](https://github.com/veryy/Solvit/actions/runs/38716258761)全部成功：typecheck、133项TS合同、5项市场测试以及免配置搜索/HTTPS MCP/Skills公网检查通过。完整下载862194字节归档，CRC和SHA256 `03fd556696a9335b0535360acb8c48081454dc22c60f9bf31f1d8b3b2213e121`与Actions一致，15个包中仅Git变化；同步Git1.3.0到市场当前包与APK内置asset，其余14包保持原始字节。Git1.2.7 legacy仍保留。API26/35的38714538919两份设备归档亦已完整下载核对CRC/XML，两路分别28项、零失败/错误/跳过。外部6场强杀运行38716282303尚在构建，不能记为通过；API29市场仅准备私有兼容验证，未部署。
+
+外部强杀首轮[38716282303](https://github.com/veryy/Solvit/actions/runs/38716282303)未进入设备：新增测试最后调用挂起的removeCredentials不在协程内，主APK已编译，但测试APK编译失败。修复为runBlocking，不放宽进程/文件/网络或HTML断言，须重新远程运行。
