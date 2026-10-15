@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22.1)
 project(solvit_pty LANGUAGES CXX)
-add_library(solvit_pty SHARED pty.cpp)
+add_library(solvit_pty SHARED pty.cpp stdio.cpp)
 target_compile_features(solvit_pty PRIVATE cxx_std_17)
 target_compile_options(solvit_pty PRIVATE -Wall -Wextra -Werror)
