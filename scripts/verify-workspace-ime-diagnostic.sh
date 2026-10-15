@@ -35,6 +35,13 @@ capture() {
   timeout 15s adb logcat -d > ui-screenshots/page-diagnostic-native-logcat.txt || true
   timeout 15s adb shell dumpsys webviewupdate > ui-screenshots/page-diagnostic-webview-provider.txt || true
   timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
+  if [ "${SOLVIT_DIAGNOSTIC_CASE:-}" = reply-branch-hang ]; then
+    # ART writes SIGQUIT stacks to /data/anr, not necessarily to logcat.
+    # Root only the disposable CI emulator to read its diagnostic file.
+    timeout 15s adb root || true
+    timeout 15s adb wait-for-device || true
+    timeout 30s adb pull /data/anr ui-screenshots/reply-branch-anr || true
+  fi
 }
 solvit_stack_watch_pid=''
 finish() {
