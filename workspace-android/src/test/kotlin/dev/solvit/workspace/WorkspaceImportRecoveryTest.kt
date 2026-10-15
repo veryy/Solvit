@@ -124,6 +124,23 @@ class WorkspaceImportRecoveryTest {
             assertTrue(ledger.listFiles()!!.isEmpty())
         }
     }
+    @Test fun shellDeletingAJustPublishedFileDoesNotResurrectOriginalDuringErrorSettlement() = fixture { root, ledger ->
+        val original="original".toByteArray();val bytes="new publication".toByteArray()
+        val target=File(root,"file").apply { writeBytes(original) }
+        val journal=WorkspaceImportTransactions(root,ledger)
+        val concurrentPublisher=WorkspaceImportPublisher { source,destination ->
+            publisher.publish(source,destination)
+            if(source.name.startsWith(".solvit-import-"))assertTrue(destination.delete())
+        }
+        withContext(journal+WorkspaceImportStaging(root,ledger)) {
+            assertFails { WorkspaceFileImports.replace(root,"file",bytes,sha(bytes),sha(original),concurrentPublisher){} }
+        }
+        assertFalse(target.exists())
+        assertContentEquals(original,root.listFiles()!!.single { it.name.startsWith("solvit-backup-") }.readBytes())
+        assertEquals("PUBLISHED",journal.notices().single().status)
+        recover(root,ledger);assertFalse(target.exists())
+        assertTrue(ledger.listFiles()!!.none { it.extension=="transaction" })
+    }
     @Test fun malformedRecordCannotEscapeWorkspaceOrMoveAnUnrecordedBackup() = fixture { root, ledger ->
         val target = File(root, "file").apply { writeText("original") }; val backup = backup(root)
         val transaction = WorkspaceImportTransactions(root, ledger).begin(target, backup)

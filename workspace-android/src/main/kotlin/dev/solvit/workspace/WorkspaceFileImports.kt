@@ -98,16 +98,27 @@ internal object WorkspaceFileImports {
         val transaction=synchronized(stagingLock) {
             journal?.begin(destination,backup)?.also { activeTransactions.add(it.recordPath) }
         }
+        var publicationCompleted=false
+        val replacementPublisher=WorkspaceImportPublisher { source,destinationFile ->
+            publisher.publish(source,destinationFile)
+            publicationCompleted=true
+        }
         try {
             publisher.publish(destination,backup)
             check(transaction?.ownsBackup()!=false) { "原文件身份已变化，保留备份供检查" }
             check(Files.isRegularFile(backup.toPath(),NOFOLLOW_LINKS) && fileDigest(backup)==targetSha256) {
                 "目标文件已变化，请重新审阅"
             }
-            val result=create(root,path,bytes,sourceSha256,publisher,transaction,authorize)
+            val result=create(root,path,bytes,sourceSha256,replacementPublisher,transaction,authorize)
             transaction?.forget()
             return Triple(result.first,result.second,backup.relativeTo(root).invariantSeparatorsPath)
         } catch(failure:Throwable) {
+            // Once publication returned, later Shell changes or ledger I/O failures must
+            // never resurrect the displaced original at the now-vacant target name.
+            if(publicationCompleted) {
+                runCatching { transaction?.retain("PUBLISHED") }.onFailure { failure.addSuppressed(it) }
+                throw IllegalStateException("${failure.message}；文件已发布，原文件保留在 ${backup.relativeTo(root).invariantSeparatorsPath}",failure)
+            }
             // Recovery must run even after cancellation/revocation. Never replace a concurrent file.
             withContext(NonCancellable) {
                 runCatching { transaction?.rollingBack() }.onFailure { failure.addSuppressed(it) }
@@ -142,6 +153,7 @@ internal object WorkspaceFileImports {
                 File.createTempFile(".solvit-import-",".partial",destination.parentFile).also { activeStaging.add(it.absolutePath) }
             }
             var record:File?=null
+            var publicationCompleted=false
             val journal=currentCoroutineContext()[WorkspaceImportStaging]
             try {
                 synchronized(stagingLock) { record=journal?.register(staged) }
@@ -165,6 +177,7 @@ internal object WorkspaceFileImports {
                 // No replace option: do not turn a create conflict into an overwrite.
                 progress("PUBLISHING",content.size.toLong(),content.size.toLong())
                 publisher.publish(staged,destination)
+                publicationCompleted=true
                 withContext(NonCancellable) {
                 transaction?.committed()
                 check(target(root,path)==destination && Files.isRegularFile(destination.toPath(),NOFOLLOW_LINKS) && destination.length()==content.size.toLong() && fileDigest(destination)==expected) { "文件导入结果已改变，请刷新工作区" }
@@ -177,7 +190,7 @@ internal object WorkspaceFileImports {
             } catch(failure:Throwable) {
                 // Record rollback intent before finally deletes staging. Otherwise a kill
                 // during cancellation would resemble a published-then-deleted new file.
-                runCatching { transaction?.rollingBack() }
+                if(!publicationCompleted)runCatching { transaction?.rollingBack() }
                     .onFailure { failure.addSuppressed(it) }
                 throw failure
             } finally {

@@ -175,5 +175,5 @@ internal class WorkspaceImportTransaction(private val journal: WorkspaceImportTr
     fun rollingBack() { entry = journal.phase(entry, "ROLLBACK") }
     fun ownsBackup(): Boolean = journal.ownsBackup(entry)
     fun forget() = journal.forget(entry)
-    fun retain() = journal.retain(entry, "REVIEW_REQUIRED")
+    fun retain(status:String="REVIEW_REQUIRED") = journal.retain(entry, status)
 }
