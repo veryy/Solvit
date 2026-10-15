@@ -20,7 +20,8 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
     rootAccess: RootAccess = AndroidRootAccess(),
     private val linux: LinuxEnvironmentService? = null,
     private val importPublisher: WorkspaceImportPublisher = WorkspaceImportPublisher { source,destination -> AndroidWorkspaceImportPublisher.publish(source,destination) },
-    private val importAvailableBytes:(File)->Long={it.usableSpace}) : WorkspaceService {
+    private val importAvailableBytes:(File)->Long={it.usableSpace},
+    private val backupMover:WorkspaceImportPublisher=WorkspaceImportPublisher { source,destination -> AndroidWorkspaceBackupMover.publish(source,destination) }) : WorkspaceService {
     private val root = File(context.filesDir, "workspaces").apply { check(mkdirs() || isDirectory) }
     private val importLedgerRoot=File(context.noBackupFilesDir.canonicalFile,"workspace-import-staging")
     private val prefs = context.getSharedPreferences("workspaces", Context.MODE_PRIVATE)
@@ -87,6 +88,35 @@ class AndroidWorkspaces(context: Context, private val scope: CoroutineScope,
             WorkspaceImportBackupContent(WorkspaceImportBackup(r.id,r.path,r.backupPath,r.originalBytes,r.originalSha256,
                 r.createdAt,WorkspaceBackupStatus.PRESENT,bytes.size.toLong(),false),bytes,digest)
         } catch(failure:Throwable) { bytes.fill(0);throw failure }
+    } }
+    private fun backupCleanup(workspaceId:String)=WorkspaceBackupCleanup(directory(workspaceId).canonicalFile,
+        File(importLedgerRoot,workspaceId),backupMover)
+    override suspend fun cleanupImportBackup(workspaceId:String,backupId:String,expectedSha256:String):Unit = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        val cleanup=backupCleanup(workspaceId)
+        try {
+            cleanup.prepare(backupId,expectedSha256) { verifyPage(workspaceId) }
+            verifyPage(workspaceId)
+            cleanup.deleteReviewed(backupId,expectedSha256) { verifyPage(workspaceId) }
+        }catch(failure:Throwable) {
+            // Compensation belongs to this authorized operation, never to startup replay.
+            // A concurrent return name or an indeterminate deletion keeps its durable facts.
+            withContext(NonCancellable) { runCatching { cleanup.restore(backupId) } }
+            throw failure
+        }
+    } }
+    override suspend fun importBackupCleanups(workspaceId:String,offset:Int,limit:Int):WorkspaceBackupCleanupPage = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId);require(offset in 0..20_000 && limit in 1..100)
+        val inventory=backupCleanup(workspaceId).inventory { verifyPage(workspaceId) }
+        verifyPage(workspaceId)
+        WorkspaceBackupCleanupPage(inventory.observations.drop(offset).take(limit).map { item ->
+            val r=item.intent.record
+            WorkspaceBackupCleanupRecord(r.id,r.path,r.backupPath,item.intent.phase,item.status,item.heldBytes)
+        },offset,inventory.observations.size,inventory.incomplete,inventory.unreadableEntries)
+    } }
+    override suspend fun restoreImportBackupCleanup(workspaceId:String,backupId:String):Unit = withContext(Dispatchers.IO) { lock.withLock {
+        verifyPage(workspaceId)
+        backupCleanup(workspaceId).restore(backupId) { verifyPage(workspaceId) }
     } }
     override suspend fun dismissImportRecovery(workspaceId:String,recoveryId:String):Unit = withContext(Dispatchers.IO) { lock.withLock {
         verifyPage(workspaceId)

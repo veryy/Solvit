@@ -1,6 +1,7 @@
 package dev.solvit.workspace
 
 import dev.solvit.core.MAX_WORKSPACE_IMPORT_BYTES
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.sync.Mutex
@@ -25,6 +26,7 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
     private val mover:WorkspaceImportPublisher) {
     internal data class Intent(val record:WorkspaceImportBackups.Record,val sha256:String,val phase:String)
     internal data class Observation(val intent:Intent,val status:String,val heldBytes:Long?)
+    internal data class Inventory(val observations:List<Observation>,val incomplete:Boolean,val unreadableEntries:Int)
     companion object { private val lock=Mutex();private const val HEADER="SOLVIT_BACKUP_CLEANUP_1" }
     private val catalog=WorkspaceImportBackups(root,ledger)
     private val directory=File(ledger,"backup-cleanup")
@@ -144,7 +146,8 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
         Files.delete(intentFile.toPath());null
     }
     private fun inspectLocked(id:String):Observation {
-        val intent=read(id);val held=attrs(files(id).second);val source=attrs(catalog.location(intent.record))
+        val intent=read(id);val held=attrs(files(id).second)
+        val source=try { attrs(catalog.location(intent.record)) }catch(_:Exception) { return Observation(intent,"UNAVAILABLE",held?.takeIf { it.isRegularFile }?.size()) }
         val status=when {
             held!=null && (!held.isRegularFile || held.fileKey()?.toString()!=intent.record.originalKey) -> "HELD_CHANGED"
             held!=null && source!=null -> "SOURCE_AND_HELD"
@@ -154,6 +157,23 @@ internal class WorkspaceBackupCleanup(private val root:File,private val ledger:F
             else -> "UNCONFIRMED"
         }
         return Observation(intent,status,held?.takeIf { it.isRegularFile }?.size())
+    }
+    suspend fun inventory(checkpoint:suspend ()->Unit={}):Inventory = lock.withLock {
+        checkpoint()
+        if(!Files.exists(directory.toPath(),NOFOLLOW_LINKS))return@withLock Inventory(emptyList(),false,0)
+        check(directory.canonicalFile==directory.absoluteFile && Files.isDirectory(directory.toPath(),NOFOLLOW_LINKS))
+        val result=mutableListOf<Observation>();var visited=0;var unreadable=0;var incomplete=false
+        Files.newDirectoryStream(directory.toPath()).use { entries ->
+            for(path in entries) {
+                checkpoint();if(++visited>20_000){incomplete=true;break}
+                val name=path.fileName.toString()
+                if(name.matches(Regex("[a-f0-9-]{36}\\.intent"))) {
+                    try { result+=inspectLocked(name.removeSuffix(".intent")) }
+                    catch(failure:CancellationException){throw failure} catch(_:Exception){unreadable++}
+                }else if(name.endsWith(".held") && !Files.exists(File(directory,name.removeSuffix(".held")+".intent").toPath(),NOFOLLOW_LINKS))unreadable++
+            }
+        }
+        Inventory(result.sortedWith(compareByDescending<Observation> { it.intent.record.createdAt }.thenBy { it.intent.record.id }),incomplete,unreadable)
     }
     suspend fun inspect(id:String):Observation = lock.withLock { inspectLocked(id) }
 }

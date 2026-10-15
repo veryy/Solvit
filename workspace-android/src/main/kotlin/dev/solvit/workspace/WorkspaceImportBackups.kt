@@ -114,7 +114,7 @@ internal class WorkspaceImportBackups(private val root: File, private val ledger
     internal fun registeredOrNull(id:String):Record? = synchronized(lock) {
         directory(create=false)
         val file=recordFile(id)
-        if(Files.exists(file.toPath(),NOFOLLOW_LINKS))read(file).also { safeBackup(it) } else null
+        if(Files.exists(file.toPath(),NOFOLLOW_LINKS))read(file) else null
     }
     internal fun registered(id:String):Record = synchronized(lock) {
         directory(create=false)

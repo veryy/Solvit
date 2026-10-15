@@ -56,6 +56,11 @@ class WorkspaceImportBackupContent(val backup: WorkspaceImportBackup, val bytes:
     override fun close() { bytes.fill(0) }
     override fun toString() = "WorkspaceImportBackupContent(bytes=${bytes.size}, content=<redacted>)"
 }
+/** Interrupted cleanup facts. Paths stay workspace-relative; held bytes stay private. */
+data class WorkspaceBackupCleanupRecord(val id:String,val path:String,val backupPath:String,
+    val phase:String,val status:String,val heldBytes:Long?)
+data class WorkspaceBackupCleanupPage(val cleanups:List<WorkspaceBackupCleanupRecord>,val offset:Int,
+    val total:Int,val incomplete:Boolean,val unreadableEntries:Int)
 const val MAX_WORKSPACE_IMPORT_BYTES = 20 * 1024 * 1024
 
 data class ShellSession(val id: String, val workspaceId: String, val name: String,
@@ -116,6 +121,16 @@ interface WorkspaceService {
     }
     suspend fun readImportBackup(workspaceId: String, backupId: String,
         expectedSha256: String? = null): WorkspaceImportBackupContent { error("工作区备份读取服务不可用") }
+    /** Explicit current-content approval only; startup must never replay this action. */
+    suspend fun cleanupImportBackup(workspaceId:String,backupId:String,expectedSha256:String) {
+        error("备份清理服务不可用")
+    }
+    suspend fun importBackupCleanups(workspaceId:String,offset:Int=0,limit:Int=20):WorkspaceBackupCleanupPage {
+        error("备份清理记录服务不可用")
+    }
+    suspend fun restoreImportBackupCleanup(workspaceId:String,backupId:String) {
+        error("备份清理恢复服务不可用")
+    }
     suspend fun importRecoveries(workspaceId: String): List<WorkspaceImportRecovery> = emptyList()
     suspend fun dismissImportRecovery(workspaceId: String, recoveryId: String) {
         error("工作区导入恢复记录服务不可用")
