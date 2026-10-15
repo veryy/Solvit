@@ -37,3 +37,7 @@
 路径修复后的[38712390857](https://github.com/veryy/Solvit/actions/runs/38712390857)仍未通过：两路实际日志都剩3个createLink的AccessDeniedException，其余用例已通过。独立目录移动用例通过，原路径别名失败不再出现。[AOSP app_neverallows.te](https://android.googlesource.com/platform/system/sepolicy/+/b5b796adcd99dce1822184e4859d91f3d1da2153/private/app_neverallows.te#84)明确禁止untrusted apps创建硬链接，确认原JVM方案不可直接用于Android，不申请root或关闭SELinux。
 
 修复为私有完整文件经JNI renameat2(RENAME_NOREPLACE)原子移入目标；先持久INSTALLING，移动后源缺失只在目标同inode/模式/摘要都匹配时接受，缺失不重建，冲突不覆盖。文件和.git均无copy/unlink fallback。私有清理不再依赖工作区硬链接。原JVM协议fixture同步改为完整文件移动，额外增加已移动文件被删除时拒绝恢复，以及Android真实文件移动同名/符号链接拒绝覆盖与inode保留。保留已发布后的用户变更和逆序私有清理约束；修复后尚待远程验证。
+
+HTML接入候选：Git TS页面启动先查恢复清单，即使status因缺少.git失败也保留入口；每页5条、单独审阅，再生成仅含host reviewId的原生确认。继续/重新下载走既有异步任务进度和停止，放弃后留在恢复列表，不因无.git掩盖成功；失败/取消返回记录清单并要求新审阅。未知目录只报告，初始化入口在已知存在未处理记录时隐藏。主按钮说明支持现有六种语言，底层phase/status仍作为事实显示。新增3个TS页面合同，覆盖无.git启动、明确确认、防复用、冲突放弃、分页与下载失败返回；未本地运行。
+
+继续阅读DSH锁定版本ui-settings-shell的apply.client.spec.ts服务到达/移除/清理测试，以及Operit github/local/fileApply.ts。沿用页面生命周期和显式操作，拒绝移植其delete-before-write覆盖策略。没有复制上游代码或新增第三方库。API29 SDK/解析器/市场目录与Git1.3.0源码同步升级；保留1.2.7完整原始791303字节、SHA96811c76f4b14800829de63ab1cc848d82892915472dcee0a3ea4ad29348b28c到legacy及目录顺序，API1..28继续选旧包。增加旧Git1.2.7设置/权限/用户改码/卸载回归和市场API29/旧字节断言。当前已提交内置asset仍为旧包；须由远程生成并下载审阅、同步，再跑宿主/UI及外部强杀，未完成新APK交付。

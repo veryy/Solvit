@@ -15,6 +15,7 @@ async function harness(){
  const calls=[];
  const ctx={gitPage:{query:async(op,args)=>{
   calls.push([op,args]);
+  if(op==='cloneInstalls')return {entries:[],nextOffset:null,incomplete:false,unreadable:0};
   if(op==='status')return {branch:'refs/heads/main',head:'12345678',entries:[{path:'src/code.kt',staged:'modified',working:'modified',conflict:false}],total:1};
   if(op==='diff')return {reviewId:'native-review',path:args.path,staged:args.staged,total:patch.length};
   if(op==='diffChunk'){assert.equal(args.reviewId,'native-review');const end=args.offset===0?4095:patch.length;return {text:patch.slice(args.offset,end),offset:args.offset,nextOffset:end,total:patch.length}}
@@ -154,5 +155,91 @@ test('Credentials page declares only the repository and delegates input to the n
   assert.ok(form.nodes.every(n=>n.kind!=='field'));
   const saved=await h.page(h.input(h.event('git_credentials_confirm','gitCredentialsConfirm')),h.ctx);
   assert.equal(inputs,1);assert.ok(saved.nodes.some(n=>n.id==='git_remote_url'));
+ }finally{await h.close()}
+});
+
+test('Interrupted clone is visible without .git and resumes only a confirmed opaque review',async()=>{
+ const h=await harness();try{
+  const entry={id:'00000000-0000-0000-0000-000000000001',phase:'INSTALLING',status:'INSTALL_INTERRUPTED',url:'https://github.com/fixture/repo',branch:'main',head:'a'.repeat(40),createdAt:1};
+  let pending=true,performed=0,remoteState={status:'RUNNING'},reviewed=0;
+  const query=h.ctx.gitPage.query;
+  h.ctx.gitPage.query=async(op,args)=>{
+   if(op==='status'){if(pending)throw Error('No repository yet');return {branch:'main',head:entry.head,entries:[],total:0}}
+   if(op==='cloneInstalls'){assert.equal(args.limit,5);return {entries:pending?[entry]:[],nextOffset:null,incomplete:false,unreadable:0}}
+   if(op==='reviewCloneInstall'){assert.equal(args.id,entry.id);reviewed++;return {reviewId:'retained-clone-review',entry,canResume:true,canRestart:false,files:2,bytes:100,installedFiles:1,problem:null}}
+   if(op==='remoteOperation')return remoteState;
+   return query(op,args);
+  };
+  h.ctx.gitPage.perform=async(...args)=>{assert.equal(args.length,0);performed++;return {operationId:'recovery-operation'}};
+  let view=await h.page(h.input(),h.ctx);
+  assert.ok(view.nodes.some(n=>n.id==='git_clones'));assert.ok(!view.nodes.some(n=>n.id==='git_initialize'));assert.equal(performed,0);
+  view=await h.page(h.input(h.event('git_clones','gitClones')),h.ctx);assert.equal(performed,0);assert.equal(reviewed,0);
+  view=await h.page(h.input(h.event('git_clone_review_0','gitCloneReview')),h.ctx);
+  assert.ok(view.footer.some(n=>n.id==='git_clone_resume'));assert.ok(!view.footer.some(n=>n.id==='git_clone_restart'));
+  view=await h.page(h.input(h.event('git_clone_resume','gitCloneResume')),h.ctx);
+  assert.equal(performed,0);
+  assert.deepEqual(JSON.parse(JSON.stringify(view.footer.find(n=>n.id==='git_clone_confirm').hostAction)),
+   {kind:'git.perform',operation:'startRemote',arguments:{operation:'resumeCloneInstall',arguments:{reviewId:'retained-clone-review'}}});
+  view=await h.page(h.input(h.event('git_clone_confirm','gitCloneConfirm')),h.ctx);assert.equal(performed,1);
+  assert.ok(view.nodes.some(n=>n.id==='git_transfer'));pending=false;remoteState={status:'SUCCEEDED',result:{remoteHead:entry.head}};
+  view=await h.page(h.input(h.event('git_remote_poll','gitRemotePoll')),h.ctx);
+  assert.ok(view.nodes.some(n=>n.id==='git_branch'));assert.equal(performed,1);
+ }finally{await h.close()}
+});
+
+test('Conflicting clone can only discard private staging and a failed confirmation requires fresh review',async()=>{
+ const h=await harness();try{
+  const entry={id:'00000000-0000-0000-0000-000000000002',phase:'READY',status:'INSTALL_INTERRUPTED',url:'https://github.com/fixture/repo',branch:'main',head:'b'.repeat(40),createdAt:1};
+  let pending=true,performed=0,reviews=0,failOnce=true;
+  const query=h.ctx.gitPage.query;
+  h.ctx.gitPage.query=async(op,args)=>{
+   if(op==='status')throw Error('No repository');
+   if(op==='cloneInstalls')return {entries:pending?[entry]:[],nextOffset:null,incomplete:false,unreadable:0};
+   if(op==='reviewCloneInstall')return {reviewId:'review-'+(++reviews),entry,canResume:false,canRestart:false,files:2,bytes:100,installedFiles:0,problem:'Concurrent Shell file: user.txt'};
+   return query(op,args);
+  };
+  h.ctx.gitPage.perform=async()=>{performed++;if(failOnce){failOnce=false;throw Error('Permission revoked')}pending=false;return {discarded:true}};
+  await h.page(h.input(),h.ctx);await h.page(h.input(h.event('git_clones','gitClones')),h.ctx);
+  let view=await h.page(h.input(h.event('git_clone_review_0','gitCloneReview')),h.ctx);
+  assert.ok(view.nodes.some(n=>n.id==='git_clone_problem'&&n.text.includes('user.txt')));
+  assert.ok(!view.footer.some(n=>['git_clone_resume','git_clone_restart'].includes(n.id)));
+  view=await h.page(h.input(h.event('git_clone_discard','gitCloneDiscard')),h.ctx);
+  assert.deepEqual(JSON.parse(JSON.stringify(view.footer.find(n=>n.id==='git_clone_confirm').hostAction)),
+   {kind:'git.perform',operation:'discardCloneInstall',arguments:{reviewId:'review-1'}});
+  view=await h.page(h.input(h.event('git_clone_confirm','gitCloneConfirm')),h.ctx);
+  assert.ok(view.nodes.some(n=>n.id==='git_error'&&n.text.includes('Permission revoked')));assert.equal(performed,1);
+  view=await h.page(h.input(h.event('git_clone_confirm','gitCloneConfirm')),h.ctx);assert.equal(performed,1);
+  await h.page(h.input(h.event('git_clone_review_0','gitCloneReview')),h.ctx);
+  view=await h.page(h.input(h.event('git_clone_discard','gitCloneDiscard')),h.ctx);
+  assert.equal(view.footer.find(n=>n.id==='git_clone_confirm').hostAction.arguments.reviewId,'review-2');
+  view=await h.page(h.input(h.event('git_clone_confirm','gitCloneConfirm')),h.ctx);
+  assert.equal(performed,2);assert.ok(view.nodes.some(n=>n.id==='git_clone_empty'));
+  assert.ok(!view.nodes.some(n=>n.id==='git_error'));
+ }finally{await h.close()}
+});
+
+test('Unfinished download offers explicit restart, paginates facts and returns failures to recovery',async()=>{
+ const h=await harness();try{
+  let reviewedId='',performed=0;
+  const records=Array.from({length:6},(_,i)=>({id:'clone-'+i,phase:'DOWNLOADING',status:'DOWNLOAD_INTERRUPTED',url:'https://github.com/fixture/repo',branch:'main',head:null,createdAt:i}));
+  const query=h.ctx.gitPage.query;
+  h.ctx.gitPage.query=async(op,args)=>{
+   if(op==='cloneInstalls')return {entries:records.slice(args.offset,args.offset+args.limit),nextOffset:args.offset===0?5:null,incomplete:true,unreadable:1};
+   if(op==='reviewCloneInstall'){reviewedId=args.id;return {reviewId:'restart-review',entry:records.find(e=>e.id===args.id),canResume:false,canRestart:true,files:0,bytes:0,installedFiles:0,problem:'Download interrupted'}}
+   if(op==='remoteOperation')return {status:'FAILED',error:'Connection failed'};
+   return query(op,args);
+  };
+  h.ctx.gitPage.perform=async()=>{performed++;return {operationId:'restart-job'}};
+  await h.page(h.input(),h.ctx);let view=await h.page(h.input(h.event('git_clones','gitClones')),h.ctx);
+  assert.ok(view.nodes.some(n=>n.id==='git_clone_warning'));assert.ok(view.nodes.some(n=>n.id==='git_clone_next'));
+  view=await h.page(h.input(h.event('git_clone_next','gitCloneNext')),h.ctx);assert.ok(view.nodes.some(n=>n.id==='git_clone_previous'));
+  view=await h.page(h.input(h.event('git_clone_review_0','gitCloneReview')),h.ctx);assert.equal(reviewedId,'clone-5');
+  assert.ok(!view.footer.some(n=>n.id==='git_clone_resume'));
+  view=await h.page(h.input(h.event('git_clone_restart','gitCloneRestart')),h.ctx);
+  assert.equal(performed,0);assert.equal(view.footer.find(n=>n.id==='git_clone_confirm').hostAction.arguments.operation,'restartCloneDownload');
+  await h.page(h.input(h.event('git_clone_confirm','gitCloneConfirm')),h.ctx);
+  view=await h.page(h.input(h.event('git_remote_poll','gitRemotePoll')),h.ctx);
+  assert.ok(view.nodes.some(n=>n.id==='git_clone_0'));assert.ok(view.nodes.some(n=>n.id==='git_error'&&n.text==='Connection failed'));
+  assert.equal(performed,1);
  }finally{await h.close()}
 });

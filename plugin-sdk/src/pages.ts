@@ -1,7 +1,7 @@
 /** Page state and validated actions. API10 HTML owns layout; API9 uses native widgets. */
 export type PageHostAction =
   | { kind:'git.credentials'; url:string }
-  | { kind:'git.perform'; operation:'initialize'|'stage'|'unstage'|'commit'|'clone'|'fetch'|'reviewPush'|'push'|'reviewPull'|'merge'|'cancelTransfer'|'startRemote'; arguments:Record<string,import('./index.js').JsonValue> }
+  | { kind:'git.perform'; operation:'initialize'|'stage'|'unstage'|'commit'|'clone'|'fetch'|'reviewPush'|'push'|'reviewPull'|'merge'|'cancelTransfer'|'startRemote'|'resumeCloneInstall'|'restartCloneDownload'|'discardCloneInstall'; arguments:Record<string,import('./index.js').JsonValue> }
   | { kind:'workspace.perform'; operation:'create'|'createShell'|'bind'|'unbind'|'write'|'writeDraft'|'makeDirectory'|'moveEntry'|'deleteEntry'|'installDraft'|'installEnvironment'|'cancelEnvironment'|'installSoftware'|'createLinuxShell'|'selectImport'|'importFile'|'dropImport'|'selectChatAttachment'|'importReviewed'|'startImport'|'cancelImport'|'dismissImportRecovery'|'selectImportBackup' | 'cleanupImportBackup' | 'restoreImportBackupCleanup' | 'dismissImportBackupCleanup'; arguments:Record<string,import('./index.js').JsonValue> }
   | { kind:'document.open'; mimeTypes:string[]; maxBytes:number }
   | { kind:'document.save'; name:string; mimeType:string; maxBytes:number }

@@ -21,7 +21,7 @@ export interface PluginContext {
   /** API19, authorized AI tool only; root and chat selectors are owned by the host. */
   readonly git?: {call(operation:'status'|'diff'|'history',args?:JsonObject):Promise<JsonValue>};
   /** API19, page-only. Native reviews are opaque handles; perform consumes a displayed confirmed action. */
-  readonly gitPage?: {query(operation:'status'|'diff'|'diffChunk'|'history'|'reviewCommit'|'transferProgress'|'remoteOperation',args?:JsonObject):Promise<JsonValue>;
+  readonly gitPage?: {query(operation:'status'|'diff'|'diffChunk'|'history'|'reviewCommit'|'transferProgress'|'remoteOperation'|'cloneInstalls'|'reviewCloneInstall',args?:JsonObject):Promise<JsonValue>;
     perform():Promise<JsonValue>; credentials():Promise<'SAVED'|'REMOVED'|'CANCELLED'>};
   /** API12, human page only. The host captures the chat; scripts cannot supply a chat/workspace id to file queries. */
   readonly workspacePage?: {query(operation:'snapshot'|'list'|'read'|'readChunk'|'editBegin'|'editAppend'|'editFinish'|'editDiscard'|'drafts'|'draft'|'changes'|'changeContent'|'environmentStatus'|'importSelection'|'importText'|'importPicture'|'importPdf'|'chatAttachments'|'reviewImport'|'importOperation'|'importRecoveries'|'importBackups'|'reviewBackup'|'importBackupCleanups',args?:JsonObject):Promise<JsonValue>;
@@ -105,7 +105,7 @@ export interface PluginManifest {
   name: string;
   description: string;
   version: string;
-  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28;
+  apiVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29;
   /** API12: optional native dependencies, separate from permissions and API compatibility. */
   nativeServices?: ('terminal.pty'|'web.pages'|'workspace.git'|'environment.linux'|'workspace.files')[];
   pages?: { id: string; title: string; entry?: string; context?: 'management'|'execution' }[];

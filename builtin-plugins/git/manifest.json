@@ -1,9 +1,9 @@
 {
   "id": "dev.solvit.git",
   "name": "Git 工作区",
-  "description": "当前对话工作目录的文件预览、编辑、Git Changes、暂存、提交、历史与HTTPS远程拉取/推送审阅。",
-  "version": "1.2.7",
-  "apiVersion": 20,
+  "description": "当前对话的文件、Git Changes、提交与远程审阅；中断克隆可查看事实、明确继续或保留文件并放弃暂存。",
+  "version": "1.3.0",
+  "apiVersion": 29,
   "permissions": [
     "workspace",
     "git",
