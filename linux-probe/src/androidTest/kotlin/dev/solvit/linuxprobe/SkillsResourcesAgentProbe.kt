@@ -64,6 +64,11 @@ internal suspend fun verifySkillsResourcesAgent(context: Context, scope: Corouti
             )), false)
             assertFalse("Import must not execute a script", File(directory, "output-$runtime.txt").exists())
             val role = AgentRole("skills-$runtime", "Skills tester", pluginIds = setOf("dev.solvit.skills", "dev.solvit.workspace"), skillIds = setOf(skill))
+            // Minimal native/QuickJS reproduction before the Agent's deliberately sanitized errors.
+            // Fixture-only inputs contain no account configuration or credentials.
+            tools.executeCall(ToolCall("direct-resource-$runtime", "dev_solvit_skills_skills_prepare",
+                buildJsonObject { put("name", skill) }.toString()), allow, role,
+                conversation = ConversationContext("skills-agent", project.id))
             var phase = 0
             var polls = 0
             var resourcePath = ""

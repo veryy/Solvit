@@ -1,50 +1,56 @@
 # Skills 与角色
 
-Skills 技能库是纯 TS 插件 `dev.solvit.skills`，打包后由 QuickJS 执行。原生层负责文件选择、导入边界、角色持久化和宿主授权，技能解析、管理、目录生成与按需读取均在插件中。
+Skills 技能库是 TS 插件 `dev.solvit.skills`，逻辑和页面由 QuickJS、离线 HTML/JS 运行。它管理任务说明和资源文件；Android 宿主处理文件选择、角色持久化与工具授权，Ubuntu 环境负责实际运行 Python、Node 等程序。
 
-## 使用
+## 先导入，再让角色使用
 
-1. 在插件页启用“Skills 技能库”，授予 storage 权限。首次启用提供 code-review 示例技能，删除后不会自动恢复。
-2. 聊天顶部点击“角色：默认 · 管理角色与 Skills”，进入“技能库”。
-3. 导入一个 SKILL.md、一个技能的 ZIP，或 Solvit 导出的 JSON 包。确认页面可以查看 SKILL.md；替换同名技能需要明确勾选。
-4. 在“角色”页创建角色，填写提示词，勾选 Skills 插件和允许使用的技能，也可以勾选 MCP、记忆等已安装插件。
-5. 将角色“用于此对话”。新对话继承当前角色，已有会话的选择独立保存。
-6. 向模型提出任务。宿主每轮只加入可用技能的名称与描述；模型使用 skills_load 按需读取正文，引用文件用 skills_read 读取。每次工具调用仍需确认。
+1. 在「设置 → 插件」启用 Skills 技能库。原来的1.1.1只需要storage；0.43.0候选内置1.2.0增加workspace权限，旧用户需明确更新并重新授权，原来的技能数据保留。
+2. 在设置里的角色管理选择角色，打开技能库，导入 SKILL.md、单个技能的 ZIP，或 Solvit 导出的 JSON。也可以从插件自己的 Skills 页面管理内容。替换同名技能需要确认。
+3. 在角色中勾选 Skills 插件和允许使用的技能，再应用到当前对话。新对话继承当前角色，已有对话的选择独立保存。
+4. 提出任务。模型先看到可用技能名称和简短描述，需要时调用 `skills_load` 读取正文，用 `skills_read` 读取引用文本。
 
-默认角色使用全部已启用插件和全部技能；自定义角色只使用绑定插件与勾选技能。勾选插件不会自动启用，也不会授予权限。删除正在使用的角色后，相应对话必须重新选择角色，避免意外扩大工具范围。
+默认角色使用全部已启用插件和技能；自定义角色只使用绑定插件与勾选技能。选择插件不会自动启用或授权。普通聊天不必创建工作区，也能读取技能。
 
-## 格式与边界
+## 技能带脚本时怎么运行
 
-参考 [Agent Skills 格式规范](https://agentskills.io/specification)。SKILL.md 需要 YAML frontmatter 中的 name、description，以及 Markdown 正文。YAML 支持引号、多行字符串和 metadata 映射；拒绝重复键和别名。
+0.43.0候选的Skills1.2.0提供 `skills_prepare`。它把当前角色允许使用的技能文本包复制到当前工作区的新目录，返回实际的 `resourceBase`，例如 `/workspace/.solvit-resource-example-…`。导入、读取和准备都不会执行代码；不要猜测技能安装路径。
+
+1. 给对话绑定工作区，在「工作区 → Linux」安装Ubuntu并新建Ubuntu Shell，见[Linux指南](linux-environment.md)。
+2. 启用工作区与Shell插件，并在当前角色里允许Skills和工作区插件。
+3. 让模型加载技能正文，调用 `skills_prepare`，再通过工作区 `info` 选择 `runtime: UBUNTU` 的Shell。
+4. 单独确认执行命令，例如 `python3 '/workspace/返回目录/scripts/main.py'` 或 `node '/workspace/返回目录/scripts/main.mjs'`。
+5. 检查Shell退出码与输出，必要时修复输入/依赖并重新运行，最后读取实际生成的文件。命令启动成功不等于任务完成。
+
+项目目录是 `/workspace`。脚本通过自身文件位置解析技能里的相对资源，通过当前目录处理项目文件。Python依赖建议装进项目venv；Node第三方依赖需要明确安装。`.ts`文本可导入，但运行时需自行配置TS解释器或编译流程。QuickJS不提供Node全局对象。
+
+每次准备会产生独立副本，不覆盖既有项目文件，也不自动更新先前副本。副本之后可由工作区编辑；返回的摘要表示准备时的源内容，不表示文件永远不会变化。停止或撤权后不会删除已经发布、可能已被修改的工作区副本。
+
+## 文件格式与限制
+
+参考[Agent Skills规范](https://agentskills.io/specification)。SKILL.md需要YAML中的name、description以及正文；支持引号、多行和metadata，拒绝重复键和别名。
 
 ```markdown
 ---
-name: writing
-description: 改写文字，适用于用户要求润色或整理表达的任务。
+name: report-example
+description: 用自带Python脚本整理工作区数据并验证输出。
 ---
-先确认读者和目的。保留原意，使用具体动词，删除重复内容。
+先准备本技能资源目录，再使用Ubuntu Shell运行scripts/main.py。
+脚本按自身位置读取references中的模板，按工作区目录读取输入。
+检查退出码和输出文件；失败时先读取错误，不要直接报告完成。
 ```
 
-ZIP 可包含根 SKILL.md，或 writing/SKILL.md 加同目录的资源。目录名需与 name 一致。支持 scripts/、references/、assets/ 下的文本资源，不写入共享文件系统。拒绝路径穿越、多技能包、无效 UTF-8、二进制文件和超限内容。
+ZIP可包含根SKILL.md，或 `report-example/SKILL.md` 和同目录资源。目录名应与name一致。支持scripts、references、assets下允许扩展名的文本，包含py/js/mjs/cjs/ts；不支持二进制资产或全部桌面技能依赖。
 
-- 输入文件最多 512 KiB；单个文本文件最多 32 KiB；每包最多 40 个文本文件；ZIP 解压文本总量最多 220 KiB。
-- 技能库最多 32 个技能，序列化存储最多 220 KiB。满额或损坏时保留已有数据并报错。
-- allowed-tools 是技能元数据，不会绕过用户确认或宿主权限。脚本资源只作为文本读取；Shell、Root、脚本执行和二进制资源仍需后续实现。
-- 导入、删除、导出是管理操作，不向聊天模型提供。查看和导出通过原生库界面调用同一个 TS 插件。
-- 当前角色限制插件工具与技能发现/加载，不提供插件内部数据的独立进程隔离。一个已授权插件仍能读取其自身存储。
+- 输入最多512KiB；单个文本32KiB；每包最多40个文本，ZIP展开合计220KiB。
+- 技能库最多32个技能，序列化存储最多220KiB。满额或损坏时保留已有数据并报错。
+- 拒绝路径穿越、多技能包、无效UTF-8和超限内容。资源准备不接受模型提供任意目标路径或额外文件正文。
+- `allowed-tools`只是技能元数据，不能自动授权、绕过角色范围或Android权限。
+- 导入、删除、导出是管理操作，不向聊天模型提供。插件仍能访问自己已获授权的存储，角色过滤不是独立进程隔离。
 
-角色绑定当前以插件为单位；MCP 插件仍配置单个 HTTPS 服务，多服务器实例、每服务器工具策略与更完整角色模型配置继续实现。
+MCP已支持多个具名HTTPS/本地stdio连接，见[MCP说明](mcp.md)。Shell、Ubuntu和Skills是可组合能力，Ubuntu/PRoot仍使用本应用UID，不能取得Android root，也不是不可信代码安全沙箱。
 
-## JS Hook
+## Hook与验证
 
-宿主 API 3 开放 beforeModel。manifest 声明 hooks: ["beforeModel"]，插件实现返回文本的 beforeModel(input, ctx)。它只允许 ctx.storage.get，不能读取私密配置、写数据或请求网络。角色未绑定的 Hook 不执行，停用/卸载时注销。
+Skills通过 `beforeModel` 按角色提供元数据目录，正文按需加载；停用或卸载会注销Hook。每个Hook最多10秒/32KiB，合计64KiB，不改变模型密钥或授权规则。开发接口见[SDK说明](../plugin-sdk/README.md)。
 
-Hook 每个最多 10 秒、32 KiB 文本，合计最多 64 KiB；取消会传递到原生宿主工作。Hook 无法改变模型密钥、工具列表或授权策略。Skills 使用它提供目录；其他插件也可按需声明同一个接口。
-
-## 验证
-
-[0.6.0 已发布](https://github.com/veryy/Solvit/releases/tag/v0.6.0)。[标签构建、55 个 Android 测试、23 个 TS 测试、Lint、APK、市场和公网插件检查全部通过](https://github.com/veryy/Solvit/actions/runs/38109369009)。
-
-TS 测试覆盖 YAML、文本资源、角色过滤、正文按需加载、替换确认、损坏与容量保护。Android 集成测试经过真实 QuickJS、宿主存储、角色服务、Agent 工具循环和 SQLite 结算。标签验证另从实际 HTTPS 市场下载包，校验与提交产物一致，并运行角色过滤和按需加载。
-
-真机文件选择、界面交互、真实模型采用技能的行为仍待验证，不以模拟模型或 Node VM 测试替代这些验证。
+本阶段远程用例、实际Ubuntu脚本探针和发布状态见[验证记录](skills-runtime-stage.md)。确定性Provider驱动的真实工具执行不代表真实模型已自主完成任务；ARM64真机、设备文件选择和第三方技能依赖仍需实际验收。
