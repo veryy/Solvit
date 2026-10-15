@@ -47,3 +47,11 @@ Ubuntu正式任务116589760648成功，已下载完整日志；其原有实际�
 公开Release414144215/v0.43.2为非草稿/非预发布且latest，APK644795283、源码644795433的大小与GitHub摘要均与完整下载的正式内层产物一致。APK58955111字节、SHA256 `d70b99e301c965c2f2d3692c372354486ce29acb6ec55d93419f777c7a235b23`；源码1072711字节、SHA256 `8159edb249dd29762134baaf8aa886744af689264287535bc815df4eb441f766`。实际公开正文已补充两个不同压力失败及不能声称240次通过；不将正式绿色与独立压力失败相互覆盖。ARM64真机、真实模型和第三方依赖仍待验收。
 
 公开 APK 与源码下载入口均另以范围请求返回 HTTP 206，并读取到 ZIP 文件头；完整内容校验来自前述正式 Actions 产物，不将范围请求视为公开文件完整下载。
+
+## Compose 异常的实际竞争栈
+
+继续读取同一失败归档11998447014的原始logcat，Android测试运行器已经导出完整THREAD_STATE：DefaultDispatcher-worker-4正在`AndroidWorkspaces.bind → save → StateFlow.setValue → ApplyingContinuationInterceptor → Snapshot.sendApplyNotifications → Recomposer → TestMonotonicFrameClock.performFrame → measureAndLayoutForTest`中执行TabRow布局。主线程同时在dispatchDraw读取同一Owner。这是比只有previousThreadId更强的证据；不是测试语义树打印栈，也不是页面资源回调。
+
+实际核对Google Maven原始ui-test/ui-test-junit4 Android 1.7.6源码：ComposeUiTest.android.kt默认UnconfinedTestDispatcher；FrameDeferringContinuationInterceptor在父dispatcher无需调度时直接resume；TestMonotonicFrameClock在帧末执行measureAndLayoutForTest；MainTestClockImpl/AbstractMainTestClock将显式推进scheduler包装到UI线程。准备仅将ChatLayoutTest的effectContext设为StandardTestDispatcher，让IO发布者只排队、不直接执行重组/布局，保留全部原操作、断言、次数和超时；不更改生产StateFlow的正确后台发布方式、不升级Compose、不捕获产品异常。工作流38787642743仍在旧默认dispatcher上取证，保留独立结果。此项是否有效以相同压力复验为准，尚未称已修复，更不将其等同于WebView SIGSEGV根因。
+
+源码来源：`https://dl.google.com/dl/android/maven2/androidx/compose/ui/ui-test/1.7.6/ui-test-1.7.6-sources.jar`、`https://dl.google.com/dl/android/maven2/androidx/compose/ui/ui-test-junit4-android/1.7.6/ui-test-junit4-android-1.7.6-sources.jar`。只读取源码，没有运行本地构建或测试。

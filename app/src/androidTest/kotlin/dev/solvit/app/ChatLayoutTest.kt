@@ -207,7 +207,13 @@ class ChatLayoutTest {
         rule.onNodeWithTag("save_context_budget").performClick()
         assertEquals(ContextBudgetPolicy(4_096, 512, 2_048, false), saved)
     }
-    @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    // The default UnconfinedTestDispatcher may resume the test recomposer on an IO
+    // publisher's thread. Queue those continuations; Compose's Android test clock
+    // drains this scheduler on the UI thread, including its layout traversals.
+    @OptIn(ExperimentalTestApi::class)
+    @get:Rule val rule = createAndroidComposeRule<MainActivity>(
+        effectContext = kotlinx.coroutines.test.StandardTestDispatcher()
+    )
     private fun ready() {
         rule.waitUntil(30_000) { rule.onAllNodes(hasSetTextAction() and isFocused()).fetchSemanticsNodes().isNotEmpty() }
         rule.waitForIdle()
