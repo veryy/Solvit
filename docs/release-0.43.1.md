@@ -13,3 +13,5 @@ Ubuntu/PRoot沿用Operit同类的免root方案，继续使用Android内核与应
 发布由完整远程测试、Lint、固定签名APK、设备UI、实际Ubuntu Python/Node执行及市场检查共同把关。[使用指南](skills.md) · [研究与逐轮验证记录](skills-runtime-stage.md)。
 
 0.43.0因新增Ubuntu探针漏接生产执行身份服务而被发布门禁阻止，没有发布APK。本版补齐测试装配，并断言模型看到的Shell执行身份为APP；不放宽原生身份核对。
+
+已知问题：首轮完整UI检查在Activity反复重建时出现系统WebView124原生SIGSEGV。原APK后续8轮/24次重建未复现，尚未定位根因；不能把一次通过说成已修复。失败报告和后续完整检查分别保留在[阶段记录](skills-runtime-stage.md)。ARM64真机也仍待验收。
