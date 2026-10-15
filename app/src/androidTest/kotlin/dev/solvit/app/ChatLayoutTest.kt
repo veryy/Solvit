@@ -255,8 +255,14 @@ class ChatLayoutTest {
     private fun selectBranchFixture() {
         rule.onNodeWithContentDescription("对话历史").performClick()
         try {
-            rule.onNode(hasScrollToIndexAction() and hasAnyAncestor(hasTestTag("chat_drawer")))
-                .performScrollToNode(hasText("branch original question"))
+            val list=rule.onNode(hasScrollToIndexAction() and hasAnyAncestor(hasTestTag("chat_drawer")))
+            if(InstrumentationRegistry.getArguments().getString("branchHistoryAtEnd")=="true") {
+                val app=rule.activity.application as SolvitApplication
+                val count=runBlocking { app.ready.value!!.getOrThrow().sessions().first().size }
+                list.performScrollToIndex(count-1)
+                rule.onNodeWithText("branch original question").assertDoesNotExist()
+            }
+            list.performScrollToNode(hasText("branch original question"))
             rule.onNodeWithText("branch original question").assertIsDisplayed().performClick()
         } catch (failure:AssertionError) {
             throw AssertionError("Branch history before selection:\n"+rule.onRoot(useUnmergedTree=true).printToString(),failure)
@@ -704,6 +710,8 @@ class ChatLayoutTest {
     @Test fun editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending() {
         ready()
         val app=rule.activity.application as SolvitApplication
+        val diagnosticChats=if(InstrumentationRegistry.getArguments().getString("branchHistoryAtEnd")=="true")
+            runBlocking { List(12){app.ready.value!!.getOrThrow().createSession()} } else emptyList()
         val source=seedBranchConversation(app)
         try {
             selectBranchFixture()
@@ -721,7 +729,10 @@ class ChatLayoutTest {
                 assertEquals(6,store.history(source.id).size)
                 app.ready.value!!.getOrThrow().deleteSession(branch.id)
             } }
-        } finally { runBlocking { app.ready.value!!.getOrThrow().deleteSession(source.id) } }
+        } finally { runBlocking {
+            app.ready.value!!.getOrThrow().deleteSession(source.id)
+            diagnosticChats.forEach { app.ready.value!!.getOrThrow().deleteSession(it.id) }
+        } }
     }
     @Test fun toolsAndThinkingAreCollapsedInsideOneRenderedAssistantBubble() {
         ready()

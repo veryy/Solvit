@@ -35,6 +35,7 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   echo "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor} diagnostic iteration $iteration/$solvit_diagnostic_repetitions"
   timeout --signal=TERM --kill-after=10s 120s adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
+    -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \
     | tee "ui-screenshots/page-diagnostic-iteration-$iteration.txt"
   grep -F "$solvit_diagnostic_expected" "ui-screenshots/page-diagnostic-iteration-$iteration.txt"
