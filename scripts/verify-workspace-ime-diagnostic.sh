@@ -16,6 +16,9 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
     solvit_diagnostic_test='dev.solvit.app.McpPageUiTest,dev.solvit.app.PluginPageUiTest#packagedTaskPageShowsSourcesAndUsesNativeCostConfirmationBeforeServiceControl,dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin,dev.solvit.app.PluginWebPageUiTest,dev.solvit.app.WorkspaceImportProgressHtmlTest'
     solvit_diagnostic_expected='OK (5 tests)' ;;
   chat-interaction) solvit_diagnostic_test='dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole' ;;
+  queued-ui-scroll)
+    solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal,dev.solvit.app.ChatLayoutTest#applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist,dev.solvit.app.ChatLayoutTest#wideDrawerOpensSettingsAndLastSettingsRowCanBeSeen'
+    solvit_diagnostic_expected='OK (3 tests)' ;;
   chat-branches)
     solvit_diagnostic_test='dev.solvit.app.ChatAttachmentsDeviceTest#pickerImportsImagesAndTextThenHttpSendAndReopenPreserveTheirContent,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending'
     solvit_diagnostic_expected='OK (2 tests)' ;;

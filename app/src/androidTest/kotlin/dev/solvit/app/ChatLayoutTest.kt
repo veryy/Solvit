@@ -174,7 +174,7 @@ class ChatLayoutTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithText("处理失败").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("模型请求失败。").assertIsDisplayed()
             rule.onNodeWithText("查看详情").performClick()
-            rule.onNodeWithTag("memory_tasks").performScrollToNode(hasText("来源消息：fixture-user"))
+            rule.onNodeWithTag("memory_tasks").performQueuedScrollToNode(rule, hasText("来源消息：fixture-user"))
             rule.onNodeWithText("来源消息：fixture-user").assertIsDisplayed()
             rule.onNodeWithText("重试").performClick()
             assertEquals(0, retries)
@@ -273,23 +273,7 @@ class ChatLayoutTest {
                 list.performScrollToIndex(count-1)
                 rule.onNodeWithText("branch original question").assertDoesNotExist()
             }
-            // LazyColumn semantics enqueue scrolling on StandardTestDispatcher.
-            // Drive one UI frame after each action before inspecting its result;
-            // performScrollToNode otherwise observes the previous position.
-            list.performScrollToIndex(0)
-            rule.mainClock.advanceTimeByFrame()
-            rule.waitUntil(10_000) {
-                val target=rule.onNodeWithText("branch original question")
-                if(target.isDisplayed()) true else {
-                    val height=list.fetchSemanticsNode().boundsInRoot.height
-                    check(height>0f) { "Chat history viewport must be visible before scrolling" }
-                    list.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.ScrollBy) {
-                        it(0f,height/2f)
-                    }
-                    rule.mainClock.advanceTimeByFrame()
-                    false
-                }
-            }
+            list.performQueuedScrollToNode(rule, hasText("branch original question"))
             rule.onNodeWithText("branch original question").assertIsDisplayed().performClick()
         } catch (failure:AssertionError) {
             throw AssertionError("Branch history before selection:\n"+rule.onRoot(useUnmergedTree=true).printToString(),failure)
@@ -518,13 +502,13 @@ class ChatLayoutTest {
             rule.onNodeWithTag("settings_list").performScrollToIndex(6)
             rule.onNodeWithText("最近请求诊断").performClick()
             rule.onNodeWithText("实际角色：Solvit").assertIsDisplayed()
-            rule.onNodeWithTag("request_diagnostics").performScrollToNode(hasText("插件资料未获得：test.broken"))
+            rule.onNodeWithTag("request_diagnostics").performQueuedScrollToNode(rule, hasText("插件资料未获得：test.broken"))
             rule.onNodeWithText("插件资料未获得：test.broken").assertIsDisplayed()
             rule.onNodeWithText("读取失败").assertIsDisplayed()
             rule.onNodeWithText("PRIVATE_SECRET_SENTINEL").assertDoesNotExist()
-            rule.onNodeWithTag("request_diagnostics").performScrollToNode(hasText("提供的工具数：0"))
+            rule.onNodeWithTag("request_diagnostics").performQueuedScrollToNode(rule, hasText("提供的工具数：0"))
             rule.onNodeWithText("提供的工具数：0").assertExists()
-            rule.onNodeWithTag("request_diagnostics").performScrollToNode(hasText("首段文字显示：", substring = true))
+            rule.onNodeWithTag("request_diagnostics").performQueuedScrollToNode(rule, hasText("首段文字显示：", substring = true))
             rule.onNode(hasText("首段文字显示：", substring = true)).assertExists()
             screenshot("request-diagnostics")
         } catch (e: Throwable) {
@@ -676,6 +660,8 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("对话历史").performClick()
             rule.onNodeWithTag("new_chat").performClick()
             rule.waitUntil(8000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
+            rule.mainClock.advanceTimeByFrame()
+            rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed()
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithText("角色管理与 Skills").performClick()
             rule.onNodeWithTag("apply_role_${role.id}").performScrollTo()
@@ -709,7 +695,7 @@ class ChatLayoutTest {
         }
         try {
             selectBranchFixture(historyAtEnd=true)
-            rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_branch-final"))
+            rule.onNodeWithTag("chat_messages").performQueuedScrollToNode(rule, hasTestTag("message_actions_branch-final"))
             rule.onNodeWithTag("message_actions_branch-final").performClick()
             rule.onNodeWithText("从这里分支").performClick()
             rule.onNodeWithText("创建分支").performClick()
@@ -747,7 +733,7 @@ class ChatLayoutTest {
         val source=seedBranchConversation(app)
         try {
             selectBranchFixture()
-            rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_branch-user"))
+            rule.onNodeWithTag("chat_messages").performQueuedScrollToNode(rule, hasTestTag("message_actions_branch-user"))
             rule.onNodeWithTag("message_actions_branch-user").performClick()
             rule.onNodeWithText("编辑并分支").performClick()
             rule.onNodeWithTag("branch_edit").performTextReplacement("edited branch question")
@@ -838,8 +824,8 @@ class ChatLayoutTest {
         assertEquals(rule.activity.window.decorView.width * 0.75f, bounds.width, 3f)
         rule.onNodeWithText("设置", useUnmergedTree = true).performClick()
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("settings_list").fetchSemanticsNodes().isNotEmpty() }
-        rule.onNodeWithTag("settings_list").performScrollToNode(hasText("关于 Solvit"))
-        rule.onNodeWithTag("settings_list").performScrollToNode(hasText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。"))
+        rule.onNodeWithTag("settings_list").performQueuedScrollToNode(rule, hasText("关于 Solvit"))
+        rule.onNodeWithTag("settings_list").performQueuedScrollToNode(rule, hasText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。"))
         rule.onNodeWithText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。").performScrollTo()
         screenshot("settings-bottom-insets")
         rule.onNodeWithText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。").assertIsDisplayed()
@@ -1033,16 +1019,16 @@ class ChatLayoutTest {
             val profile=app.modelProfiles.state.value.profiles.single { it.name=="UI task model" }
             // Saving publishes the data before the editor coroutine dismisses its window.
             rule.waitUntil(8000) { rule.onAllNodesWithTag("save_model_profile").fetchSemanticsNodes().isEmpty() }
-            rule.onNodeWithTag("model_profiles_list").performScrollToNode(hasTestTag("model_task_TOOL_FOLLOW_UP"))
+            rule.onNodeWithTag("model_profiles_list").performQueuedScrollToNode(rule, hasTestTag("model_task_TOOL_FOLLOW_UP"))
             rule.waitUntil(8000) { rule.onAllNodes(hasTestTag("model_task_TOOL_FOLLOW_UP") and isEnabled()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("model_task_TOOL_FOLLOW_UP").performClick()
             rule.waitUntil(8000) { rule.onAllNodesWithTag("model_task_choices").fetchSemanticsNodes().isNotEmpty() }
-            rule.onNodeWithTag("model_task_choices").performScrollToNode(hasTestTag("choose_model_${profile.id}"))
+            rule.onNodeWithTag("model_task_choices").performQueuedScrollToNode(rule, hasTestTag("choose_model_${profile.id}"))
             rule.onNodeWithTag("choose_model_${profile.id}").assertIsEnabled().performClick()
             rule.waitUntil(8000) { app.modelProfiles.state.value.routes[ModelTask.TOOL_FOLLOW_UP]==profile.id }
             val stored=runBlocking { app.settings.loadProfiles() }
             assertEquals(profile.id,stored.routes[ModelTask.TOOL_FOLLOW_UP])
-            rule.onNodeWithTag("model_profiles_list").performScrollToNode(hasTestTag("edit_model_${profile.id}"))
+            rule.onNodeWithTag("model_profiles_list").performQueuedScrollToNode(rule, hasTestTag("edit_model_${profile.id}"))
             rule.onNodeWithTag("edit_model_${profile.id}").performClick()
             rule.onNodeWithTag("model_profile_name").assertTextContains("UI task model")
         } finally { runBlocking { app.modelProfiles.replace(previous) } }

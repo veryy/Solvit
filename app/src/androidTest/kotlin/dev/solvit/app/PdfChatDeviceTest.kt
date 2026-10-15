@@ -172,7 +172,7 @@ class PdfChatDeviceTest {
             assertEquals(first,requestContent())
             val user=runBlocking { store.history(session).single { it.role==Role.USER } }
             assertEquals(selection,user.attachments.single().documentSelection)
-            rule.onNodeWithTag("chat_messages").performScrollToNode(hasTestTag("message_actions_${user.id}"))
+            rule.onNodeWithTag("chat_messages").performQueuedScrollToNode(rule, hasTestTag("message_actions_${user.id}"))
             rule.onNodeWithTag("message_actions_${user.id}").performClick();rule.onNodeWithText("编辑并分支").performClick()
             rule.onNodeWithText("创建分支").performClick()
             rule.waitUntil(15_000) { vm.sessionId.value!=session && vm.attachmentDrafts.value[vm.sessionId.value].orEmpty().size==1 && !vm.branching.value }
