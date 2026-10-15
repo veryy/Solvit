@@ -1,11 +1,12 @@
 {
   "id": "dev.solvit.skills",
   "name": "Skills 技能库",
-  "description": "纯 TS 技能库：SKILL.md 与文本资源导入、角色绑定、元数据自动注入和按需加载。",
-  "version": "1.1.1",
-  "apiVersion": 11,
+  "description": "TS 技能库：导入与角色绑定、按需读取、授权准备资源目录，配合 Ubuntu Shell 运行脚本。",
+  "version": "1.2.0",
+  "apiVersion": 31,
   "permissions": [
-    "storage"
+    "storage",
+    "workspace"
   ],
   "dependencies": [],
   "hooks": [
@@ -21,7 +22,8 @@
         "properties": {},
         "required": [],
         "additionalProperties": false
-      }
+      },
+      "requiresWorkspace": false
     },
     {
       "name": "skills_load",
@@ -38,7 +40,8 @@
           "name"
         ],
         "additionalProperties": false
-      }
+      },
+      "requiresWorkspace": false
     },
     {
       "name": "skills_read",
@@ -57,6 +60,25 @@
         "required": [
           "name",
           "path"
+        ],
+        "additionalProperties": false
+      },
+      "requiresWorkspace": false
+    },
+    {
+      "name": "skills_prepare",
+      "description": "经授权把指定技能的文本资源复制到当前工作区的新独立目录；返回资源路径，不执行脚本。随后通过 Ubuntu Shell 按需运行。",
+      "exposure": "chat",
+      "requiresWorkspace": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ],
         "additionalProperties": false
       }
@@ -85,7 +107,8 @@
           "files"
         ],
         "additionalProperties": false
-      }
+      },
+      "requiresWorkspace": false
     },
     {
       "name": "skills_remove",
@@ -102,7 +125,8 @@
           "name"
         ],
         "additionalProperties": false
-      }
+      },
+      "requiresWorkspace": false
     },
     {
       "name": "skills_export",
@@ -119,7 +143,8 @@
           "name"
         ],
         "additionalProperties": false
-      }
+      },
+      "requiresWorkspace": false
     }
   ],
   "thirdPartyNotices": [
@@ -136,5 +161,8 @@
       "title": "技能库",
       "entry": "ui/index.html"
     }
+  ],
+  "nativeServices": [
+    "workspace.resources"
   ]
 }

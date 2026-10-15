@@ -48,5 +48,5 @@ export function validateResourcePath(path: string): void {
   const parts = path.split('/');
   if (path.length > 160 || parts.length > 6 || parts.some(part => !part || part === '.' || part === '..') ||
       path.startsWith('/') || /[\\\u0000-\u001f]/.test(path) ||
-      !/^(scripts|references|assets)\/.+\.(md|txt|json|csv|yaml|yml|ts|js|py|sh|html|css|xml)$/.test(path)) throw new Error('Invalid text resource path');
+      !/^(scripts|references|assets)\/.+\.(md|txt|json|csv|yaml|yml|ts|js|mjs|cjs|py|sh|html|css|xml)$/.test(path)) throw new Error('Invalid text resource path');
 }

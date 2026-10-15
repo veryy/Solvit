@@ -104,11 +104,11 @@ class AndroidMarketplace(
                         if (digest in originals) {
                             val candidate = context.assets.open("builtin-plugins/$name").use { it.readBytes() }
                             val next = ScriptPackage.parse(candidate)
-                            // Existing HTTPS users retain their working package and network-only grant.
-                            // Installing the API30 edition is an explicit update with new permission review.
-                            val payload = if (name == "dev.solvit.mcp.solvit.json" &&
+                            // Permission-expanding seed updates keep a compatible package and existing grants.
+                            // Resource preparation and local MCP require explicit user updates.
+                            val payload = if (name in setOf("dev.solvit.mcp.solvit.json", "dev.solvit.skills.solvit.json") &&
                                 !ScriptPackage.parse(original).manifest.permissions.containsAll(next.manifest.permissions))
-                                context.assets.open("builtin-compat/mcp-1.1.1.solvit.json").use { it.readBytes() } else candidate
+                                context.assets.open("builtin-compat/${if (name == "dev.solvit.skills.solvit.json") "skills" else "mcp"}-1.1.1.solvit.json").use { it.readBytes() } else candidate
                             ScriptPackage.parse(payload)
                             val atomic = AtomicFile(base); val stream = atomic.startWrite()
                             try { stream.write(payload); atomic.finishWrite(stream) }

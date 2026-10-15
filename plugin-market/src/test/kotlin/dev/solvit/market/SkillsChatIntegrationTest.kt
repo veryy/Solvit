@@ -22,7 +22,7 @@ class SkillsChatIntegrationTest {
         val client = OkHttpClient()
         val store = SqliteChatStore(context)
         try {
-            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin()); manager.load(RolesPlugin(context)); manager.enableAll()
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin()); manager.load(RolesPlugin(context)); manager.load(dev.solvit.workspace.WorkspacePlugin(context)); manager.enableAll()
             val tools = manager.registry.require(Services.Tools)
             val hooks = manager.registry.require(ContextHookServiceKey)
             val roles = manager.registry.require(RoleServiceKey)
@@ -30,7 +30,7 @@ class SkillsChatIntegrationTest {
             market.restore()
             assertTrue(market.installed.value.any { it.id == "dev.solvit.skills" && !it.enabled })
             assertFailsWith<IllegalStateException> { market.enable("dev.solvit.skills", emptySet()) }
-            market.enable("dev.solvit.skills", setOf("storage"))
+            market.enable("dev.solvit.skills", setOf("storage", "workspace"))
             market.enable("dev.solvit.memory", setOf("storage", "model"))
             val library = NativeSkillLibrary(market)
             library.importSkill(SkillBundle(null, mapOf(

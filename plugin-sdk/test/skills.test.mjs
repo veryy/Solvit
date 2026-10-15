@@ -5,10 +5,10 @@ import vm from 'node:vm';
 const pkg = JSON.parse(await readFile('../market-server/packages/dev.solvit.skills.solvit.json', 'utf8'));
 const clone = value => JSON.parse(JSON.stringify(value));
 const markdown = (name = 'writing', body = 'Write clear sentences.') => `---\nname: ${name}\ndescription: >\n  Help write and revise prose.\n  Use for writing tasks.\nlicense: MIT\nallowed-tools: Shell\nmetadata:\n  author: Solvit\n---\n${body}`;
-async function runtime(data = new Map(), role = null, failWrite = false) {
+async function runtime(data = new Map(), role = null, failWrite = false, workspace = undefined) {
   const sandbox = vm.createContext({});
   vm.runInContext(pkg.source, sandbox, { timeout: 1000 });
-  const ctx = { role, storage: {
+  const ctx = { role, workspace, storage: {
     async get(key) { return data.has(key) ? clone(data.get(key)) : null; },
     async set(key, value) { if (failWrite) throw new Error('disk full'); data.set(key, clone(value)); return null; },
   } };
@@ -101,4 +101,18 @@ test('maximum Unicode skill directory remains within the Android hook budget', a
   const context = await plugin.context();
   assert.ok(Buffer.byteLength(context) < 32 * 1024);
   assert.equal((await plugin.run('skills_list')).skills.length, 32);
+});
+
+test('resource preparation copies selected role-bound files once without evaluating scripts and returns actual host directory', async()=>{
+ const files={'SKILL.md':markdown('script-example','Run the bundled script after preparation.'),'scripts/main.mjs':'throw Error("never evaluate during preparation")','references/input.txt':'中文🌌'};
+ const calls=[];const workspace={prepareResources:async(name,body)=>{calls.push({name,body:clone(body)});return{path:'.solvit-resource-script-example-host-id',files:3,bytes:90,sourceSha256:'a'.repeat(64)}}};
+ const all=await runtime(new Map(),null,false,workspace);await all.run('skills_import',{files});
+ const loaded=await all.run('skills_load',{name:'script-example'});assert.equal(loaded.resourceBase.kind,'opaque');assert.equal(calls.length,0);
+ const prepared=await all.run('skills_prepare',{name:'script-example'});
+ assert.deepEqual(calls,[{name:'script-example',body:files}]);assert.equal(prepared.resourceBase.path,'/workspace/.solvit-resource-script-example-host-id');assert.equal(prepared.sourceSha256,'a'.repeat(64));
+ const restricted=await runtime(all.data,{id:'restricted',name:'Restricted',skillIds:['code-review']},false,workspace);
+ await assert.rejects(()=>restricted.run('skills_prepare',{name:'script-example'}),/not available/);assert.equal(calls.length,1);
+ await assert.rejects(()=>runtime(all.data).then(p=>p.run('skills_prepare',{name:'script-example'})),/API31/);
+ const expected=pkg.manifest.tools.filter(t=>t.exposure==='chat');assert.equal(expected.find(t=>t.name==='skills_prepare').requiresWorkspace,true);
+ assert.ok(expected.filter(t=>t.name!=='skills_prepare').every(t=>t.requiresWorkspace===false));
 });
