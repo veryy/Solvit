@@ -15,6 +15,7 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
   webview-native-control) solvit_diagnostic_test='dev.solvit.app.BareWebViewLifecycleTest#nativeBrowserRecreationAndImmediateRelease' ;;
   webview-plugin-host-control) solvit_diagnostic_test='dev.solvit.app.PluginHostLifecycleControlTest#minimalDocumentUsesProductionHostAndReleasesAfterRecreation' ;;
   webview-native-plugin-control) solvit_diagnostic_test='dev.solvit.app.NativePluginHostControlTest#minimalBridgeAndResourceLifecycleInNativeContainer' ;;
+  plugin-page-ready) solvit_diagnostic_test='dev.solvit.app.PluginPageReadyStateTest#delayedReadyReceivesLatestStateWithoutEarlierScriptDelivery' ;;
   compose-lifecycle-dispatch) solvit_diagnostic_test='dev.solvit.app.ComposeLifecycleDispatchTest' ;;
   plugin-document-lifecycle) solvit_diagnostic_test='dev.solvit.app.PluginWebPageLifecycleTest' ;;
   plugin-resume)

@@ -97,3 +97,14 @@ b7be1fdc/[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)
 额外读取Google Maven官方ui-android:1.8.3 sources.jar（SHA256 `63bd2776ad08453c2d84c5cb4ec936f3e52e595bedb2bc1bbcad11abaefbe2d1`），AndroidView.android.kt的releaseBlock与AndroidViewHolder.android.kt的onRelease/onDetach/onLayout/全局位置回调：它持有传入View引用，onRelease执行释放回调；这支持检查所有权边界，但没有证明原生崩溃时确实调用了已销毁视图，也不能据此声称AndroidX有该缺陷。没有复制上游源码或添加分发依赖。
 
 独立诊断分支恢复原来的直接WebView容器实现，仅临时加入WEB_PAGE_LIFECYCLE_DIAG阶段日志：构造、load、资源开始/返回、ready/更新脚本、释放入口及监听/父视图/stop/子视图/destroy前后。日志仅使用自增实例编号、固定阶段和存活布尔值，不输出URL、文档、消息、配置或凭据。目的为判断崩溃紧邻哪个实际方法/回调，不再仅凭粗粒度对照猜修复；日志本身可能改变时序，若未复现也不算修复。最终交付前必须删除全部临时标记，并回到无日志的原失败路径验证。仅远程构建，尚待运行；容器候选不合入正式主线，不发布该失败APK。
+
+
+## 临时日志复现：应用释放方法均已返回
+
+b3341886/[38837934088](https://github.com/veryy/Solvit/actions/runs/38837934088)失败。归档12019469062完整下载/CRC，546455字节，SHA256 `aeb39782fecc95f64d61a2136013268934e14064f982b28d69f9b83d25ad3419`。实际完成19次，第20次期间同一SIGSEGV/pc0x357d7e5/BuildId68dabd72c6088238cbfc9a5fbfe211f916771df5。492条阶段事件中所有before/after与resource begin/return均配对；第20实例destroy.after在02:02:37.668，fatal在02:02:38.843，相差1.175秒。因此没有证据显示某个已记录的应用释放方法尚未返回，不能把最后一个方法直接当作崩溃点。
+
+第20实例没有message/ready事件，却在02:02:37.399已执行update.evaluate，页面仍未握手。按预测排序：①未就绪文档上的脚本队列可能参与，ready后才发状态应改变失败；②异步加载/渲染清理可能独立存在，ready门禁若仍失败需继续检查；③消息桥回收可能独立参与，当前日志不足以直接排除。下一步只改状态下发就绪门禁，不同时更改清理、容器或渲染模式。
+
+再次实际阅读Operit锁定BrowserWebViewSupport.kt的onPageStarted/onPageCommitVisible/onPageFinished与注入辅助脚本，以及DSH ElectronWebViewImpl.ts的dom-ready/loadPending和electron-lifecycle.client.spec.ts的就绪前不加载、取消与迟到消息边界。借鉴明确的就绪状态和取消边界，不能把Electron的API直接移植为Android修复。Solvit已有docs/plugin-html-pages.md协议明确要求页面先注册接收函数，再发送ready；本次无上游代码复制或新增依赖。
+
+先新增实际设备PluginPageReadyStateTest：页面已定义接收函数但故意尚未发送ready；宿主实际Compose状态改为Latest并确认可见提交，要求页面收到0次状态。随后发送真实ready消息，必须收到最新而非Initial；继续修改宿主时仍能收到After ready。不使用Compose测试规则或模拟浏览器，不要求重复状态去重。先用未修复的b334诊断APK运行同一断言，结果待回收；不能写成已失败/通过，也不能用该协议测试替代原生压力。
