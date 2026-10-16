@@ -75,3 +75,18 @@ b7be1fdc/[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)
 下一对照NativePluginHostControlTest仅在测试中将最小文档的桥/资源与释放组合放进原生FrameLayout：保留HTTPS离线资源、同一CSP、ready/状态脚本、WebMessage注册/移除、加载/渲染错误回调和一次性release，不用Compose AndroidView。该测试是对生产相关行为的诊断复制，状态简化为固定view，不代表完全等价实现；不注册终端权限或其他业务动作。使用same APK/Activity/版本，挂载后立即释放。若同签名复现，可排除Compose容器为必要条件；若通过，仍须在产品容器路径继续定点采样。未改生产或发布新APK，远程结果待回收。
 
 下一原生桥/资源对照已提交1dcaceaf并实际启动[38834185607](https://github.com/veryy/Solvit/actions/runs/38834185607)，生产APK仍来自38826293232，8轮×30次；尚未完成，不报告通过。补充参考完整路径为Operit `app/src/main/java/com/ai/assistance/operit/core/tools/defaultTool/websession/browser/BrowserWebViewSupport.kt`，没有复制其源码。
+
+
+## 原生桥/资源对照240次通过
+
+1dcaceaf/[38834185607](https://github.com/veryy/Solvit/actions/runs/38834185607)成功。归档12019275113完整下载/CRC，958540字节，SHA256 `7e5e1e768b8068d41e37bc535333f28f27f9243845429aded8eeded208de2508`。8轮各OK (1 test)，20.920/22.092/21.146/22.067/21.124/22.137/20.144/22.884秒；原始logcat中8个独立PID各精确完成1..30/30，共240次。WebView仍124.0.6367.219，零Fatal signal/SnapshotStateObserver/removeObserver，1条destroyed-WebView警告。该警告也存在于通过的原生路径，不能将其本身当作崩溃原因。
+
+## 容器所有权候选
+
+当前按预测排序：①若AndroidView销毁阶段仍接触已销毁的直接子View，保留原生容器、只销毁内层浏览器可能改变失败；②若产品状态更新/Compose组合时序独立触发，单独改变容器后同签名仍可能出现；③资源/渲染加载时序差异仍可能参与，原生较小负载通过不证明其安全。优先只验证第一项，不同时修改桥、资源、页面、释放顺序、销毁延迟或渲染模式。
+
+候选以FrameLayout作为AndroidView持有的稳定视图，document仍拥有同一个WebView；release仍先失效令牌、移除消息监听、移除浏览器父视图，再stopLoading/removeAllViews/destroy。UI更新仍由live门禁调用浏览器，容器背景随主题更新。采用Operit WebSessionWebViewHost.kt中容器与活跃浏览器分开管理、清理内层所有权的原则；没有复制实现或引入依赖。DSH实际lifecycle测试的迟到回调/单次释放边界继续保留。
+
+已有PluginHostLifecycleControlTest在正式APK上第9次失败，候选不改变该测试和断言，先等待远程编译，再用候选APK重放同一8轮×30次。之后必须回到真实工作区操作路径与完整设备/恢复/签名回归，不能用最小对照替代产品验收。候选未验证、未合入主线、未发布新APK；不得提前宣称根因或修复成立。
+
+候选提交[5c7cffe3](https://github.com/veryy/Solvit/commit/5c7cffe320452b081d8947daf32d4d4b3cac4063)已推送独立fix/webview-owned-container分支，[完整远程38835247602](https://github.com/veryy/Solvit/actions/runs/38835247602)已实际启动，仍待结果。生产主线未合入；后续须用该轮完成的APK重放原最小宿主与实际工作区压力，不借用正式旧APK的对照通过结果。
