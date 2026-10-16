@@ -169,3 +169,14 @@ PluginPageReadyStateTest的旧APK同断言任务已启动；本候选还需远�
 2e6f045a/38839204234的归档12021417024已完整下载/CRC，7,786,014字节，SHA256 `9a78dec4154426fbbef645f545147dfa5154b066e68d1f0871a2b02a4f850adf`。原始XML为app75/Web3/terminal25，合计103项，失败/错误/跳过均0，全部时长非负；五个新增就绪/生命周期诊断方法均实际存在。15份恢复输出、覆盖升级seed、独立报告summary一致；实际stdio宿主9112/supervisor9128/worker9129/descendant9130被强杀后全部gone。这是带日志候选的常规回归通过，不能覆盖原最小压力第2次崩溃，也不是无日志交付版通过。
 
 消息监听对照38840785119/build116780131836已成功，后续原最小宿主压力[38841583915](https://github.com/veryy/Solvit/actions/runs/38841583915)已启动，仍为同一测试8×30、首失败停止；结果待回收。无日志协议分支843dd344的38841085736尚在构建/验证，不能计为完整通过。正式main仅同步证据，尚未合入生产修正，没有新APK发布。
+
+
+## 无日志就绪修正完整通过，生命周期候选继续验证
+
+843dd344/[38841085736](https://github.com/veryy/Solvit/actions/runs/38841085736)的build116781078497与verify-ui116782900173均成功。单元归档12021388072完整下载/CRC，437476字节，SHA256 `8bdb60755f948d17a823bc379f4f7251b8f9186a8f8f538833a05c8d2595ca30`；611单元零失败/错误/跳过，完整日志确认5项报告门禁、Lint/assemble和固定签名。设备归档12021852662完整下载/CRC，7753796字节，SHA256 `dea74c71607182ff29c68ba0119a0b22d2253181d0456d18e3e4530a8b0c1616`；实际app71/Web3/terminal25=99，含延迟ready、两项原生命周期回归，全部零失败/错误/跳过、时长非负；15恢复、升级seed、独立summary、实际stdio宿主8859/supervisor8875/worker8876/descendant8877强杀后全部gone。该分支无诊断日志，协议修正验收明确；分支条件下plugins/search/Linux/release为skipped，不称正式六项通过。
+
+a6b000de/[38841583915](https://github.com/veryy/Solvit/actions/runs/38841583915)最小宿主对照完成8个实际进程各30次，共240次。归档12021727090完整下载/CRC，1100159字节，SHA256 `2f2018c3551119cca440028388c21978a2842e4509928069108bccc12538514a`；8份各OK(1test)，实际仍为WebView124.0.6367.219，零Fatal/Snapshot/removeObserver，61条destroyed-WebView警告。真实工作区[38842564272](https://github.com/veryy/Solvit/actions/runs/38842564272)仍在执行。对照常规UI38840785119/116782434495在系统镜像下载时遇到ZipFile unknown archive，模拟器和应用尚未启动；属于基础设施失败，未当作应用失败或通过，也不抹去已完成的build。
+
+已实际阅读Chromium124.0.6367.219/`7741f71cbce3b7dfe3eb5890976d2596364b0733`的AwContents、JsCommunicationHost、JsToBrowserMessaging、AwWebMessageHostFactory及JsJavaInteractionTest：显式remove先删除工厂，首次消息对象仍持有工厂raw_ptr；整体销毁按所有权清理消息对象与工厂。这是与单变量对照吻合的源码风险，不能把未符号化的pc直接宣称定位到某函数。完整文件、适配与许可核对见[272fcf12阶段记录](https://github.com/veryy/Solvit/blob/272fcf121c08d8454c1b605ec3ad0933fcce7bc0/docs/webview-user-lifecycle-stage.md)。无复制或新增依赖。
+
+无日志候选[272fcf12](https://github.com/veryy/Solvit/commit/272fcf121c08d8454c1b605ec3ad0933fcce7bc0)保留就绪门禁及先关闭live/pageReady，随后正常移除父视图、停止/清理/销毁浏览器，消息桥由整页销毁统一回收。没有延时或容器替换。新增原最小宿主/真实工作区方法为常规回归及明确class/method门禁，预期101项不是已完成结果。[38843263391](https://github.com/veryy/Solvit/actions/runs/38843263391)已启动；接下来须无日志最小/真实路径压力及完整发布门禁，暂未合入主线或发布新APK。
