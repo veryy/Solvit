@@ -208,6 +208,10 @@ class PluginPageUiTest {
             rule.onNode(hasText("已安装 (", substring = true)).performClick()
             rule.onNodeWithTag("plugins_list").performScrollToNode(hasTestTag("installed_plugin_$id"))
             rule.onNodeWithTag("installed_plugin_$id").performClick()
+            rule.onNodeWithTag("plugin_permissions_details").assertDoesNotExist()
+            rule.onNodeWithTag("plugin_permissions_toggle").performClick()
+            rule.onNodeWithTag("plugin_permissions_details").assertExists()
+            rule.onNodeWithTag("plugin_details_content").performScrollToNode(hasTestTag("open_plugin_page_${id}_main"))
             rule.onNodeWithTag("open_plugin_page_${id}_main").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_note").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_note").performClick()

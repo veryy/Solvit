@@ -5406,5 +5406,53 @@
     "ko": "정리 및 출처 기록만 닫습니다. 파일을 삭제하지 않으며 이전 결과도 확정하지 않습니다.",
     "es": "Solo cierra los registros de limpieza y origen; no elimina archivos ni confirma el resultado anterior.",
     "fr": "Ferme le suivi du nettoyage et de provenance, sans supprimer de fichier ni confirmer le résultat précédent."
+  },
+  "插件页面": {
+    "zh": "插件页面",
+    "en": "Plugin pages",
+    "ja": "プラグインページ",
+    "ko": "플러그인 페이지",
+    "es": "Páginas del complemento",
+    "fr": "Pages du plugin"
+  },
+  "权限与能力": {
+    "zh": "权限与能力",
+    "en": "Permissions and capabilities",
+    "ja": "権限と機能",
+    "ko": "권한 및 기능",
+    "es": "Permisos y funciones",
+    "fr": "Autorisations et fonctions"
+  },
+  "展开": {
+    "zh": "展开",
+    "en": "Expand",
+    "ja": "展開",
+    "ko": "펼치기",
+    "es": "Expandir",
+    "fr": "Développer"
+  },
+  "收起": {
+    "zh": "收起",
+    "en": "Collapse",
+    "ja": "折りたたむ",
+    "ko": "접기",
+    "es": "Contraer",
+    "fr": "Réduire"
+  },
+  "已启用": {
+    "zh": "已启用",
+    "en": "Enabled",
+    "ja": "有効",
+    "ko": "활성화됨",
+    "es": "Activado",
+    "fr": "Activé"
+  },
+  "已停用": {
+    "zh": "已停用",
+    "en": "Disabled",
+    "ja": "無効",
+    "ko": "비활성화됨",
+    "es": "Desactivado",
+    "fr": "Désactivé"
   }
 }

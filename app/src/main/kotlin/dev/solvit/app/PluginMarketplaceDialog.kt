@@ -65,7 +65,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                             if (catalog.isEmpty() && !loading) item(span = { GridItemSpan(maxLineSpan) }) { UiText("暂无插件，点击右上角刷新市场。") }
                             items(catalog, key = { it.id }) { entry ->
                                 val local = installed.firstOrNull { it.id == entry.id }
-                                Card(onClick = { marketTarget = entry }, modifier = Modifier.fillMaxWidth().testTag("market_plugin_${entry.id}")) {
+                                Card(onClick = { marketTarget = entry }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = Modifier.fillMaxWidth().testTag("market_plugin_${entry.id}")) {
                                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Text(entry.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(entry.description, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -76,7 +76,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                         } else {
                             if (installed.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { UiText("安装后可以在这里启用插件、管理权限和配置。") }
                             items(installed, key = { it.id }) { extension ->
-                                Card(onClick = { installedTarget = extension.id }, modifier = Modifier.fillMaxWidth().testTag("installed_plugin_${extension.id}")) {
+                                Card(onClick = { installedTarget = extension.id }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = Modifier.fillMaxWidth().testTag("installed_plugin_${extension.id}")) {
                                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Text(extension.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         UiText(if (extension.enabled) "已启用" else "已停用", style = MaterialTheme.typography.labelSmall)
@@ -124,9 +124,11 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
     }
     enableTarget?.let { extension ->
         AlertDialog(onDismissRequest = { enableTarget = null }, title = { UiText("启用 ${extension.name}？") },
-            text = { Column { Text(permissionDescription(extension.permissions));
-                if (extension.contextHooks.isNotEmpty()) UiText("插件会为聊天提供上下文，已保存的资料可能发送给当前模型服务。")
-                UiText("启用后插件可在这些权限范围内运行，停用将撤销已注册工具。") } },
+            text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item { Text(permissionDescription(extension.permissions)) }
+                if (extension.contextHooks.isNotEmpty()) item { UiText("插件会为聊天提供上下文，已保存的资料可能发送给当前模型服务。") }
+                item { UiText("启用后插件可在这些权限范围内运行，停用将撤销已注册工具。") }
+            } },
             confirmButton = { TextButton(onClick = { vm.enable(extension); enableTarget = null }) { UiText("允许并启用") } },
             dismissButton = { TextButton(onClick = { enableTarget = null }) { UiText("取消") } })
     }
@@ -139,31 +141,22 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
     marketTarget?.let { entry ->
         val local = installed.firstOrNull { it.id == entry.id }
         AlertDialog(onDismissRequest = { marketTarget = null }, title = { Text(entry.name) },
-            text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(entry.description); UiText("版本 ${entry.version}"); UiText(permissionDescription(entry.permissions))
-                if (entry.dependencies.isNotEmpty()) UiText("依赖：${entry.dependencies.joinToString()}")
+            text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                item { Text(entry.description) }
+                item { UiText("版本 ${entry.version}", style = MaterialTheme.typography.labelMedium) }
+                item { UiText(permissionDescription(entry.permissions)) }
+                if (entry.dependencies.isNotEmpty()) item { UiText("依赖：${entry.dependencies.joinToString()}") }
             } }, confirmButton = { TextButton(enabled = !busy && local?.version != entry.version, onClick = { vm.install(entry); marketTarget = null; tab = 1 }) {
                 UiText(if (local?.version == entry.version) "已安装" else if (local != null) "更新插件" else "安装")
             } }, dismissButton = { TextButton(onClick = { marketTarget = null }) { UiText("关闭") } })
     }
     installed.firstOrNull { it.id == installedTarget }?.let { extension ->
-        AlertDialog(onDismissRequest = { installedTarget = null }, title = { Text(extension.name) },
-            text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                item { UiText("版本 ${extension.version}"); UiText(permissionDescription(extension.permissions)) }
-                if (extension.contextHooks.isNotEmpty()) item { UiText("插件可为聊天提供上下文；停用后停止提供。") }
-                if (extension.enabled) item { UiText("AI 可发现 ${extension.tools.count { it.chatVisible }} 个工具；角色需允许此插件，执行时会请求确认。") }
-                extension.failure?.let { item { UiText(it, color = MaterialTheme.colorScheme.error) } }
-                if (extension.settings.any { !it.pageManaged }) item { TextButton(enabled = !busy && !extension.enabled, onClick = { installedTarget = null; vm.openConfiguration(extension) }) { UiText(if (extension.enabled) "停用后可配置" else "配置插件") } }
-                items(extension.pages, key = { "page_" + it.id }) { page ->
-                    TextButton(enabled = !busy && extension.enabled, modifier = Modifier.testTag("open_plugin_page_${extension.id}_${page.id}"),
-                        onClick = { installedTarget = null; openedPage = extension.id to page }) { Text(page.title) }
-                }
-                if (extension.pages.isNotEmpty() && !extension.enabled) item { UiText("启用插件后可打开它的页面。") }
-                item { TextButton(enabled = !busy, onClick = { installedTarget = null; deleteTarget = extension }) { UiText("卸载") } }
-            } }, confirmButton = { TextButton(enabled = !busy, onClick = {
+        InstalledPluginDetailsDialog(extension, busy, onDismiss = { installedTarget = null },
+            onToggle = {
                 if (extension.enabled) vm.disable(extension.id) else { installedTarget = null; enableTarget = extension }
-            }) { UiText(if (extension.enabled) "停用" else "启用") } },
-            dismissButton = { TextButton(onClick = { installedTarget = null }) { UiText("关闭") } })
+            }, onConfigure = { installedTarget = null; vm.openConfiguration(extension) },
+            onOpenPage = { page -> installedTarget = null; openedPage = extension.id to page },
+            onUninstall = { installedTarget = null; deleteTarget = extension })
     }
 
     openedPage?.let { (pluginId, page) ->
@@ -197,7 +190,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
 }
 
 @Composable
-private fun permissionDescription(permissions: Set<String>): String = if (permissions.isEmpty()) uiString("无需额外权限") else
+internal fun permissionDescription(permissions: Set<String>): String = if (permissions.isEmpty()) uiString("无需额外权限") else
     uiString("所需权限：") + permissions.map { uiString(when (it) {
         "storage" -> "插件自己的持久化存储"
         "network" -> "访问 HTTPS 网络服务"

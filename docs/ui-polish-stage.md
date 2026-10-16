@@ -49,3 +49,18 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 ## 验证记录
 
 第一批实现提交 `0feccb333c633822333b8008dde678528010b6fb` 已推送，远程 [Actions 38973262745](https://github.com/veryy/Solvit/actions/runs/38973262745) 正在执行构建；尚未完成构建和设备回归，尚未查看候选截图，尚未发布包含这些修改的 APK。本地不运行 Android/TS 构建与测试。已有插件生命周期修复继续留在独立分支，不能把它的结果计作本次 UI 验证。
+
+
+## 第二批：插件管理的层级与可达性
+
+实际读取锁定 Operit `ui/features/packages/dialogs/PackageDetailsDialog.kt` 的紧凑标题、独立滚动内容与删除确认；DSH `packages/client/ui-plugin-manager/src/client/PluginManagerPage.tsx` 以及 `tests/components.client.spec.tsx` 中 `opens a bundle’s page with its facts and rows, and uninstalls from it`、`confirms an uninstall by the package’s title and runs the action through it`，核对状态、版本、详情导航和卸载边界；另读 `packages/preset/agent-preset/skills/cordis-plugin-development/references/ui-plugin.md` 的继承宿主主题、页面清理与本地化要求。上游许可同上，未复制代码或增加依赖。
+
+本批宿主管理界面修改：
+
+- 已安装详情先显示状态与版本，插件页面采用明确的整行入口；停用状态提示原因，保留启用操作。
+- 权限与工具上下文说明可展开查看，卸载位于独立分隔区；启用时的原生完整权限确认和卸载确认继续执行。
+- 市场详情和启用确认的长正文支持滚动，避免说明过长挤掉底部操作。
+- 设置和插件卡片降低背景强调，保持当前宿主配色。
+- 新文案补齐六种语言。真实市场页面回归增加权限折叠/展开后进入页面；增加大字体、长权限说明和页面导航的实际 Compose 布局回归及截图。
+
+本批尚未运行远程验证，不等于已完成大字体或视觉验收；第一批远程任务结果也不能替代本批验证。聊天与工作区的整体打磨继续保留。
