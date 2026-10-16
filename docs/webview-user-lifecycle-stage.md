@@ -108,3 +108,10 @@ b7be1fdc/[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)
 独立诊断分支恢复原来的直接WebView容器实现，仅临时加入WEB_PAGE_LIFECYCLE_DIAG阶段日志：构造、load、资源开始/返回、ready/更新脚本、释放入口及监听/父视图/stop/子视图/destroy前后。日志仅使用自增实例编号、固定阶段和存活布尔值，不输出URL、文档、消息、配置或凭据。目的为判断崩溃紧邻哪个实际方法/回调，不再仅凭粗粒度对照猜修复；日志本身可能改变时序，若未复现也不算修复。最终交付前必须删除全部临时标记，并回到无日志的原失败路径验证。仅远程构建，尚待运行；容器候选不合入正式主线，不发布该失败APK。
 
 临时诊断提交[b3341886](https://github.com/veryy/Solvit/commit/b334188601cae9268042589998b681c106cc100d)，[远程38837209253](https://github.com/veryy/Solvit/actions/runs/38837209253)已实际启动，仍待构建与实际重放。已验证失败候选38835247602的verify-ui116765105368为cancelled，剩余release也cancelled；不将其作为完整回归通过。正式主线仅同步记录，不合入失败容器或临时日志，没有新APK发布。
+
+
+## 临时阶段诊断已构建，重放待回收
+
+b3341886/[38837209253](https://github.com/veryy/Solvit/actions/runs/38837209253)/build116768902192成功。单元归档12019897773完整下载/CRC，437849字节，SHA256 `6976df2c0bfa9faadde0ae2b1f2daac3933aff3f2e45df65600bb4f64595d808`；原始XML确认611项，失败/错误/跳过均0。完整日志核对4项报告门禁、Lint/assemble和固定证书通过。该构建仅含原实现与临时阶段标记，不是已验证的修复；尚未完整下载诊断APK，不报告其内层摘要。
+
+已实际启动[38837934088](https://github.com/veryy/Solvit/actions/runs/38837934088)，使用该轮完成的诊断APK、相同PluginHostLifecycleControlTest与8轮×30次参数。目标是关联原生失败与最后的创建/资源/消息/更新/释放阶段，不把预期次数或加入日志后的未复现当作修复。正式主线没有合入临时日志，没有新APK发布；真实工作区无日志重放、完整tag全部门禁、ARM64与真实模型验收继续保留。
