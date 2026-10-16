@@ -51,7 +51,7 @@ Linux 环境仍使用 Android 内核和应用身份，不额外授予系统权�
 
 配置备份包含模型连接、API Key、角色、提示词、语言和外观等；不包含聊天、插件包、插件密钥和记忆。备份文件请保存在应用外。
 
-当前发布的是 debug APK。[远程验证](https://github.com/veryy/Solvit/actions/runs/38783582460)已通过构建、611项单元、Lint、固定签名、97项常规设备、恢复/覆盖升级及Ubuntu脚本检查；原始单元与UI报告已核对。0.43.2修复插件文档更换后的页面空白。额外压力诊断在旧版复现WebView原生崩溃，修复版另遇Compose跨线程绘制异常，两者继续排查，不能把完整回归通过等同于压力检查通过；真实模型与ARM64真机仍待验收。[版本说明与已知问题](docs/release-0.43.2.md)。
+当前发布的是 debug APK。[0.43.3 正式远程验证](https://github.com/veryy/Solvit/actions/runs/38826293232)已通过构建、611 项单元、Lint、固定签名、98 项常规设备、15 场恢复、覆盖升级及实际 Ubuntu 检查，原始报告已核对。Compose 生命周期问题已有同入口失败/通过证明；但同一正式 APK 在额外的正常调度压力中完成 50 次操作后仍复现 WebView124 原生崩溃，根因尚未确定，继续排查。真实模型任务与 ARM64 真机仍待验收。[版本说明](docs/release-0.43.3.md) · [原生崩溃证据](docs/webview-user-lifecycle-stage.md)。
 
 ## 构建
 

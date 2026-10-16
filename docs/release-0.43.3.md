@@ -10,7 +10,7 @@
 
 合入前的[完整远程回归](https://github.com/veryy/Solvit/actions/runs/38823261172)通过：611 项单元测试、Lint、固定签名、98 项常规设备用例、15 场恢复检查、覆盖升级及实际 stdio 宿主强杀。[排查记录和失败证据](webview-lifecycle-stage.md)完整保留。
 
-已知边界：WebView124 在额外压力中出现过原生 SIGSEGV，根因仍未定位；不能把本次依赖更新或某轮压力通过当作根治。ARM64 真机、第三方依赖和真实模型自主任务尚未完整验收。
+已知边界：正式0.43.3 APK在API35 x86_64模拟器、WebView124的额外压力中，用正常应用调度和系统触摸完成50次工作区操作后再次出现原生SIGSEGV。已移除Compose测试规则，仍为相同原生签名，不能将该问题归为默认测试调度或把依赖更新当作根治。[原始结果与原生对照](webview-user-lifecycle-stage.md)。此证据尚不能推断ARM64真机表现；ARM64真机、第三方依赖和真实模型自主任务仍未完整验收。
 
 Linux/PRoot、Python、Node/npm、Java17、Skills 脚本和本地 stdio MCP 继续可用，见[环境指南](linux-environment.md)。版本为 0.43.3/build86，沿用固定签名；正常覆盖安装保留数据，卸载会删除本地数据，请先导出配置备份。
 
