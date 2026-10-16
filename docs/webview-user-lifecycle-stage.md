@@ -153,3 +153,12 @@ PluginPageReadyStateTest的旧APK同断言任务已启动；本候选还需远�
 原最小压力[38839893183](https://github.com/veryy/Solvit/actions/runs/38839893183)/116777327923仍失败：实际只完成1次，第2次期间同一SIGSEGV/pc0x357d7e5/BuildId68dabd72c6088238cbfc9a5fbfe211f916771df5。归档12021281262完整下载/CRC，548943字节，SHA256 `7c8b2792c21368d6d616de7d24fadc31c09112a67f53de461e4f6caa47f8cf8f`。45条阶段事件全部配对；第二实例只有update.deferredUntilReady、无message或evaluate，destroy.after在02:25:08.076，fatal在02:25:09.290，相差1.214秒。它明确否定“阻止就绪前状态脚本足以根治”的预测，不能以协议回归通过宣称原生修复。
 
 下一单变量诊断只省略显式removeWebMessageListener，仍立即关闭live/pageReady和正常destroy，检验异步消息桥回收是否参与；随后才分别考虑加载/渲染回收、Compose移除时序。诊断不得合入或发布为已验证修复。原就绪候选的完整设备任务仍在运行，主线尚无临时日志，没有新APK发布。
+
+
+## 两条远程分支继续独立验证
+
+消息监听回收对照[a6b000de](https://github.com/veryy/Solvit/commit/a6b000de8aa78d479db72e8960909149210d4abf)已推送，[38840785119](https://github.com/veryy/Solvit/actions/runs/38840785119)远程构建中。它只在关闭live/pageReady后省略显式removeWebMessageListener，其他桥、权限、清理与原生压力断言保持；不是生产修复，尚无目标压力结果。
+
+同时从正式main独立整理无日志的协议修正[843dd344](https://github.com/veryy/Solvit/commit/843dd3441bec8524bcd5c51883ad4f3803f0930d)。只提取pageReady和真实延迟ready回归，不带四个诊断对照或省略监听移除实验。报告门禁将app下限提高至71，并明确要求对应测试class/method，增加缺失回归不可被其他通过项替代的门禁测试。预期常规设备99项不是已完成结果。[38841085736](https://github.com/veryy/Solvit/actions/runs/38841085736)已实际开始完整构建和设备回归；未合入主线，尚未发布。若发布仅说明就绪协议修正，保留原生压力失败与真实模型/ARM64边界。
+
+带日志的2e6f045a/38839204234常规verify-ui116776799716现已成功，原始归档待完整核对；这不覆盖原最小压力38839893183的明确失败，也不是无日志交付验收。
