@@ -5,6 +5,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -23,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -198,6 +202,8 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     }
     LaunchedEffect(selected) { agents.setSession(selected); workspaces.selectChat(selected) }
 
+    var chatTopBarHeight by remember { mutableIntStateOf(0) }
+    val dockDensity = LocalDensity.current
     ModalNavigationDrawer(drawerState = drawer, drawerContent = {
         ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.75f).testTag("chat_drawer")) {
             UiText("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
@@ -229,6 +235,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
         Scaffold(
             topBar = {
                 TopAppBar(
+                    modifier = Modifier.onSizeChanged { chatTopBarHeight = it.height },
                     title = { Column {
                         Text(roleName, fontWeight = FontWeight.SemiBold, modifier=Modifier.testTag("chat_role_title"))
                         Text(config.model, style = MaterialTheme.typography.labelSmall,
@@ -242,14 +249,22 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                 )
             },
             bottomBar = {
-                Column(Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))
+                BoxWithConstraints(Modifier.fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars))) {
+                // Scaffold measures its bottom bar against the whole window, including the top bar.
+                // Bound the dock to the space below that bar; keep the composer outside scrolling.
+                val dockHeight = (maxHeight - with(dockDensity) { chatTopBarHeight.toDp() }).coerceAtLeast(0.dp)
+                Column(Modifier.fillMaxWidth().heightIn(max = dockHeight)
                     .padding(horizontal = 12.dp, vertical = 8.dp)) {
+                    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
+                        .testTag("chat_pending_scroll")) {
                     toolApproval?.let { pending ->
                         key(pending.call.id) { ChatToolApprovalCard(pending) { allow, remember -> vm.approveTool(allow,remember) } }
                         Spacer(Modifier.height(6.dp))
                     }
                     ChatQueuePanel(queuedMessages.filter { it.sessionId==selected },queuePaused,switching,
                         vm::editQueued,vm::removeQueued,vm::sendQueuedNow,vm::resumeQueue)
+                    }
                     Surface(modifier = Modifier.fillMaxWidth().testTag("chat_composer"), shape = RoundedCornerShape(28.dp), tonalElevation = 4.dp, shadowElevation = 4.dp) {
                     Column(Modifier.padding(8.dp)) {
                         if (error != null) {
@@ -284,6 +299,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                             modifier=Modifier.align(Alignment.End).testTag("chat_interrupt_send")) { UiText("立即发送并打断") }
                     }
                     }
+                }
                 }
             },
         ) { padding ->

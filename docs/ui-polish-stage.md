@@ -102,3 +102,10 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 ## 页面生命周期整合
 
 四项定向任务的完整 runner 归档已核对，证据写入 `webview-user-lifecycle-stage.md`。整合无生产诊断日志的候选：首个页面 ready 后才推送状态，关闭时先撤销 live/ready，再由 WebView 销毁统一回收桥。保留延迟 ready、最小宿主和真实工作区的独立回归，并保留角色侧栏实际关闭的等待。新的设置/插件/队列/工作区布局必须重新通过合并后的完整验证，原定向结果不替代它。
+
+
+### 键盘、授权与队列同时出现的边界修复
+
+远程同 APK 定向场景 38975774497 失败：chat_tool_approval 顶部144px，角色标题底部167px，已发生重叠；截图还显示底栏遮住顶部操作区域。记录候选假设为 Scaffold 底栏使用整窗高度、IME中间帧、说明区域过长。首先只修布局预算：扣除实际测量的顶部栏高度，IME/导航栏仍由原窗口边距消费；待处理授权及队列共享可滚动区域，输入框保留独立位置。未缩减权限文本、未改授权行为、未隐藏队列。
+
+读取锁定 DSH `packages/client/ui-approval/src/client/ApprovalPanel.tsx`、`ApprovalPanel.module.css` 与 `tests/ui-approval.client.spec.tsx`，以及 `ui-conversation` 的 QueueDock 实现和测试；采用有限空间内滚动详情、独立输入区的原则，Android采用实际TopAppBar测量与Compose权重。Operit `ui/permissions/PermissionRequestOverlay.kt` 的可滚动详情作对照。DSH MIT、Operit LGPL-3.0；本改动独立实现，不复制代码、不增加依赖。原复现断言与截图保留，远程验证待完成。
