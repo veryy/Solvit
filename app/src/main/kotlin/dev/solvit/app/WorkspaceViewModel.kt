@@ -16,6 +16,9 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
     val workspaceId = MutableStateFlow<String?>(null)
     val busy = MutableStateFlow(false)
     val error = MutableStateFlow<String?>(null)
+    data class Submission(val id: Long, val running: Boolean, val boundWorkspaceId: String? = null)
+    val submission = MutableStateFlow<Submission?>(null)
+    private var nextSubmission = 0L
     val fileText = MutableStateFlow("")
     val location = MutableStateFlow("")
     val directory = MutableStateFlow("")
@@ -69,13 +72,37 @@ class WorkspaceViewModel(val service: WorkspaceService, private val plugins: Plu
             finally { busy.value = false }
         }
     }
-    fun bind(id: String) {
-        val chat = chatId ?: return
-        operation { service.bind(chat, id); if (chatId == chat) { workspaceId.value = id; fileText.value = ""; loadDirectory(id, "") } }
+    // A successful bind is distinct from the later directory read. The form must
+    // not invite duplicate creation when only listing the bound directory fails.
+    private fun submitWorkspace(action: suspend (String) -> String): Long? {
+        val chat = chatId ?: return null
+        if (busy.value) return null
+        val request = ++nextSubmission
+        busy.value = true; error.value = null
+        submission.value = Submission(request, running = true)
+        viewModelScope.launch {
+            var bound: String? = null
+            try {
+                bound = action(chat)
+                if (chatId == chat) {
+                    workspaceId.value = bound; fileText.value = ""
+                    loadDirectory(bound, "")
+                }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { if (chatId == chat) error.value = e.message ?: "操作失败" }
+            finally {
+                submission.value = Submission(request, running = false, boundWorkspaceId = bound)
+                busy.value = false
+            }
+        }
+        return request
     }
-    fun create(name: String) {
-        val chat = chatId ?: return
-        operation { val value = service.create(name); service.createShell(value.id,"Shell 1"); service.bind(chat, value.id); if (chatId == chat) { workspaceId.value = value.id; fileText.value = ""; loadDirectory(value.id, "") } }
+    fun bind(id: String): Long? = submitWorkspace { chat -> service.bind(chat, id); id }
+    fun create(name: String): Long? = submitWorkspace { chat ->
+        val value = service.create(name)
+        service.createShell(value.id, "Shell 1")
+        service.bind(chat, value.id)
+        value.id
     }
     fun createShell() {
         val id = workspaceId.value ?: return

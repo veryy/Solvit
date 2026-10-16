@@ -36,10 +36,18 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     val id by vm.workspaceId.collectAsStateWithLifecycle()
     val busy by vm.busy.collectAsStateWithLifecycle()
     val error by vm.error.collectAsStateWithLifecycle()
+    val submission by vm.submission.collectAsStateWithLifecycle()
+    var pendingSubmission by rememberSaveable { mutableStateOf<Long?>(null) }
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    var chooser by remember { mutableStateOf(false) }
-    var creating by remember { mutableStateOf(createOnOpen) }
-    var name by remember { mutableStateOf("") }
+    var chooser by rememberSaveable { mutableStateOf(false) }
+    var creating by rememberSaveable { mutableStateOf(createOnOpen) }
+    var name by rememberSaveable { mutableStateOf("") }
+    LaunchedEffect(submission, pendingSubmission) {
+        submission?.takeIf { it.id == pendingSubmission && !it.running }?.let { result ->
+            pendingSubmission = null
+            if (result.boundWorkspaceId != null) { chooser = false; creating = false; name = "" }
+        }
+    }
     var shellId by rememberSaveable(id) { mutableStateOf<String?>(null) }
     var command by rememberSaveable(id, shellId) { mutableStateOf("") }
     var interactive by rememberSaveable(id) { mutableStateOf(true) }
@@ -71,10 +79,10 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                 if (id == null && tab != 3) {
                     Column(Modifier.weight(1f).fillMaxWidth(), horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally, verticalArrangement=Arrangement.Center) {
                         UiText("此对话尚未绑定工作区")
-                        TextButton(onClick = { creating = true }) { UiText("新建工作区") }
-                        TextButton(onClick = { chooser = true }) { UiText("绑定已有工作区") }
+                        TextButton(onClick = { vm.error.value = null; creating = true }, enabled = !busy) { UiText("新建工作区") }
+                        TextButton(onClick = { vm.error.value = null; chooser = true }, enabled = !busy) { UiText("绑定已有工作区") }
                         TextButton(onClick = { tab = 3 }, modifier = Modifier.testTag("workspace_environment_open")) { Text("Linux") }
-                        error?.let { UiText(it, color=MaterialTheme.colorScheme.error) }
+                        error?.takeIf { !creating && !chooser }?.let { UiText(it, color=MaterialTheme.colorScheme.error) }
                     }
                 } else {
                 TabRow(selectedTabIndex = tab, modifier = Modifier.testTag("workspace_tabs")) {
@@ -84,7 +92,7 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                     Tab(selected = tab == 3, onClick = { tab = 3 }, modifier = Modifier.testTag("workspace_environment_tab"), text = { Text("Linux") })
                 }
                 if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-                error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
+                error?.takeIf { !creating && !chooser }?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp)) }
                 if (tab == 0) {
                     if (interactive) {
                         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -143,14 +151,26 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
         }
     }
     if (chooser) AlertDialog(onDismissRequest = { chooser = false }, title = { UiText("绑定工作区") }, text = {
-        LazyColumn(Modifier.heightIn(max = 360.dp)) {
-            items(state.workspaces, key = { it.id }) { workspace -> TextButton(onClick = { vm.bind(workspace.id); chooser = false }, modifier = Modifier.fillMaxWidth()) {
-                Text((if (workspace.id == id) "✓ " else "") + workspace.name)
-            } }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth().testTag("workspace_form_progress"))
+            error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("workspace_form_error")) }
+            LazyColumn(Modifier.heightIn(max = 360.dp)) {
+                items(state.workspaces, key = { it.id }) { workspace -> TextButton(
+                    onClick = { pendingSubmission = vm.bind(workspace.id) }, enabled = !busy,
+                    modifier = Modifier.fillMaxWidth()) {
+                    Text((if (workspace.id == id) "✓ " else "") + workspace.name)
+                } }
+            }
         }
-    }, confirmButton = { TextButton(onClick = { chooser = false; creating = true }) { UiText("新建工作区") } },
+    }, confirmButton = { TextButton(onClick = { vm.error.value = null; chooser = false; creating = true }, enabled = !busy) { UiText("新建工作区") } },
         dismissButton = { TextButton(onClick = { chooser = false }) { UiText("关闭") } })
     if (creating) AlertDialog(onDismissRequest = { creating = false }, title = { UiText("新建工作区") }, text = {
-        OutlinedTextField(name, { name = it }, label = { UiText("名称") }, singleLine = true, modifier = Modifier.testTag("workspace_create_name"))
-    }, confirmButton = { TextButton(onClick = { vm.create(name); creating = false; name = "" }, enabled = name.isNotBlank()) { UiText("创建并绑定") } })
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedTextField(name, { name = it }, label = { UiText("名称") }, singleLine = true, enabled = !busy,
+                modifier = Modifier.testTag("workspace_create_name"))
+            if (busy) LinearProgressIndicator(Modifier.fillMaxWidth().testTag("workspace_form_progress"))
+            error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("workspace_form_error")) }
+        }
+    }, confirmButton = { TextButton(onClick = { pendingSubmission = vm.create(name) }, enabled = !busy && name.isNotBlank()) { UiText("创建并绑定") } },
+        dismissButton = { TextButton(onClick = { creating = false }) { UiText("取消") } })
 }

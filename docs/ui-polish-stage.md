@@ -126,3 +126,6 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 当前原生创建/绑定表单在发起操作后立即关闭，创建名称也立即清空，失败只能在背景工作区看到。新增真实Compose页面的受控服务边界回归，要求等待时保持表单、禁止重复提交，失败后保留名称或目录选择并显示错误、可重试；不以伪造成功替代绑定结果。先用现有生产APK验证失败，再修改实现。
 
 本阶段重新读取DSH `packages/client/ui-workspace/src/client/WorkspacePicker.tsx` 与 `tests/workspace-picker.client.spec.tsx` 中 `disables every menu action from flow open through adoption`、失败与取消路径，Operit `ui/features/chat/webview/workspace/WorkspaceManager.kt` 的目录采纳失败反馈。采用单一进行中操作、失败保留可修正入口与取消不提交原则；Android需要在现有ViewModel/StateFlow中适配，避免绑定已成功但目录列举失败被误认为需要重建。已核对锁定checkout及根许可（DSH MIT、Operit LGPL-3.0），未复制代码或增加依赖。验证待执行。
+
+
+工作区旧APK定向回归 [38977441858](https://github.com/veryy/Solvit/actions/runs/38977441858) 已执行两项且均失败在等待期间表单不可见，匹配代码中的立即关闭路径。现改为按ViewModel提交编号跟踪结果；等待显示进度并禁用重复提交，失败保留输入/选择和当前表单内错误，可取消或重试。绑定结果与后续目录读取错误分开，已绑定只显示目录错误，不引导重复创建。界面选择和名称使用可恢复状态。新增测试保持原等待/重试断言，字段文本匹配明确包含已有标签。修复后远程验证待执行。

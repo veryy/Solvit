@@ -44,12 +44,12 @@ class WorkspaceFormDeviceTest {
             rule.onNodeWithTag("workspace_create_name").performTextReplacement("Project to keep")
             rule.onNodeWithText("创建并绑定").performClick()
             rule.waitUntil(10_000) { calls.get() == 1 }
-            rule.onNodeWithTag("workspace_create_name").assertIsDisplayed().assertTextEquals("Project to keep")
+            rule.onNodeWithTag("workspace_create_name").assertIsDisplayed().assert(hasText("Project to keep"))
             rule.onNodeWithText("创建并绑定").assertIsNotEnabled()
             screenshot("workspace-create-pending")
             release.complete(Unit)
             rule.waitUntil(10_000) { !vm.busy.value && vm.error.value != null }
-            rule.onNodeWithTag("workspace_create_name").assertIsDisplayed().assertTextEquals("Project to keep")
+            rule.onNodeWithTag("workspace_create_name").assertIsDisplayed().assert(hasText("Project to keep"))
             rule.onNodeWithText("Fixture creation unavailable").assertIsDisplayed()
             rule.onNodeWithText("创建并绑定").assertIsEnabled().performClick()
             rule.waitUntil(10_000) { calls.get() == 2 && !vm.busy.value }
