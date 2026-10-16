@@ -180,3 +180,8 @@ a6b000de/[38841583915](https://github.com/veryy/Solvit/actions/runs/38841583915)
 已实际阅读Chromium124.0.6367.219/`7741f71cbce3b7dfe3eb5890976d2596364b0733`的AwContents、JsCommunicationHost、JsToBrowserMessaging、AwWebMessageHostFactory及JsJavaInteractionTest：显式remove先删除工厂，首次消息对象仍持有工厂raw_ptr；整体销毁按所有权清理消息对象与工厂。这是与单变量对照吻合的源码风险，不能把未符号化的pc直接宣称定位到某函数。完整文件、适配与许可核对见[272fcf12阶段记录](https://github.com/veryy/Solvit/blob/272fcf121c08d8454c1b605ec3ad0933fcce7bc0/docs/webview-user-lifecycle-stage.md)。无复制或新增依赖。
 
 无日志候选[272fcf12](https://github.com/veryy/Solvit/commit/272fcf121c08d8454c1b605ec3ad0933fcce7bc0)保留就绪门禁及先关闭live/pageReady，随后正常移除父视图、停止/清理/销毁浏览器，消息桥由整页销毁统一回收。没有延时或容器替换。新增原最小宿主/真实工作区方法为常规回归及明确class/method门禁，预期101项不是已完成结果。[38843263391](https://github.com/veryy/Solvit/actions/runs/38843263391)已启动；接下来须无日志最小/真实路径压力及完整发布门禁，暂未合入主线或发布新APK。
+
+
+## 带日志真实工作区压力240次已核对
+
+a6b000de/[38842564272](https://github.com/veryy/Solvit/actions/runs/38842564272)/116785756186成功。归档12022236330完整下载/CRC，1127459字节，SHA256 `9b9ee28d3eb5542591c666d28695f7333c13f31ad5015bfd351c611c125b643a`；8个实际进程各完成1..30/30，共240次，8份输出各OK(1test)。时长62.683/61.065/61.771/61.965/63.160/63.074/62.882/61.490秒。零Fatal/SnapshotStateObserver/removeObserver；94条destroyed-WebView警告，不能把该警告本身当作必然崩溃。最小宿主与真实工作区的同provider对照均通过，但仍带临时日志；无日志272fcf12/38843263391尚在构建，必须继续按原路径验证，不宣称最终交付已完成。
