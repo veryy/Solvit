@@ -45,3 +45,5 @@
 新增诊断专用BareWebViewLifecycleTest：仍用同一正式APK、MainActivity和应用服务，但把实际Activity内容替换为原生FrameLayout/WebView，不加载插件HTML、业务桥或Compose AndroidView。重建Activity，挂载并加载离线HTML、实际排队一次脚本更新，再按产品相同的移除父视图→停止加载→移除子视图→destroy顺序立即释放；不等待DOM-ready、不延后destroy。检查真实attach、父视图和移除结果，finally正常清理，销毁后不再调用WebView方法。
 
 这是粗粒度的移除对照；若同签名仍出现，可排除插件文档/桥是必要条件。若通过，只能说明这个较小负载未复现，不能证明平台安全或产品修复。MainActivity及应用服务仍存在，不能称为独立纯WebView应用。[Android官方destroy契约](https://developer.android.com/reference/android/webkit/WebView#destroy())要求先从视图系统移除、之后不再调用WebView方法；本测试遵守该顺序。上游所有权及实际测试参考延续本阶段开头记录，没有复制源码或新增依赖。仅远程构建/运行；生产实现与版本保持不变，结果待实际Actions回收。
+
+原生对照已提交b7be1fdc并启动[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)，明确复用正式38826293232的APK，8轮×30次，仍待编译与实际设备结果。生产源码一致性门禁继续开启；本次仅诊断测试/记录，不发布新APK，不把预期次数写成通过。
