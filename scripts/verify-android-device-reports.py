@@ -4,9 +4,19 @@ import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-MINIMUM = {'app': 73, 'web-android': 3, 'terminal-android': 25}
+MINIMUM = {'app': 82, 'web-android': 3, 'terminal-android': 25}
 
 REQUIRED = {'app': {
+    ('dev.solvit.app.ChatLayoutTest', 'settingsIndexOpensThemeAndRetainsChoiceWhenReturning'),
+    ('dev.solvit.app.ChatInteractionDeviceTest', 'inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole'),
+    ('dev.solvit.app.PluginDetailsLayoutTest', 'disabledDetailsKeepPrimaryActionVisibleWithLargeTextAndLongPermissions'),
+    ('dev.solvit.app.PluginDetailsLayoutTest', 'enabledDetailsOpenTheChosenPluginPageAndKeepUninstallSeparate'),
+    ('dev.solvit.app.PluginPageFeedbackDeviceTest', 'failedOpenCanReopenInPlaceAndCloseTheRecoveredSession'),
+    ('dev.solvit.app.PluginPageFeedbackDeviceTest', 'failedDispatchReopensOnlyAfterCleanupAndNeverReplaysTheWrite'),
+    ('dev.solvit.app.WorkspaceFormDeviceTest', 'failedCreationKeepsNameAndAllowsRetryAfterShowingPendingState'),
+    ('dev.solvit.app.WorkspaceFormDeviceTest', 'failedBindingKeepsChooserAndReenablesTheSelectedWorkspace'),
+    ('dev.solvit.app.WorkspaceFormDeviceTest', 'successfulBindingClosesChooserWhenOnlyDirectoryReadFails'),
+    ('dev.solvit.app.WorkspaceFormDeviceTest', 'closingPendingFormShowsBackgroundProgressAndKeepsDraftAfterFailure'),
     ('dev.solvit.app.PluginPageReadyStateTest', 'delayedReadyReceivesLatestStateWithoutEarlierScriptDelivery'),
     ('dev.solvit.app.PluginHostLifecycleControlTest', 'minimalDocumentUsesProductionHostAndReleasesAfterRecreation'),
     ('dev.solvit.app.WebViewUserLifecycleTest', 'workspaceRecreationUsesProductionDispatcherAndReleasesTheActualBrowser'),

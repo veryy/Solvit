@@ -34,10 +34,11 @@ class DeviceReportGateTest(unittest.TestCase):
             path.write_text(path.read_text().replace('<testcase name="case-0"/>', '<testcase name="case-0"><failure>failed</failure></testcase>'))
             with self.assertRaises(ValueError): reports.verify(root)
     def test_required_regression_cannot_be_replaced_by_an_unrelated_passing_case(self):
-        with TemporaryDirectory() as directory:
-            root = Path(directory); path = self.fixture(root)
-            path.write_text(path.read_text().replace('delayedReadyReceivesLatestStateWithoutEarlierScriptDelivery', 'unrelatedPassingTest'))
-            with self.assertRaises(ValueError): reports.verify(root)
+        for _, name in reports.REQUIRED['app']:
+            with self.subTest(required=name), TemporaryDirectory() as directory:
+                root = Path(directory); path = self.fixture(root)
+                path.write_text(path.read_text().replace(name, 'unrelatedPassingTest'))
+                with self.assertRaises(ValueError): reports.verify(root)
     def test_empty_skipped_and_inconsistent_reports_are_rejected(self):
         for xml in ['<testsuites tests="0"/>', '<testsuites tests="1" skipped="1"><testcase><skipped/></testcase></testsuites>', '<testsuites tests="68"><testcase/></testsuites>']:
             with TemporaryDirectory() as directory:
