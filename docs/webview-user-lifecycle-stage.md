@@ -115,3 +115,12 @@ b3341886/[38837934088](https://github.com/veryy/Solvit/actions/runs/38837934088)
 新增按document生命周期隔离的pageReady状态，初始false，只有当前存活页面的真实ready消息才置true；关闭时清除。未就绪期间仍更新原生背景并保留latestState，但不向WebView提交状态脚本。ready回调一次下发当时最新的view/token/主题/语言/busy，之后实际状态变化继续下发。保留原直接容器、桥、资源、销毁顺序与阶段日志，单独验证“就绪前的脚本队列”预测，不同时改成about:blank/onPause或延迟销毁。
 
 PluginPageReadyStateTest的旧APK同断言任务已启动；本候选还需远程编译、同断言通过、旧最小宿主原生压力和实际工作区路径、最终移除日志后完整回归。若协议回归通过但原生压力仍失败，只能声称状态下发修正，不能把它当作原生根治。暂未合入正式主线或发布新APK。
+
+
+## 消息桥回收单变量对照，尚未验证
+
+就绪门禁的同断言已通过，但原最小宿主仍崩溃，见主线后续记录。下一组预测排序：①移除消息监听时仍存在异步消息参与，应在仅省略显式removeWebMessageListener时改变失败；②加载/渲染回收独立存在，第一项若仍失败再看清理；③Compose移除时序参与，前两项不能自动排除。
+
+本诊断分支只省略release中的显式removeWebMessageListener；仍先原子关闭live/pageReady，迟到消息不能执行工具或状态脚本，仍移除父视图、stopLoading/removeAllViews/destroy，保留阶段日志。页面存活期的桥和权限均不变。最终销毁及潜在资源保留仍待验证，不能直接作为生产修复发布。
+
+实际读取Google Maven发布的AndroidX WebKit1.12.1源JAR（SHA256 `47f0b2fae0b529825d2cd08c7599e42029cbe93aaffcc87240fe74ab515cb18b`）WebViewCompat.java：removeWebMessageListener后注入的JS对象仍在上下文，后续消息不再投递；实现委托WebView provider。该说明不证明原生缺陷或自动回收正确，只明确本次单变量边界。Operit锁定BrowserWebViewSupport.kt的清理为stopLoading/about:blank/onPause/removeAllViews/destroy，未使用这项WebMessageListener；不将其不存在的桥测试冒称上游证据。不复制源码、不新增依赖。

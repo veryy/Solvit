@@ -87,9 +87,9 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
         trace("release.request")
         if (live.compareAndSet(true, false)) {
             pageReady.set(false)
-            trace("listener.remove.before")
-            runCatching { WebViewCompat.removeWebMessageListener(browser, "solvitHost") }
-            trace("listener.remove.after")
+            // Diagnostic only: let browser.destroy() dispose the bridge. The
+            // closed live gate still rejects every late message synchronously.
+            trace("listener.remove.omittedForControl")
             trace("parent.remove.before")
             (browser.parent as? android.view.ViewGroup)?.removeView(browser)
             trace("parent.remove.after")
