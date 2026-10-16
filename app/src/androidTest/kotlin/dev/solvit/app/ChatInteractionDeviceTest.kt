@@ -94,6 +94,7 @@ class ChatInteractionDeviceTest {
         val store=SqliteChatStore(context)
         val models=mutableListOf<androidx.lifecycle.ViewModel>()
         lateinit var vm:ChatViewModel;lateinit var agents:AgentLibraryViewModel
+        var phase = "prepare"
         try {
             rule.runOnUiThread {
                 val settings=object:SettingsStore {
@@ -165,8 +166,11 @@ class ChatInteractionDeviceTest {
             rule.onNodeWithTag("queue_menu_$pendingQueueId").performClick()
             rule.onNodeWithText("移除").performClick()
             rule.waitUntil(10_000) { vm.queuedMessages.value.isEmpty() }
+            phase = "remembered-approval-click"
             rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed().performClick()
+            phase = "remembered-approval-result"
             rule.waitUntil(10_000) { requests.size==2&&executed.size==1 }
+            phase = "queue-edit-and-interrupt"
             send("same");send("same")
             rule.waitUntil(10_000) { vm.queuedMessages.value.size==2 }
             val queued=vm.queuedMessages.value
@@ -196,6 +200,19 @@ class ChatInteractionDeviceTest {
             assertEquals(role,runBlocking { AndroidRoleService(context).selected(vm.sessionId.value!!) })
             screenshot("chat-inline-approval-queue-role")
         }catch(failure:Throwable) {
+            // Fixture-only state distinguishes missed touch/reflow from a stuck gate or provider.
+            // Never include prompts, tool arguments, exception messages or configured credentials.
+            runCatching {
+                val pending = vm.toolApproval.value
+                android.util.Log.i("ChatDockFixture", "CHAT_DOCK_FAILURE|phase=$phase|requests=${requests.size}|executed=${executed.size}|queued=${vm.queuedMessages.value.size}|pending=${pending != null}|resolving=${pending?.resolving?.value}|decided=${pending?.decision?.isCompleted}|busy=${vm.busy.value}")
+                listOf("tool_allow_remember", "queue_toggle", "chat_composer").forEach { tag ->
+                    val nodes = rule.onAllNodesWithTag(tag).fetchSemanticsNodes()
+                    nodes.forEach { node ->
+                        val bounds = rule.runOnUiThread { node.boundsInWindow }
+                        android.util.Log.i("ChatDockFixture", "CHAT_DOCK_FAILURE_BOUNDS|$tag=$bounds")
+                    }
+                }
+            }
             runCatching { screenshot("chat-dock-layout-failure") }
             throw failure
         }finally {
