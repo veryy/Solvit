@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.solvit.core.ExecutionMode
@@ -40,10 +41,15 @@ internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, modifier:
                 item { SelectionContainer { Text(pending.call.argumentsJson, style=MaterialTheme.typography.bodySmall) } }
                 item { UiText("不再询问仅用于此角色和当前版本的此工具，后续不同参数也可执行。可在设置 → 权限与执行方式清除。", style=MaterialTheme.typography.labelSmall) }
             }
-            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick={approve(false,false)},enabled=!resolving,modifier=Modifier.testTag("tool_reject")) { UiText("拒绝") }
-                FilledTonalButton(onClick={approve(true,false)},enabled=!resolving,modifier=Modifier.testTag("tool_allow_once"),contentPadding=PaddingValues(horizontal=12.dp,vertical=8.dp)) { UiText("允许这一次") }
-                TextButton(onClick={approve(true,true)},enabled=!resolving,modifier=Modifier.testTag("tool_allow_remember")) { UiText("允许且不再询问") }
+            // Give every decision its own width. FlowRow could place the last decision
+            // on a new row outside the bounded card at large text sizes.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(4.dp), verticalAlignment=Alignment.CenterVertically) {
+                TextButton(onClick={approve(false,false)},enabled=!resolving,
+                    modifier=Modifier.weight(1f).testTag("tool_reject"),contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)) { UiText("拒绝", textAlign=TextAlign.Center) }
+                FilledTonalButton(onClick={approve(true,false)},enabled=!resolving,
+                    modifier=Modifier.weight(1f).testTag("tool_allow_once"),contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)) { UiText("允许这一次", textAlign=TextAlign.Center) }
+                TextButton(onClick={approve(true,true)},enabled=!resolving,
+                    modifier=Modifier.weight(1f).testTag("tool_allow_remember"),contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)) { UiText("允许且不再询问", textAlign=TextAlign.Center) }
             }
         }
     }
