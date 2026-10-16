@@ -223,6 +223,11 @@ class ChatLayoutTest {
         // These callers test command jobs, so explicitly select that retained mode.
         // The separate real-PTY test verifies the default remains interactive.
         rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_terminal_mode").fetchSemanticsNodes().isNotEmpty() }
+        rule.onNodeWithTag("workspace_switcher").assertIsDisplayed()
+        rule.onNodeWithTag("workspace_terminal_mode").assertIsDisplayed()
+        // Workspace identity and mode now share the app bar, above the tab strip.
+        assertTrue(geometry("workspace_switcher").bounds.bottom <= geometry("workspace_tabs").bounds.top)
+        assertTrue(geometry("workspace_terminal_mode").bounds.bottom <= geometry("workspace_tabs").bounds.top)
         if(commandJobs) {
             if(rule.onAllNodesWithText("命令任务").fetchSemanticsNodes().isNotEmpty())rule.onNodeWithTag("workspace_terminal_mode").performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("shell_command").fetchSemanticsNodes().isNotEmpty() }

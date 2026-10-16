@@ -42,7 +42,7 @@ internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, approve: 
             }
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(4.dp)) {
                 TextButton(onClick={approve(false,false)},enabled=!resolving,modifier=Modifier.testTag("tool_reject")) { UiText("拒绝") }
-                FilledTonalButton(onClick={approve(true,false)},enabled=!resolving,modifier=Modifier.testTag("tool_allow_once")) { UiText("允许这一次") }
+                FilledTonalButton(onClick={approve(true,false)},enabled=!resolving,modifier=Modifier.testTag("tool_allow_once"),contentPadding=PaddingValues(horizontal=12.dp,vertical=8.dp)) { UiText("允许这一次") }
                 TextButton(onClick={approve(true,true)},enabled=!resolving,modifier=Modifier.testTag("tool_allow_remember")) { UiText("允许且不再询问") }
             }
         }

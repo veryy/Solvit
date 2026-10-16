@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -15,6 +16,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.solvit.core.*
@@ -46,9 +48,25 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
     FullScreenPage(onDismissRequest = onDismiss) {
         val keyboard = LocalSoftwareKeyboardController.current
         val focus = LocalFocusManager.current
-        Scaffold(topBar = { TopAppBar(title = { UiText("工作区") }, navigationIcon = {
-            IconButton(onClick = onDismiss) { UiIcon(Icons.Default.Close, "关闭工作区") }
-        }) }) { padding ->
+        Scaffold(topBar = {
+            TopAppBar(title = {
+                if (id == null) UiText("工作区") else TextButton(onClick = { chooser = true }, enabled = !busy,
+                    modifier = Modifier.fillMaxWidth().testTag("workspace_switcher"), contentPadding = PaddingValues(0.dp)) {
+                    Column(Modifier.weight(1f), horizontalAlignment = androidx.compose.ui.Alignment.Start) {
+                        UiText("工作区", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(state.workspaces.firstOrNull { it.id == id }?.name ?: uiString("打开工作区…"),
+                            style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            color = MaterialTheme.colorScheme.onSurface)
+                    }
+                    UiIcon(Icons.Default.KeyboardArrowDown, null)
+                }
+            }, navigationIcon = {
+                IconButton(onClick = onDismiss) { UiIcon(Icons.Default.Close, "关闭工作区") }
+            }, actions = {
+                if (id != null && tab == 0) TextButton(onClick = { interactive = !interactive },
+                    modifier = Modifier.testTag("workspace_terminal_mode")) { UiText(if (interactive) "命令任务" else "交互终端") }
+            })
+        }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                 if (id == null && tab != 3) {
                     Column(Modifier.weight(1f).fillMaxWidth(), horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally, verticalArrangement=Arrangement.Center) {
@@ -59,15 +77,9 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
                         error?.let { UiText(it, color=MaterialTheme.colorScheme.error) }
                     }
                 } else {
-                Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    TextButton(onClick = { chooser = true }, enabled = !busy, modifier = Modifier.weight(1f)) {
-                        Text(state.workspaces.firstOrNull { it.id == id }?.name ?: uiString("打开工作区…"))
-                    }
-                    if (tab == 0) TextButton(onClick = { interactive = !interactive }, modifier=Modifier.testTag("workspace_terminal_mode")) { UiText(if (interactive) "命令任务" else "交互终端") }
-                }
-                TabRow(selectedTabIndex = tab) {
-                    Tab(selected = tab == 0, onClick = { tab = 0 }, text = { UiText("Shell") })
-                    Tab(selected = tab == 1, onClick = { tab = 1 }, text = { UiText("工作目录") })
+                TabRow(selectedTabIndex = tab, modifier = Modifier.testTag("workspace_tabs")) {
+                    Tab(selected = tab == 0, onClick = { tab = 0 }, modifier = Modifier.testTag("workspace_shell_tab"), text = { UiText("Shell") })
+                    Tab(selected = tab == 1, onClick = { tab = 1 }, modifier = Modifier.testTag("workspace_directory_tab"), text = { UiText("工作目录") })
                     Tab(selected = tab == 2, onClick = { tab = 2 }, modifier = Modifier.testTag("workspace_git_tab"), text = { Text("Git") })
                     Tab(selected = tab == 3, onClick = { tab = 3 }, modifier = Modifier.testTag("workspace_environment_tab"), text = { Text("Linux") })
                 }
