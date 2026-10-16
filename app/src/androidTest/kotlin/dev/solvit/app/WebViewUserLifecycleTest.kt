@@ -45,10 +45,34 @@ class WebViewUserLifecycleTest {
         }
     }
 
+    private fun captureFailure(label: String) {
+        // Failure-only diagnostics: no extra frame waits or actions on the passing path.
+        runCatching {
+            val state = (instrument.targetContext.applicationContext as SolvitApplication).workspaces.state.value
+            android.util.Log.i("WORKSPACE_PAGE_DIAG", "USER_LIFECYCLE_TIMEOUT|$label|workspaces=${state.workspaces.size}|shells=${state.shells.size}|bindings=${state.bindings.size}")
+            val labels = setOf("对话历史", "新对话", "新建工作区", "创建并绑定", "名称", "此对话尚未绑定工作区",
+                "命令任务", "交互终端", "Shell", "工作目录", "Git", "Linux", "关闭工作区", "绑定已有工作区")
+            automation.rootInActiveWindow?.let { root -> nodes(root).forEach { candidate ->
+                val bounds = Rect().also(candidate::getBoundsInScreen)
+                // Never dump arbitrary message/configuration text or editable contents.
+                val text = candidate.text?.toString()?.takeIf { it in labels } ?: "[other]"
+                val description = candidate.contentDescription?.toString()?.takeIf { it in labels } ?: "[other]"
+                android.util.Log.i("WORKSPACE_PAGE_DIAG", "USER_LIFECYCLE_NODE|$text|$description|visible=${candidate.isVisibleToUser}|enabled=${candidate.isEnabled}|editable=${candidate.isEditable}|bounds=${bounds.toShortString()}")
+            } }
+            for (command in listOf("mkdir -p /data/local/tmp/solvit-ui",
+                "screencap -p /data/local/tmp/solvit-ui/workspace-user-lifecycle-failure.png")) {
+                android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand(command)).use { it.readBytes() }
+            }
+        }.onFailure { android.util.Log.i("WORKSPACE_PAGE_DIAG", "USER_LIFECYCLE_CAPTURE_FAILED|${it.javaClass.simpleName}") }
+    }
+
     private fun await(label: String, condition: () -> Boolean) {
         val deadline = SystemClock.uptimeMillis() + 15_000
         while (!condition()) {
-            if (SystemClock.uptimeMillis() >= deadline) throw AssertionError("User lifecycle: $label")
+            if (SystemClock.uptimeMillis() >= deadline) {
+                captureFailure(label)
+                throw AssertionError("User lifecycle: $label")
+            }
             SystemClock.sleep(50) // Poll actual observable state; never advance a test clock.
         }
     }
