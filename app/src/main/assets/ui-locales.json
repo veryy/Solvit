@@ -5454,5 +5454,13 @@
     "ko": "비활성화됨",
     "es": "Desactivado",
     "fr": "Désactivé"
+  },
+  "队列消息操作": {
+    "zh": "队列消息操作",
+    "en": "Queued message actions",
+    "ja": "待機メッセージの操作",
+    "ko": "대기 메시지 작업",
+    "es": "Acciones del mensaje en cola",
+    "fr": "Actions du message en attente"
   }
 }

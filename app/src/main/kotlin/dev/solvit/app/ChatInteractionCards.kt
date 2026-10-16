@@ -6,11 +6,19 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.solvit.core.ExecutionMode
@@ -34,7 +42,7 @@ internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, approve: 
             }
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.spacedBy(4.dp)) {
                 TextButton(onClick={approve(false,false)},enabled=!resolving,modifier=Modifier.testTag("tool_reject")) { UiText("拒绝") }
-                TextButton(onClick={approve(true,false)},enabled=!resolving,modifier=Modifier.testTag("tool_allow_once")) { UiText("允许这一次") }
+                FilledTonalButton(onClick={approve(true,false)},enabled=!resolving,modifier=Modifier.testTag("tool_allow_once")) { UiText("允许这一次") }
                 TextButton(onClick={approve(true,true)},enabled=!resolving,modifier=Modifier.testTag("tool_allow_remember")) { UiText("允许且不再询问") }
             }
         }
@@ -45,17 +53,23 @@ internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, approve: 
 internal fun ChatQueuePanel(items: List<ChatViewModel.QueuedMessage>, paused: Boolean, switching: Boolean,
     edit: (String,String) -> Boolean, remove: (String) -> Unit, sendNow: (String) -> Boolean, resume: () -> Unit) {
     if(items.isEmpty())return
-    var expanded by remember { mutableStateOf(true) }
-    var editingId by remember { mutableStateOf<String?>(null) }
-    var editedText by remember { mutableStateOf("") }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    var editedText by rememberSaveable { mutableStateOf("") }
+    val expansionState = uiString(if (expanded) "收起" else "展开")
     Surface(Modifier.fillMaxWidth().testTag("chat_queue"), shape=MaterialTheme.shapes.medium,
-        color=MaterialTheme.colorScheme.surfaceContainerHigh) {
-        Column(Modifier.padding(horizontal=12.dp,vertical=6.dp)) {
+        color=MaterialTheme.colorScheme.surfaceContainerLow) {
+        Column(Modifier.padding(horizontal=12.dp,vertical=4.dp)) {
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
-                TextButton(onClick={expanded=!expanded},modifier=Modifier.weight(1f)) { UiText("等待队列 · ${items.size}") }
+                TextButton(onClick={expanded=!expanded}, modifier=Modifier.weight(1f).testTag("queue_toggle")
+                    .semantics { stateDescription=expansionState }, contentPadding=PaddingValues(vertical=8.dp)) {
+                    UiText("等待队列 · ${items.size}", Modifier.weight(1f), style=MaterialTheme.typography.labelLarge)
+                    Icon(if(expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, null)
+                }
                 if(paused)TextButton(onClick=resume,enabled=!switching,modifier=Modifier.testTag("queue_resume")) { UiText("继续发送") }
             }
-            if(expanded)LazyColumn(Modifier.fillMaxWidth().heightIn(max=180.dp)) {
+            if(expanded)LazyColumn(Modifier.fillMaxWidth().heightIn(max=180.dp).testTag("chat_queue_items"),
+                verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 items(items,key={it.id}) { item ->
                     Column(Modifier.fillMaxWidth().testTag("queued_${item.id}")) {
                         if(editingId==item.id) {
@@ -65,13 +79,28 @@ internal fun ChatQueuePanel(items: List<ChatViewModel.QueuedMessage>, paused: Bo
                                 TextButton(onClick={editingId=null}) { UiText("取消") }
                             }
                         }else {
-                            Text(item.text.ifBlank { item.attachments.joinToString { it.name } },maxLines=2,style=MaterialTheme.typography.bodySmall)
-                            FlowRow(horizontalArrangement=Arrangement.spacedBy(4.dp)) {
-                                TextButton(onClick={sendNow(item.id)},enabled=!switching,modifier=Modifier.testTag("queue_send_${item.id}")) { UiText("立即发送并打断") }
-                                TextButton(onClick={editingId=item.id;editedText=item.text},enabled=!switching) { UiText("编辑") }
-                                TextButton(onClick={remove(item.id)},enabled=!switching) { UiText("移除") }
+                            Text(item.text.ifBlank { item.attachments.joinToString { it.name } }, modifier=Modifier.padding(top=4.dp),
+                                maxLines=2,overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall)
+                            if(item.text.isNotBlank() && item.attachments.isNotEmpty()) Text(item.attachments.joinToString { it.name },
+                                maxLines=1,overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.labelSmall,
+                                color=MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+                                TextButton(onClick={sendNow(item.id)},enabled=!switching,modifier=Modifier.weight(1f).testTag("queue_send_${item.id}")) {
+                                    UiText("立即发送并打断", style=MaterialTheme.typography.labelMedium)
+                                }
+                                var menu by remember(item.id) { mutableStateOf(false) }
+                                Box {
+                                    IconButton(onClick={menu=true},enabled=!switching,modifier=Modifier.testTag("queue_menu_${item.id}")) {
+                                        UiIcon(Icons.Default.MoreVert,"队列消息操作")
+                                    }
+                                    DropdownMenu(expanded=menu,onDismissRequest={menu=false}) {
+                                        DropdownMenuItem(text={UiText("编辑")},onClick={menu=false;editingId=item.id;editedText=item.text},enabled=!switching)
+                                        DropdownMenuItem(text={UiText("移除")},onClick={menu=false;remove(item.id)},enabled=!switching)
+                                    }
+                                }
                             }
                         }
+                        HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
             }

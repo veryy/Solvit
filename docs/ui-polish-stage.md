@@ -64,3 +64,15 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 - 新文案补齐六种语言。真实市场页面回归增加权限折叠/展开后进入页面；增加大字体、长权限说明和页面导航的实际 Compose 布局回归及截图。
 
 本批尚未运行远程验证，不等于已完成大字体或视觉验收；第一批远程任务结果也不能替代本批验证。聊天与工作区的整体打磨继续保留。
+
+
+## 第三批：聊天队列减少常驻操作
+
+实际读取 Operit `ui/features/chat/components/style/input/common/PendingMessageQueuePanel.kt` 和 `ui/permissions/PermissionRequestOverlay.kt`，以及 `PendingMessageQueueStoreTest.kt`；DSH `packages/client/ui-conversation/src/client/queue/QueueDock.tsx`、`tests/queue-dock.client.spec.tsx`、`packages/client/ui-approval/src/client/ApprovalPanel.tsx` 和 `tests/ui-approval.client.spec.tsx`。采用队列折叠、独立编辑/移除动作和单次授权作为主要操作的原则；不照搬 Operit 的浮窗授权或 26dp 小点击区域。宿主仍在对话里审批，队列和执行状态机不变；未复制上游代码。
+
+- 队列默认收起为数量栏，带展开/收起状态；展开后只突出“立即发送并打断”，编辑和移除收到每条消息的操作菜单。
+- 长消息预览显示省略号，队列列表仍可独立滚动；已记住的展开和编辑内容只属于界面状态，不宣称支持进程死亡后的队列恢复。
+- 单次工具授权改为主要按钮，拒绝与持续授权保留明确操作和权限范围说明。
+- 原真实 Agent/权限/队列回归按实际新路径操作：收起状态确认发送按钮可见，展开、编辑、移除，再打断发送；新增授权等待、队列收起/展开且键盘可见时的实际截图。
+
+本批尚未远程验证。后续仍需约束授权与队列同时出现时的总高度、整理工作区导航和统一插件业务页状态；不能因本次折叠就宣称聊天布局已全面完成。

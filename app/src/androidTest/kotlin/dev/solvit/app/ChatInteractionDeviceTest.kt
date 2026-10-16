@@ -130,16 +130,27 @@ class ChatInteractionDeviceTest {
             rule.waitUntil(10_000) { vm.toolApproval.value!=null }
             rule.onNodeWithTag("chat_tool_approval").assertIsDisplayed()
             assertTrue(rule.onAllNodes(isDialog()).fetchSemanticsNodes().isEmpty())
+            screenshot("chat-approval-keyboard")
             rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed().performClick()
             rule.waitUntil(10_000) { requests.size==2&&executed.size==1 }
             send("same");send("same")
             rule.waitUntil(10_000) { vm.queuedMessages.value.size==2 }
             val queued=vm.queuedMessages.value
-            rule.onNode(hasText("编辑") and hasAnyAncestor(hasTestTag("queued_${queued[0].id}"))).performClick()
+            rule.onNodeWithTag("chat_queue_items").assertDoesNotExist()
+            rule.onNodeWithTag("chat_send").assertIsDisplayed()
+            screenshot("chat-queue-collapsed-keyboard")
+            rule.onNodeWithTag("queue_toggle").performClick()
+            rule.onNodeWithTag("chat_queue_items").performScrollToNode(hasTestTag("queue_menu_${queued[0].id}"))
+            rule.onNodeWithTag("queue_menu_${queued[0].id}").performClick()
+            rule.onNodeWithText("编辑").performClick()
             rule.onNodeWithTag("queue_edit_input").performTextReplacement("edited")
             rule.onNode(hasText("保存") and hasAnyAncestor(hasTestTag("queued_${queued[0].id}"))).performClick()
-            rule.onNode(hasText("移除") and hasAnyAncestor(hasTestTag("queued_${queued[1].id}"))).performClick()
-            rule.onNodeWithTag("queue_send_${queued[0].id}").performClick()
+            rule.onNodeWithTag("chat_queue_items").performScrollToNode(hasTestTag("queue_menu_${queued[1].id}"))
+            rule.onNodeWithTag("queue_menu_${queued[1].id}").performClick()
+            rule.onNodeWithText("移除").performClick()
+            rule.onNodeWithTag("chat_queue_items").performScrollToNode(hasTestTag("queue_send_${queued[0].id}"))
+            screenshot("chat-queue-expanded-keyboard")
+            rule.onNodeWithTag("queue_send_${queued[0].id}").assertIsDisplayed().performClick()
             rule.waitUntil(10_000) { !vm.busy.value&&vm.queuedMessages.value.isEmpty()&&executed.size==2 }
             assertEquals(listOf("first","first","edited","edited"),requests.map { it.messages.last { message -> message.role==Role.USER }.content })
             assertTrue(requests.all { it.agentRole==role })
