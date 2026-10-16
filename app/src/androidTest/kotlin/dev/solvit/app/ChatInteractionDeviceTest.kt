@@ -131,6 +131,25 @@ class ChatInteractionDeviceTest {
             rule.onNodeWithTag("chat_tool_approval").assertIsDisplayed()
             assertTrue(rule.onAllNodes(isDialog()).fetchSemanticsNodes().isEmpty())
             screenshot("chat-approval-keyboard")
+            // Exercise the missing combined state: waiting for approval while another message is queued.
+            send("queued-during-approval")
+            rule.waitUntil(10_000) { vm.queuedMessages.value.size==1 }
+            val pendingQueueId=vm.queuedMessages.value.single().id
+            screenshot("chat-approval-queue-keyboard")
+            val regions=listOf("chat_role_title","chat_tool_approval","tool_allow_once","tool_allow_remember","chat_queue","chat_composer").associateWith { tag ->
+                val node=rule.onAllNodesWithTag(tag).fetchSemanticsNodes().single()
+                rule.runOnUiThread { node.boundsInWindow }
+            }
+            android.util.Log.i("ChatDockFixture", "CHAT_DOCK_BOUNDS|"+regions.entries.joinToString { "${it.key}=${it.value}" })
+            assertTrue("Approval must stay below the chat title",regions.getValue("chat_tool_approval").top>=regions.getValue("chat_role_title").bottom)
+            rule.onNodeWithTag("tool_allow_once").assertIsDisplayed()
+            rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed()
+            rule.onNodeWithTag("chat_send").assertIsDisplayed()
+            rule.onNodeWithTag("queue_toggle").performClick()
+            rule.onNodeWithTag("chat_queue_items").performScrollToNode(hasTestTag("queue_menu_$pendingQueueId"))
+            rule.onNodeWithTag("queue_menu_$pendingQueueId").performClick()
+            rule.onNodeWithText("移除").performClick()
+            rule.waitUntil(10_000) { vm.queuedMessages.value.isEmpty() }
             rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed().performClick()
             rule.waitUntil(10_000) { requests.size==2&&executed.size==1 }
             send("same");send("same")
@@ -161,6 +180,9 @@ class ChatInteractionDeviceTest {
             rule.onNodeWithTag("chat_role_title").assertTextEquals(role.name)
             assertEquals(role,runBlocking { AndroidRoleService(context).selected(vm.sessionId.value!!) })
             screenshot("chat-inline-approval-queue-role")
+        }catch(failure:Throwable) {
+            runCatching { screenshot("chat-dock-layout-failure") }
+            throw failure
         }finally {
             if(models.isNotEmpty()) {
                 rule.runOnUiThread { vm.stop() };rule.waitUntil(10_000) { !vm.busy.value }
