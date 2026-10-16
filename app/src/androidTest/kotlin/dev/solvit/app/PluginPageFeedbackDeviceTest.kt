@@ -50,6 +50,7 @@ class PluginPageFeedbackDeviceTest {
             } } }
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_error").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("PRIVATE_PAGE_FAILURE_SENTINEL", substring = true).assertDoesNotExist()
+            screenshot("plugin-page-open-error")
             rule.onNodeWithTag("plugin_page_reopen").assertIsDisplayed().performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithText("Fixture session 2").fetchSemanticsNodes().isNotEmpty() }
             assertEquals(2, opens.get())
@@ -90,11 +91,13 @@ class PluginPageFeedbackDeviceTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_error").fetchSemanticsNodes().isNotEmpty() }
             assertEquals(1, writes.get())
             rule.onNodeWithText("PRIVATE_DISPATCH_FAILURE_SENTINEL", substring = true).assertDoesNotExist()
+            screenshot("plugin-page-action-error")
             rule.onNodeWithTag("plugin_page_reopen").assertIsDisplayed().performClick()
             rule.waitUntil(10_000) { closing.isCompleted }
             assertEquals(1, opens.get())
             assertEquals(1, writes.get())
             rule.onNodeWithTag("plugin_page_loading").assertIsDisplayed()
+            screenshot("plugin-page-reopening")
             release.complete(Unit)
             rule.waitUntil(10_000) { rule.onAllNodesWithText("Fixture session 2").fetchSemanticsNodes().isNotEmpty() }
             assertEquals(2, opens.get()); assertEquals(1, closes.get()); assertEquals(1, writes.get())
