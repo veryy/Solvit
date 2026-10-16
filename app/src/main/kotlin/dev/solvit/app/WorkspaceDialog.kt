@@ -76,6 +76,8 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
             })
         }) { padding ->
             Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
+                if (busy && id == null && !creating && !chooser)
+                    LinearProgressIndicator(Modifier.fillMaxWidth().testTag("workspace_background_progress"))
                 if (id == null && tab != 3) {
                     Column(Modifier.weight(1f).fillMaxWidth(), horizontalAlignment=androidx.compose.ui.Alignment.CenterHorizontally, verticalArrangement=Arrangement.Center) {
                         UiText("此对话尚未绑定工作区")
@@ -172,5 +174,5 @@ fun WorkspaceDialog(vm: WorkspaceViewModel, system: SystemExecutionService, crea
             error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("workspace_form_error")) }
         }
     }, confirmButton = { TextButton(onClick = { pendingSubmission = vm.create(name) }, enabled = !busy && name.isNotBlank()) { UiText("创建并绑定") } },
-        dismissButton = { TextButton(onClick = { creating = false }) { UiText("取消") } })
+        dismissButton = { TextButton(onClick = { creating = false }) { UiText(if (busy) "关闭" else "取消") } })
 }

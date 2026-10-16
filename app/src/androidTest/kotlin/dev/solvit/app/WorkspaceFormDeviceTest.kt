@@ -122,4 +122,40 @@ class WorkspaceFormDeviceTest {
         } finally { rule.runOnUiThread { vm.viewModelScope.cancel() } }
     }
 
+    @Test fun closingPendingFormShowsBackgroundProgressAndKeepsDraftAfterFailure() {
+        val app = app()
+        val release = CompletableDeferred<Unit>()
+        val calls = AtomicInteger()
+        val service = object : WorkspaceService by app.workspaces {
+            override suspend fun create(name: String): Workspace {
+                calls.incrementAndGet(); release.await(); error("Fixture background failure")
+            }
+        }
+        val vm = WorkspaceViewModel(service, app.pluginDrafts, app.terminals)
+        try {
+            rule.runOnUiThread {
+                vm.selectChat("workspace-background-form-chat")
+                rule.activity.setContent { MaterialTheme { WorkspaceDialog(vm, app.systemExecution, createOnOpen = true) {} } }
+            }
+            rule.onNodeWithTag("workspace_create_name").performTextReplacement("Background draft")
+            rule.onNodeWithText("创建并绑定").performClick()
+            rule.waitUntil(10_000) { calls.get() == 1 }
+            // Closing a form is not a claim that already-started disk work was cancelled.
+            rule.onNodeWithText("关闭").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("workspace_create_name").fetchSemanticsNodes().isEmpty() }
+            rule.onNodeWithTag("workspace_background_progress").assertIsDisplayed()
+            rule.onNodeWithText("新建工作区").assertIsNotEnabled()
+            assertEquals(1, calls.get())
+            release.complete(Unit)
+            rule.waitUntil(10_000) { !vm.busy.value && vm.error.value != null }
+            rule.onNodeWithText("Fixture background failure").assertIsDisplayed()
+            rule.onNodeWithText("新建工作区").performClick()
+            rule.onNodeWithTag("workspace_create_name").assert(hasText("Background draft"))
+            assertEquals(1, calls.get())
+            screenshot("workspace-close-pending-form")
+        } catch (failure: Throwable) {
+            runCatching { screenshot("workspace-close-pending-form-failure") }; throw failure
+        } finally { release.complete(Unit); rule.runOnUiThread { vm.viewModelScope.cancel() } }
+    }
+
 }
