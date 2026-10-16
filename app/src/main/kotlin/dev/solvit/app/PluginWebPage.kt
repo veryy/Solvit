@@ -31,6 +31,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.*
 
+// Temporary native-crash probe; remove before publishing the eventual fix.
+private val nextPageLifecycleTrace = AtomicInteger()
+
 private const val PLUGIN_ORIGIN = "https://solvit-plugin.invalid"
 private const val PAGE_CSP = "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'"
 
@@ -75,13 +78,28 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
     var terminalConfirmation by remember(document) { mutableStateOf<TerminalPageConfirmation?>(null) }
     var failed by remember(document) { mutableStateOf(false) }
     val live = remember(document) { AtomicBoolean(true) }
+    val traceId = remember(document) { nextPageLifecycleTrace.incrementAndGet() }
+    fun trace(phase: String) {
+        if (BuildConfig.DEBUG) android.util.Log.i("WEB_PAGE_LIFECYCLE_DIAG", "$traceId|$phase|live=${live.get()}")
+    }
     fun release(browser: WebView) {
+        trace("release.request")
         if (live.compareAndSet(true, false)) {
+            trace("listener.remove.before")
             runCatching { WebViewCompat.removeWebMessageListener(browser, "solvitHost") }
+            trace("listener.remove.after")
+            trace("parent.remove.before")
             (browser.parent as? android.view.ViewGroup)?.removeView(browser)
+            trace("parent.remove.after")
+            trace("stop.before")
             runCatching { browser.stopLoading() }
+            trace("stop.after")
+            trace("children.remove.before")
             runCatching { browser.removeAllViews() }
+            trace("children.remove.after")
+            trace("destroy.before")
             browser.destroy()
+            trace("destroy.after")
         }
     }
     val state = buildJsonObject {
@@ -98,7 +116,9 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
     }.toString()
     val latestState by rememberUpdatedState(state)
     val browser = remember(document) {
+        trace("construct.before")
         WebView(context).apply {
+            trace("construct.after")
             settings.javaScriptEnabled = true
             settings.allowFileAccess = false
             settings.allowContentAccess = false
@@ -113,25 +133,31 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = true
                 override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse {
-                    val uri = request.url
-                    val result = if (live.get() && uri.scheme == "https" && uri.host == "solvit-plugin.invalid" &&
-                        uri.port in setOf(-1, 443) && request.method == "GET") runCatching {
-                        runBlocking { latestResource(uri.path.orEmpty().removePrefix("/")) }
-                    }.getOrNull() else null
-                    return if (result == null) WebResourceResponse("text/plain", "UTF-8", 403, "Forbidden", emptyMap(),
-                        ByteArrayInputStream(ByteArray(0)))
-                    else WebResourceResponse(result.mimeType, "UTF-8", 200, "OK",
-                        mapOf("Content-Security-Policy" to PAGE_CSP, "Cache-Control" to "no-store", "X-Content-Type-Options" to "nosniff"),
-                        ByteArrayInputStream(result.content.toByteArray(Charsets.UTF_8)))
+                    trace("resource.begin")
+                    try {
+                        val uri = request.url
+                        val result = if (live.get() && uri.scheme == "https" && uri.host == "solvit-plugin.invalid" &&
+                            uri.port in setOf(-1, 443) && request.method == "GET") runCatching {
+                            runBlocking { latestResource(uri.path.orEmpty().removePrefix("/")) }
+                        }.getOrNull() else null
+                        return if (result == null) WebResourceResponse("text/plain", "UTF-8", 403, "Forbidden", emptyMap(),
+                            ByteArrayInputStream(ByteArray(0)))
+                        else WebResourceResponse(result.mimeType, "UTF-8", 200, "OK",
+                            mapOf("Content-Security-Policy" to PAGE_CSP, "Cache-Control" to "no-store", "X-Content-Type-Options" to "nosniff"),
+                            ByteArrayInputStream(result.content.toByteArray(Charsets.UTF_8)))
+                    } finally { trace("resource.return") }
                 }
                 override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+                    trace("receivedError.main=${request.isForMainFrame}")
                     if (request.isForMainFrame && live.get()) { failed = true; release(view) }
                 }
                 override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                    trace("renderGone.crashed=${detail.didCrash()}")
                     failed = true; release(view); return true
                 }
             }
             WebViewCompat.addWebMessageListener(this, "solvitHost", setOf(PLUGIN_ORIGIN)) { web, message, origin, mainFrame, reply ->
+                trace("message.enter")
                 if (!live.get() || !mainFrame || origin.scheme != "https" || origin.host != "solvit-plugin.invalid" ||
                     origin.port !in setOf(-1, 443)) return@addWebMessageListener
                 runCatching {
@@ -139,7 +165,9 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
                     require(body.toByteArray(Charsets.UTF_8).size <= ScriptPageView.MAX_BYTES)
                     val input = Json.parseToJsonElement(body).jsonObject
                     if (input == buildJsonObject { put("type", "ready") }) {
+                        trace("ready.evaluate.before")
                         web.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($latestState)", null)
+                        trace("ready.evaluate.after")
                     } else if (input["type"] == JsonPrimitive("terminal")) {
                         check(!latestBusy && input.keys == setOf("type","token","id","operation","arguments"))
                         val requestToken = input.getValue("token").jsonPrimitive.content
@@ -200,25 +228,21 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
                     reply.postMessage("{\"type\":\"error\",\"message\":\"Page request rejected\"}")
                 }
             }
+            trace("load.before")
             loadUrl("$PLUGIN_ORIGIN/${document.entry}")
+            trace("load.after")
         }
     }
     Column(modifier.fillMaxSize()) {
         if (failed) UiText("插件页面加载失败，请关闭后重新打开。", Modifier.weight(1f))
-        else AndroidView(factory = {
-            // Compose retains the container while the document owns its browser.
-            // Detach/destroy only the child, so AndroidView teardown keeps a live View.
-            android.widget.FrameLayout(context).apply {
-                addView(browser, android.widget.FrameLayout.LayoutParams(
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                    android.view.ViewGroup.LayoutParams.MATCH_PARENT))
-            }
-        }, modifier = Modifier.fillMaxWidth().weight(1f).testTag("plugin_web_page"),
-            onRelease = { release(browser) }, update = { host ->
-            host.setBackgroundColor(colors.surface.toArgb())
+        else AndroidView(factory = { trace("androidView.factory"); browser }, modifier = Modifier.fillMaxWidth().weight(1f).testTag("plugin_web_page"),
+            onRelease = { trace("androidView.release"); release(it) }, update = {
+            trace("androidView.update.enter")
             if (live.get()) {
-                browser.setBackgroundColor(colors.surface.toArgb())
-                browser.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+                it.setBackgroundColor(colors.surface.toArgb())
+                trace("update.evaluate.before")
+                it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+                trace("update.evaluate.after")
             }
         })
         terminalConfirmation?.let { question ->

@@ -88,3 +88,12 @@ b7be1fdc/[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)
 候选以FrameLayout作为AndroidView持有的稳定视图，document仍拥有同一个WebView；release仍先失效令牌、移除消息监听、移除浏览器父视图，再stopLoading/removeAllViews/destroy。UI更新仍由live门禁调用浏览器，容器背景随主题更新。采用Operit WebSessionWebViewHost.kt中容器与活跃浏览器分开管理、清理内层所有权的原则；没有复制实现或引入依赖。DSH实际lifecycle测试的迟到回调/单次释放边界继续保留。
 
 已有PluginHostLifecycleControlTest在正式APK上第9次失败，候选不改变该测试和断言，先等待远程编译，再用候选APK重放同一8轮×30次。之后必须回到真实工作区操作路径与完整设备/恢复/签名回归，不能用最小对照替代产品验收。候选未验证、未合入主线、未发布新APK；不得提前宣称根因或修复成立。
+
+
+## 容器候选仍复现，撤回该改动
+
+5c7cffe3的[38836042401](https://github.com/veryy/Solvit/actions/runs/38836042401)失败。归档12019446809完整下载/CRC，507903字节，SHA256 `6c0b29b1fcc88b544e48f2cf43ef150e0e27a7982d04326e8a47d66b478715e3`。第一轮实际完成1..27/30，第28次期间仍为SIGSEGV/SI_KERNEL128、pc0x357d7e5、BuildId68dabd72c6088238cbfc9a5fbfe211f916771df5；零SnapshotStateObserver/removeObserver，2条destroyed-WebView警告。不能将完成次数增加解释为修复。原生容器对照与产品宿主仍有异步状态/加载时序差异；外层容器本身不足以解决。
+
+额外读取Google Maven官方ui-android:1.8.3 sources.jar（SHA256 `63bd2776ad08453c2d84c5cb4ec936f3e52e595bedb2bc1bbcad11abaefbe2d1`），AndroidView.android.kt的releaseBlock与AndroidViewHolder.android.kt的onRelease/onDetach/onLayout/全局位置回调：它持有传入View引用，onRelease执行释放回调；这支持检查所有权边界，但没有证明原生崩溃时确实调用了已销毁视图，也不能据此声称AndroidX有该缺陷。没有复制上游源码或添加分发依赖。
+
+独立诊断分支恢复原来的直接WebView容器实现，仅临时加入WEB_PAGE_LIFECYCLE_DIAG阶段日志：构造、load、资源开始/返回、ready/更新脚本、释放入口及监听/父视图/stop/子视图/destroy前后。日志仅使用自增实例编号、固定阶段和存活布尔值，不输出URL、文档、消息、配置或凭据。目的为判断崩溃紧邻哪个实际方法/回调，不再仅凭粗粒度对照猜修复；日志本身可能改变时序，若未复现也不算修复。最终交付前必须删除全部临时标记，并回到无日志的原失败路径验证。仅远程构建，尚待运行；容器候选不合入正式主线，不发布该失败APK。

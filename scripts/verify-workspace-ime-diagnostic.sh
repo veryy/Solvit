@@ -40,7 +40,7 @@ solvit_diagnostic_repetitions=${SOLVIT_DIAGNOSTIC_REPETITIONS:-8}
 [[ "$solvit_diagnostic_repetitions" =~ ^[1-8]$ ]] || exit 1
 mkdir -p ui-screenshots
 capture() {
-  timeout 15s adb logcat -d -s WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I TestRunner:I '*:S' > ui-screenshots/page-diagnostic-logcat.txt || true
+  timeout 15s adb logcat -d -s WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I WEB_PAGE_LIFECYCLE_DIAG:I TestRunner:I '*:S' > ui-screenshots/page-diagnostic-logcat.txt || true
   # Keep native Chromium crashes as well as test assertions; filtered logs hide SIGSEGV.
   timeout 15s adb logcat -d > ui-screenshots/page-diagnostic-native-logcat.txt || true
   timeout 15s adb shell dumpsys webviewupdate > ui-screenshots/page-diagnostic-webview-provider.txt || true
