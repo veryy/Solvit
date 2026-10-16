@@ -214,8 +214,26 @@ class PluginPageUiTest {
             rule.waitUntil(10_000) { rule.onAllNodes(hasTestTag("plugin_field_note") and isFocused()).fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_field_note").performTextReplacement("real market page note")
             rule.onNodeWithTag("plugin_node_save").performClick()
-            rule.waitUntil(10_000) {
-                app.getSharedPreferences("extension_data.$id", 0).getString("note", "") == JsonPrimitive("real market page note").toString()
+            try {
+                rule.waitUntil(10_000) {
+                    app.getSharedPreferences("extension_data.$id", 0).getString("note", "") == JsonPrimitive("real market page note").toString()
+                }
+            } catch (failure: Throwable) {
+                // Only fixed fixture booleans and geometry; no arbitrary field/configuration text.
+                val fieldMatches = rule.onAllNodes(hasTestTag("plugin_field_note") and hasText("real market page note")).fetchSemanticsNodes().isNotEmpty()
+                val enabled = rule.onAllNodes(hasTestTag("plugin_node_save") and isEnabled()).fetchSemanticsNodes().isNotEmpty()
+                val buttons = rule.onAllNodesWithTag("plugin_node_save").fetchSemanticsNodes()
+                val bounds = rule.runOnUiThread { buttons.map { it.boundsInWindow.toString() } }
+                val ime = rule.runOnUiThread { rule.activity.window.decorView.rootWindowInsets?.getInsets(android.view.WindowInsets.Type.ime())?.bottom ?: 0 }
+                android.util.Log.i("PluginPageFixture", "NATIVE_PAGE_SAVE_WAIT|fieldMatches=$fieldMatches|enabled=$enabled|stored=${app.getSharedPreferences("extension_data.$id", 0).contains("note")}|ime=$ime|bounds=$bounds")
+                runCatching {
+                    val automation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+                    for (command in listOf("mkdir -p /data/local/tmp/solvit-ui",
+                        "screencap -p /data/local/tmp/solvit-ui/plugin-native-save-failure.png")) {
+                        android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand(command)).use { it.readBytes() }
+                    }
+                }
+                throw failure
             }
             rule.onNodeWithContentDescription("关闭插件界面").assertExists().performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_field_note").fetchSemanticsNodes().isEmpty() }

@@ -190,3 +190,10 @@ a6b000de的[38841583915](https://github.com/veryy/Solvit/actions/runs/3884158391
 272fcf12的[38844101681](https://github.com/veryy/Solvit/actions/runs/38844101681)/116790569651失败。归档12022473388完整下载/CRC，497403字节，SHA256 `c2b97a8d08e1120a363a7148633f086a7a6e5bbbc5d9cccaaa029a26550840a4`；实际完成17次，第18次等待bound workspace超时，58.046秒，1项/1失败。完整原始日志零Fatal、零WEB_PAGE_LIFECYCLE_DIAG；不能写成240通过，也不能把这个界面断言当作原先的原生SIGSEGV。
 
 原归档未记录失败前的界面状态，当前不能判定创建未执行、绑定服务异常或系统触摸落点/界面状态竞争。仅在原await超时后新增一次截图、固定UI标签/控件可见/启用/编辑/坐标及工作区/绑定/会话数量；不记录任意配置/消息/编辑内容，不改变成功路径、15秒等待、点击或原断言。继续使用同一272fcf12生产APK重放，不能通过增加等待、重复点击或直接修改服务来掩盖此失败。尚未合入主线或发布。
+
+
+## 无日志完整回归的三项界面失败，保持实际断言
+
+272fcf12/38843263391的verify-ui116790205883失败。归档12022769845完整下载/CRC，7694630字节，SHA256 `e0d64403ef7bb09cf23e6d38e21f7b0bc1947fafaefd09b4c9d091b9fe3689e1`。原始XML分别为ChatLayoutTest.applyRole场景第647行drawer仍显示、PdfChatDeviceTest第164行发送后等待FAILED超时90秒，以及PluginPageUiTest第217行真实市场API9表单保存超时10秒；不能计为完整通过。PDF的扫描预览/选页/原图已走完，失败是后续发送结算，不是原OCR等待，不能仅凭用例名误判。
+
+角色测试原来只推进一帧即断言drawer关闭，而等待的底层新建工作区节点在drawer覆盖时也已存在。修正为等待实际assertIsNotDisplayed满足后继续，保留原断言和8秒上限；不更改业务UI或直接关闭抽屉。另两项只在原超时后记录固定合成输入是否匹配、按钮启用/几何、IME高度、HTTP请求计数/消息状态及截图；不输出模型配置、任意文本或请求。成功路径和原等待/点击/持久化/HTTP断言不变。新增诊断case选择整个6项PluginPageUiTest，保留类内上下文；PDF沿用原queued-ui-follow-up前置3项，角色沿用queued-ui-scroll。继续复用同一272fcf12生产APK，尚待远程编译和结果。
