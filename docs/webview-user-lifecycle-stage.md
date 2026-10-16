@@ -135,3 +135,12 @@ b3341886/[38837934088](https://github.com/veryy/Solvit/actions/runs/38837934088)
 PluginPageReadyStateTest的旧APK同断言任务已启动；本候选还需远程编译、同断言通过、旧最小宿主原生压力和实际工作区路径、最终移除日志后完整回归。若协议回归通过但原生压力仍失败，只能声称状态下发修正，不能把它当作原生根治。暂未合入正式主线或发布新APK。
 
 旧APK同断言任务[38839015993](https://github.com/veryy/Solvit/actions/runs/38839015993)使用24bbdf41测试与b334诊断APK；就绪候选[2e6f045a](https://github.com/veryy/Solvit/commit/2e6f045a659d0ea7fbc91635abe94e809267605d)的[38839204234](https://github.com/veryy/Solvit/actions/runs/38839204234)已实际启动。两者均待结果，不声称红绿已完成。原生诊断已回收，已请求停止旧38837209253剩余完整设备任务；其build成功和目标原生失败各自保留，不将该诊断轮计为完整发布门禁通过。正式主线仅同步记录，没有合入日志或未验证候选，没有新APK发布。
+
+
+## 延迟 ready 旧版断言已失败，候选已构建
+
+旧版同断言38839015993/116774552876已实际失败：PluginPageReadyStateTest第78行要求页面尚未显式ready时接收0次状态，实际收到1次。归档12021030201已完整下载并核对CRC，466033字节，SHA256 `8d76c1649996b1962ca29b9f91300b20c37f25aabd1047e047096bfe7cb3d7dc`；原始instrumentation输出为1项、1失败，4.810秒。这是状态协议回归的明确红灯，不能替代原生崩溃根因证明。
+
+候选2e6f045a的38839204234/build116775147204成功。报告归档12020576260完整下载/CRC，437184字节，SHA256 `cbddbe95aea28ee783a46185a9585e9889e539031a40892dc00b566a0452989a`；144份原始单元XML合计611项，失败/错误/跳过均0。完整设备任务仍在运行，不计为完整发布通过。
+
+已用该候选APK实际启动同一延迟ready断言[38839890509](https://github.com/veryy/Solvit/actions/runs/38839890509)及原最小宿主8×30压力[38839893183](https://github.com/veryy/Solvit/actions/runs/38839893183)，结果待回收。旧诊断38837209253的verify-ui116770886304与release已确认cancelled，build成功及目标原生失败记录保留。正式主线仍无临时日志或未验收代码，没有新APK发布。
