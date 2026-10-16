@@ -10,6 +10,8 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
     # Preserve the actual preceding WebView/PTY/memory scenarios in the failed full run.
     solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace,dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput,dev.solvit.app.ChatLayoutTest#memoryManagementEditsAndDeletesWithPluginDisabled,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending,dev.solvit.app.ChatLayoutTest#pluginPageCanReachBottomAndReturnToChat,dev.solvit.app.ChatLayoutTest#actualAndroidJsMemoryReachesPreparedModelRequestWithoutSearchToolCalls,dev.solvit.app.ChatLayoutTest#configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation'
     solvit_diagnostic_expected='OK (7 tests)' ;;
+  workspace-user-lifecycle|workspace-user-lifecycle-stress)
+    solvit_diagnostic_test='dev.solvit.app.WebViewUserLifecycleTest#workspaceRecreationUsesProductionDispatcherAndReleasesTheActualBrowser' ;;
   compose-lifecycle-dispatch) solvit_diagnostic_test='dev.solvit.app.ComposeLifecycleDispatchTest' ;;
   plugin-document-lifecycle) solvit_diagnostic_test='dev.solvit.app.PluginWebPageLifecycleTest' ;;
   plugin-resume)
@@ -50,7 +52,7 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   solvit_recreations=3
   case "${SOLVIT_DIAGNOSTIC_CASE:-}" in
     workspace-startup-sequence|queued-ui-follow-up) solvit_iteration_timeout=300s ;;
-    workspace-startup-stress) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
+    workspace-startup-stress|workspace-user-lifecycle-stress) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
   esac
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
