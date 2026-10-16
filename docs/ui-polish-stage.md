@@ -141,3 +141,6 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 ### 插件页面失败后的恢复入口
 
 重新读取锁定DSH `packages/client/ui-plugin-manager/tests/components.client.spec.tsx` 的 loading/unavailable/error/empty 及显式retry测试，配合UI开发指导的清理原则；读取Operit `ui/features/memory/screens/MemoryScreen.kt` 的保持图谱挂载、加载反馈及错误状态。DSH MIT、Operit LGPL-3.0，自行适配现有Compose宿主，不复制代码。新增真实宿主界面测试，通过ExtensionPageSession服务边界验证打开失败可就地重开、操作失败重开先完成旧会话清理、明确不自动重放写入，以及关闭资源回收。真实JS/HTML持久化仍由PluginWebPageUiTest覆盖，不能用服务替身声称验证第三方插件。先用原APK复现缺失的恢复入口，未改生产代码。
+
+
+插件恢复入口原APK远程复核 [38978700244](https://github.com/veryy/Solvit/actions/runs/38978700244) 实际两项均在恢复按钮不可见处失败；打开及实际dispatch失败反馈已出现，不是初始化或编译失败。现在增加本地化的就地重开入口与加载状态，重开先取消/等待旧dispatch并完成会话关闭，再打开新会话；只读取新状态，不重放旧操作，旧响应也不能覆盖新一轮页面。保留关闭按钮、文档权限与安全窗口、原生确认和JS/HTML业务渲染。修复后两个回归与真实插件页面路径仍需远程验证。

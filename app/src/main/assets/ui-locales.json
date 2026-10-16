@@ -5462,5 +5462,21 @@
     "ko": "대기 메시지 작업",
     "es": "Acciones del mensaje en cola",
     "fr": "Actions du message en attente"
+  },
+  "重新打开页面": {
+    "zh": "重新打开页面",
+    "en": "Reopen page",
+    "ja": "ページを開き直す",
+    "ko": "페이지 다시 열기",
+    "es": "Volver a abrir la página",
+    "fr": "Rouvrir la page"
+  },
+  "重新打开页面不会重复执行刚才的操作。": {
+    "zh": "重新打开页面不会重复执行刚才的操作。",
+    "en": "Reopening reads the current page without repeating the previous action.",
+    "ja": "ページを開き直しても、直前の操作は繰り返しません。",
+    "ko": "페이지를 다시 열어도 이전 작업은 반복하지 않습니다.",
+    "es": "Volver a abrir la página no repite la acción anterior.",
+    "fr": "Rouvrir la page ne répète pas l’action précédente."
   }
 }
