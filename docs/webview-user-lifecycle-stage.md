@@ -144,3 +144,12 @@ PluginPageReadyStateTest的旧APK同断言任务已启动；本候选还需远�
 候选2e6f045a的38839204234/build116775147204成功。报告归档12020576260完整下载/CRC，437184字节，SHA256 `cbddbe95aea28ee783a46185a9585e9889e539031a40892dc00b566a0452989a`；144份原始单元XML合计611项，失败/错误/跳过均0。完整设备任务仍在运行，不计为完整发布通过。
 
 已用该候选APK实际启动同一延迟ready断言[38839890509](https://github.com/veryy/Solvit/actions/runs/38839890509)及原最小宿主8×30压力[38839893183](https://github.com/veryy/Solvit/actions/runs/38839893183)，结果待回收。旧诊断38837209253的verify-ui116770886304与release已确认cancelled，build成功及目标原生失败记录保留。正式主线仍无临时日志或未验收代码，没有新APK发布。
+
+
+## 就绪协议已红绿确认，原生崩溃仍然存在
+
+候选2e6f045a的同断言[38839890509](https://github.com/veryy/Solvit/actions/runs/38839890509)/116777324395成功，原始输出1项、3.639秒。归档12020801561完整下载/CRC，460551字节，SHA256 `d6ee383fc08ac2e99952318a05072702d3b6b09d26484482be96b2800ebded0b`。结合旧版同断言预期0/实际1的失败，明确证明就绪前缓冲、ready后最新状态及后续更新生效。
+
+原最小压力[38839893183](https://github.com/veryy/Solvit/actions/runs/38839893183)/116777327923仍失败：实际只完成1次，第2次期间同一SIGSEGV/pc0x357d7e5/BuildId68dabd72c6088238cbfc9a5fbfe211f916771df5。归档12021281262完整下载/CRC，548943字节，SHA256 `7c8b2792c21368d6d616de7d24fadc31c09112a67f53de461e4f6caa47f8cf8f`。45条阶段事件全部配对；第二实例只有update.deferredUntilReady、无message或evaluate，destroy.after在02:25:08.076，fatal在02:25:09.290，相差1.214秒。它明确否定“阻止就绪前状态脚本足以根治”的预测，不能以协议回归通过宣称原生修复。
+
+下一单变量诊断只省略显式removeWebMessageListener，仍立即关闭live/pageReady和正常destroy，检验异步消息桥回收是否参与；随后才分别考虑加载/渲染回收、Compose移除时序。诊断不得合入或发布为已验证修复。原就绪候选的完整设备任务仍在运行，主线尚无临时日志，没有新APK发布。
