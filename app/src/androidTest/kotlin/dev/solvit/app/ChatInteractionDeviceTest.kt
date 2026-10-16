@@ -9,6 +9,8 @@ import android.view.WindowInsets
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.text.TextLayoutResult
@@ -104,7 +106,14 @@ class ChatInteractionDeviceTest {
                 val workspaces=WorkspaceViewModel(app.workspaces,app.pluginDrafts,app.terminals)
                 val updates=UpdateViewModel(app.updates,app.updateDownloader);val market=MarketplaceViewModel(app.marketplace)
                 models+=listOf(vm,agents,workspaces,updates,market)
-                rule.activity.setContent { MaterialTheme { ChatScreen(vm,updates,market,agents,workspaces) } }
+                val fontScale = InstrumentationRegistry.getArguments().getString("chatFontScale")?.toFloatOrNull()
+                require(fontScale == null || fontScale in 1f..2f)
+                rule.activity.setContent {
+                    val density = LocalDensity.current
+                    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale ?: density.fontScale)) {
+                        MaterialTheme { ChatScreen(vm,updates,market,agents,workspaces) }
+                    }
+                }
             }
             rule.waitUntil(10_000) { vm.ready.value&&agents.activeRole.value==role }
             val original=vm.sessionId.value!!

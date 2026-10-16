@@ -2,6 +2,7 @@
 # Stop at the first failure; preserve the original scenario's actions and assertions.
 set -euo pipefail
 solvit_diagnostic_expected='OK (1 test)'
+solvit_chat_font_scale=1
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
   workspace-forms) solvit_diagnostic_test='dev.solvit.app.WorkspaceFormDeviceTest'; solvit_diagnostic_expected='OK (3 tests)' ;;
   plugin-page-feedback) solvit_diagnostic_test='dev.solvit.app.PluginPageFeedbackDeviceTest'; solvit_diagnostic_expected='OK (2 tests)' ;;
@@ -24,6 +25,7 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
     solvit_diagnostic_test='dev.solvit.app.McpPageUiTest,dev.solvit.app.PluginPageUiTest#packagedTaskPageShowsSourcesAndUsesNativeCostConfirmationBeforeServiceControl,dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin,dev.solvit.app.PluginWebPageUiTest,dev.solvit.app.WorkspaceImportProgressHtmlTest'
     solvit_diagnostic_expected='OK (5 tests)' ;;
   chat-interaction) solvit_diagnostic_test='dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole' ;;
+  chat-interaction-large-text) solvit_diagnostic_test='dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole'; solvit_chat_font_scale=1.5 ;;
   queued-ui-scroll)
     solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#replyBranchCopiesToolTurnAndRoleAndWorkspaceWithoutChangingOriginal,dev.solvit.app.ChatLayoutTest#applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist,dev.solvit.app.ChatLayoutTest#wideDrawerOpensSettingsAndLastSettingsRowCanBeSeen'
     solvit_diagnostic_expected='OK (3 tests)' ;;
@@ -63,6 +65,7 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   esac
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
+    -e chatFontScale "$solvit_chat_font_scale" \
     -e workspaceRecreations "$solvit_recreations" \
     -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \
