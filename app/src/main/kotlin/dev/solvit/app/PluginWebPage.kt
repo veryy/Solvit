@@ -205,11 +205,20 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
     }
     Column(modifier.fillMaxSize()) {
         if (failed) UiText("插件页面加载失败，请关闭后重新打开。", Modifier.weight(1f))
-        else AndroidView(factory = { browser }, modifier = Modifier.fillMaxWidth().weight(1f).testTag("plugin_web_page"),
-            onRelease = { release(it) }, update = {
+        else AndroidView(factory = {
+            // Compose retains the container while the document owns its browser.
+            // Detach/destroy only the child, so AndroidView teardown keeps a live View.
+            android.widget.FrameLayout(context).apply {
+                addView(browser, android.widget.FrameLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT))
+            }
+        }, modifier = Modifier.fillMaxWidth().weight(1f).testTag("plugin_web_page"),
+            onRelease = { release(browser) }, update = { host ->
+            host.setBackgroundColor(colors.surface.toArgb())
             if (live.get()) {
-                it.setBackgroundColor(colors.surface.toArgb())
-                it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+                browser.setBackgroundColor(colors.surface.toArgb())
+                browser.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
             }
         })
         terminalConfirmation?.let { question ->
