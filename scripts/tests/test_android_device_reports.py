@@ -12,7 +12,9 @@ class DeviceReportGateTest(unittest.TestCase):
         for module, count in reports.MINIMUM.items():
             path = root / module / 'build/outputs/androidTest-results/connected/debug/TEST-device.xml'
             path.parent.mkdir(parents=True)
-            cases = ''.join(f'<testcase name="case-{i}"/>' for i in range(count))
+            required = reports.REQUIRED.get(module, set())
+            named = ''.join(f'<testcase classname="{cls}" name="{name}"/>' for cls, name in sorted(required))
+            cases = named + ''.join(f'<testcase name="case-{i}"/>' for i in range(count - len(required)))
             path.write_text(f'<testsuites tests="{count}" failures="0" errors="0" skipped="0"><testsuite>{cases}</testsuite></testsuites>')
         return root / 'app/build/outputs/androidTest-results/connected/debug/TEST-device.xml'
     def test_all_three_actual_report_shapes_are_required(self):
@@ -30,6 +32,11 @@ class DeviceReportGateTest(unittest.TestCase):
         with TemporaryDirectory() as directory:
             root = Path(directory); path = self.fixture(root)
             path.write_text(path.read_text().replace('<testcase name="case-0"/>', '<testcase name="case-0"><failure>failed</failure></testcase>'))
+            with self.assertRaises(ValueError): reports.verify(root)
+    def test_required_regression_cannot_be_replaced_by_an_unrelated_passing_case(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory); path = self.fixture(root)
+            path.write_text(path.read_text().replace('delayedReadyReceivesLatestStateWithoutEarlierScriptDelivery', 'unrelatedPassingTest'))
             with self.assertRaises(ValueError): reports.verify(root)
     def test_empty_skipped_and_inconsistent_reports_are_rejected(self):
         for xml in ['<testsuites tests="0"/>', '<testsuites tests="1" skipped="1"><testcase><skipped/></testcase></testsuites>', '<testsuites tests="68"><testcase/></testsuites>']:

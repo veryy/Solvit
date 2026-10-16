@@ -4,7 +4,9 @@ import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-MINIMUM = {'app': 70, 'web-android': 3, 'terminal-android': 25}
+MINIMUM = {'app': 71, 'web-android': 3, 'terminal-android': 25}
+
+REQUIRED = {'app': {('dev.solvit.app.PluginPageReadyStateTest', 'delayedReadyReceivesLatestStateWithoutEarlierScriptDelivery')}}
 
 def verify(root: Path) -> dict[str, int]:
     counts = {}
@@ -13,6 +15,7 @@ def verify(root: Path) -> dict[str, int]:
         if not files:
             raise ValueError(f'{module}: missing device reports')
         count = 0
+        seen = set()
         for file in files:
             report = ET.parse(file).getroot()
             cases = list(report.iter('testcase'))
@@ -21,7 +24,10 @@ def verify(root: Path) -> dict[str, int]:
             for suite in report.iter():
                 if suite.tag in ('failure', 'error', 'skipped') or any(int(suite.get(k, '0')) for k in ('failures', 'errors', 'skipped')):
                     raise ValueError(f'{module}: failed, erroneous or skipped device test')
+            seen.update((case.get('classname'), case.get('name')) for case in cases)
             count += len(cases)
+        if REQUIRED.get(module, set()) - seen:
+            raise ValueError(f'{module}: missing required device regression')
         if count < minimum:
             raise ValueError(f'{module}: expected at least {minimum} device tests, got {count}')
         counts[module] = count

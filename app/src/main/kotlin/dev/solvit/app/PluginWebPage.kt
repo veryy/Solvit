@@ -75,8 +75,10 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
     var terminalConfirmation by remember(document) { mutableStateOf<TerminalPageConfirmation?>(null) }
     var failed by remember(document) { mutableStateOf(false) }
     val live = remember(document) { AtomicBoolean(true) }
+    val pageReady = remember(document) { AtomicBoolean(false) }
     fun release(browser: WebView) {
         if (live.compareAndSet(true, false)) {
+            pageReady.set(false)
             runCatching { WebViewCompat.removeWebMessageListener(browser, "solvitHost") }
             (browser.parent as? android.view.ViewGroup)?.removeView(browser)
             runCatching { browser.stopLoading() }
@@ -139,6 +141,7 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
                     require(body.toByteArray(Charsets.UTF_8).size <= ScriptPageView.MAX_BYTES)
                     val input = Json.parseToJsonElement(body).jsonObject
                     if (input == buildJsonObject { put("type", "ready") }) {
+                        pageReady.set(true)
                         web.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($latestState)", null)
                     } else if (input["type"] == JsonPrimitive("terminal")) {
                         check(!latestBusy && input.keys == setOf("type","token","id","operation","arguments"))
@@ -209,7 +212,9 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
             onRelease = { release(it) }, update = {
             if (live.get()) {
                 it.setBackgroundColor(colors.surface.toArgb())
-                it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+                if (pageReady.get()) {
+                    it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+                }
             }
         })
         terminalConfirmation?.let { question ->
