@@ -16,7 +16,7 @@
 
 0.43.2完整发布门禁及97常规设备通过，文档替换缺陷由原APK失败到同断言通过。但额外压力在旧版第33次操作期间复现原生SIGSEGV；新版完成59次后由另一个Compose SnapshotStateObserver跨线程异常中断，不能写成240次全部通过。继续定位指定的另一线程与原生时序，保持[失败证据](webview-lifecycle-stage.md)，不因正式流水线绿色而结束排查。
 
-2026-10-16在正式0.43.3 APK上移除Compose测试规则、用真实Activity/系统触摸执行的压力再次复现相同WebView124原生SIGSEGV：完整30次＋第二轮20次，第51次未完成。不能将该原生问题归为默认测试调度或宣称已根治。独立原生WebView对照已提交并远程运行，生产代码未改，见[实际证据与对照边界](webview-user-lifecycle-stage.md)。本日重新核对secret元数据，`SOLVIT_MODEL_API_KEY`仍未配置，真实模型验收保持未完成。
+2026-10-16在正式0.43.3 APK上移除Compose测试规则、用真实Activity/系统触摸执行的压力再次复现相同WebView124原生SIGSEGV：完整30次＋第二轮20次，第51次未完成。不能将该原生问题归为默认测试调度或宣称已根治。独立原生WebView对照已实际完成240次且零崩溃；产品宿主＋最小HTML的下一对照已提交并远程运行，尚待结果。两种负载不同，不能据此证明根因或宣称已修复。生产代码未改，见[实际证据与对照边界](webview-user-lifecycle-stage.md)。本日重新核对secret元数据，`SOLVIT_MODEL_API_KEY`仍未配置，真实模型验收保持未完成。
 
 2026-10-15再次核对实际GitHub Actions secret元数据，尚未配置 `SOLVIT_MODEL_API_KEY`；没有启动必然因缺少凭据而失败的真实模型任务，也不使用历史暴露的密钥。真实模型工作流补齐与正式APK相同的锁定PRoot/loader源码构建，避免将不含Linux可执行程序的诊断包当作完整生产环境验收。凭据配置与实际模型任务仍未完成。
 
