@@ -53,6 +53,19 @@ esac
 timeout --signal=TERM --kill-after=30s 12m ./gradlew :web-android:connectedDebugAndroidTest :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions,dev.solvit.terminal.StdioProcessDeathTest" --stacktrace
 solvit_test_status=$?
 if [ "$solvit_test_status" -eq 0 ]; then
+  # Keep the real authorization/queue/IME/role scenario at large text in the release gate.
+  # This runs on the same installed APK; its screenshots have a separate prefix.
+  timeout --signal=TERM --kill-after=10s 180s adb shell am instrument -w \
+    -e class dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole \
+    -e chatFontScale 1.5 \
+    dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \
+    | tee ui-screenshots/chat-large-text.txt
+  solvit_test_status=$?
+  if [ "$solvit_test_status" -eq 0 ]; then
+    grep -F 'OK (1 test)' ui-screenshots/chat-large-text.txt >/dev/null || solvit_test_status=1
+  fi
+fi
+if [ "$solvit_test_status" -eq 0 ]; then
   SOLVIT_STDIO_DEATH_OUTPUT=ui-screenshots/stdio-process-death bash scripts/verify-stdio-process-death.sh
   solvit_test_status=$?
 fi

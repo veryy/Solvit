@@ -60,9 +60,11 @@ class ChatInteractionDeviceTest {
     }
     private fun screenshot(name:String) {
         require(name.matches(Regex("[A-Za-z-]+")))
+        val largeText = (InstrumentationRegistry.getArguments().getString("chatFontScale")?.toFloatOrNull() ?: 1f) > 1f
+        val filename = (if (largeText) "large-text-" else "") + name
         val automation=InstrumentationRegistry.getInstrumentation().uiAutomation
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
-        ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
+        ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$filename.png")).use { it.readBytes() }
     }
 
     @Test fun inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole() {
@@ -166,6 +168,10 @@ class ChatInteractionDeviceTest {
             rule.onNodeWithTag("queue_menu_$pendingQueueId").performClick()
             rule.onNodeWithText("移除").performClick()
             rule.waitUntil(10_000) { vm.queuedMessages.value.isEmpty() }
+            // The Flow value changes before the collected UI removes the queue and reflows
+            // the approval card. Wait for that actual screen boundary before a touch.
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("chat_queue").fetchSemanticsNodes().isEmpty() }
+            rule.waitForIdle()
             phase = "remembered-approval-click"
             rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed().performClick()
             phase = "remembered-approval-result"
