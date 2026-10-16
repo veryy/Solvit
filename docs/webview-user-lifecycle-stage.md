@@ -25,3 +25,10 @@
 每次重建后从侧栏新建对话，确认无绑定工作区，再真实创建。要求交互终端的实际 WebView 已挂载，立即切换命令任务；不增加 DOM-ready 等待来避开原快速释放时序。要求浏览器已脱离、命令输入出现，再关闭并确认聊天仍保留绑定。正常 Activity 收尾不由 Compose 规则驱动。状态查找均有 15 秒边界，不重试点击或忽略失败。
 
 诊断先用正式 0.43.3 的同一生产 APK 跑 3 次，确认驱动有效；之后才决定是否执行原来的 30 次/轮、8 轮压力。新增两个测试选择，不改变生产源或 APK 版本；测试产物仍只由 GitHub Actions 构建。当前尚未运行，不能写成通过或根因已确定。
+
+
+## 三次普通调度基线通过
+
+023223cb/[38830043612](https://github.com/veryy/Solvit/actions/runs/38830043612)成功，正式生产源一致性检查通过，复用0.43.3/build86正式APK。归档12016917778（486701字节，SHA256 `818de778cf569187817860ae15688d054f8b1d83824621fe1c79be28fed495ef`）完整下载/CRC，实际OK (1 test)、13.458秒，USER_LIFECYCLE_COMPLETED恰好1/3、2/3、3/3，正常Activity关闭与测试finally恢复均执行。系统WebView仍为com.android.webview124.0.6367.219；零Fatal signal、SnapshotStateObserver或removeObserver。保留1次destroyed-WebView警告，不能将警告本身当作失败或据此宣称根因已消失。
+
+使用同一023223cb测试与同一正式APK已实际启动[38830783282](https://github.com/veryy/Solvit/actions/runs/38830783282)，workspace-user-lifecycle-stress、8轮、每轮30次、每轮300秒。尚未得到实际完整计数，不能写成240次通过。未改变生产代码、APK版本、WebView实现或渲染模式，尚无新功能版发布。
