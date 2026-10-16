@@ -191,8 +191,9 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
 
 @Composable
 internal fun permissionDescription(permissions: Set<String>): String = if (permissions.isEmpty()) uiString("无需额外权限") else
-    uiString("所需权限：") + permissions.joinToString(" · ", transform = ::permissionLabel)
+    uiString("所需权限：") + permissions.map { permissionLabel(it) }.joinToString(" · ")
 
+@Composable
 internal fun permissionLabel(permission: String): String = uiString(when (permission) {
         "storage" -> "插件自己的持久化存储"
         "network" -> "访问 HTTPS 网络服务"
