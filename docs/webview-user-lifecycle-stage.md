@@ -47,3 +47,16 @@
 这是粗粒度的移除对照；若同签名仍出现，可排除插件文档/桥是必要条件。若通过，只能说明这个较小负载未复现，不能证明平台安全或产品修复。MainActivity及应用服务仍存在，不能称为独立纯WebView应用。[Android官方destroy契约](https://developer.android.com/reference/android/webkit/WebView#destroy())要求先从视图系统移除、之后不再调用WebView方法；本测试遵守该顺序。上游所有权及实际测试参考延续本阶段开头记录，没有复制源码或新增依赖。仅远程构建/运行；生产实现与版本保持不变，结果待实际Actions回收。
 
 原生对照已提交b7be1fdc并启动[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)，明确复用正式38826293232的APK，8轮×30次，仍待编译与实际设备结果。生产源码一致性门禁继续开启；本次仅诊断测试/记录，不发布新APK，不把预期次数写成通过。
+
+
+## 原生容器对照240次通过
+
+b7be1fdc/[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)成功。归档12018465940完整下载/CRC，1036952字节，SHA256 `b0364b5dbf029f49039ad214f1f19b1f5ba6e7a3091284363a7fed9758994974`。8份iteration各实际OK (1 test)，30.177/30.884/33.724/29.032/29.469/28.838/31.123/28.809秒；原始logcat中8个独立进程各精确记录1..30/30，共240次，WebView仍124.0.6367.219。零Fatal signal/SnapshotStateObserver/removeObserver/destroyed-WebView警告。未改变正式APK。
+
+较小页面和原生容器未复现，不能证明平台安全，也不能将差异只归因某一个宿主方法：原生对照同时移除了业务页面、消息桥和Compose容器。下一步只恢复产品页面宿主组合，保持最小内容，判断业务终端脚本是否是必要条件。
+
+## 产品宿主＋最小文档对照
+
+新增PluginHostLifecycleControlTest：正常Activity/Compose调度，不安装测试规则；实际调用生产PluginWebPage，包含其AndroidView所有权、WebMessage监听、资源拦截和释放逻辑。只提供固定离线HTML、最小solvitPageUpdate与ready消息，没有终端脚本、工作区服务或授权模拟。每次Activity重建后设置实际内容，要求浏览器挂载后立即切掉页面并等待真实脱离，不加DOM-ready等待或延迟销毁。finally/ActivityScenario正常关闭。若同签名复现，业务终端页面不是必要条件；若通过，说明较小宿主负载未触发，仍需按实际失败路径继续定位，不能宣称修复。
+
+参考仍为本阶段已读取的Operit容器所有权、DSH实际lifecycle测试，以及Android先移除再destroy契约；本轮只是细化对照，无上游代码复制、依赖或生产修改。编译和设备执行只用Actions，新结果尚待回收。
