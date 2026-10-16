@@ -201,3 +201,14 @@ a6b000de/[38842564272](https://github.com/veryy/Solvit/actions/runs/38842564272)
 同一无日志APK的真实工作区38844101681/116790569651实际完成17次，第18次bound workspace界面断言超时，58.046秒；归档12022473388完整下载/CRC，497403字节，SHA256 `c2b97a8d08e1120a363a7148633f086a7a6e5bbbc5d9cccaaa029a26550840a4`。零Fatal和临时日志，原归档没有截图/失败控件状态，不能直接归因测试偶发或原生崩溃，也不能写成240通过。
 
 仅在await失败后补截图、固定UI标签/控件几何和workspaces/shells/bindings数量的[328175cc](https://github.com/veryy/Solvit/commit/328175cc0bd7aa1f3d6a254ebdafcf6ae874b85f)已提交；不记录任意配置/编辑内容，不改变原点击、15秒等待、断言或生产源码。使用同一272fcf12 APK的[38845191132](https://github.com/veryy/Solvit/actions/runs/38845191132)已启动，结果待回收。完整常规设备38843263391亦仍待结果。正式主线尚未合入生产修正，尚未发布新APK；真实模型、ARM64和完整路线保留。
+
+
+## 完整设备结果：101项执行、3项失败，继续逐项定位
+
+272fcf12/38843263391的verify-ui116790205883已失败。归档12022769845完整下载/CRC，7694630字节，SHA256 `e0d64403ef7bb09cf23e6d38e21f7b0bc1947fafaefd09b4c9d091b9fe3689e1`。实际app73/Web3/terminal25共101项，3项失败；新增延迟ready、最小宿主及真实工作区方法均实际执行且无失败，15恢复输出通过。stdio最终强杀因应用失败未执行，不把它写成通过，独立整套发布门禁未通过。
+
+具体失败：ChatLayoutTest角色继承场景第647行drawer仍显示；PdfChatDeviceTest第164行发送后90秒未达到FAILED结算，扫描/选页/原图已完成；PluginPageUiTest第217行API9真实市场表单保存10秒超时。不能将PDF失败归为初始OCR，不将API9原生表单超时直接归为HTML消息桥问题。
+
+已提交仅测试/诊断变化的[850760ee](https://github.com/veryy/Solvit/commit/850760ee1b083a86e372770c0c7e516c15ec2915)：角色不再只推进一帧，而等待实际侧栏关闭，保留8秒上限及原断言；另外两处仅在原超时后保存合成输入是否匹配、按钮/IME几何、请求计数和消息状态/截图，不输出配置、任意文本或请求。成功路径的输入/点击、持久化和HTTP断言不变。生产源码与272fcf12相同。
+
+继续用同一APK实际启动侧栏三项×2轮[38846345544](https://github.com/veryy/Solvit/actions/runs/38846345544)、原PDF前置四项×1轮[38846348437](https://github.com/veryy/Solvit/actions/runs/38846348437)、整个6项PluginPageUiTest×2轮[38846351204](https://github.com/veryy/Solvit/actions/runs/38846351204)，均待编译/运行结果。仅失败现场记录的真实工作区重放38845191132仍在进行。无新APK发布，公开latest经实际查询仍为0.43.3；不能以源码已提交或局部压力通过结束交付。
