@@ -5,8 +5,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -256,14 +254,25 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                 val dockHeight = (maxHeight - with(dockDensity) { chatTopBarHeight.toDp() }).coerceAtLeast(0.dp)
                 Column(Modifier.fillMaxWidth().heightIn(max = dockHeight)
                     .padding(horizontal = 12.dp, vertical = 8.dp)) {
-                    Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
-                        .testTag("chat_pending_scroll")) {
-                    toolApproval?.let { pending ->
-                        key(pending.call.id) { ChatToolApprovalCard(pending) { allow, remember -> vm.approveTool(allow,remember) } }
-                        Spacer(Modifier.height(6.dp))
-                    }
-                    ChatQueuePanel(queuedMessages.filter { it.sessionId==selected },queuePaused,switching,
-                        vm::editQueued,vm::removeQueued,vm::sendQueuedNow,vm::resumeQueue)
+                    BoxWithConstraints(Modifier.weight(1f, fill = false).fillMaxWidth()) {
+                        // Keep both headers and approval actions in view. Only details/list rows
+                        // scroll, so a long authorization cannot bury the queue's toggle.
+                        val queueHeight = if (toolApproval == null) maxHeight else
+                            minOf(maxHeight, maxOf(56.dp, maxHeight / 2))
+                        Column(Modifier.fillMaxWidth()) {
+                            toolApproval?.let { pending ->
+                                key(pending.call.id) {
+                                    ChatToolApprovalCard(pending, Modifier.weight(1f, fill = false)) { allow, remember ->
+                                        vm.approveTool(allow, remember)
+                                    }
+                                }
+                            }
+                            val conversationQueue = queuedMessages.filter { it.sessionId == selected }
+                            if (toolApproval != null && conversationQueue.isNotEmpty()) Spacer(Modifier.height(6.dp))
+                            ChatQueuePanel(conversationQueue, queuePaused, switching,
+                                vm::editQueued, vm::removeQueued, vm::sendQueuedNow, vm::resumeQueue,
+                                modifier = Modifier.heightIn(max = queueHeight))
+                        }
                     }
                     Surface(modifier = Modifier.fillMaxWidth().testTag("chat_composer"), shape = RoundedCornerShape(28.dp), tonalElevation = 4.dp, shadowElevation = 4.dp) {
                     Column(Modifier.padding(8.dp)) {

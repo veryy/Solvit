@@ -135,8 +135,10 @@ class ChatInteractionDeviceTest {
             send("queued-during-approval")
             rule.waitUntil(10_000) { vm.queuedMessages.value.size==1 }
             val pendingQueueId=vm.queuedMessages.value.single().id
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("queue_toggle").fetchSemanticsNodes().isNotEmpty() }
+            rule.waitForIdle()
             screenshot("chat-approval-queue-keyboard")
-            val regions=listOf("chat_role_title","chat_tool_approval","tool_allow_once","tool_allow_remember","chat_queue","chat_composer").associateWith { tag ->
+            val regions=listOf("chat_role_title","chat_tool_approval","tool_allow_once","tool_allow_remember","chat_queue","queue_toggle","chat_composer").associateWith { tag ->
                 val node=rule.onAllNodesWithTag(tag).fetchSemanticsNodes().single()
                 rule.runOnUiThread { node.boundsInWindow }
             }
@@ -145,7 +147,11 @@ class ChatInteractionDeviceTest {
             rule.onNodeWithTag("tool_allow_once").assertIsDisplayed()
             rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed()
             rule.onNodeWithTag("chat_send").assertIsDisplayed()
-            rule.onNodeWithTag("queue_toggle").performClick()
+            val density = rule.activity.resources.displayMetrics.density
+            assertTrue("Queue header must retain a usable button, not a clipped strip: $regions",
+                regions.getValue("queue_toggle").height >= 40 * density - 1)
+            assertTrue(regions.getValue("queue_toggle").bottom <= regions.getValue("chat_composer").top)
+            rule.onNodeWithTag("queue_toggle").assertIsDisplayed().performClick()
             rule.onNodeWithTag("chat_queue_items").performScrollToNode(hasTestTag("queue_menu_$pendingQueueId"))
             rule.onNodeWithTag("queue_menu_$pendingQueueId").performClick()
             rule.onNodeWithText("移除").performClick()

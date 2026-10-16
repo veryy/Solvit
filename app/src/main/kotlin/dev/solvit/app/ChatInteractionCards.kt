@@ -25,13 +25,13 @@ import dev.solvit.core.ExecutionMode
 
 /** Host-owned authorization stays adjacent to the conversation, without a modal window. */
 @Composable
-internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, approve: (Boolean, Boolean) -> Unit) {
+internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, modifier: Modifier = Modifier, approve: (Boolean, Boolean) -> Unit) {
     val resolving by pending.resolving.collectAsStateWithLifecycle()
-    Surface(Modifier.fillMaxWidth().testTag("chat_tool_approval"), shape=MaterialTheme.shapes.medium,
+    Surface(modifier.fillMaxWidth().testTag("chat_tool_approval"), shape=MaterialTheme.shapes.medium,
         color=MaterialTheme.colorScheme.surfaceContainerHigh) {
         Column(Modifier.padding(12.dp)) {
             UiText("等待工具授权", style=MaterialTheme.typography.titleSmall)
-            LazyColumn(Modifier.fillMaxWidth().heightIn(max=150.dp), verticalArrangement=Arrangement.spacedBy(6.dp)) {
+            LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max=150.dp), verticalArrangement=Arrangement.spacedBy(6.dp)) {
                 item { Text(pending.descriptor.name, style=MaterialTheme.typography.labelMedium) }
                 item { Text(pending.descriptor.description, style=MaterialTheme.typography.bodySmall) }
                 pending.descriptor.executionMode?.let { mode -> item {
@@ -51,13 +51,13 @@ internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, approve: 
 
 @Composable
 internal fun ChatQueuePanel(items: List<ChatViewModel.QueuedMessage>, paused: Boolean, switching: Boolean,
-    edit: (String,String) -> Boolean, remove: (String) -> Unit, sendNow: (String) -> Boolean, resume: () -> Unit) {
+    edit: (String,String) -> Boolean, remove: (String) -> Unit, sendNow: (String) -> Boolean, resume: () -> Unit, modifier: Modifier = Modifier) {
     if(items.isEmpty())return
     var expanded by rememberSaveable { mutableStateOf(false) }
     var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     var editedText by rememberSaveable { mutableStateOf("") }
     val expansionState = uiString(if (expanded) "收起" else "展开")
-    Surface(Modifier.fillMaxWidth().testTag("chat_queue"), shape=MaterialTheme.shapes.medium,
+    Surface(modifier.fillMaxWidth().testTag("chat_queue"), shape=MaterialTheme.shapes.medium,
         color=MaterialTheme.colorScheme.surfaceContainerLow) {
         Column(Modifier.padding(horizontal=12.dp,vertical=4.dp)) {
             Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
@@ -68,7 +68,7 @@ internal fun ChatQueuePanel(items: List<ChatViewModel.QueuedMessage>, paused: Bo
                 }
                 if(paused)TextButton(onClick=resume,enabled=!switching,modifier=Modifier.testTag("queue_resume")) { UiText("继续发送") }
             }
-            if(expanded)LazyColumn(Modifier.fillMaxWidth().heightIn(max=180.dp).testTag("chat_queue_items"),
+            if(expanded)LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max=180.dp).testTag("chat_queue_items"),
                 verticalArrangement=Arrangement.spacedBy(4.dp)) {
                 items(items,key={it.id}) { item ->
                     Column(Modifier.fillMaxWidth().testTag("queued_${item.id}")) {
