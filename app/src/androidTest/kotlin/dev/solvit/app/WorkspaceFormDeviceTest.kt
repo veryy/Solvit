@@ -90,4 +90,36 @@ class WorkspaceFormDeviceTest {
             runCatching { screenshot("workspace-bind-form-failure") }; throw failure
         } finally { release.complete(Unit); rule.runOnUiThread { vm.viewModelScope.cancel() } }
     }
+    @Test fun successfulBindingClosesChooserWhenOnlyDirectoryReadFails() {
+        val app = app()
+        val workspace = Workspace("workspace-list-failure-fixture", "Bound directory")
+        val calls = AtomicInteger()
+        val service = object : WorkspaceService by app.workspaces {
+            override val state = MutableStateFlow(WorkspaceState(workspaces = listOf(workspace)))
+            override suspend fun bind(sessionId: String, workspaceId: String) {
+                calls.incrementAndGet()
+                state.value = state.value.copy(bindings = mapOf(sessionId to workspaceId))
+            }
+            override suspend fun location(workspaceId: String): String = error("Fixture directory unavailable")
+        }
+        val vm = WorkspaceViewModel(service, app.pluginDrafts, app.terminals)
+        try {
+            rule.runOnUiThread {
+                vm.selectChat("workspace-list-failure-chat")
+                rule.activity.setContent { MaterialTheme { WorkspaceDialog(vm, app.systemExecution) {} } }
+            }
+            rule.onNodeWithText("绑定已有工作区").performClick()
+            rule.onNodeWithText(workspace.name).performClick()
+            rule.waitUntil(10_000) { !vm.busy.value && vm.workspaceId.value == workspace.id && vm.error.value != null }
+            rule.waitUntil(10_000) { rule.onAllNodesWithText("绑定工作区").fetchSemanticsNodes().isEmpty() }
+            rule.onNodeWithTag("workspace_switcher").assertIsDisplayed()
+            assertEquals(workspace.id, service.state.value.bindings["workspace-list-failure-chat"])
+            assertEquals(1, calls.get())
+            assertTrue(rule.onAllNodes(isDialog()).fetchSemanticsNodes().size <= 1)
+            screenshot("workspace-bound-directory-failure")
+        } catch (failure: Throwable) {
+            runCatching { screenshot("workspace-bound-result-failure") }; throw failure
+        } finally { rule.runOnUiThread { vm.viewModelScope.cancel() } }
+    }
+
 }

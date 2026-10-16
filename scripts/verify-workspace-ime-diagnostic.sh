@@ -3,7 +3,7 @@
 set -euo pipefail
 solvit_diagnostic_expected='OK (1 test)'
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
-  workspace-forms) solvit_diagnostic_test='dev.solvit.app.WorkspaceFormDeviceTest'; solvit_diagnostic_expected='OK (2 tests)' ;;
+  workspace-forms) solvit_diagnostic_test='dev.solvit.app.WorkspaceFormDeviceTest'; solvit_diagnostic_expected='OK (3 tests)' ;;
   workspace-editor) solvit_diagnostic_test='dev.solvit.app.WorkspaceHtmlPageTest#htmlCreatesBindsBrowsesAndSavesThroughActualNativeConfirmationAndRejectsStaleFiles' ;;
   workspace-startup) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation' ;;
   workspace-startup-stress) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation' ;;
