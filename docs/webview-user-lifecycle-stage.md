@@ -97,3 +97,14 @@ b7be1fdc/[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)
 5c7cffe3的[38835247602](https://github.com/veryy/Solvit/actions/runs/38835247602)/build116762812326成功。单元归档12018863081完整下载/CRC，437845字节，SHA256 `8d6db26bcc67229cfcd5d4fb50a8936eae61392fa4733ee76a67c537496dd91e`；直接读取原始XML确认611项、失败/错误/跳过均0。完整任务日志确认4项报告门禁、Lint/assemble及固定证书f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3通过。候选APK已上传12018803400，尚未下载并核对完整APK，不报告其内层摘要。
 
 完整设备回归verify-ui116765105368已启动；分支任务按现有规则跳过仅tag启用的插件/搜索/Linux和发布，不将其写成六项正式发布门禁通过。以该轮完成的候选APK，未修改PluginHostLifecycleControlTest、原断言或8轮×30次参数，已实际启动[38836042401](https://github.com/veryy/Solvit/actions/runs/38836042401)复测。旧正式APK在同一测试第9次期间失败；候选仍待实际结果，不提前宣称修复。后续保留真实工作区压力、完整升级/恢复、最终tag全部门禁、公开下载及ARM64/真实模型边界。
+
+
+## 容器候选仍复现，撤回该改动
+
+5c7cffe3的[38836042401](https://github.com/veryy/Solvit/actions/runs/38836042401)失败。归档12019446809完整下载/CRC，507903字节，SHA256 `6c0b29b1fcc88b544e48f2cf43ef150e0e27a7982d04326e8a47d66b478715e3`。第一轮实际完成1..27/30，第28次期间仍为SIGSEGV/SI_KERNEL128、pc0x357d7e5、BuildId68dabd72c6088238cbfc9a5fbfe211f916771df5；零SnapshotStateObserver/removeObserver，2条destroyed-WebView警告。不能将完成次数增加解释为修复。原生容器对照与产品宿主仍有异步状态/加载时序差异；外层容器本身不足以解决。
+
+额外读取Google Maven官方ui-android:1.8.3 sources.jar（SHA256 `63bd2776ad08453c2d84c5cb4ec936f3e52e595bedb2bc1bbcad11abaefbe2d1`），AndroidView.android.kt的releaseBlock与AndroidViewHolder.android.kt的onRelease/onDetach/onLayout/全局位置回调：它持有传入View引用，onRelease执行释放回调；这支持检查所有权边界，但没有证明原生崩溃时确实调用了已销毁视图，也不能据此声称AndroidX有该缺陷。没有复制上游源码或添加分发依赖。
+
+独立诊断分支恢复原来的直接WebView容器实现，仅临时加入WEB_PAGE_LIFECYCLE_DIAG阶段日志：构造、load、资源开始/返回、ready/更新脚本、释放入口及监听/父视图/stop/子视图/destroy前后。日志仅使用自增实例编号、固定阶段和存活布尔值，不输出URL、文档、消息、配置或凭据。目的为判断崩溃紧邻哪个实际方法/回调，不再仅凭粗粒度对照猜修复；日志本身可能改变时序，若未复现也不算修复。最终交付前必须删除全部临时标记，并回到无日志的原失败路径验证。仅远程构建，尚待运行；容器候选不合入正式主线，不发布该失败APK。
+
+临时诊断提交[b3341886](https://github.com/veryy/Solvit/commit/b334188601cae9268042589998b681c106cc100d)，[远程38837209253](https://github.com/veryy/Solvit/actions/runs/38837209253)已实际启动，仍待构建与实际重放。已验证失败候选38835247602的verify-ui116765105368为cancelled，剩余release也cancelled；不将其作为完整回归通过。正式主线仅同步记录，不合入失败容器或临时日志，没有新APK发布。
