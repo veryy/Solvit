@@ -799,6 +799,44 @@ class ChatLayoutTest {
         rule.onNode(hasText("管理角色与 Skills", substring = true)).assertDoesNotExist()
         screenshot("chat-keyboard-floating")
     }
+    @Test fun settingsIndexOpensThemeAndRetainsChoiceWhenReturning() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        val originalTheme = app.appearance.theme.value
+        val originalDynamic = app.appearance.dynamicColors.value
+        try {
+            rule.onNodeWithContentDescription("设置").performClick()
+            rule.onNodeWithTag("settings_list").performQueuedScrollToNode(rule, hasText("外观"))
+            // The index shows a summary; detailed controls only appear after opening the row.
+            rule.onNodeWithTag("theme_dark").assertDoesNotExist()
+            screenshot("settings-index-polish")
+            rule.onNodeWithText("外观").performClick()
+            rule.onNodeWithTag("theme_dark").performClick()
+            rule.onNodeWithTag("theme_dark").assertIsSelected()
+            assertEquals("dark", AppearanceStore(app).theme.value)
+            screenshot("settings-theme-dark")
+            rule.onNodeWithTag("theme_light").performClick()
+            rule.onNodeWithTag("theme_light").assertIsSelected()
+            assertEquals("light", AppearanceStore(app).theme.value)
+            screenshot("settings-theme-light")
+            rule.onNodeWithContentDescription("返回设置").performClick()
+            rule.onNodeWithTag("theme_settings").assertDoesNotExist()
+            rule.onNodeWithTag("settings_list").assertExists()
+            rule.onNodeWithText("外观").performClick()
+            rule.onNodeWithTag("theme_light").assertIsSelected()
+            rule.onNodeWithTag("theme_dynamic").performClick()
+            assertEquals(!originalDynamic, AppearanceStore(app).dynamicColors.value)
+            rule.onNodeWithContentDescription("返回设置").performClick()
+            rule.onNodeWithContentDescription("返回聊天").performClick()
+            rule.onNodeWithTag("chat_composer").assertIsDisplayed()
+        } finally {
+            rule.runOnUiThread {
+                app.appearance.setTheme(originalTheme)
+                app.appearance.setDynamicColors(originalDynamic)
+            }
+        }
+    }
+
     @Test fun wideDrawerOpensSettingsAndLastSettingsRowCanBeSeen() {
         ready()
         rule.onNodeWithContentDescription("对话历史").performClick()
