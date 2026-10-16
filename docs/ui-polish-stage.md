@@ -137,3 +137,7 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 ### 实际截图后的文字层级整理
 
 已审阅主题深浅截图、队列收起截图与插件详情1.5倍字体截图。权限展开部分是一整块长段落，不便逐项阅读；改为每项独立说明和留白，沿用同一个本地化标签函数，启用确认的完整权限文本和授权行为保持原义。聊天顶部角色与模型名限定单行省略，避免长名称挤占固定顶部栏及右侧操作区域。使用已有组件，不加依赖；延续本阶段已阅读的Operit PackageDetailsDialog与DSH插件管理条目原则。当前截图尚为修改前，需在最终候选重新审阅，不把这次文本格式调整计作已验证。
+
+### 插件页面失败后的恢复入口
+
+重新读取锁定DSH `packages/client/ui-plugin-manager/tests/components.client.spec.tsx` 的 loading/unavailable/error/empty 及显式retry测试，配合UI开发指导的清理原则；读取Operit `ui/features/memory/screens/MemoryScreen.kt` 的保持图谱挂载、加载反馈及错误状态。DSH MIT、Operit LGPL-3.0，自行适配现有Compose宿主，不复制代码。新增真实宿主界面测试，通过ExtensionPageSession服务边界验证打开失败可就地重开、操作失败重开先完成旧会话清理、明确不自动重放写入，以及关闭资源回收。真实JS/HTML持久化仍由PluginWebPageUiTest覆盖，不能用服务替身声称验证第三方插件。先用原APK复现缺失的恢复入口，未改生产代码。
