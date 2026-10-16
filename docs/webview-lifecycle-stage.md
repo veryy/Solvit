@@ -208,3 +208,14 @@ UI归档12014903088（7691182字节，SHA256 `5722fd89f785c99923765fca2757d7c138
 
 
 已以827a1e21合入候选并保留双方提交历史，8b1c5b98准备0.43.3/build86，main及新标签v0.43.3均已实际推送。标签唯一且未移动；gradlew仍100755。准备提交包含[skip ci]以免重复分支构建，标签未自动产生任务后，仅显式dispatch一次该标签；正式[38826293232](https://github.com/veryy/Solvit/actions/runs/38826293232)已实际排队，head为8b1c5b98ed120199308bd9953c5285bad8a1b836、event=workflow_dispatch。正式构建、设备、插件、搜索、Linux及发布六任务仍待结果，不提前把公开版本或README改为0.43.3。
+
+
+## 0.43.3正式发布及公开产物已核对
+
+[38826293232](https://github.com/veryy/Solvit/actions/runs/38826293232)六任务全部成功，8b1c5b98/v0.43.3已正式发布；release414398825为draft=false、prerelease=false。正式单元归档12014754202（438249字节，SHA256 `db434c60225ab2e46350583097ec4a7c44233c4fb28636b6d339a957c748579d`）完整下载/CRC确认611项零失败/错误/跳过；build116734421283日志的4项报告门禁回归、Lint/APK与固定签名通过。插件日志141项SDK/7项市场测试通过，公开搜索含正文检查、实际HTTPS MCP/Skills连接通过；不将搜索来源可读宣称模型回答引用已验收。
+
+正式UI归档12016426486（7729751字节，SHA256 `cfe7bbb3470206c1b9db97bd7388c01bb9c6475e91743d1e0c09f569e098f7dd`）完整下载/CRC，直接读取98项原始XML（app70/Web3/终端25），零失败/错误/跳过且时间均非负；15场恢复verify、覆盖升级seed和独立报告门禁一致。实际stdio强杀记录的host8893/supervisor8909/worker8910/descendant8911四PID均gone。Linux归档12014664300（38035130字节，SHA256 `07492e54e0e2b2c6e9d615be533b02d8502d73c624729554d105b07b81607a00`）完整下载/CRC/原始XML确认3项实际PRoot/Ubuntu/生产下载及托管运行检查通过，生产版本Python3.12.3/Node24.21.0/npm11.19.0。
+
+正式APK归档12014509537完整下载（58195064字节，SHA256 `a72b554d7a31d64fe72f01e7bf74d5641e92e68240b9814860ac28fa11da0426`），内部APK59488722字节、SHA256 `6590c2b59d3149fe24dda5d79f09244669e5523b8753742b51f12ee567ff37da`，两层CRC通过；本地副本Downloads/Solvit-0.43.3-build86.apk。源码归档12015645205完整下载（1072354字节，SHA256 `09f6eb01756dab2c325d4a737f4ab35479772999bdf0bc44b699be788d612101`），内部源码1072711字节、SHA256 `23479d4789bbf6697d49cb645c31a88825e3c9bc2ee2d3cb4aa158f8b6fd21b3`，两层CRC通过。公开Release两资产大小/摘要与上述内部文件一致。两条无凭据browser_download_url的范围请求均HTTP206、Content-Range总长匹配且ZIP头正确；完整内容校验来自Actions，不冒称公开全文已再次下载。首次Python默认CA请求在建立TLS时失败，改用系统工具同样采用的certifi信任库后验证成功，全程保留证书校验。
+
+README中英文当前版本及交付顺序更新到0.43.3；原生WebView同地址失败证据与未定位边界继续披露，未将一次正式成功视为根治。完整真实模型/ARM64/第三方依赖与JS内核路线图仍在，未把本次发布当作整个项目完成。

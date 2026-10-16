@@ -12,7 +12,7 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The current release is [0.43.2](https://github.com/veryy/Solvit/releases/tag/v0.43.2). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The current release is [0.43.3](https://github.com/veryy/Solvit/releases/tag/v0.43.3). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 

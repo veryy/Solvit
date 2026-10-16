@@ -2,7 +2,7 @@
 
 ## 当前交付顺序（2026-10-16）
 
-公开版本目前为[0.43.2](release-0.43.2.md)，修复插件文档更换时的视图所有权与空白页面；Skills1.2.0已打通资源准备与实际Ubuntu Python/Node执行，旧用户需明确更新、审阅新增workspace权限。以下早期研究与阶段复核按时间保留，不代表所有差距仍未实现。Linux开发环境已经发布，Python、Node/npm、Java与共享工作区的实际验证和限制见[环境指南](linux-environment.md)。无需重新实现一套虚拟环境。
+公开版本目前为[0.43.3](release-0.43.3.md)，更新Compose生命周期依赖及备份按钮状态，并完成排队界面测试的完整回归；原0.43.2插件文档所有权修复继续保留。Skills1.2.0已打通资源准备与实际Ubuntu Python/Node执行，旧用户需明确更新、审阅新增workspace权限。以下早期研究与阶段复核按时间保留，不代表所有差距仍未实现。Linux开发环境已经发布，Python、Node/npm、Java与共享工作区的实际验证和限制见[环境指南](linux-environment.md)。无需重新实现一套虚拟环境。
 
 此前交付基线：[0.39.0](release-0.39.0.md)已完成文件导入进度、取消恢复、登记暂存清理、持久事务及进程死亡恢复；正式Actions及公开APK字节核对通过。候选WebView原生崩溃未复现且根因未定，保留诊断记录。[完整证据](workspace-import-transfer-stage.md)。
 

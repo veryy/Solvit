@@ -12,7 +12,7 @@ AI chat, plugins, and a project workspace on your Android phone. Connect your ow
 
 Android 8.0 及以上可用。界面默认中文，也支持英文、日文、韩文、西班牙文和法文；有浅色、深色和跟随系统主题，Android 12 及以上支持动态配色。
 
-当前发布版是 [0.43.2](https://github.com/veryy/Solvit/releases/tag/v0.43.2)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
+当前发布版是 [0.43.3](https://github.com/veryy/Solvit/releases/tag/v0.43.3)。同签名覆盖更新会保留数据；卸载会删除本地数据，重装前请在设置里导出配置备份。
 
 ## 现在能做什么
 
