@@ -119,3 +119,10 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 - [38976319336](https://github.com/veryy/Solvit/actions/runs/38976319336)：保留先附件/HTTP/重开，再编辑旧问题分支的两项真实路径，通过。归档12078124643 SHA-256 `981d6f73459cf23588c1192f3b2181e6644dca6cfddb67a1a1f703d570341ff9`、CRC已核对；新断言同时要求编辑框关闭和输入框接收草稿。
 - 插件候选38974196177、聊天候选38974481747的设备原始XML各101项、3失败、0错误/跳过，不能称为回归成功。两者均复现主题即时断言与分支选择歧义；插件候选另有抽屉关闭断言（整合分支已保留先前修正），聊天候选另有PDF重试滚动超时（待核验当前诊断）。Skills导出在这两轮通过，未据此删除首轮目录抽屉失败记录。两个归档分别核对SHA-256 `3453dd2a465e6d638973b3edc39e37287121091fe01983cc2c9684e62df9c72d`、`4394deb2d226a5b50d965d114504e680f55582d14edce4ac853f83262357167f`及CRC。
 - 工作区/原生整合38975519683 build成功，设备部分被同分支下一次工作流并发规则取消，不计为通过。带底栏高度预算修复的整合头78cf8760由[38976601414](https://github.com/veryy/Solvit/actions/runs/38976601414)验证，尚待结果。
+
+
+### 工作区表单：先固定失败路径
+
+当前原生创建/绑定表单在发起操作后立即关闭，创建名称也立即清空，失败只能在背景工作区看到。新增真实Compose页面的受控服务边界回归，要求等待时保持表单、禁止重复提交，失败后保留名称或目录选择并显示错误、可重试；不以伪造成功替代绑定结果。先用现有生产APK验证失败，再修改实现。
+
+本阶段重新读取DSH `packages/client/ui-workspace/src/client/WorkspacePicker.tsx` 与 `tests/workspace-picker.client.spec.tsx` 中 `disables every menu action from flow open through adoption`、失败与取消路径，Operit `ui/features/chat/webview/workspace/WorkspaceManager.kt` 的目录采纳失败反馈。采用单一进行中操作、失败保留可修正入口与取消不提交原则；Android需要在现有ViewModel/StateFlow中适配，避免绑定已成功但目录列举失败被误认为需要重建。已核对锁定checkout及根许可（DSH MIT、Operit LGPL-3.0），未复制代码或增加依赖。验证待执行。
