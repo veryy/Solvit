@@ -60,3 +60,12 @@ b7be1fdc/[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)
 新增PluginHostLifecycleControlTest：正常Activity/Compose调度，不安装测试规则；实际调用生产PluginWebPage，包含其AndroidView所有权、WebMessage监听、资源拦截和释放逻辑。只提供固定离线HTML、最小solvitPageUpdate与ready消息，没有终端脚本、工作区服务或授权模拟。每次Activity重建后设置实际内容，要求浏览器挂载后立即切掉页面并等待真实脱离，不加DOM-ready等待或延迟销毁。finally/ActivityScenario正常关闭。若同签名复现，业务终端页面不是必要条件；若通过，说明较小宿主负载未触发，仍需按实际失败路径继续定位，不能宣称修复。
 
 参考仍为本阶段已读取的Operit容器所有权、DSH实际lifecycle测试，以及Android先移除再destroy契约；本轮只是细化对照，无上游代码复制、依赖或生产修改。编译和设备执行只用Actions，新结果尚待回收。
+
+
+## 最小产品宿主复现同签名崩溃
+
+8bf24f02/[38833277294](https://github.com/veryy/Solvit/actions/runs/38833277294)终态失败；不是编译问题。归档12018332881完整下载/CRC，565427字节，SHA256 `4f9104de40a3175ab7edafdc89edcf168c5bd0cb329ccc83bb968520a2525237`。第一轮仅实际完成1..8/30，第9次期间主进程SIGSEGV/SI_KERNEL128，pc0x357d7e5、BuildId68dabd72c6088238cbfc9a5fbfe211f916771df5，与产品操作路径完全相同；WebView仍124.0.6367.219。零SnapshotStateObserver/removeObserver，4条destroyed-WebView警告，其栈仅为Chromium loadingStateChanged/MessageQueue，不包含应用调用，不能据此确定根因。
+
+这证明终端业务脚本、工作区服务和用户授权不是该原生失败的必要条件。仍不能区分产品WebView桥/资源/回调与Compose容器释放。继续读取锁定Operit BrowserWebViewSupport.kt 的onRenderProcessGone、closeSession、cleanupWebViewOnMain：其先解绑父容器/会话，再stopLoading、about:blank、onPause、removeAllViews、destroy；没有直接套用这些动作作为未知根因修复。上游对应宿主设备回归仍未找到，沿用DSH实际lifecycle测试对照，不宣称不存在的测试。
+
+下一对照NativePluginHostControlTest仅在测试中将最小文档的桥/资源与释放组合放进原生FrameLayout：保留HTTPS离线资源、同一CSP、ready/状态脚本、WebMessage注册/移除、加载/渲染错误回调和一次性release，不用Compose AndroidView。该测试是对生产相关行为的诊断复制，状态简化为固定view，不代表完全等价实现；不注册终端权限或其他业务动作。使用same APK/Activity/版本，挂载后立即释放。若同签名复现，可排除Compose容器为必要条件；若通过，仍须在产品容器路径继续定点采样。未改生产或发布新APK，远程结果待回收。
