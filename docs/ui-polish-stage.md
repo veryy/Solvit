@@ -112,3 +112,8 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 ### 主题与分支断言的边界复核
 
 首轮设置候选 Actions 38973262745 的原始设备报告为 99 项、3 项失败，不能视为通过。主题点击后首个即时 Selected 断言失败，尚未执行持久化断言；调整为先验证 AppearanceStore 的实际值，再等待匹配选中语义，不增加固定延迟、不删选中断言。分支原等待条件可由尚未关闭的编辑框满足，改为必须旧框消失且 chat_input 接收到相同草稿；原数据库/未自动发送断言保留。通过同一生产 APK 的独立远程复核区分产品错误与测试边界。Skills 导出截图仍在系统目录抽屉，原因待定位，未写作已修复。
+
+
+### 插件页面失败后的恢复入口
+
+重新读取锁定DSH `packages/client/ui-plugin-manager/tests/components.client.spec.tsx` 的 loading/unavailable/error/empty 及显式retry测试，配合UI开发指导的清理原则；读取Operit `ui/features/memory/screens/MemoryScreen.kt` 的保持图谱挂载、加载反馈及错误状态。DSH MIT、Operit LGPL-3.0，自行适配现有Compose宿主，不复制代码。新增真实宿主界面测试，通过ExtensionPageSession服务边界验证打开失败可就地重开、操作失败重开先完成旧会话清理、明确不自动重放写入，以及关闭资源回收。真实JS/HTML持久化仍由PluginWebPageUiTest覆盖，不能用服务替身声称验证第三方插件。先用原APK复现缺失的恢复入口，未改生产代码。
