@@ -90,3 +90,10 @@ b7be1fdc/[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)
 已有PluginHostLifecycleControlTest在正式APK上第9次失败，候选不改变该测试和断言，先等待远程编译，再用候选APK重放同一8轮×30次。之后必须回到真实工作区操作路径与完整设备/恢复/签名回归，不能用最小对照替代产品验收。候选未验证、未合入主线、未发布新APK；不得提前宣称根因或修复成立。
 
 候选提交[5c7cffe3](https://github.com/veryy/Solvit/commit/5c7cffe320452b081d8947daf32d4d4b3cac4063)已推送独立fix/webview-owned-container分支，[完整远程38835247602](https://github.com/veryy/Solvit/actions/runs/38835247602)已实际启动，仍待结果。生产主线未合入；后续须用该轮完成的APK重放原最小宿主与实际工作区压力，不借用正式旧APK的对照通过结果。
+
+
+## 容器候选已构建，原失败复测进行中
+
+5c7cffe3的[38835247602](https://github.com/veryy/Solvit/actions/runs/38835247602)/build116762812326成功。单元归档12018863081完整下载/CRC，437845字节，SHA256 `8d6db26bcc67229cfcd5d4fb50a8936eae61392fa4733ee76a67c537496dd91e`；直接读取原始XML确认611项、失败/错误/跳过均0。完整任务日志确认4项报告门禁、Lint/assemble及固定证书f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3通过。候选APK已上传12018803400，尚未下载并核对完整APK，不报告其内层摘要。
+
+完整设备回归verify-ui116765105368已启动；分支任务按现有规则跳过仅tag启用的插件/搜索/Linux和发布，不将其写成六项正式发布门禁通过。以该轮完成的候选APK，未修改PluginHostLifecycleControlTest、原断言或8轮×30次参数，已实际启动[38836042401](https://github.com/veryy/Solvit/actions/runs/38836042401)复测。旧正式APK在同一测试第9次期间失败；候选仍待实际结果，不提前宣称修复。后续保留真实工作区压力、完整升级/恢复、最终tag全部门禁、公开下载及ARM64/真实模型边界。
