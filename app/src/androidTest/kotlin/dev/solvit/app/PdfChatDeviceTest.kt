@@ -161,7 +161,22 @@ class PdfChatDeviceTest {
             rule.onNodeWithTag("attachment_preview_close").performClick()
             rule.onNode(hasSetTextAction()).performTextInput("read selected page")
             rule.onNodeWithTag("chat_send").performClick()
-            rule.waitUntil(90_000) { !vm.busy.value && vm.messages.value.lastOrNull()?.status==MessageStatus.FAILED }
+            try {
+                rule.waitUntil(90_000) { !vm.busy.value && vm.messages.value.lastOrNull()?.status==MessageStatus.FAILED }
+            } catch (failure: Throwable) {
+                // Synthetic local HTTP/PDF fixture only; never log requests or model configuration.
+                android.util.Log.i("SolvitPdfFixture", "PDF_SEND_WAIT|ready=${vm.ready.value}|busy=${vm.busy.value}|error=${vm.error.value!=null}|requests=${server.requestCount}|messages=${vm.messages.value.map { it.status }}|attachments=${vm.attachmentDrafts.value[session].orEmpty().size}")
+                for (tag in listOf("chat_input", "chat_send", "pdf_preview", "attachment_preview_close")) {
+                    val nodes = rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes()
+                    val bounds = rule.runOnUiThread { nodes.map { it.boundsInWindow.toString() } }
+                    android.util.Log.i("SolvitPdfFixture", "PDF_SEND_NODE|$tag|count=${nodes.size}|bounds=$bounds")
+                }
+                val inputMatches = rule.onAllNodes(hasTestTag("chat_input") and hasText("read selected page")).fetchSemanticsNodes().isNotEmpty()
+                val ime = rule.runOnUiThread { rule.activity.window.decorView.rootWindowInsets?.getInsets(android.view.WindowInsets.Type.ime())?.bottom ?: 0 }
+                android.util.Log.i("SolvitPdfFixture", "PDF_SEND_INPUT|matches=$inputMatches|ime=$ime")
+                runCatching { screenshot("pdf-chat-send-failure") }
+                throw failure
+            }
             fun requestContent():String {
                 val request=server.takeRequest(5,TimeUnit.SECONDS)?:error("missing PDF request")
                 val messages=JSONObject(request.body.readUtf8()).getJSONArray("messages")

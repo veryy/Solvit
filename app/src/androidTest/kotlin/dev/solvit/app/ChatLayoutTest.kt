@@ -648,7 +648,9 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("对话历史").performClick()
             rule.onNodeWithTag("new_chat").performClick()
             rule.waitUntil(8000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
-            rule.mainClock.advanceTimeByFrame()
+            rule.waitUntil(8000) {
+                runCatching { rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed() }.isSuccess
+            }
             rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed()
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithText("角色管理与 Skills").performClick()

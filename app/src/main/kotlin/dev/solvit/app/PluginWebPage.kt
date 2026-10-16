@@ -75,9 +75,13 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
     var terminalConfirmation by remember(document) { mutableStateOf<TerminalPageConfirmation?>(null) }
     var failed by remember(document) { mutableStateOf(false) }
     val live = remember(document) { AtomicBoolean(true) }
+    val pageReady = remember(document) { AtomicBoolean(false) }
     fun release(browser: WebView) {
         if (live.compareAndSet(true, false)) {
-            runCatching { WebViewCompat.removeWebMessageListener(browser, "solvitHost") }
+            pageReady.set(false)
+            // The browser owns its message listener until destroy(). Removing
+            // it separately can race the first in-flight message in WebView124.
+            // Closing live first rejects late callbacks and all page capabilities.
             (browser.parent as? android.view.ViewGroup)?.removeView(browser)
             runCatching { browser.stopLoading() }
             runCatching { browser.removeAllViews() }
@@ -139,6 +143,7 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
                     require(body.toByteArray(Charsets.UTF_8).size <= ScriptPageView.MAX_BYTES)
                     val input = Json.parseToJsonElement(body).jsonObject
                     if (input == buildJsonObject { put("type", "ready") }) {
+                        pageReady.set(true)
                         web.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($latestState)", null)
                     } else if (input["type"] == JsonPrimitive("terminal")) {
                         check(!latestBusy && input.keys == setOf("type","token","id","operation","arguments"))
@@ -209,7 +214,9 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
             onRelease = { release(it) }, update = {
             if (live.get()) {
                 it.setBackgroundColor(colors.surface.toArgb())
-                it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+                if (pageReady.get()) {
+                    it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+                }
             }
         })
         terminalConfirmation?.let { question ->

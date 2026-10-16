@@ -24,6 +24,8 @@ window.solvitPageUpdate = next => {
 solvitHost.postMessage(JSON.stringify({type:'ready'}));
 ```
 
+宿主收到当前页面的 `ready` 后才下发状态。在此之前发生的主题、语言和业务状态变化会保留为最新值，握手时一次发送；不会逐条重放初始化期间的旧状态。因此要等接收函数和页面组件初始化完成后再发送 `ready`。页面关闭或文档替换后，旧页面的握手和消息失效。
+
 点击操作时发送声明的节点ID，不自行发送action、pluginId或confirmed：
 
 ```js

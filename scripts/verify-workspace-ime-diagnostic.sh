@@ -10,8 +10,14 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
     # Preserve the actual preceding WebView/PTY/memory scenarios in the failed full run.
     solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#workspaceTerminalRunsRealAndroidShellInTheBoundWorkspace,dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput,dev.solvit.app.ChatLayoutTest#memoryManagementEditsAndDeletesWithPluginDisabled,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending,dev.solvit.app.ChatLayoutTest#pluginPageCanReachBottomAndReturnToChat,dev.solvit.app.ChatLayoutTest#actualAndroidJsMemoryReachesPreparedModelRequestWithoutSearchToolCalls,dev.solvit.app.ChatLayoutTest#configuredModelHidesSetupAndNewChatHasNoWorkspaceUntilCreation'
     solvit_diagnostic_expected='OK (7 tests)' ;;
+  workspace-user-lifecycle|workspace-user-lifecycle-stress) solvit_diagnostic_test='dev.solvit.app.WebViewUserLifecycleTest#workspaceRecreationUsesProductionDispatcherAndReleasesTheActualBrowser' ;;
+  webview-plugin-host-control) solvit_diagnostic_test='dev.solvit.app.PluginHostLifecycleControlTest#minimalDocumentUsesProductionHostAndReleasesAfterRecreation' ;;
+  plugin-page-ready) solvit_diagnostic_test='dev.solvit.app.PluginPageReadyStateTest#delayedReadyReceivesLatestStateWithoutEarlierScriptDelivery' ;;
   compose-lifecycle-dispatch) solvit_diagnostic_test='dev.solvit.app.ComposeLifecycleDispatchTest' ;;
   plugin-document-lifecycle) solvit_diagnostic_test='dev.solvit.app.PluginWebPageLifecycleTest' ;;
+  plugin-native-entry)
+    solvit_diagnostic_test='dev.solvit.app.PluginPageUiTest'
+    solvit_diagnostic_expected='OK (6 tests)' ;;
   plugin-resume)
     solvit_diagnostic_test='dev.solvit.app.McpPageUiTest,dev.solvit.app.PluginPageUiTest#packagedTaskPageShowsSourcesAndUsesNativeCostConfirmationBeforeServiceControl,dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin,dev.solvit.app.PluginWebPageUiTest,dev.solvit.app.WorkspaceImportProgressHtmlTest'
     solvit_diagnostic_expected='OK (5 tests)' ;;
@@ -35,7 +41,7 @@ solvit_diagnostic_repetitions=${SOLVIT_DIAGNOSTIC_REPETITIONS:-8}
 [[ "$solvit_diagnostic_repetitions" =~ ^[1-8]$ ]] || exit 1
 mkdir -p ui-screenshots
 capture() {
-  timeout 15s adb logcat -d -s WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I TestRunner:I '*:S' > ui-screenshots/page-diagnostic-logcat.txt || true
+  timeout 15s adb logcat -d -s WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I SolvitPdfFixture:I PluginPageFixture:I TestRunner:I '*:S' > ui-screenshots/page-diagnostic-logcat.txt || true
   # Keep native Chromium crashes as well as test assertions; filtered logs hide SIGSEGV.
   timeout 15s adb logcat -d > ui-screenshots/page-diagnostic-native-logcat.txt || true
   timeout 15s adb shell dumpsys webviewupdate > ui-screenshots/page-diagnostic-webview-provider.txt || true
@@ -49,8 +55,8 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   solvit_iteration_timeout=120s
   solvit_recreations=3
   case "${SOLVIT_DIAGNOSTIC_CASE:-}" in
-    workspace-startup-sequence|queued-ui-follow-up) solvit_iteration_timeout=300s ;;
-    workspace-startup-stress) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
+    workspace-startup-sequence|queued-ui-follow-up|plugin-native-entry) solvit_iteration_timeout=300s ;;
+    workspace-startup-stress|workspace-user-lifecycle-stress|webview-plugin-host-control) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
   esac
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \

@@ -30,6 +30,11 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         return roots.filter { it.hasWindowFocus() }.firstNotNullOfOrNull(::candidate)
             ?: roots.firstNotNullOfOrNull(::candidate) // A native confirmation temporarily owns focus.
     }
+    fun hasAttachedBrowser(): Boolean {
+        var attached = false
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { attached = activeBrowser() != null }
+        return attached
+    }
     fun js(code: String): String = runBlocking {
         val result = CompletableDeferred<String>()
         activity.runOnUiThread {

@@ -212,3 +212,60 @@ a6b000de/[38842564272](https://github.com/veryy/Solvit/actions/runs/38842564272)
 已提交仅测试/诊断变化的[850760ee](https://github.com/veryy/Solvit/commit/850760ee1b083a86e372770c0c7e516c15ec2915)：角色不再只推进一帧，而等待实际侧栏关闭，保留8秒上限及原断言；另外两处仅在原超时后保存合成输入是否匹配、按钮/IME几何、请求计数和消息状态/截图，不输出配置、任意文本或请求。成功路径的输入/点击、持久化和HTTP断言不变。生产源码与272fcf12相同。
 
 继续用同一APK实际启动侧栏三项×2轮[38846345544](https://github.com/veryy/Solvit/actions/runs/38846345544)、原PDF前置四项×1轮[38846348437](https://github.com/veryy/Solvit/actions/runs/38846348437)、整个6项PluginPageUiTest×2轮[38846351204](https://github.com/veryy/Solvit/actions/runs/38846351204)，均待编译/运行结果。仅失败现场记录的真实工作区重放38845191132仍在进行。无新APK发布，公开latest经实际查询仍为0.43.3；不能以源码已提交或局部压力通过结束交付。
+
+### 候选分支阶段记录（合并保留）
+
+## 独立整理已确认的就绪协议修正
+
+清理分支从正式main单独提取pageReady门禁和实际延迟ready回归；不包含四个生命周期诊断对照、临时阶段日志或省略消息监听移除的实验。就绪协议旧版失败/诊断候选通过已记录，但这份无日志源码仍需重新远程验收。独立报告门禁提高app下限为71，并要求实际存在PluginPageReadyStateTest的对应方法，不能由不相关通过项代替；新增一项报告门禁回归。常规设备预期71+3+25=99不是已完成结果。
+
+发布若进行，仅说明“宿主在页面握手后下发最新状态”；保留WebView124/x86_64原生压力已失败及根因未定，不声称此修正解决快速切换原生崩溃。真实模型、ARM64及后续路线不变。仍须完整远程检查和固定签名APK，尚未合入主线或发布。
+
+
+无日志分支843dd344的38841085736/build116781078497已成功。归档12021388072完整下载/CRC，437476字节，SHA256 `8bdb60755f948d17a823bc379f4f7251b8f9186a8f8f538833a05c8d2595ca30`；原始XML确认611项、失败/错误/跳过均0，完整build日志确认新增后的5项报告门禁、Lint/assemble与固定签名通过。verify-ui116782900173尚未结束，不计为完整交付验收。插件页面文档补充就绪前只保留最新状态、初始化完成再握手及旧页面失效边界；没有更改生产代码或测试。
+
+
+## 原最小压力240次通过，整理无日志生命周期候选
+
+a6b000de的[38841583915](https://github.com/veryy/Solvit/actions/runs/38841583915)/116782682402成功。归档12021727090完整下载/CRC，1100159字节，SHA256 `2f2018c3551119cca440028388c21978a2842e4509928069108bccc12538514a`；8个实际进程各完成1..30/30，共240次，8份输出各OK(1test)。时长29.001/29.617/30.135/29.203/30.304/27.805/30.100/29.262秒。实际provider仍为com.android.webview124.0.6367.219，零Fatal/SnapshotStateObserver/removeObserver；61条destroyed-WebView警告，进一步说明该警告并非此崩溃的充分条件。日志中实际省略240次显式listener remove。原真实工作区8×30压力[38842564272](https://github.com/veryy/Solvit/actions/runs/38842564272)已启动，尚未完成。
+
+另，38840785119的常规verify-ui116782434495在sdkmanager下载system-images;android-35;default;x86_64时失败：Error on ZipFile unknown archive，模拟器未启动、应用测试未执行。这是基础设施失败，不是应用回归或一次通过；其已完成build仍有效，不能计为完整UI验收。
+
+实际阅读Chromium124.0.6367.219、提交`7741f71cbce3b7dfe3eb5890976d2596364b0733`的原始源码与测试：
+
+- android_webview/java/src/org/chromium/android_webview/AwContents.java：destroy先标记失效，再把destroyNatives排入UI任务；后者统一清理原生对象。
+- android_webview/browser/aw_contents.cc/.h：AwContents以unique_ptr持有JsCommunicationHost，后者在整体销毁中回收。
+- components/js_injection/browser/js_communication_host.cc/.h：RemoveWebMessageHostFactory先erase工厂，再通知frame；消息对象集合仍保留，正常析构则先销毁消息集合、后工厂集合。
+- components/js_injection/browser/js_to_browser_messaging.cc/.h：消息对象保存AcrossTasksDanglingUntriaged raw_ptr工厂，首次PostMessage才CreateHost。显式移除工厂与首次在途消息之间存在与现象吻合的生命周期风险；未把未符号化pc直接宣称解析到此函数。
+- android_webview/browser/js_java_interaction/aw_web_message_host_factory.cc：工厂和实际消息host持有Java监听引用，随整体宿主销毁清理。
+- android_webview/javatests/src/org/chromium/android_webview/test/JsJavaInteractionTest.java的移除监听测试：覆盖首次消息已完成后移除、加载前移除、重复移除；不能冒称覆盖本次加载后/首次消息前的销毁间隙。
+
+这些文件来自Google官方Gitiles，只读研究；BSD许可头已核对，无源码复制或新增依赖。该源码与单变量压力提供强关联，仍不能替代无日志实机路径验证或独立符号化归因。
+
+无日志候选保留pageReady修正，关闭时仍先原子关闭live/pageReady，拒绝迟到消息和能力调用；随后移除父视图、stopLoading/removeAllViews/destroy，消息监听随浏览器整体所有权回收，不单独提前移除。没有任意延时、全局计时器或容器替换。保留原失败最小宿主和真实工作区方法作为常规实际回归，两者不接管Compose测试调度；连同延迟ready由独立报告门禁明确要求class/method，app下限73、常规预期101项，未运行前不写成通过。下一步必须远程build、无日志原最小/真实工作区压力及完整门禁；尚未合入正式主线或发布。
+
+
+## 无日志真实工作区的另一条失败：绑定界面未出现
+
+272fcf12的[38844101681](https://github.com/veryy/Solvit/actions/runs/38844101681)/116790569651失败。归档12022473388完整下载/CRC，497403字节，SHA256 `c2b97a8d08e1120a363a7148633f086a7a6e5bbbc5d9cccaaa029a26550840a4`；实际完成17次，第18次等待bound workspace超时，58.046秒，1项/1失败。完整原始日志零Fatal、零WEB_PAGE_LIFECYCLE_DIAG；不能写成240通过，也不能把这个界面断言当作原先的原生SIGSEGV。
+
+原归档未记录失败前的界面状态，当前不能判定创建未执行、绑定服务异常或系统触摸落点/界面状态竞争。仅在原await超时后新增一次截图、固定UI标签/控件可见/启用/编辑/坐标及工作区/绑定/会话数量；不记录任意配置/消息/编辑内容，不改变成功路径、15秒等待、点击或原断言。继续使用同一272fcf12生产APK重放，不能通过增加等待、重复点击或直接修改服务来掩盖此失败。尚未合入主线或发布。
+
+
+## 无日志完整回归的三项界面失败，保持实际断言
+
+272fcf12/38843263391的verify-ui116790205883失败。归档12022769845完整下载/CRC，7694630字节，SHA256 `e0d64403ef7bb09cf23e6d38e21f7b0bc1947fafaefd09b4c9d091b9fe3689e1`。原始XML分别为ChatLayoutTest.applyRole场景第647行drawer仍显示、PdfChatDeviceTest第164行发送后等待FAILED超时90秒，以及PluginPageUiTest第217行真实市场API9表单保存超时10秒；不能计为完整通过。PDF的扫描预览/选页/原图已走完，失败是后续发送结算，不是原OCR等待，不能仅凭用例名误判。
+
+角色测试原来只推进一帧即断言drawer关闭，而等待的底层新建工作区节点在drawer覆盖时也已存在。修正为等待实际assertIsNotDisplayed满足后继续，保留原断言和8秒上限；不更改业务UI或直接关闭抽屉。另两项只在原超时后记录固定合成输入是否匹配、按钮启用/几何、IME高度、HTTP请求计数/消息状态及截图；不输出模型配置、任意文本或请求。成功路径和原等待/点击/持久化/HTTP断言不变。新增诊断case选择整个6项PluginPageUiTest，保留类内上下文；PDF沿用原queued-ui-follow-up前置3项，角色沿用queued-ui-scroll。继续复用同一272fcf12生产APK，尚待远程编译和结果。
+
+
+### UI 整合前回收定向结果
+
+2026-10-17，为避免带已知页面切换问题继续调整界面，核对四项已结束任务并完整下载归档，逐项核验服务器摘要、大小与 ZIP CRC。
+
+- `38845191132`：归档 `12023054707`，1,114,453 字节，SHA-256 `9a641fa80264c451a44bf96b46f11ebb9b6c6f3cf3e773066b07c9b2ffa2cc45`。8 份原始 runner 结果各 `OK (1 test)`；原生日志包含八组完整的 `USER_LIFECYCLE_COMPLETED|1..30|30`，实际 240 次，零 Fatal signal。之前第18次界面超时没有在这个同 APK 重放中再现，不能由此证明原失败只是测试问题。
+- `38846345544`：归档 `12024060161`，917,604 字节，SHA-256 `bc3d631d2998c5013ef2a101ef667583451dffd282f7c29180f15d83181b79c8`。两轮各3个角色/侧栏/分支界面方法通过。
+- `38846348437`：归档 `12023740899`，1,117,093 字节，SHA-256 `c07b22d64eb964a60057784175382ce94a08c41264ac339cd1772d3149cb22c6`。原始 runner 显示4个方法通过，包含原 PDF 发送结算路径。
+- `38846351204`：归档 `12023686927`，753,578 字节，SHA-256 `fa4eadaf86e2bb8c98a6af2fef7b71a0bbb392b5eca7dfb3abdbf2e4c801f76e`。两轮整类 PluginPageUiTest 各6个方法通过，包含原生表单实际保存与重开。
+
+这些归档是 runner 文本与日志，不是 JUnit XML；不能伪称核验了不存在的 XML。页面就绪门禁与销毁时保留通信桥的无生产诊断日志候选，现并入 UI 整合分支；合并后的新 UI、工作区标题栏及整体版本仍需完整远程验证和截图审阅，尚未发布新 APK。
