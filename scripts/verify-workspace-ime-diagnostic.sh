@@ -12,6 +12,7 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
     solvit_diagnostic_expected='OK (7 tests)' ;;
   workspace-user-lifecycle|workspace-user-lifecycle-stress)
     solvit_diagnostic_test='dev.solvit.app.WebViewUserLifecycleTest#workspaceRecreationUsesProductionDispatcherAndReleasesTheActualBrowser' ;;
+  webview-native-control) solvit_diagnostic_test='dev.solvit.app.BareWebViewLifecycleTest#nativeBrowserRecreationAndImmediateRelease' ;;
   compose-lifecycle-dispatch) solvit_diagnostic_test='dev.solvit.app.ComposeLifecycleDispatchTest' ;;
   plugin-document-lifecycle) solvit_diagnostic_test='dev.solvit.app.PluginWebPageLifecycleTest' ;;
   plugin-resume)
@@ -52,7 +53,7 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   solvit_recreations=3
   case "${SOLVIT_DIAGNOSTIC_CASE:-}" in
     workspace-startup-sequence|queued-ui-follow-up) solvit_iteration_timeout=300s ;;
-    workspace-startup-stress|workspace-user-lifecycle-stress) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
+    workspace-startup-stress|workspace-user-lifecycle-stress|webview-native-control) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
   esac
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
