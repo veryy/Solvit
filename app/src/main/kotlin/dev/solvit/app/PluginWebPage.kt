@@ -78,6 +78,7 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
     var terminalConfirmation by remember(document) { mutableStateOf<TerminalPageConfirmation?>(null) }
     var failed by remember(document) { mutableStateOf(false) }
     val live = remember(document) { AtomicBoolean(true) }
+    val pageReady = remember(document) { AtomicBoolean(false) }
     val traceId = remember(document) { nextPageLifecycleTrace.incrementAndGet() }
     fun trace(phase: String) {
         if (BuildConfig.DEBUG) android.util.Log.i("WEB_PAGE_LIFECYCLE_DIAG", "$traceId|$phase|live=${live.get()}")
@@ -85,6 +86,7 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
     fun release(browser: WebView) {
         trace("release.request")
         if (live.compareAndSet(true, false)) {
+            pageReady.set(false)
             trace("listener.remove.before")
             runCatching { WebViewCompat.removeWebMessageListener(browser, "solvitHost") }
             trace("listener.remove.after")
@@ -165,6 +167,7 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
                     require(body.toByteArray(Charsets.UTF_8).size <= ScriptPageView.MAX_BYTES)
                     val input = Json.parseToJsonElement(body).jsonObject
                     if (input == buildJsonObject { put("type", "ready") }) {
+                        pageReady.set(true)
                         trace("ready.evaluate.before")
                         web.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($latestState)", null)
                         trace("ready.evaluate.after")
@@ -240,9 +243,11 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
             trace("androidView.update.enter")
             if (live.get()) {
                 it.setBackgroundColor(colors.surface.toArgb())
-                trace("update.evaluate.before")
-                it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
-                trace("update.evaluate.after")
+                if (pageReady.get()) {
+                    trace("update.evaluate.before")
+                    it.evaluateJavascript("window.solvitPageUpdate&&window.solvitPageUpdate($state)", null)
+                    trace("update.evaluate.after")
+                } else trace("update.deferredUntilReady")
             }
         })
         terminalConfirmation?.let { question ->

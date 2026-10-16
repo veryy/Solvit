@@ -108,3 +108,10 @@ b3341886/[38837934088](https://github.com/veryy/Solvit/actions/runs/38837934088)
 再次实际阅读Operit锁定BrowserWebViewSupport.kt的onPageStarted/onPageCommitVisible/onPageFinished与注入辅助脚本，以及DSH ElectronWebViewImpl.ts的dom-ready/loadPending和electron-lifecycle.client.spec.ts的就绪前不加载、取消与迟到消息边界。借鉴明确的就绪状态和取消边界，不能把Electron的API直接移植为Android修复。Solvit已有docs/plugin-html-pages.md协议明确要求页面先注册接收函数，再发送ready；本次无上游代码复制或新增依赖。
 
 先新增实际设备PluginPageReadyStateTest：页面已定义接收函数但故意尚未发送ready；宿主实际Compose状态改为Latest并确认可见提交，要求页面收到0次状态。随后发送真实ready消息，必须收到最新而非Initial；继续修改宿主时仍能收到After ready。不使用Compose测试规则或模拟浏览器，不要求重复状态去重。先用未修复的b334诊断APK运行同一断言，结果待回收；不能写成已失败/通过，也不能用该协议测试替代原生压力。
+
+
+## 就绪门禁候选：仅改变脚本状态下发
+
+新增按document生命周期隔离的pageReady状态，初始false，只有当前存活页面的真实ready消息才置true；关闭时清除。未就绪期间仍更新原生背景并保留latestState，但不向WebView提交状态脚本。ready回调一次下发当时最新的view/token/主题/语言/busy，之后实际状态变化继续下发。保留原直接容器、桥、资源、销毁顺序与阶段日志，单独验证“就绪前的脚本队列”预测，不同时改成about:blank/onPause或延迟销毁。
+
+PluginPageReadyStateTest的旧APK同断言任务已启动；本候选还需远程编译、同断言通过、旧最小宿主原生压力和实际工作区路径、最终移除日志后完整回归。若协议回归通过但原生压力仍失败，只能声称状态下发修正，不能把它当作原生根治。暂未合入正式主线或发布新APK。
