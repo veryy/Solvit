@@ -291,7 +291,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                         Row(verticalAlignment = Alignment.Bottom) {
                             ChatAttachmentPicker(vm, selected, ready && !importingAttachment && !branching && !switching)
                             TextField(value = input, onValueChange = { input = it },
-                                placeholder = { UiText("和${roleName}聊聊…") },
+                                placeholder = { UiText("和${roleName}聊聊…", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 modifier = Modifier.weight(1f).testTag("chat_input").focusRequester(inputFocus).onGloballyPositioned { inputPlaced = true }, maxLines = 5, enabled = ready,
                                 shape = RoundedCornerShape(24.dp),
                                 colors = TextFieldDefaults.colors(focusedContainerColor = Color.Transparent,
