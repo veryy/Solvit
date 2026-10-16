@@ -721,8 +721,13 @@ class ChatLayoutTest {
             rule.onNodeWithText("编辑并分支").performClick()
             rule.onNodeWithTag("branch_edit").performTextReplacement("edited branch question")
             rule.onNodeWithText("创建分支").performClick()
-            rule.waitUntil(10_000) { rule.onAllNodes(hasSetTextAction() and hasText("edited branch question")).fetchSemanticsNodes().isNotEmpty() }
-            rule.onNode(hasSetTextAction()).assertTextEquals("edited branch question")
+            // The dialog already contains this text. Wait for the actual handoff to the composer.
+            rule.waitUntil(10_000) {
+                rule.onAllNodesWithTag("branch_edit").fetchSemanticsNodes().isEmpty() &&
+                    rule.onAllNodes(hasTestTag("chat_input") and hasText("edited branch question")).fetchSemanticsNodes().size == 1
+            }
+            rule.onNodeWithTag("branch_edit").assertDoesNotExist()
+            rule.onNodeWithTag("chat_input").assertTextEquals("edited branch question")
             runBlocking { SqliteChatStore(app).use { store ->
                 val branch=store.sessions().first().single { it.originSessionId == source.id }
                 assertTrue(store.history(branch.id).isEmpty())
@@ -812,12 +817,19 @@ class ChatLayoutTest {
             screenshot("settings-index-polish")
             rule.onNodeWithText("外观").performClick()
             rule.onNodeWithTag("theme_dark").performClick()
-            rule.onNodeWithTag("theme_dark").assertIsSelected()
+            // Persistence and the queued Compose collector are separate boundaries.
             assertEquals("dark", AppearanceStore(app).theme.value)
+            rule.waitUntil(8_000) {
+                rule.onAllNodes(hasTestTag("theme_dark") and isSelected()).fetchSemanticsNodes().size == 1
+            }
+            rule.onNodeWithTag("theme_dark").assertIsSelected()
             screenshot("settings-theme-dark")
             rule.onNodeWithTag("theme_light").performClick()
-            rule.onNodeWithTag("theme_light").assertIsSelected()
             assertEquals("light", AppearanceStore(app).theme.value)
+            rule.waitUntil(8_000) {
+                rule.onAllNodes(hasTestTag("theme_light") and isSelected()).fetchSemanticsNodes().size == 1
+            }
+            rule.onNodeWithTag("theme_light").assertIsSelected()
             screenshot("settings-theme-light")
             rule.onNodeWithContentDescription("返回设置").performClick()
             rule.onNodeWithTag("theme_settings").assertDoesNotExist()
