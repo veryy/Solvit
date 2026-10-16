@@ -31,6 +31,7 @@ case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
   chat-branches)
     solvit_diagnostic_test='dev.solvit.app.ChatAttachmentsDeviceTest#pickerImportsImagesAndTextThenHttpSendAndReopenPreserveTheirContent,dev.solvit.app.ChatLayoutTest#editingOldQuestionCreatesEmptyBranchAndPrefillsDraftWithoutSending'
     solvit_diagnostic_expected='OK (2 tests)' ;;
+  settings-theme) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#settingsIndexOpensThemeAndRetainsChoiceWhenReturning' ;;
   language-settings) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#languageSwitchesImmediatelyAndSurvivesRecreation' ;;
   file-imports)
     solvit_diagnostic_test='dev.solvit.app.ChatAttachmentWorkspaceHtmlTest,dev.solvit.app.WorkspaceImportHtmlTest,dev.solvit.app.ChatLayoutTest#actualAndroidTsProjectRulesRefreshWithoutChangingRoleOrCreatingUnboundWorkspace'

@@ -109,3 +109,6 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 远程同 APK 定向场景 38975774497 失败：chat_tool_approval 顶部144px，角色标题底部167px，已发生重叠；截图还显示底栏遮住顶部操作区域。记录候选假设为 Scaffold 底栏使用整窗高度、IME中间帧、说明区域过长。首先只修布局预算：扣除实际测量的顶部栏高度，IME/导航栏仍由原窗口边距消费；待处理授权及队列共享可滚动区域，输入框保留独立位置。未缩减权限文本、未改授权行为、未隐藏队列。
 
 读取锁定 DSH `packages/client/ui-approval/src/client/ApprovalPanel.tsx`、`ApprovalPanel.module.css` 与 `tests/ui-approval.client.spec.tsx`，以及 `ui-conversation` 的 QueueDock 实现和测试；采用有限空间内滚动详情、独立输入区的原则，Android采用实际TopAppBar测量与Compose权重。Operit `ui/permissions/PermissionRequestOverlay.kt` 的可滚动详情作对照。DSH MIT、Operit LGPL-3.0；本改动独立实现，不复制代码、不增加依赖。原复现断言与截图保留，远程验证待完成。
+### 主题与分支断言的边界复核
+
+首轮设置候选 Actions 38973262745 的原始设备报告为 99 项、3 项失败，不能视为通过。主题点击后首个即时 Selected 断言失败，尚未执行持久化断言；调整为先验证 AppearanceStore 的实际值，再等待匹配选中语义，不增加固定延迟、不删选中断言。分支原等待条件可由尚未关闭的编辑框满足，改为必须旧框消失且 chat_input 接收到相同草稿；原数据库/未自动发送断言保留。通过同一生产 APK 的独立远程复核区分产品错误与测试边界。Skills 导出截图仍在系统目录抽屉，原因待定位，未写作已修复。
