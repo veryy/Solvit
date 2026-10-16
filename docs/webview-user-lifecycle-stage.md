@@ -163,3 +163,23 @@ PluginPageReadyStateTest的旧APK同断言任务已启动；本候选还需远�
 
 
 无日志分支843dd344的38841085736/build116781078497已成功。归档12021388072完整下载/CRC，437476字节，SHA256 `8bdb60755f948d17a823bc379f4f7251b8f9186a8f8f538833a05c8d2595ca30`；原始XML确认611项、失败/错误/跳过均0，完整build日志确认新增后的5项报告门禁、Lint/assemble与固定签名通过。verify-ui116782900173尚未结束，不计为完整交付验收。插件页面文档补充就绪前只保留最新状态、初始化完成再握手及旧页面失效边界；没有更改生产代码或测试。
+
+
+## 原最小压力240次通过，整理无日志生命周期候选
+
+a6b000de的[38841583915](https://github.com/veryy/Solvit/actions/runs/38841583915)/116782682402成功。归档12021727090完整下载/CRC，1100159字节，SHA256 `2f2018c3551119cca440028388c21978a2842e4509928069108bccc12538514a`；8个实际进程各完成1..30/30，共240次，8份输出各OK(1test)。时长29.001/29.617/30.135/29.203/30.304/27.805/30.100/29.262秒。实际provider仍为com.android.webview124.0.6367.219，零Fatal/SnapshotStateObserver/removeObserver；61条destroyed-WebView警告，进一步说明该警告并非此崩溃的充分条件。日志中实际省略240次显式listener remove。原真实工作区8×30压力[38842564272](https://github.com/veryy/Solvit/actions/runs/38842564272)已启动，尚未完成。
+
+另，38840785119的常规verify-ui116782434495在sdkmanager下载system-images;android-35;default;x86_64时失败：Error on ZipFile unknown archive，模拟器未启动、应用测试未执行。这是基础设施失败，不是应用回归或一次通过；其已完成build仍有效，不能计为完整UI验收。
+
+实际阅读Chromium124.0.6367.219、提交`7741f71cbce3b7dfe3eb5890976d2596364b0733`的原始源码与测试：
+
+- android_webview/java/src/org/chromium/android_webview/AwContents.java：destroy先标记失效，再把destroyNatives排入UI任务；后者统一清理原生对象。
+- android_webview/browser/aw_contents.cc/.h：AwContents以unique_ptr持有JsCommunicationHost，后者在整体销毁中回收。
+- components/js_injection/browser/js_communication_host.cc/.h：RemoveWebMessageHostFactory先erase工厂，再通知frame；消息对象集合仍保留，正常析构则先销毁消息集合、后工厂集合。
+- components/js_injection/browser/js_to_browser_messaging.cc/.h：消息对象保存AcrossTasksDanglingUntriaged raw_ptr工厂，首次PostMessage才CreateHost。显式移除工厂与首次在途消息之间存在与现象吻合的生命周期风险；未把未符号化pc直接宣称解析到此函数。
+- android_webview/browser/js_java_interaction/aw_web_message_host_factory.cc：工厂和实际消息host持有Java监听引用，随整体宿主销毁清理。
+- android_webview/javatests/src/org/chromium/android_webview/test/JsJavaInteractionTest.java的移除监听测试：覆盖首次消息已完成后移除、加载前移除、重复移除；不能冒称覆盖本次加载后/首次消息前的销毁间隙。
+
+这些文件来自Google官方Gitiles，只读研究；BSD许可头已核对，无源码复制或新增依赖。该源码与单变量压力提供强关联，仍不能替代无日志实机路径验证或独立符号化归因。
+
+无日志候选保留pageReady修正，关闭时仍先原子关闭live/pageReady，拒绝迟到消息和能力调用；随后移除父视图、stopLoading/removeAllViews/destroy，消息监听随浏览器整体所有权回收，不单独提前移除。没有任意延时、全局计时器或容器替换。保留原失败最小宿主和真实工作区方法作为常规实际回归，两者不接管Compose测试调度；连同延迟ready由独立报告门禁明确要求class/method，app下限73、常规预期101项，未运行前不写成通过。下一步必须远程build、无日志原最小/真实工作区压力及完整门禁；尚未合入正式主线或发布。

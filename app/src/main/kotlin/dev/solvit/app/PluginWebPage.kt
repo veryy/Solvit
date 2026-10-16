@@ -79,7 +79,9 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
     fun release(browser: WebView) {
         if (live.compareAndSet(true, false)) {
             pageReady.set(false)
-            runCatching { WebViewCompat.removeWebMessageListener(browser, "solvitHost") }
+            // The browser owns its message listener until destroy(). Removing
+            // it separately can race the first in-flight message in WebView124.
+            // Closing live first rejects late callbacks and all page capabilities.
             (browser.parent as? android.view.ViewGroup)?.removeView(browser)
             runCatching { browser.stopLoading() }
             runCatching { browser.removeAllViews() }

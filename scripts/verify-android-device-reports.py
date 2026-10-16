@@ -4,9 +4,13 @@ import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-MINIMUM = {'app': 71, 'web-android': 3, 'terminal-android': 25}
+MINIMUM = {'app': 73, 'web-android': 3, 'terminal-android': 25}
 
-REQUIRED = {'app': {('dev.solvit.app.PluginPageReadyStateTest', 'delayedReadyReceivesLatestStateWithoutEarlierScriptDelivery')}}
+REQUIRED = {'app': {
+    ('dev.solvit.app.PluginPageReadyStateTest', 'delayedReadyReceivesLatestStateWithoutEarlierScriptDelivery'),
+    ('dev.solvit.app.PluginHostLifecycleControlTest', 'minimalDocumentUsesProductionHostAndReleasesAfterRecreation'),
+    ('dev.solvit.app.WebViewUserLifecycleTest', 'workspaceRecreationUsesProductionDispatcherAndReleasesTheActualBrowser'),
+}}
 
 def verify(root: Path) -> dict[str, int]:
     counts = {}
