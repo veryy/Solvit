@@ -115,3 +115,23 @@ b7be1fdc/[38831963505](https://github.com/veryy/Solvit/actions/runs/38831963505)
 b3341886/[38837209253](https://github.com/veryy/Solvit/actions/runs/38837209253)/build116768902192成功。单元归档12019897773完整下载/CRC，437849字节，SHA256 `6976df2c0bfa9faadde0ae2b1f2daac3933aff3f2e45df65600bb4f64595d808`；原始XML确认611项，失败/错误/跳过均0。完整日志核对4项报告门禁、Lint/assemble和固定证书通过。该构建仅含原实现与临时阶段标记，不是已验证的修复；尚未完整下载诊断APK，不报告其内层摘要。
 
 已实际启动[38837934088](https://github.com/veryy/Solvit/actions/runs/38837934088)，使用该轮完成的诊断APK、相同PluginHostLifecycleControlTest与8轮×30次参数。目标是关联原生失败与最后的创建/资源/消息/更新/释放阶段，不把预期次数或加入日志后的未复现当作修复。正式主线没有合入临时日志，没有新APK发布；真实工作区无日志重放、完整tag全部门禁、ARM64与真实模型验收继续保留。
+
+
+## 临时日志复现：应用释放方法均已返回
+
+b3341886/[38837934088](https://github.com/veryy/Solvit/actions/runs/38837934088)失败。归档12019469062完整下载/CRC，546455字节，SHA256 `aeb39782fecc95f64d61a2136013268934e14064f982b28d69f9b83d25ad3419`。实际完成19次，第20次期间同一SIGSEGV/pc0x357d7e5/BuildId68dabd72c6088238cbfc9a5fbfe211f916771df5。492条阶段事件中所有before/after与resource begin/return均配对；第20实例destroy.after在02:02:37.668，fatal在02:02:38.843，相差1.175秒。因此没有证据显示某个已记录的应用释放方法尚未返回，不能把最后一个方法直接当作崩溃点。
+
+第20实例没有message/ready事件，却在02:02:37.399已执行update.evaluate，页面仍未握手。按预测排序：①未就绪文档上的脚本队列可能参与，ready后才发状态应改变失败；②异步加载/渲染清理可能独立存在，ready门禁若仍失败需继续检查；③消息桥回收可能独立参与，当前日志不足以直接排除。下一步只改状态下发就绪门禁，不同时更改清理、容器或渲染模式。
+
+再次实际阅读Operit锁定BrowserWebViewSupport.kt的onPageStarted/onPageCommitVisible/onPageFinished与注入辅助脚本，以及DSH ElectronWebViewImpl.ts的dom-ready/loadPending和electron-lifecycle.client.spec.ts的就绪前不加载、取消与迟到消息边界。借鉴明确的就绪状态和取消边界，不能把Electron的API直接移植为Android修复。Solvit已有docs/plugin-html-pages.md协议明确要求页面先注册接收函数，再发送ready；本次无上游代码复制或新增依赖。
+
+先新增实际设备PluginPageReadyStateTest：页面已定义接收函数但故意尚未发送ready；宿主实际Compose状态改为Latest并确认可见提交，要求页面收到0次状态。随后发送真实ready消息，必须收到最新而非Initial；继续修改宿主时仍能收到After ready。不使用Compose测试规则或模拟浏览器，不要求重复状态去重。先用未修复的b334诊断APK运行同一断言，结果待回收；不能写成已失败/通过，也不能用该协议测试替代原生压力。
+
+
+## 就绪门禁候选：仅改变脚本状态下发
+
+新增按document生命周期隔离的pageReady状态，初始false，只有当前存活页面的真实ready消息才置true；关闭时清除。未就绪期间仍更新原生背景并保留latestState，但不向WebView提交状态脚本。ready回调一次下发当时最新的view/token/主题/语言/busy，之后实际状态变化继续下发。保留原直接容器、桥、资源、销毁顺序与阶段日志，单独验证“就绪前的脚本队列”预测，不同时改成about:blank/onPause或延迟销毁。
+
+PluginPageReadyStateTest的旧APK同断言任务已启动；本候选还需远程编译、同断言通过、旧最小宿主原生压力和实际工作区路径、最终移除日志后完整回归。若协议回归通过但原生压力仍失败，只能声称状态下发修正，不能把它当作原生根治。暂未合入正式主线或发布新APK。
+
+旧APK同断言任务[38839015993](https://github.com/veryy/Solvit/actions/runs/38839015993)使用24bbdf41测试与b334诊断APK；就绪候选[2e6f045a](https://github.com/veryy/Solvit/commit/2e6f045a659d0ea7fbc91635abe94e809267605d)的[38839204234](https://github.com/veryy/Solvit/actions/runs/38839204234)已实际启动。两者均待结果，不声称红绿已完成。原生诊断已回收，已请求停止旧38837209253剩余完整设备任务；其build成功和目标原生失败各自保留，不将该诊断轮计为完整发布门禁通过。正式主线仅同步记录，没有合入日志或未验证候选，没有新APK发布。
