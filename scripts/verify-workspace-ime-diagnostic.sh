@@ -3,7 +3,9 @@
 set -euo pipefail
 solvit_diagnostic_expected='OK (1 test)'
 solvit_chat_font_scale=1
+solvit_memory_label_bounds=false
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
+  memory-labels) solvit_diagnostic_test='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin'; solvit_memory_label_bounds=true ;;
   workspace-forms) solvit_diagnostic_test='dev.solvit.app.WorkspaceFormDeviceTest'; solvit_diagnostic_expected='OK (4 tests)' ;;
   plugin-page-feedback) solvit_diagnostic_test='dev.solvit.app.PluginPageFeedbackDeviceTest'; solvit_diagnostic_expected='OK (2 tests)' ;;
   workspace-editor) solvit_diagnostic_test='dev.solvit.app.WorkspaceHtmlPageTest#htmlCreatesBindsBrowsesAndSavesThroughActualNativeConfirmationAndRejectsStaleFiles' ;;
@@ -66,6 +68,7 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
     -e chatFontScale "$solvit_chat_font_scale" \
+    -e verifyMemoryLabelBounds "$solvit_memory_label_bounds" \
     -e workspaceRecreations "$solvit_recreations" \
     -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \

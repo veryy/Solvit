@@ -137,6 +137,31 @@ class PluginPageUiTest {
             assertTrue("Fitting two memory nodes must not magnify labels above their readable base size; actual zoom=$initialZoom", initialZoom > 0 && initialZoom <= 1.01)
             html.js("document.getElementById('fit').click()")
             assertTrue("Fit action must also cap automatic magnification", html.js("Number(document.getElementById('graph').dataset.zoom)").toDouble() <= 1.01)
+            if (androidx.test.platform.app.InstrumentationRegistry.getArguments().getString("verifyMemoryLabelBounds") == "true") {
+                // Query the pinned engine's actual rendered boxes, without moving nodes or
+                // imitating its layout. Container registration is only a test seam.
+                repeat(8) { attempt ->
+                    if (attempt > 0) {
+                        rule.onNodeWithTag("plugin_page_close").performClick()
+                        rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_web_page").fetchSemanticsNodes().isEmpty() }
+                        rule.runOnUiThread { visible = true }
+                        waitDom("window.memoryPageReady===true && !!document.querySelector('[data-memory-id=$id]') && !!document.querySelector('[data-memory-id=$relatedId]')")
+                    }
+                    html.screenshot("memory-label-layout-${'a' + attempt}")
+                    val boxes = Json.parseToJsonElement(html.js("""(()=>{
+                        const cy=document.getElementById('graph')._cyreg?.cy;
+                        if(!cy)throw Error('Pinned graph instance unavailable');
+                        return [${JsonPrimitive(id)},${JsonPrimitive(relatedId)}].map(id=>
+                            cy.getElementById(id).renderedBoundingBox({includeLabels:true,includeOverlays:false,includeUnderlays:false}));
+                    })()""")).jsonArray.map { it.jsonObject }
+                    fun coordinate(index: Int, key: String) = boxes[index].getValue(key).jsonPrimitive.double.also {
+                        assertTrue("Rendered graph coordinate must be finite", it.isFinite())
+                    }
+                    val overlapWidth = minOf(coordinate(0,"x2"),coordinate(1,"x2")) - maxOf(coordinate(0,"x1"),coordinate(1,"x1"))
+                    val overlapHeight = minOf(coordinate(0,"y2"),coordinate(1,"y2")) - maxOf(coordinate(0,"y1"),coordinate(1,"y1"))
+                    assertFalse("Actual node/label boxes overlap on initial layout $attempt: $boxes", overlapWidth > 1 && overlapHeight > 1)
+                }
+            }
             val graphFrame = html.screenshot("memory-html-graph-home")
             // The previous artifact was white although DOM/interaction checks passed.
             // Check the displayed middle of this explicitly dark page, excluding native bars.
