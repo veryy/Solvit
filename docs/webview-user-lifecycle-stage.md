@@ -192,3 +192,12 @@ a6b000de/[38842564272](https://github.com/veryy/Solvit/actions/runs/38842564272)
 272fcf12/[38843263391](https://github.com/veryy/Solvit/actions/runs/38843263391)/build116787959922成功。单元归档12022527253完整下载/CRC，437798字节，SHA256 `981fbfce0e87b317d71477f360a5d7f1b447fb58f5d1890294737cab74dfa48d`；原始XML确认611项、失败/错误/跳过均0。完整build日志确认5项报告门禁、Lint/assemble和固定证书通过。正式候选无WEB_PAGE_LIFECYCLE_DIAG日志，没有省略WebView整体销毁。
 
 已使用该同一APK实际启动最小宿主[38844099576](https://github.com/veryy/Solvit/actions/runs/38844099576)及真实工作区[38844101681](https://github.com/veryy/Solvit/actions/runs/38844101681)，均8×30、原方法/实际正常调度，结果待回收。完整常规设备verify-ui116790205883亦仍在进行；预期101不是已完成结果。正式主线暂未合入生产修正，没有新APK发布；两个已确认修正准备在完整验收后合并发布，不将诊断包作为交付。
+
+
+## 无日志最小宿主240次通过，真实工作区失败现场待回收
+
+272fcf12/[38844099576](https://github.com/veryy/Solvit/actions/runs/38844099576)/116790562802成功。归档12022083083完整下载/CRC，1010910字节，SHA256 `b68d9163ef8595c873e9041f65730382eac8d820375f122cefb4a04a6a369657`；8个实际进程各完成1..30/30，共240次，8份各OK(1test)，时长24.935/24.908/25.395/23.523/25.496/25.629/24.440/23.996秒。零Fatal/临时WEB_PAGE_LIFECYCLE_DIAG/SnapshotStateObserver/removeObserver，54条destroyed-WebView警告。说明最小宿主通过不依赖临时阶段日志，不能据此替代真实工作区验收。
+
+同一无日志APK的真实工作区38844101681/116790569651实际完成17次，第18次bound workspace界面断言超时，58.046秒；归档12022473388完整下载/CRC，497403字节，SHA256 `c2b97a8d08e1120a363a7148633f086a7a6e5bbbc5d9cccaaa029a26550840a4`。零Fatal和临时日志，原归档没有截图/失败控件状态，不能直接归因测试偶发或原生崩溃，也不能写成240通过。
+
+仅在await失败后补截图、固定UI标签/控件几何和workspaces/shells/bindings数量的[328175cc](https://github.com/veryy/Solvit/commit/328175cc0bd7aa1f3d6a254ebdafcf6ae874b85f)已提交；不记录任意配置/编辑内容，不改变原点击、15秒等待、断言或生产源码。使用同一272fcf12 APK的[38845191132](https://github.com/veryy/Solvit/actions/runs/38845191132)已启动，结果待回收。完整常规设备38843263391亦仍待结果。正式主线尚未合入生产修正，尚未发布新APK；真实模型、ARM64和完整路线保留。
