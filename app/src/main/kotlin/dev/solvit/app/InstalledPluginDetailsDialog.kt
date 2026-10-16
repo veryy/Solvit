@@ -76,7 +76,13 @@ internal fun InstalledPluginDetailsDialog(extension: InstalledExtension, busy: B
                     }
                     if (permissionsExpanded) Column(verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.testTag("plugin_permissions_details")) {
-                        UiText(permissionDescription(extension.permissions), style = MaterialTheme.typography.bodySmall)
+                        if (extension.permissions.isEmpty()) UiText("无需额外权限", style = MaterialTheme.typography.bodySmall)
+                        else extension.permissions.forEach { permission ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Top) {
+                                Text("•", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(permissionLabel(permission), style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                         if (extension.contextHooks.isNotEmpty()) UiText("插件可为聊天提供上下文；停用后停止提供。", style = MaterialTheme.typography.bodySmall)
                         if (extension.enabled) UiText("AI 可发现 ${extension.tools.count { it.chatVisible }} 个工具；角色需允许此插件，执行时会请求确认。",
                             style = MaterialTheme.typography.bodySmall)

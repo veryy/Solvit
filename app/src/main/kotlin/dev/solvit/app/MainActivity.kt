@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -235,8 +236,9 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                 TopAppBar(
                     modifier = Modifier.onSizeChanged { chatTopBarHeight = it.height },
                     title = { Column {
-                        Text(roleName, fontWeight = FontWeight.SemiBold, modifier=Modifier.testTag("chat_role_title"))
-                        Text(config.model, style = MaterialTheme.typography.labelSmall,
+                        Text(roleName, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            modifier=Modifier.testTag("chat_role_title"))
+                        Text(config.model, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } },
                     navigationIcon = { IconButton(onClick = { hideInput(); scope.launch { drawer.open() } }) { UiIcon(Icons.Default.Menu, "对话历史") } },

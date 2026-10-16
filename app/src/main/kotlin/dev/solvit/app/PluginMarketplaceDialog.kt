@@ -191,7 +191,9 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
 
 @Composable
 internal fun permissionDescription(permissions: Set<String>): String = if (permissions.isEmpty()) uiString("无需额外权限") else
-    uiString("所需权限：") + permissions.map { uiString(when (it) {
+    uiString("所需权限：") + permissions.joinToString(" · ", transform = ::permissionLabel)
+
+internal fun permissionLabel(permission: String): String = uiString(when (permission) {
         "storage" -> "插件自己的持久化存储"
         "network" -> "访问 HTTPS 网络服务"
         "workspace" -> "读取和修改当前对话工作区的文件与会话"
@@ -201,5 +203,5 @@ internal fun permissionDescription(permissions: Set<String>): String = if (permi
         "model" -> "后台模型调用，可能产生模型服务费用"
         "agent.read" -> "读取当前聊天请求、模型输出和工具结果，供 Agent 策略决策"
         "agent" -> "接管所有会话的 Agent 步骤；需另外打开插件配置开关，可能产生模型费用"
-        else -> it
-    }) }.joinToString(" · ")
+        else -> permission
+    })
