@@ -5478,5 +5478,21 @@
     "ko": "페이지를 다시 열어도 이전 작업은 반복하지 않습니다.",
     "es": "Volver a abrir la página no repite la acción anterior.",
     "fr": "Rouvrir la page ne répète pas l’action précédente."
+  },
+  "允许一次": {
+    "zh": "允许一次",
+    "en": "Allow once",
+    "ja": "今回許可",
+    "ko": "한 번 허용",
+    "es": "Una vez",
+    "fr": "Une fois"
+  },
+  "不再询问": {
+    "zh": "不再询问",
+    "en": "Don’t ask",
+    "ja": "常に許可",
+    "ko": "항상 허용",
+    "es": "Siempre",
+    "fr": "Toujours"
   }
 }

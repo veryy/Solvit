@@ -140,7 +140,7 @@ class RealModelAcceptanceTest {
             send("请实际调用验收插件的 probe 工具，随后只回答它返回的 verification 字段原文。不要猜测验收码。")
             rule.waitUntil(180_000) { vm.toolApproval.value != null || !vm.busy.value }
             check(vm.toolApproval.value?.descriptor?.pluginId == pluginId) { "Model did not request the allowed JS tool" }
-            rule.onNodeWithText("允许这一次").performClick()
+            rule.onNodeWithTag("tool_allow_once").performClick()
             rule.waitUntil(180_000) { !vm.busy.value }
             checkNoModelError()
             val history = runBlocking { chat.messages(vm.sessionId.value!!).first() }

@@ -15,7 +15,10 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,17 +31,35 @@ import dev.solvit.core.ExecutionMode
 @Composable
 internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, modifier: Modifier = Modifier, approve: (Boolean, Boolean) -> Unit) {
     val resolving by pending.resolving.collectAsStateWithLifecycle()
+    var expanded by rememberSaveable(pending.call.id) { mutableStateOf(false) }
+    val keyboard = LocalSoftwareKeyboardController.current
+    val focus = LocalFocusManager.current
+    val expansionState = uiString(if (expanded) "收起" else "展开")
+    val approvalLabel = uiString("等待工具授权")
+    val allowOnceLabel = uiString("允许这一次")
+    val rememberLabel = uiString("允许且不再询问")
     Surface(modifier.fillMaxWidth().testTag("chat_tool_approval"), shape=MaterialTheme.shapes.medium,
         color=MaterialTheme.colorScheme.surfaceContainerHigh) {
-        Column(Modifier.padding(12.dp)) {
-            UiText("等待工具授权", style=MaterialTheme.typography.titleSmall)
-            LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max=150.dp), verticalArrangement=Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.padding(horizontal=12.dp, vertical=4.dp)) {
+            // The actual tool stays outside the weighted details, even with the IME and queue open.
+            TextButton(onClick={
+                if (!expanded) { keyboard?.hide(); focus.clearFocus() }
+                expanded = !expanded
+            }, modifier=Modifier.fillMaxWidth().testTag("tool_details_toggle")
+                .semantics { stateDescription=expansionState; contentDescription=approvalLabel },
+                contentPadding=PaddingValues(vertical=8.dp)) {
+                Text(pending.descriptor.name, Modifier.weight(1f), maxLines=1, overflow=TextOverflow.Ellipsis,
+                    style=MaterialTheme.typography.labelLarge, color=MaterialTheme.colorScheme.onSurface)
+                Icon(if(expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, null)
+            }
+            if (expanded) LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max=180.dp)
+                .testTag("tool_approval_details"), verticalArrangement=Arrangement.spacedBy(6.dp)) {
                 item { Text(pending.descriptor.name, style=MaterialTheme.typography.labelMedium) }
                 item { Text(pending.descriptor.description, style=MaterialTheme.typography.bodySmall) }
                 pending.descriptor.executionMode?.let { mode -> item {
                     UiText(if(mode==ExecutionMode.ROOT) "执行身份：Root（设备最高权限）" else "执行身份：普通应用")
                 } }
-                item { SelectionContainer { Text(pending.call.argumentsJson, style=MaterialTheme.typography.bodySmall) } }
+                item { SelectionContainer { Text(pending.call.argumentsJson, Modifier.testTag("tool_approval_arguments"), style=MaterialTheme.typography.bodySmall) } }
                 item { UiText("不再询问仅用于此角色和当前版本的此工具，后续不同参数也可执行。可在设置 → 权限与执行方式清除。", style=MaterialTheme.typography.labelSmall) }
             }
             // Give every decision its own width. FlowRow could place the last decision
@@ -47,9 +68,11 @@ internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, modifier:
                 TextButton(onClick={approve(false,false)},enabled=!resolving,
                     modifier=Modifier.weight(1f).testTag("tool_reject"),contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)) { UiText("拒绝", textAlign=TextAlign.Center) }
                 FilledTonalButton(onClick={approve(true,false)},enabled=!resolving,
-                    modifier=Modifier.weight(1f).testTag("tool_allow_once"),contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)) { UiText("允许这一次", textAlign=TextAlign.Center) }
+                    modifier=Modifier.weight(1f).testTag("tool_allow_once").semantics { contentDescription=allowOnceLabel },
+                    contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)) { UiText("允许一次", textAlign=TextAlign.Center, maxLines=1) }
                 TextButton(onClick={approve(true,true)},enabled=!resolving,
-                    modifier=Modifier.weight(1f).testTag("tool_allow_remember"),contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)) { UiText("允许且不再询问", textAlign=TextAlign.Center) }
+                    modifier=Modifier.weight(1f).testTag("tool_allow_remember").semantics { contentDescription=rememberLabel },
+                    contentPadding=PaddingValues(horizontal=8.dp,vertical=8.dp)) { UiText("不再询问", textAlign=TextAlign.Center, maxLines=1) }
             }
         }
     }

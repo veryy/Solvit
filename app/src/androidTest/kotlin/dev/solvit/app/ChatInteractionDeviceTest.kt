@@ -122,7 +122,7 @@ class ChatInteractionDeviceTest {
             val original=vm.sessionId.value!!
             rule.onNodeWithTag("chat_role_title").assertTextEquals(role.name)
             fun send(text:String) {
-                rule.onNodeWithTag("chat_input").performTextReplacement(text)
+                rule.onNodeWithTag("chat_input").performClick().performTextReplacement(text)
                 rule.waitUntil(10_000) {
                     // Collection lookup avoids diagnostic tree traversal on the test thread.
                     val node=rule.onAllNodesWithTag("chat_composer").fetchSemanticsNodes().singleOrNull()
@@ -171,6 +171,34 @@ class ChatInteractionDeviceTest {
             assertTrue("Queue header must retain a usable button, not a clipped strip: $regions",
                 regions.getValue("queue_toggle").height >= 40 * density - 1)
             assertTrue(regions.getValue("queue_toggle").bottom <= regions.getValue("chat_composer").top)
+            rule.onNodeWithTag("tool_approval_details").assertDoesNotExist()
+            rule.onNodeWithTag("tool_details_toggle").performClick()
+            rule.waitUntil(10_000) {
+                rule.runOnUiThread { rule.activity.window.decorView.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == false }
+            }
+            rule.onNodeWithTag("tool_approval_details").assertIsDisplayed()
+                .performScrollToNode(hasTestTag("tool_approval_arguments"))
+            rule.onNodeWithTag("tool_approval_arguments").assertIsDisplayed().assertTextEquals("{}")
+            screenshot("chat-approval-expanded-arguments")
+            val scopeWarning="不再询问仅用于此角色和当前版本的此工具，后续不同参数也可执行。可在设置 → 权限与执行方式清除。"
+            rule.onNodeWithTag("tool_approval_details").performScrollToNode(hasText(scopeWarning))
+            val scopeNode=rule.onNodeWithText(scopeWarning).assertIsDisplayed()
+            val scopeLayouts=mutableListOf<TextLayoutResult>()
+            scopeNode.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(scopeLayouts) }
+            assertEquals(1, scopeLayouts.size)
+            assertTrue("Authorization scope must be readable in full after scrolling",
+                scopeNode.fetchSemanticsNode().boundsInWindow.height >= scopeLayouts.single().size.height - 1)
+            screenshot("chat-approval-expanded-scope")
+            assertEquals("Opening details must not authorize a tool", 1, requests.size)
+            assertTrue(executed.isEmpty())
+            assertNotNull(vm.toolApproval.value)
+            assertTrue(rule.onAllNodes(isDialog()).fetchSemanticsNodes().isEmpty())
+            rule.onNodeWithTag("tool_details_toggle").performClick()
+            rule.onNodeWithTag("tool_approval_details").assertDoesNotExist()
+            rule.onNodeWithTag("chat_input").performClick()
+            rule.waitUntil(10_000) {
+                rule.runOnUiThread { rule.activity.window.decorView.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == true }
+            }
             rule.onNodeWithTag("queue_toggle").assertIsDisplayed().performClick()
             rule.onNodeWithTag("chat_queue_items").performScrollToNode(hasTestTag("queue_menu_$pendingQueueId"))
             rule.onNodeWithTag("queue_menu_$pendingQueueId").performClick()
