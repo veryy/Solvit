@@ -233,14 +233,14 @@ test('API19 keeps the exact released Git bytes while API20 selects remote Git',a
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
 
-// Captured from the deployed API19 catalog before moving Git 1.1.1 to legacy.
-test('API19 retains its published plugin order after Git advances to API20', async () => {
+// The catalog sorts by version first. Compatible UI 1.1.2 packages now precede Git 1.1.1; Git's published bytes remain immutable.
+test('API19 orders compatible UI updates deterministically and retains published Git bytes', async () => {
   const server = createMarketServer();
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   try {
     const base = `http://127.0.0.1:${server.address().port}`;
     const catalog = await (await fetch(base + '/api/v1/plugins?hostApi=19')).json();
-    assert.deepEqual(catalog.plugins.map(plugin => plugin.id), ["dev.solvit.memory", "dev.solvit.workspace", "dev.solvit.web-search", "dev.solvit.clock", "dev.solvit.terminal", "dev.solvit.git", "dev.solvit.mcp", "dev.solvit.skills", "dev.solvit.authoring", "example.agent-policy", "example.agent", "example.notes"]);
+    assert.deepEqual(catalog.plugins.map(plugin => plugin.id), ["dev.solvit.memory", "dev.solvit.workspace", "dev.solvit.web-search", "dev.solvit.clock", "dev.solvit.terminal", "dev.solvit.mcp", "dev.solvit.skills", "dev.solvit.git", "dev.solvit.authoring", "example.agent-policy", "example.agent", "example.notes"]);
     const git = catalog.plugins.find(plugin => plugin.id === 'dev.solvit.git');
     assert.equal(git.version, '1.1.1');
     assert.equal(git.sha256, '7babc02c3e0feab6bf717bcc8de306dbd9f4896d20443217ab807858454378dd');

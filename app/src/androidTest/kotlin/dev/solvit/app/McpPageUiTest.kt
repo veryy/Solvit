@@ -102,6 +102,8 @@ class McpPageUiTest {
             rule.runOnUiThread { dark=true }
             val darkSurface="#%06x".format(darkColorScheme().surface.toArgb() and 0xffffff)
             waitDom("getComputedStyle(document.documentElement).getPropertyValue('--surface').trim()===${JsonPrimitive(darkSurface)}")
+            // Settle Material's app-bar color transition before capturing the final theme.
+            rule.waitForIdle()
             html.setTextZoom(150)
             touch("#connection-manage-0 > summary")
             waitDom("document.getElementById('connection-manage-0').open&&document.documentElement.scrollWidth<=innerWidth")
