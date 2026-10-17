@@ -1119,6 +1119,7 @@ class ChatLayoutTest {
             js("document.getElementById('command').value=$value;document.getElementById('input-form').requestSubmit()")
         }
         fun displayed(marker: String) = js("Array.from(document.querySelectorAll('.terminal-container:not([hidden]) .xterm-rows')).some(e=>e.textContent.includes(${kotlinx.serialization.json.JsonPrimitive(marker)}))") == "true"
+        var managerControl="none"
         try {
             rule.onNodeWithTag("workspace_terminal_mode").assertTextEquals("命令任务");waitPage()
             val dialogCount = rule.onAllNodes(isDialog()).fetchSemanticsNodes().size
@@ -1199,6 +1200,7 @@ class ChatLayoutTest {
             assertEquals("7",js("document.querySelectorAll('#manager-keys button').length"))
             // Every original control remains reachable after expansion, including on short viewports.
             for(selector in listOf("#refresh","#attach","#close","#dismiss")+(1..7).map { "#manager-keys button:nth-of-type($it)" }) {
+                managerControl=selector
                 val encoded=kotlinx.serialization.json.JsonPrimitive(selector)
                 js("document.querySelector($encoded).scrollIntoView({block:'center'})")
                 rule.waitUntil(8000) { js("(()=>{const button=document.querySelector($encoded),r=button.getBoundingClientRect(),bounds=document.getElementById('session-manager').getBoundingClientRect();return r.height>=44&&r.width>0&&r.left>=bounds.left&&r.right<=bounds.right&&r.top>=bounds.top&&r.bottom<=bounds.bottom&&r.bottom<=innerHeight&&button.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})()") == "true" }
@@ -1255,6 +1257,8 @@ class ChatLayoutTest {
             page.screenshot("workspace-terminal-closed-exit-code")
         } catch (e: Throwable) {
             val metrics=runCatching { js("JSON.stringify({viewport:[innerWidth,innerHeight],body:document.body.getBoundingClientRect().toJSON(),terminal:document.getElementById('terminals').getBoundingClientRect().toJSON(),rows:document.querySelector('.xterm-rows')?.textContent,status:document.getElementById('status').textContent})") }.getOrNull()
+            val managerMetrics=runCatching { js("JSON.stringify({dialog:document.getElementById('session-manager').getBoundingClientRect().toJSON(),buttons:Array.from(document.querySelectorAll('#session-manager button'),b=>{const r=b.getBoundingClientRect();return {id:b.id,key:b.dataset.key,bounds:r.toJSON(),hit:b.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))}})})") }.getOrNull()
+            android.util.Log.i("TerminalManagerFixture","MANAGER_CONTROL_FAILURE|selector=$managerControl|metrics=$managerMetrics")
             runCatching { page.screenshot("workspace-interactive-html-failure") }
             throw AssertionError("HTML metrics="+metrics+"\nPTY state=" + app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }, e)
         }
