@@ -227,7 +227,9 @@ class PluginPageUiTest {
             html.screenshot("memory-dense-graph-before-search")
             // Use the actual graph engine's viewport API to reproduce a user panning
             // away. Do not replace its layout, positions, document or native storage.
-            html.js("document.getElementById('graph')._cyreg.cy.pan({x:-4000,y:-4000})")
+            // The setter returns the cyclic engine object; return a plain point
+            // so evaluateJavascript can serialize and finish its callback.
+            println("Memory search panned viewport: " + html.js("(()=>{const cy=document.getElementById('graph')._cyreg.cy;cy.pan({x:-4000,y:-4000});return cy.pan()})()"))
             html.setTextZoom(150)
             html.js("document.getElementById('query').value='memory-viewport-unique-target';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
             waitDom("!document.getElementById('search-button').disabled && document.querySelectorAll('[data-memory-id]').length===1 && !!document.querySelector('[data-memory-id=${ids.first()}]')")
