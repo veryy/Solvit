@@ -225,6 +225,15 @@ class PluginPageUiTest {
             } } }
             waitDom("window.memoryPageReady===true && document.querySelectorAll('[data-memory-id]').length>=33")
             html.screenshot("memory-dense-graph-before-search")
+            val overview = Json.parseToJsonElement(html.js("""(()=>{
+                const cy=document.getElementById('graph')._cyreg.cy,b=cy.nodes().renderedBoundingBox();
+                const xs=cy.nodes().map(n=>n.renderedPosition().x);
+                return {x1:b.x1,y1:b.y1,x2:b.x2,y2:b.y2,width:cy.width(),height:cy.height(),spread:Math.max(...xs)-Math.min(...xs)};
+            })()""")).jsonObject
+            fun o(key: String) = overview.getValue(key).jsonPrimitive.double
+            assertTrue("Dense overview must fit real nodes and labels inside the graph: $overview",
+                o("x1") >= 0 && o("y1") >= 0 && o("x2") <= o("width") && o("y2") <= o("height"))
+            assertTrue("Unlinked facts must use the graph width instead of one long column: $overview", o("spread") > o("width") * .35)
             // Use the actual graph engine's viewport API to reproduce a user panning
             // away. Do not replace its layout, positions, document or native storage.
             // The setter returns the cyclic engine object; return a plain point

@@ -55,7 +55,7 @@ function fitGraph() {
   // Fit a large graph down, but do not magnify a small graph's labels.
   if(cy.zoom()>1)cy.zoom({level:1,renderedPosition:{x:cy.width()/2,y:cy.height()/2}});
 }
-function graph(graphNode,theme) {
+function graph(graphNode,theme,home) {
   if(!cy){cy=cytoscape({container:$('graph'),elements:[],minZoom:.15,maxZoom:4,layout:{name:'preset'},
     style:[],wheelSensitivity:.25});
     cy.on('tap','node',event=>send('relations',event.target.id()));
@@ -69,18 +69,25 @@ function graph(graphNode,theme) {
     {selector:'edge',style:{'line-color':theme.outline,'target-arrow-color':theme.outline,'target-arrow-shape':'triangle','curve-style':'bezier','width':1.2}},
     {selector:'edge:selected',style:{'line-color':theme.primary,'width':3}},
     {selector:'node:selected',style:{'border-color':theme.primary,'border-width':2}}]);
+  if(home&&!graphNode){
+    cy.elements().remove();signature='';
+  }
   if(graphNode){
     const next=JSON.stringify([graphNode.nodes,graphNode.edges]);
     if(next!==signature){
       const positions=new Map(cy.nodes().map(n=>[n.id(),n.position()]));
-      const pan=cy.pan(),zoom=cy.zoom(),first=!signature||cy.nodes().empty();signature=next;
+      const pan=cy.pan(),zoom=cy.zoom(),first=!signature||cy.nodes().empty();
+      const changedMembers=positions.size!==graphNode.nodes.length||graphNode.nodes.some(n=>!positions.has(n.id));
+      signature=next;
       cy.batch(()=>{
         const elements=[...graphNode.nodes.map(n=>({data:{id:n.id,label:n.label},...(positions.has(n.id)?{position:positions.get(n.id)}:{})})),
           ...graphNode.edges.map((e,i)=>({data:{id:`edge-${i}`,source:e.from,target:e.to,label:e.label}}))];
         cy.elements().remove();cy.add(elements);
       });
-      if(first || graphNode.nodes.some(n=>!positions.has(n.id)))cy.layout({name:'concentric',nodeDimensionsIncludeLabels:true,avoidOverlap:true,minNodeSpacing:24,animate:false,fit:false,padding:60}).run();
-      if(first)fitGraph();else{cy.pan(pan);cy.zoom(zoom)}
+      // Unlinked facts need a compact overview. Concentric's zero-degree levels
+      // otherwise put every isolated node on a separate ring in one long line.
+      if(first||changedMembers)cy.layout({name:graphNode.edges.length?'concentric':'grid',nodeDimensionsIncludeLabels:true,avoidOverlap:true,minNodeSpacing:24,animate:false,fit:false,padding:60}).run();
+      if(first||changedMembers)fitGraph();else{cy.pan(pan);cy.zoom(zoom)}
     }
   }
   cy.resize();
@@ -93,7 +100,7 @@ window.solvitPageUpdate = next => {
   const changed=revision!==next.token;state=next;
   for(const [key,value]of Object.entries(next.theme))document.documentElement.style.setProperty(`--${key}`,value);
   const nodes=flatten(next.view),relation=nodes.find(n=>n.id==='relations'),home=nodes.some(n=>n.id==='graph_count');
-  graph(relation,next.theme);$('sheet').hidden=home;
+  graph(relation,next.theme,home);$('sheet').hidden=home;
   $('toolbar').hidden=!home;$('fit').hidden=!home;$('count').hidden=!home;
   $('empty').hidden=!home||!!relation?.nodes.length;$('empty').textContent=nodes.find(n=>n.id==='empty')?.text??words()[1];
   $('count').textContent=nodes.find(n=>n.id==='graph_count')?.text??'';

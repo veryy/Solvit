@@ -36,7 +36,7 @@ class BuiltinMemoryTest {
             val payload = context.assets.open("builtin-plugins/dev.solvit.memory.solvit.json").use { it.readBytes() }
             val manifest = Json.parseToJsonElement(payload.toString(Charsets.UTF_8)).jsonObject.getValue("manifest").jsonObject
             val sha = MessageDigest.getInstance("SHA-256").digest(payload).joinToString("") { "%02x".format(it) }
-            val path = "/api/v1/packages/dev.solvit.memory/1.4.2"
+            val path = "/api/v1/packages/dev.solvit.memory/1.4.3"
             val catalog = buildJsonObject {
                 put("apiVersion", 1)
                 put("plugins", JsonArray(listOf(JsonObject(manifest + mapOf("sha256" to JsonPrimitive(sha),
@@ -52,7 +52,7 @@ class BuiltinMemoryTest {
             assertEquals("/api/v1/plugins?hostApi=31", server.takeRequest(2, TimeUnit.SECONDS)!!.path)
             assertEquals(path, server.takeRequest(2, TimeUnit.SECONDS)!!.path)
             val installed = market.installed.value.single { it.id == "dev.solvit.memory" }
-            assertEquals("1.4.2", installed.version); assertFalse(installed.enabled)
+            assertEquals("1.4.3", installed.version); assertFalse(installed.enabled)
             assertEquals(listOf(ExtensionPage("main", "记忆"), ExtensionPage("tasks", "自动记忆任务")), installed.pages)
             assertTrue(context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
                 .getStringSet("grants.dev.solvit.memory", emptySet()).orEmpty().isEmpty())
@@ -94,7 +94,7 @@ class BuiltinMemoryTest {
             assertEquals(1, server.requestCount, "Reject an older catalog before downloading it")
             assertContentEquals(installedBytes, file.readBytes())
             val installed = market.installed.value.single { it.id == "dev.solvit.memory" }
-            assertEquals("1.4.2", installed.version); assertTrue(installed.enabled)
+            assertEquals("1.4.3", installed.version); assertTrue(installed.enabled)
             assertEquals(setOf("storage", "model"), context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
                 .getStringSet("grants.dev.solvit.memory", emptySet()))
             assertTrue(memory.snapshot().toString().contains(fact))

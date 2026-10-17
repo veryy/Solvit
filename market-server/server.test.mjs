@@ -41,7 +41,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.deepEqual(memoryPage.pages, [{id:'main',title:'记忆'},{id:'tasks',title:'自动记忆任务'}]);
     const api10 = await (await fetch(base + '/api/v1/plugins?hostApi=10')).json();
     const htmlMemory = api10.plugins.find(plugin => plugin.id === 'dev.solvit.memory');
-    assert.equal(htmlMemory.apiVersion, 10); assert.equal(htmlMemory.version, '1.4.2');
+    assert.equal(htmlMemory.apiVersion, 10); assert.equal(htmlMemory.version, '1.4.3');
     assert.ok(htmlMemory.pages.every(page => page.entry === 'ui/index.html'));
     const htmlPackage = await (await fetch(base + htmlMemory.downloadPath)).json();
     assert.ok(htmlPackage.resources['ui/index.html'].includes('id="graph"'));
