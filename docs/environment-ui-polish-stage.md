@@ -79,3 +79,15 @@ DSH d743267388641bc76f17c45ce8b4c231aed1d32c的packages/client/ui-tool/src/clien
 完整诊断39067425677/source246194cf仍在运行时，从同一提交隔离准备ui/chat-terminal-polish分支。删除本轮environmentTrace、[DEBUG-solvit-env-touch]、80ms按压助手、临时48项前序选择和完整流式采样；原始环境页单次真实触摸/10秒/isTrusted/进度/失败/无安装等断言完整恢复，正式草稿和三终端回归保留。源码逐文件对比确认生产实现、APK版本98、签名/迁移/内置插件和语言资源与145fdcd4一致，所有Android测试与3dfced5d的无探针版本一致；保留有实际时长依据的15分钟常规预算，报告/恢复/大字体/stdio门禁不减。
 
 两个分支可分别运行完整流程，减少等待；交付前仍需核对两边原始结果和真实截图。当前仅准备和提交候选，不把独立8轮或48项成功当成原环境失败已修复，尚无新APK交付，不修改main或正式标签。若完整诊断发现需要业务修正，先修正后再验证交付分支。
+# build98 完整诊断的前置恢复崩溃（尚未定位）
+
+诊断 Actions `39067425677` attempt 1 的 build 成功；设备任务 `117499535932` 在首个 `backup-cleanup-process-death-PREPARED` 恢复验证中崩溃，尚未启动完整套件及环境点击探针。原始归档 `12113613449`（148760 字节）已核对服务器摘要和 ZIP CRC，保留独立 attempt1 副本。不能将这轮归为环境刷新点击失败或完整设备通过。
+
+实际堆栈为 Activity 销毁时 `SlotWriter.moveSlotGapTo → removeSlots → CompositionImpl.dispose → LayoutNodeSubcompositionsState.onRelease`，`ArrayIndexOutOfBoundsException: length=320; index=-131`。现有证据没有证明它由本轮草稿或终端改动引起，也没有证明只影响测试。按顺序待区分：测试结束仍有组合更新、桥接清理与页面销毁交错、Compose 自身销毁缺陷。未据此改产品或升级依赖。
+
+已阅读本项目 `WorkspaceBackupCleanupProcessDeathTest.kt` 的真实文件/状态断言、`WorkspacePageBridge.close()` 和 `verify-workspace-backup-cleanup-process-death.sh` 的外部强杀/重启流程；重放必须保留这些动作和成功 runner，不使用新建界面的浅层检查替代。参考 Operit `dbf71916` 的 `ui/main/MainActivity.kt`（`setAppContent`、`onDestroy`）与 `ThemeScopeMigrationPolicyTest.kt`：前者说明实际页面生命周期，后者只验证主题迁移，不能证明此销毁问题。已核对 LGPL-3.0，本阶段无代码复制、无新增依赖。
+
+仅对失败任务发起一次原源码 `246194cf` 的 attempt 2，实际 GitHub 元数据确认已启动；普通无探针 `39067827303` 同时经过相同恢复流程。两边均待设备结果。若重跑通过，仍保留首次崩溃及根因未定，不写成修复。普通构建的 628 单元、Lint、版本98/固定签名、14内置包/语言资源与 APK 全字节已核对；它们不替代设备门禁。
+
+公开市场只读核对时间 `2026-10-17T20:48:51Z`：Skills 仍1.2.0（候选1.2.1），终端仍1.1.3（候选1.1.5），版本与摘要不一致。此读取没有部署任何内容；原严格 live 门禁和正式发布边界继续保留。
+
