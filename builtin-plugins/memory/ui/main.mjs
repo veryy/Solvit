@@ -101,7 +101,7 @@ window.solvitPageUpdate = next => {
   for(const [key,value]of Object.entries(next.theme))document.documentElement.style.setProperty(`--${key}`,value);
   const nodes=flatten(next.view),relation=nodes.find(n=>n.id==='relations'),home=nodes.some(n=>n.id==='graph_count');
   graph(relation,next.theme,home);$('sheet').hidden=home;
-  $('toolbar').hidden=!home;$('fit').hidden=!home;$('count').hidden=!home;
+  $('toolbar').hidden=!home;$('fit').hidden=!home||!relation?.nodes.length;$('count').hidden=!home;
   $('empty').hidden=!home||!!relation?.nodes.length;$('empty').textContent=nodes.find(n=>n.id==='empty')?.text??words()[1];
   $('count').textContent=nodes.find(n=>n.id==='graph_count')?.text??'';
   if(changed){

@@ -252,6 +252,20 @@ class PluginPageUiTest {
             assertTrue("Search must bring the actual result into view after panning: $bounds",
                 n("x1") >= 0 && n("y1") >= 64 && n("x2") <= n("width") && n("y2") <= n("height") - 64)
             assertTrue("A single search result must use its readable base scale: $bounds", n("zoom") >= .99 && n("zoom") <= 1.01)
+            val actionsFit = html.js("""(()=>{
+                const a=document.getElementById('fit').getBoundingClientRect(),b=document.getElementById('new').getBoundingClientRect();
+                return a.bottom+7<=b.top && a.right<=innerWidth && b.bottom<=innerHeight && a.top>=0;
+            })()""")
+            assertEquals("Large text floating actions must stay apart and inside the viewport", "true", actionsFit)
+            html.tapElement("#options")
+            waitDom("!document.getElementById('menu').hidden")
+            assertEquals("Options must open below the resized toolbar and remain scrollable on screen", "true", html.js("""(()=>{
+                const menu=document.getElementById('menu').getBoundingClientRect(),bar=document.getElementById('toolbar').getBoundingClientRect();
+                return menu.top>=bar.bottom+7 && menu.bottom<=innerHeight && menu.right<=innerWidth;
+            })()"""))
+            rule.waitForIdle()
+            html.screenshot("memory-large-text-options")
+            html.tapElement("#options")
             rule.waitForIdle()
             html.screenshot("memory-search-single-result-large-text")
             val viewport = html.js("(()=>{const cy=document.getElementById('graph')._cyreg.cy;return {pan:cy.pan(),zoom:cy.zoom()}})()")
@@ -266,6 +280,7 @@ class PluginPageUiTest {
             waitDom("!document.getElementById('search-button').disabled && !document.getElementById('empty').hidden && document.querySelectorAll('[data-memory-id]').length===0")
             html.screenshot("memory-search-empty-large-text")
             assertEquals("No results must remove stale graph nodes", "0", html.js("document.getElementById('graph')._cyreg.cy.nodes().length"))
+            assertEquals("An empty graph offers creation without a useless fit action", "true", html.js("document.getElementById('fit').hidden && !document.getElementById('new').hidden && !document.getElementById('new').disabled"))
             html.js("document.getElementById('query').value='';document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
             waitDom("!document.getElementById('search-button').disabled && document.getElementById('empty').hidden && document.querySelectorAll('[data-memory-id]').length>=33")
             assertTrue("Clearing search restores actual graph nodes", html.js("document.getElementById('graph')._cyreg.cy.nodes().length").toInt() >= 33)
