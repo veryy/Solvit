@@ -443,3 +443,12 @@ test('failed initial directory read is not rendered as an empty successful listi
  assert.ok(h.nodes().some(n=>n.id==='empty'));
  assert.ok(!h.nodes().some(n=>n.id==='directory_unavailable'));
 });
+
+test('a changed workspace cannot inherit cached rows when its first directory read fails',async()=>{
+ const h=harness(true,{'':[{name:'private.txt',path:'private.txt',directory:false,bytes:3}]});
+ await h.render();await h.event('directory');
+ h.snapshot.workspaceId='another-workspace';h.failedDirectory='';await h.event('refresh');
+ assert.ok(h.nodes().some(n=>n.id==='directory_unavailable'));
+ assert.ok(!h.nodes().some(n=>n.id.startsWith('file_name_')));
+ assert.ok(!h.nodes().some(n=>n.id==='empty'));
+});
