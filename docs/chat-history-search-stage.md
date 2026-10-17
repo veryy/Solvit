@@ -1,6 +1,6 @@
 # 聊天侧栏标题搜索（2026-10-17）
 
-承接0.43.10/build95，继续优化会话较多时的查找和长标题显示。侧栏原先只有全量列表，标题仅maxLines=1、没有Ellipsis；本轮增加明确命名的“按标题搜索”、清空、无结果提示，保留原生会话ID、排序、选择和删除确认。主界面继续使用75%屏宽，底部设置保持固定位置。当前为build96候选，尚未验证编译或设备结果，不作为正式发布。
+承接0.43.10/build95，继续优化会话较多时的查找和长标题显示。侧栏原先只有全量列表，标题仅maxLines=1、没有Ellipsis；本轮增加明确命名的“按标题搜索”、清空、无结果提示，保留原生会话ID、排序、选择和删除确认。主界面继续使用75%屏宽，底部设置保持固定位置。build96现已完成远程完整检查并提供候选APK，验证细节与实际截图见下文；尚未正式发布。
 
 ## 参考实现与取舍
 
@@ -43,3 +43,17 @@ DSH d7432673 `packages/client/ui-workspace/src/client/rows/Rows.tsx` 的SearchRe
 同提交history-search39053064460失败，artifact12108756540（692807字节，SHA256 21b6091718529e8df93ef4d598498a97f580eaf60c9a434be5b1b82f4e1b93c9）原始结果与摘要/CRC核对：真实App搜索通过，150%组件在对第二条同名记录注入删除触摸时节点未组合。改用LazyColumn真实滚动使每个被选或删除的目标进入视野，再进行原一次触摸，绝不重试删除；busy和同名ID回调不变。新增设置底边不超过原生系统导航栏顶边的几何断言，避免只凭assertIsDisplayed接受部分遮挡。
 
 现在移除全部ENVIRONMENT_REFRESH_DIAG的document事件/solvitPageUpdate包装、成功日志和trace字段；原环境UI流程、一次真实刷新、isTrusted/10000ms/进度/失败/无安装断言均恢复，只在既有失败上下文里补refreshClicked布尔值，便于区分点击未到与宿主未结束。下一轮定向以无探针版本复查，最终仍须完整Android原始报告与APK；原环境触摸根因明确保持未定，不能写成“已修复Ubuntu/环境下载问题”。
+
+## 最终无探针验证与候选交付（2026-10-18）
+
+源码a1408f66的[完整Android任务39053920487](https://github.com/veryy/Solvit/actions/runs/39053920487)成功。核对原始626项单元、Lint、App86/Web3/terminal26共115项设备XML、必需角色/流式/搜索用例与15场独立进程死亡runner/PID；升级seed、旧设置保留、1.5倍完整聊天、测试运行器恢复和stdio宿主强杀后的4个进程gone均保留。设备artifact12109486750，sha256:6251b4add43a8943f07edad02179b444eddb54d6e6ab87df596cde9cac96e82e，整包大小、摘要与CRC已核对。
+
+[真实历史搜索定向39054210302](https://github.com/veryy/Solvit/actions/runs/39054210302)实际OK (2 tests)，artifact12108599335，sha256:b58cb32a084a7359685d61e49fb5e1b925adfe8be1c86d8be984afe2b5f62da3；真实ModalDrawerSheet的150%字体下每次先滚动目标再执行一次选择/删除，且设置底边不超过真实系统导航栏上缘。[无探针环境定向39054207846](https://github.com/veryy/Solvit/actions/runs/39054207846)8轮各OK (2 tests)，artifact12108694127，sha256:c2d2b0ba95159be3f8a98390beb5622c4499330e41d4478d017edf2140c32b6c。原环境刷新超时未再次出现，仍未证明根因；没有修改环境生产逻辑，也没有宣称修复下载失败。临时事件采样全部移除。
+
+已逐张查看最终完整报告中的搜索/真实键盘、筛选持久会话、150%长标题截图；列表与设置在键盘上方，大字设置不进入系统导航栏，同名行仍有独立选中态与ID。组合图仅缩放拼接原始PNG：
+
+![实际模拟器：键盘搜索、匹配会话和150%长标题](images/chat-history-search-0.43.10.png)
+
+APK为dev.solvit.app、0.43.10/build96，59659415字节，SHA256 1a7a311979d3434c8f9bb43586586690b6e224e3731eb495ac1ea6ce809e678a；签名保持f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3。14个内置包和6语言目录逐字匹配源码。对应Linux源码内层ZIP 1072711字节，SHA256 3ef1f98bab68f62281bc2e196f2017b1bb2539e3760fcafcf5295f7172497c2f，14个文件及内外CRC核对。实际APK、Linux源码与核对回执保存为独立build96文件，不覆盖历史候选。
+
+本轮未运行本地Android/TS构建或测试。正式Release仍为0.43.9；市场部署认证受阻的既有事实保留，不降低正式标签的市场/Linux/搜索/插件门禁。真机、真实模型/账号任务、ARM64及更广第三方兼容未因此验收。继续沿用完整路线，不把标题搜索或测试数量当作整体UI完成。
