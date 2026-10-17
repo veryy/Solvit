@@ -103,6 +103,7 @@ class ChatInteractionDeviceTest {
         lateinit var vm:ChatViewModel;lateinit var agents:AgentLibraryViewModel
         var phase = "prepare"
         var approvalTouchNode: androidx.compose.ui.semantics.SemanticsNode? = null
+        val actualApprovalPresses = ConcurrentLinkedQueue<Boolean>()
         try {
             rule.runOnUiThread {
                 val settings=object:SettingsStore {
@@ -125,11 +126,15 @@ class ChatInteractionDeviceTest {
                                 awaitPointerEventScope {
                                     while (true) {
                                         val event = awaitPointerEvent(PointerEventPass.Initial)
-                                        if (phase == "remembered-approval-click") event.changes.filter { it.pressed != it.previousPressed }.forEach { pointer ->
+                                        // Observe the actual press without consuming it or replacing the real click.
+                                        if (phase == "remembered-approval-click") event.changes.filter { it.pressed && !it.previousPressed }.forEach { pointer ->
                                             val bounds = runCatching { approvalTouchNode?.boundsInRoot }.getOrNull()
                                             val decor = rule.activity.window.decorView
                                             val insets = decor.rootWindowInsets
-                                            android.util.Log.i("ChatDockFixture", "CHAT_DOCK_POINTER|pressed=${pointer.pressed}|position=${pointer.position}|bounds=$bounds|focus=${decor.hasWindowFocus()}|ime=${insets?.isVisible(WindowInsets.Type.ime())}|imeBottom=${insets?.getInsets(WindowInsets.Type.ime())?.bottom}")
+                                            val ime = insets?.getInsets(WindowInsets.Type.ime())?.bottom ?: 0
+                                            actualApprovalPresses.add(bounds != null && bounds.contains(pointer.position) &&
+                                                bounds.top >= 0 && bounds.bottom <= decor.height - ime + 1 &&
+                                                decor.hasWindowFocus() && insets?.isVisible(WindowInsets.Type.ime()) == true && ime > 0)
                                         }
                                     }
                                 }
@@ -141,10 +146,9 @@ class ChatInteractionDeviceTest {
             rule.waitUntil(10_000) { vm.ready.value&&agents.activeRole.value==role }
             val original=vm.sessionId.value!!
             rule.onNodeWithTag("chat_role_title").assertTextEquals(role.name)
-            fun send(text:String) {
-                rule.onNodeWithTag("chat_input").performClick().performTextReplacement(text)
+            fun waitForNativeImeDock() {
                 rule.waitUntil(10_000) {
-                    // Collection lookup avoids diagnostic tree traversal on the test thread.
+                    // Compose idleness does not await Android's popup/IME resize.
                     val node=rule.onAllNodesWithTag("chat_composer").fetchSemanticsNodes().singleOrNull()
                         ?: return@waitUntil false
                     rule.runOnUiThread {
@@ -152,10 +156,14 @@ class ChatInteractionDeviceTest {
                         val insets=decor.rootWindowInsets
                         val ime=insets?.getInsets(WindowInsets.Type.ime())?.bottom ?: 0
                         val composer=node.boundsInRoot
-                        insets?.isVisible(WindowInsets.Type.ime())==true && ime>0 &&
+                        decor.hasWindowFocus() && insets?.isVisible(WindowInsets.Type.ime())==true && ime>0 &&
                             composer.width>0 && composer.height>0 && composer.bottom<=decor.height-ime+1
                     }
                 }
+            }
+            fun send(text:String) {
+                rule.onNodeWithTag("chat_input").performClick().performTextReplacement(text)
+                waitForNativeImeDock()
                 rule.waitForIdle();rule.onNodeWithTag("chat_send").assertIsEnabled().performClick()
             }
             send("first")
@@ -228,11 +236,15 @@ class ChatInteractionDeviceTest {
             // The Flow value changes before the collected UI removes the queue and reflows
             // the approval card. Wait for that actual screen boundary before a touch.
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("chat_queue").fetchSemanticsNodes().isEmpty() }
+            phase = "remembered-approval-native-layout"
+            waitForNativeImeDock()
             rule.waitForIdle()
             phase = "remembered-approval-click"
             rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed().performClick()
             phase = "remembered-approval-result"
             rule.waitUntil(10_000) { requests.size==2&&executed.size==1 }
+            assertEquals("Exactly one actual press must hit the visible approval button above the native IME",
+                listOf(true), actualApprovalPresses.toList())
             phase = "queue-edit-and-interrupt"
             send("same");send("same")
             rule.waitUntil(10_000) { vm.queuedMessages.value.size==2 }
