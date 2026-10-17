@@ -2,6 +2,15 @@ package dev.solvit.core
 
 import kotlinx.coroutines.flow.StateFlow
 
+/** Numeric ordering for the three-component versions accepted by plugin manifests. */
+fun compareExtensionVersions(left: String, right: String): Int {
+    val format = Regex("(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)")
+    require(format.matches(left) && format.matches(right)) { "插件版本无效" }
+    return left.split('.').zip(right.split('.')).asSequence()
+        .map { (a, b) -> a.toBigInteger().compareTo(b.toBigInteger()) }
+        .firstOrNull { it != 0 } ?: 0
+}
+
 data class MarketEntry(
     val id: String, val name: String, val description: String, val version: String,
     val permissions: Set<String>, val dependencies: Set<String>,

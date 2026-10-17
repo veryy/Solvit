@@ -5494,5 +5494,29 @@
     "ko": "항상 허용",
     "es": "Siempre",
     "fr": "Toujours"
+  },
+  "本地版本较新": {
+    "zh": "本地版本较新",
+    "en": "Newer version installed",
+    "ja": "新しいバージョンを導入済み",
+    "ko": "새 버전이 설치됨",
+    "es": "Versión instalada más reciente",
+    "fr": "Version installée plus récente"
+  },
+  "本地版本较新，请刷新市场目录": {
+    "zh": "本地版本较新，请刷新市场目录",
+    "en": "A newer version is installed. Refresh the marketplace.",
+    "ja": "新しいバージョンが導入済みです。マーケットを更新してください。",
+    "ko": "새 버전이 설치되어 있습니다. 마켓을 새로 고침하세요.",
+    "es": "Ya hay una versión más reciente. Actualiza el catálogo.",
+    "fr": "Une version plus récente est installée. Actualisez le catalogue."
+  },
+  "已安装：{0}": {
+    "zh": "已安装：{0}",
+    "en": "Installed: {0}",
+    "ja": "導入済み：{0}",
+    "ko": "설치됨: {0}",
+    "es": "Instalada: {0}",
+    "fr": "Installée : {0}"
   }
 }

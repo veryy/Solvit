@@ -177,6 +177,11 @@ class AndroidMarketplace(
 
     override suspend fun install(entry: MarketEntry) = mutex.withLock {
         check(entry in latestCatalog) { "请先刷新市场目录" }
+        packages[entry.id]?.let { installed ->
+            check(compareExtensionVersions(entry.version, installed.manifest.version) >= 0) {
+                "本地版本较新，请刷新市场目录"
+            }
+        }
         val bytes = getBytes(MARKET_URL + entry.downloadPath, ScriptPackage.MAX_BYTES)
         check(bytes.size.toLong() == entry.bytes) { "插件包长度校验失败" }
         val pkg = ScriptPackage.parse(bytes, entry.sha256)

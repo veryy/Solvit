@@ -65,11 +65,16 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                             if (catalog.isEmpty() && !loading) item(span = { GridItemSpan(maxLineSpan) }) { UiText("暂无插件，点击右上角刷新市场。") }
                             items(catalog, key = { it.id }) { entry ->
                                 val local = installed.firstOrNull { it.id == entry.id }
+                                val comparison = local?.let { compareExtensionVersions(entry.version, it.version) }
                                 Card(onClick = { marketTarget = entry }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = Modifier.fillMaxWidth().testTag("market_plugin_${entry.id}")) {
                                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Text(entry.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(entry.description, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                        UiText(if (local?.version == entry.version) "已安装" else "版本 ${entry.version}", style = MaterialTheme.typography.labelSmall)
+                                        UiText(when {
+                                            comparison == 0 -> "已安装"
+                                            local != null && comparison != null && comparison < 0 -> "已安装：${local.version}"
+                                            else -> "版本 ${entry.version}"
+                                        }, style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                             }
@@ -140,14 +145,21 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
     }
     marketTarget?.let { entry ->
         val local = installed.firstOrNull { it.id == entry.id }
+        val comparison = local?.let { compareExtensionVersions(entry.version, it.version) }
         AlertDialog(onDismissRequest = { marketTarget = null }, title = { Text(entry.name) },
             text = { LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 item { Text(entry.description) }
                 item { UiText("版本 ${entry.version}", style = MaterialTheme.typography.labelMedium) }
+                local?.let { item { UiText("已安装：${it.version}", style = MaterialTheme.typography.labelMedium) } }
                 item { UiText(permissionDescription(entry.permissions)) }
                 if (entry.dependencies.isNotEmpty()) item { UiText("依赖：${entry.dependencies.joinToString()}") }
-            } }, confirmButton = { TextButton(enabled = !busy && local?.version != entry.version, onClick = { vm.install(entry); marketTarget = null; tab = 1 }) {
-                UiText(if (local?.version == entry.version) "已安装" else if (local != null) "更新插件" else "安装")
+            } }, confirmButton = { TextButton(enabled = !busy && (comparison == null || comparison > 0), onClick = { vm.install(entry); marketTarget = null; tab = 1 }) {
+                UiText(when {
+                    comparison == 0 -> "已安装"
+                    comparison != null && comparison < 0 -> "本地版本较新"
+                    local != null -> "更新插件"
+                    else -> "安装"
+                })
             } }, dismissButton = { TextButton(onClick = { marketTarget = null }) { UiText("关闭") } })
     }
     installed.firstOrNull { it.id == installedTarget }?.let { extension ->
