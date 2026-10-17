@@ -81,6 +81,7 @@ class LinuxEnvironmentHtmlTest {
             html.tapElement(selector)
         }
         fun refresh() { tap("[data-node=refresh]") }
+        var phase="initial"
         fun decline() {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("取消").performClick()
@@ -106,15 +107,19 @@ class LinuxEnvironmentHtmlTest {
             html.js("document.querySelector('[data-node=log]').scrollTop=80")
             refresh()
             waitDom("document.getElementById('environment-log').open&&Math.abs(document.querySelector('[data-node=log]').scrollTop-80)<2")
+            phase="known-download"
             service.state.value=service.state.value.copy(stage="DOWNLOADING",bytes=512,total=1024)
             refresh();waitDom("document.querySelector('progress')?.value===50")
             assertEquals("true",html.js("document.querySelector('[data-node=software_PYTHON]').disabled"))
+            phase="unknown-download"
             service.state.value=service.state.value.copy(total=null)
             refresh();waitDom("!!document.querySelector('progress')&&!document.querySelector('progress').hasAttribute('value')")
             html.screenshot("linux-plugin-unknown-download-progress")
+            phase="initializing"
             service.state.value=service.state.value.copy(stage="INITIALIZING",total=1024)
             refresh();waitDom("document.querySelector('[data-node=status]').textContent.includes('安装基础软件')&&!document.querySelector('progress').hasAttribute('value')&&!document.querySelector('[data-node=progress]')")
             tap("#environment-log > summary")
+            phase="failed"
             service.state.value=service.state.value.copy(stage="FAILED",failure="fixture download failed")
             refresh();waitDom("document.getElementById('environment-log').open&&document.querySelector('[role=alert]').textContent==='fixture download failed'")
             tap("#environment-log > summary");refresh()
@@ -129,6 +134,11 @@ class LinuxEnvironmentHtmlTest {
             html.screenshot("linux-plugin-dark-large-text-failure-log")
             assertEquals(0,mutations.get())
             assertNull(runBlocking { app.workspaces.bound(chat) })
+        } catch(error:Throwable) {
+            // Fixture state and geometry only: never output, prompts, file contents or credentials.
+            val metrics=runCatching { html.js("JSON.stringify({metadata:document.querySelector('[data-node=environment_meta]')?.textContent,refreshDisabled:document.querySelector('[data-node=refresh]')?.disabled,progress:document.querySelector('progress')?.value,max:document.querySelector('progress')?.max,progressAttribute:document.querySelector('progress')?.getAttribute('value')})") }.getOrNull()
+            runCatching { html.screenshot("linux-plugin-workbench-failure") }
+            throw AssertionError("Environment fixture phase=$phase metrics=$metrics",error)
         } finally { html.setTextZoom(100);rule.runOnUiThread { visible=false } }
     }
 
