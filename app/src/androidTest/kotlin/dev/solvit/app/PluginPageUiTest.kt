@@ -231,16 +231,18 @@ class PluginPageUiTest {
             html.setTextZoom(150)
             html.js("document.getElementById('query').value='memory-viewport-unique-target';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
             waitDom("!document.getElementById('search-button').disabled && document.querySelectorAll('[data-memory-id]').length===1 && !!document.querySelector('[data-memory-id=${ids.first()}]')")
-            html.screenshot("memory-search-single-result-large-text")
             val bounds = Json.parseToJsonElement(html.js("""(()=>{
                 const cy=document.getElementById('graph')._cyreg.cy;
                 const b=cy.nodes().renderedBoundingBox();
                 return {x1:b.x1,y1:b.y1,x2:b.x2,y2:b.y2,width:cy.width(),height:cy.height(),zoom:cy.zoom()};
             })()""")).jsonObject
+            println("Memory search actual rendered bounds: $bounds")
             fun n(key: String) = bounds.getValue(key).jsonPrimitive.double
             assertTrue("Search must bring the actual result into view after panning: $bounds",
                 n("x1") >= 0 && n("y1") >= 64 && n("x2") <= n("width") && n("y2") <= n("height") - 64)
             assertTrue("A single search result must use its readable base scale: $bounds", n("zoom") >= .99 && n("zoom") <= 1.01)
+            rule.waitForIdle()
+            html.screenshot("memory-search-single-result-large-text")
             val viewport = html.js("(()=>{const cy=document.getElementById('graph')._cyreg.cy;return {pan:cy.pan(),zoom:cy.zoom()}})()")
             html.tapMemoryNode(ids.first())
             waitDom("document.querySelector('[data-node=body]')?.textContent==='memory-viewport-unique-target'")
