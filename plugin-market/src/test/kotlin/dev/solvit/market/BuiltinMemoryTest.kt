@@ -62,6 +62,48 @@ class BuiltinMemoryTest {
         }
     }
 
+    @Test fun olderMarketCatalogCannotDowngradeBundledMemoryOrResetItsState() = runBlocking<Unit> {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val manager = PluginManager(scope = scope)
+        val server = MockWebServer(); server.start()
+        val client = OkHttpClient.Builder().addInterceptor { chain ->
+            val url = chain.request().url
+            chain.proceed(chain.request().newBuilder().url(server.url(url.encodedPath +
+                (url.encodedQuery?.let { "?$it" } ?: ""))).build())
+        }.build()
+        try {
+            manager.load(ToolsPlugin()); manager.load(ContextHooksPlugin()); manager.load(PostTurnHooksPlugin()); manager.enableAll()
+            val market = AndroidMarketplace(context, manager, client, manager.registry.require(Services.Tools))
+            market.restore(); market.enable("dev.solvit.memory", setOf("storage", "model"))
+            val file = java.io.File(context.filesDir, "extensions/dev.solvit.memory.solvit.json")
+            val installedBytes = file.readBytes()
+            val memory = BuiltinMemoryManager(context)
+            val fact = memory.save("Memory survives an older catalog", "fact", emptyList()).getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
+            val old = javaClass.getResourceAsStream("/memory-1.4.1.solvit.json")!!.use { it.readBytes() }
+            val manifest = Json.parseToJsonElement(old.toString(Charsets.UTF_8)).jsonObject.getValue("manifest").jsonObject
+            val sha = MessageDigest.getInstance("SHA-256").digest(old).joinToString("") { "%02x".format(it) }
+            val catalog = buildJsonObject {
+                put("apiVersion", 1)
+                put("plugins", JsonArray(listOf(JsonObject(manifest + mapOf("sha256" to JsonPrimitive(sha),
+                    "bytes" to JsonPrimitive(old.size), "downloadPath" to JsonPrimitive("/api/v1/packages/dev.solvit.memory/1.4.1"))))))
+            }
+            server.enqueue(MockResponse().setBody(catalog.toString()))
+            server.enqueue(MockResponse().setBody(old.toString(Charsets.UTF_8)))
+            val entry = market.catalog().single()
+            assertFailsWith<IllegalStateException> { market.install(entry) }
+            assertEquals(1, server.requestCount, "Reject an older catalog before downloading it")
+            assertContentEquals(installedBytes, file.readBytes())
+            val installed = market.installed.value.single { it.id == "dev.solvit.memory" }
+            assertEquals("1.4.2", installed.version); assertTrue(installed.enabled)
+            assertEquals(setOf("storage", "model"), context.getSharedPreferences("extension_permissions", Context.MODE_PRIVATE)
+                .getStringSet("grants.dev.solvit.memory", emptySet()))
+            assertTrue(memory.snapshot().toString().contains(fact))
+        } finally {
+            manager.shutdown(); scope.cancel(); server.shutdown()
+            client.dispatcher.executorService.shutdown(); client.connectionPool.evictAll()
+        }
+    }
+
     @Test fun offlineSeedNeedsPermissionAndPersistsMemoryThroughApplicationRestart() = runBlocking<Unit> {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val client = OkHttpClient()
