@@ -25,10 +25,10 @@ class WorkspaceHtmlPageTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
     @Test fun htmlCreatesBindsBrowsesAndSavesThroughActualNativeConfirmationAndRejectsStaleFiles() {
         val app = rule.activity.application as SolvitApplication
-        val chat = "html-workspace-" + java.util.UUID.randomUUID()
-        runBlocking {
+        val chat = runBlocking {
             withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }
             app.marketplace.disable("dev.solvit.workspace")
+            app.chatStore.createSession().id
         }
         val manager = BuiltinWorkspaceManager(app)
         val html = HtmlPageProbe(rule.activity)
@@ -36,7 +36,14 @@ class WorkspaceHtmlPageTest {
         val marker = "IME_EDIT"
         var visible by mutableStateOf(true)
         var dark by mutableStateOf(false)
-        fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+        fun waitDom(expression: String) {
+            try { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+            catch (timeout: androidx.compose.ui.test.ComposeTimeoutException) {
+                val state = runCatching { html.js("JSON.stringify({missingAttachmentSource:document.querySelector('[data-node=message]')?.textContent.includes('聊天附件来源服务不可用'),nodes:Array.from(document.querySelectorAll('[data-node]')).slice(0,30).map(n=>({id:n.dataset.node,disabled:n.disabled})),menus:Array.from(document.querySelectorAll('details')).map(n=>({id:n.id,open:n.open}))})") }.getOrDefault("unavailable")
+                runCatching { html.screenshot("workspace-directory-failure") }
+                throw AssertionError("Directory wait: $expression; safe DOM state: $state", timeout)
+            }
+        }
         fun click(id: String) {
             waitDom("!!document.querySelector('[data-node=$id]') && !document.querySelector('[data-node=$id]').disabled")
             val menu = Json.parseToJsonElement(html.js("document.querySelector('[data-node=$id]').closest('details')?.id??''")).jsonPrimitive.content
@@ -62,7 +69,7 @@ class WorkspaceHtmlPageTest {
         }
         try {
             rule.runOnUiThread { rule.activity.setContent { MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
-                if (visible) PluginPageScreen("工作区", { manager.openPage("zh", WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat)) }) { visible = false }
+                if (visible) PluginPageScreen("工作区", { manager.openPage("zh", WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat, chatAttachments = dev.solvit.core.SavedChatAttachmentSource(app.chatStore, app.attachments, chat) { chat })) }) { visible = false }
             } } }
             waitDom("window.pluginPageReady===true && !!document.querySelector('[data-node=create]')")
             assertNull(runBlocking { app.workspaces.bound(chat) })

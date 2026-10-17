@@ -36,3 +36,5 @@
 生成资源核对发现Git页面既复用workspace/pages.ts也import工作目录ui/main.mjs，因此Git包也发生真实变化；原“只变一个包”的预期未通过核对，没有导入不匹配资源。已明确同步Git1.3.2/工作区1.11.1和同一目录CSS，保留Git1.3.1原包SHA256 30f9fcbf60afd7cdfa177c19f212ef53ae9d56c39a6bbe0f11c540d0257feffe及升级回归。Git真实文件页也增加触摸菜单与完整可见性断言，未增加权限或改变克隆恢复协议。宽屏保留原有常驻树、隐藏无效切换入口。新生成与设备检查待完成。
 
 Git与工作区使用同一个directory-style.mjs，由共用目录组件注入；遵循现有CodeMirror样式注入及宿主既有CSP，无新依赖。生成包分别内含同一组件与样式，后续修改可一起生效。
+
+真实页面38992158388：第二项实际Shell/目录截图通过，完整HTML路径在新增chatFiles入口等待超时；原测试WorkspacePageBridge未配置chatAttachments，源码该查询明确要求此服务。将测试接入真实ChatStore会话及同应用SavedChatAttachmentSource，保留入口/菜单/原确认和业务断言；新增仅失败时安全节点ID/菜单状态及截图，不输出文件内容/密钥，不提高等待时长。重跑待验证，不能将这次失败算作整页成功。
