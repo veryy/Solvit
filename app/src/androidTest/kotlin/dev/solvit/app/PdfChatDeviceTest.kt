@@ -177,6 +177,14 @@ class PdfChatDeviceTest {
                 runCatching { screenshot("pdf-chat-send-failure") }
                 throw failure
             }
+            try {
+                rule.onNodeWithTag("chat_input").assertTextEquals("")
+                assertTrue("An accepted PDF send must clear its conversation draft after real HTTP failure settles",
+                    vm.inputDrafts.value[session]?.text.isNullOrEmpty())
+            } catch(failure:Throwable) {
+                runCatching { screenshot("pdf-chat-cleared-draft-failure") }
+                throw failure
+            }
             fun requestContent():String {
                 val request=server.takeRequest(5,TimeUnit.SECONDS)?:error("missing PDF request")
                 val messages=JSONObject(request.body.readUtf8()).getJSONArray("messages")
