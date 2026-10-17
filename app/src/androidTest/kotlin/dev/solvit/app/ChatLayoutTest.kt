@@ -940,8 +940,15 @@ class ChatLayoutTest {
                 val panel = geometry("chat_drawer")
                 panel.bounds.width >= panel.width * 0.75f - 2 && geometry("history_search").bounds.width > 0
             }
-            rule.onNodeWithTag("history_search").performTextInput(marker.uppercase())
+            rule.onNodeWithTag("history_search").performClick().performTextInput(marker.uppercase())
+            rule.waitUntil(8000) { geometry("history_search").keyboardVisible }
+            val searchGeometry = geometry("history_search")
+            val keyboardTop = searchGeometry.height - searchGeometry.ime
+            assertTrue(geometry("history_list").bounds.bottom <= keyboardTop + 2)
+            assertTrue(geometry("history_settings").bounds.bottom <= keyboardTop + 2)
+            screenshot("history-search-keyboard")
             rule.onNodeWithTag("history_search").performImeAction()
+            rule.waitUntil(8000) { !geometry("history_search").keyboardVisible }
             rule.onNodeWithTag("history_session_" + fixture.id).assertIsDisplayed()
             screenshot("history-search-persisted-match")
             rule.onNodeWithTag("history_session_" + fixture.id).performClick()

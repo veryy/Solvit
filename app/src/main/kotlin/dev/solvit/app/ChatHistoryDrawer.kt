@@ -37,7 +37,7 @@ internal fun ChatHistoryDrawerContent(
         val term = query.trim()
         if (term.isEmpty()) sessions else sessions.filter { it.title.contains(term, ignoreCase = true) }
     }
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().imePadding()) {
         UiText("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
         FilledTonalButton(onClick = { finishSearch(); onNew() }, enabled = canCreate,
             modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().testTag("new_chat")) {
@@ -75,7 +75,7 @@ internal fun ChatHistoryDrawerContent(
             }
         }
         HorizontalDivider()
-        TextButton(onClick = { finishSearch(); onSettings() }, modifier = Modifier.padding(12.dp).fillMaxWidth()) {
+        TextButton(onClick = { finishSearch(); onSettings() }, modifier = Modifier.padding(12.dp).fillMaxWidth().testTag("history_settings")) {
             UiIcon(Icons.Default.Settings, null); Spacer(Modifier.width(8.dp)); UiText("设置")
         }
     }
