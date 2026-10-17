@@ -48,13 +48,12 @@ internal fun ChatToolApprovalCard(pending: ChatViewModel.ToolApproval, modifier:
             }, modifier=Modifier.fillMaxWidth().testTag("tool_details_toggle")
                 .semantics { stateDescription=expansionState; contentDescription=approvalLabel },
                 contentPadding=PaddingValues(vertical=8.dp)) {
-                Text(pending.descriptor.name, Modifier.weight(1f), maxLines=1, overflow=TextOverflow.Ellipsis,
+                Text(pending.descriptor.name, Modifier.weight(1f), maxLines=if (expanded) Int.MAX_VALUE else 1, overflow=TextOverflow.Ellipsis,
                     style=MaterialTheme.typography.labelLarge, color=MaterialTheme.colorScheme.onSurface)
                 Icon(if(expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, null)
             }
             if (expanded) LazyColumn(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(max=180.dp)
                 .testTag("tool_approval_details"), verticalArrangement=Arrangement.spacedBy(6.dp)) {
-                item { Text(pending.descriptor.name, style=MaterialTheme.typography.labelMedium) }
                 item { Text(pending.descriptor.description, style=MaterialTheme.typography.bodySmall) }
                 pending.descriptor.executionMode?.let { mode -> item {
                     UiText(if(mode==ExecutionMode.ROOT) "执行身份：Root（设备最高权限）" else "执行身份：普通应用")
