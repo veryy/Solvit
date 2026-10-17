@@ -5558,5 +5558,37 @@
     "ko": "일치하는 대화가 없습니다",
     "es": "No hay conversaciones coincidentes",
     "fr": "Aucune conversation correspondante"
+  },
+  "文件信息": {
+    "zh": "文件信息",
+    "en": "File information",
+    "ja": "ファイル情報",
+    "ko": "파일 정보",
+    "es": "Información del archivo",
+    "fr": "Informations sur le fichier"
+  },
+  "文件名": {
+    "zh": "文件名",
+    "en": "File name",
+    "ja": "ファイル名",
+    "ko": "파일 이름",
+    "es": "Nombre del archivo",
+    "fr": "Nom du fichier"
+  },
+  "文件类型": {
+    "zh": "文件类型",
+    "en": "File type",
+    "ja": "ファイルの種類",
+    "ko": "파일 형식",
+    "es": "Tipo de archivo",
+    "fr": "Type de fichier"
+  },
+  "文件大小": {
+    "zh": "文件大小",
+    "en": "File size",
+    "ja": "ファイルサイズ",
+    "ko": "파일 크기",
+    "es": "Tamaño del archivo",
+    "fr": "Taille du fichier"
   }
 }

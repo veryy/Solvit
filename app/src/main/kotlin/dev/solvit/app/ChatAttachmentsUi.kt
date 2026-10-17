@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -98,16 +99,57 @@ internal fun ChatAttachmentCards(vm: ChatViewModel, session: String, attachments
 /** Owned by the chat page, so a recycled message row cannot close its viewer. */
 @Composable
 internal fun ChatAttachmentPreview(vm: ChatViewModel, session: String, attachment: ChatAttachment, onDismiss: () -> Unit) {
-    FullScreenPage(onDismissRequest = onDismiss) {
-        Column(Modifier.fillMaxSize().statusBarsPadding().padding(16.dp)) {
-            Row(Modifier.fillMaxWidth()) {
-                Text(attachment.name, modifier = Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                TextButton(onClick = onDismiss, modifier = Modifier.testTag("attachment_preview_close")) { UiText("关闭") }
-            }
-            if (attachment.mimeType.startsWith("image/")) AttachmentImage(vm, session, attachment, Modifier.fillMaxSize())
-            else if (attachment.mimeType == "application/pdf") PdfAttachmentPreview(vm, session, attachment, Modifier.weight(1f))
-            else AttachmentText(vm, session, attachment)
+    AttachmentPreviewPage(attachment, onDismiss) { modifier ->
+        when {
+            attachment.mimeType.startsWith("image/") -> AttachmentImage(vm, session, attachment, modifier)
+            attachment.mimeType == "application/pdf" -> PdfAttachmentPreview(vm, session, attachment, modifier)
+            else -> AttachmentText(vm, session, attachment, modifier)
         }
+    }
+}
+
+/** Shared navigation for image, text and PDF viewers; file metadata never replaces the content. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun AttachmentPreviewPage(attachment: ChatAttachment, onDismiss: () -> Unit, content: @Composable (Modifier) -> Unit) {
+    var informationOpen by remember(attachment.id) { mutableStateOf(false) }
+    FullScreenPage(onDismissRequest = onDismiss) {
+        Scaffold(contentWindowInsets = WindowInsets(0, 0, 0, 0), topBar = {
+            TopAppBar(
+                modifier = Modifier.testTag("attachment_preview_toolbar"),
+                title = { Text(attachment.name, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("attachment_preview_title")) },
+                navigationIcon = {
+                    IconButton(onClick = onDismiss, modifier = Modifier.testTag("attachment_preview_close")) { UiIcon(Icons.Default.Close, "关闭") }
+                },
+                actions = {
+                    IconButton(onClick = { informationOpen = true }, modifier = Modifier.testTag("attachment_preview_info")) { UiIcon(Icons.Default.Info, "文件信息") }
+                }
+            )
+        }) { padding ->
+            Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)
+                .padding(horizontal = 16.dp, vertical = 12.dp).testTag("attachment_preview_body")) {
+                content(Modifier.fillMaxSize())
+            }
+        }
+        if (informationOpen) AlertDialog(
+            onDismissRequest = { informationOpen = false },
+            title = { UiText("文件信息") },
+            text = {
+                SelectionContainer {
+                    Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        UiText("文件名", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(attachment.name, modifier = Modifier.testTag("attachment_info_name"))
+                        UiText("文件类型", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(attachment.mimeType, modifier = Modifier.testTag("attachment_info_type"))
+                        UiText("文件大小", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(android.text.format.Formatter.formatFileSize(LocalContext.current, attachment.sizeBytes),
+                            modifier = Modifier.testTag("attachment_info_size"))
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { informationOpen = false }, modifier = Modifier.testTag("attachment_info_close")) { UiText("关闭") } }
+        )
     }
 }
 
@@ -139,7 +181,7 @@ private fun AttachmentImage(vm: ChatViewModel, session: String, attachment: Chat
 }
 
 @Composable
-private fun AttachmentText(vm: ChatViewModel, session: String, attachment: ChatAttachment) {
+private fun AttachmentText(vm: ChatViewModel, session: String, attachment: ChatAttachment, modifier: Modifier) {
     var text by remember(attachment.id) { mutableStateOf<String?>(null) }
     LaunchedEffect(session, attachment.id) {
         try {
@@ -149,5 +191,5 @@ private fun AttachmentText(vm: ChatViewModel, session: String, attachment: ChatA
         } catch (cancelled: CancellationException) { throw cancelled }
         catch (_: Exception) { text = "附件预览失败" }
     }
-    SelectionContainer { Text(text ?: "正在读取附件…", modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("attachment_text_${attachment.id}")) }
+    SelectionContainer { Text(text ?: "正在读取附件…", modifier = modifier.verticalScroll(rememberScrollState()).testTag("attachment_text_${attachment.id}")) }
 }

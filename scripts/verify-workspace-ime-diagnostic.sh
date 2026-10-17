@@ -5,6 +5,7 @@ solvit_diagnostic_expected='OK (1 test)'
 solvit_chat_font_scale=1
 solvit_memory_label_bounds=false
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
+  attachment-preview) solvit_diagnostic_test='dev.solvit.app.AttachmentPreviewLayoutTest' ;;
   pdf-chat) solvit_diagnostic_test='dev.solvit.app.PdfChatDeviceTest#pickerSelectedScanPreviewHttpRetryReopenAndEditPreserveTheSameSelection' ;;
   terminal-tabs) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput' ;;
   chat-drafts-sequence) solvit_diagnostic_test='dev.solvit.app.ChatAttachmentWorkspaceHtmlTest,dev.solvit.app.ChatAttachmentsDeviceTest,dev.solvit.app.ChatHistoryDrawerTest,dev.solvit.app.ChatInteractionDeviceTest,dev.solvit.app.ChatLayoutTest#javascriptPluginUsesPersistentPtyAndDisableClosesItsProcess,dev.solvit.app.ChatLayoutTest#largeNativeTranscriptReopensAndBranchesThroughRealAndroidCursorWindows,dev.solvit.app.ChatLayoutTest#roleAppliedThroughSettingsReachesProviderAndNewChatRequest,dev.solvit.app.ChatLayoutTest#contextBudgetDialogValidatesAndReturnsSavedValues,dev.solvit.app.ChatLayoutTest#memoryTaskRetryRequiresConfirmationAndDisplaysSource,dev.solvit.app.ChatLayoutTest#actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat,dev.solvit.app.ChatLayoutTest#javascriptPluginCanCreateShellAndRunActualAndroidCommand,dev.solvit.app.ChatLayoutTest#switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty'; solvit_diagnostic_expected='OK (13 tests)' ;;
