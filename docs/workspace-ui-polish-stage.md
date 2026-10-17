@@ -68,3 +68,5 @@ Linux artifact12087270113 SHA256 3c8c86eb386ae85fc2e71c6285d0eaa8b00e043f6396cba
 ### 正式0.43.7未发布
 
 完整38994849962在UI门禁失败，release跳过；旧标签eb0ff97c保留，不重打标签。常规模拟器App82项中2失败：ChatLayoutTest项目规则场景仍断言旧工作区版本1.11.0（实际1.11.1），已只同步最新包版本断言，保留完整实际规则内容/角色/未绑定工作区断言。另一处ChatInteractionDeviceTest.kt:214在实际点击“允许且不再询问”后requests/executed未达预期，原10000ms不变，需要读取既有安全状态/截图定位。完整大字与stdio后置检查未执行，不能将定向通过视为完整发布。原始失败artifact12087526532 SHA256 c3022d5a3daa9a758211be22e64a27a3e5639c151d402f6a9149666cef5cf4c4待下载核对。
+
+失败设备归档SHA256与CRC已核对。安全日志为phase=remembered-approval-result、requests=1/executed=0/queued=0/pending=true/resolving=false/decided=false/busy=true；已实际查看chat-dock-layout-failure，按钮可见且键盘打开。授权回调尚未开始，先用测试Window.Callback记录原一次物理触摸坐标、当时按钮动态bounds与IME高度；不改变生产代码、10000ms期限，不自动补点。独立诊断重复5次完整原类，首失败即保留并停止，正式门禁不变。重新读取锁定DSH ApprovalPanel CSS/授权测试与Operit PendingMessageQueuePanel/队列测试，沿用详情与输入独立、删除不应隐式授权的边界，未复制代码。

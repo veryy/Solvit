@@ -209,7 +209,26 @@ class ChatInteractionDeviceTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("chat_queue").fetchSemanticsNodes().isEmpty() }
             rule.waitForIdle()
             phase = "remembered-approval-click"
-            rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed().performClick()
+            val rememberButton = rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed()
+            val rememberSemantics = rememberButton.fetchSemanticsNode()
+            val originalWindowCallback = rule.runOnUiThread { checkNotNull(rule.activity.window.callback) }
+            // Fixture-only coordinates identify a stale test touch during native IME reflow.
+            // Keep the exact original touch and result deadline; never retry authorization.
+            rule.runOnUiThread {
+                android.util.Log.i("ChatDockFixture", "CHAT_DOCK_TOUCH_BEFORE|bounds=${rememberSemantics.boundsInWindow}")
+                rule.activity.window.callback = object : android.view.Window.Callback by originalWindowCallback {
+                    override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+                        if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN || event.actionMasked == android.view.MotionEvent.ACTION_UP) {
+                            val bounds = runCatching { rememberSemantics.boundsInWindow }.getOrNull()
+                            val insets = rule.activity.window.decorView.rootWindowInsets
+                            android.util.Log.i("ChatDockFixture", "CHAT_DOCK_TOUCH|action=${event.actionMasked}|x=${event.x}|y=${event.y}|bounds=$bounds|ime=${insets?.isVisible(WindowInsets.Type.ime())}|imeBottom=${insets?.getInsets(WindowInsets.Type.ime())?.bottom}")
+                        }
+                        return originalWindowCallback.dispatchTouchEvent(event)
+                    }
+                }
+            }
+            try { rememberButton.performClick() }
+            finally { rule.runOnUiThread { rule.activity.window.callback = originalWindowCallback } }
             phase = "remembered-approval-result"
             rule.waitUntil(10_000) { requests.size==2&&executed.size==1 }
             phase = "queue-edit-and-interrupt"

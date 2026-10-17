@@ -43,6 +43,8 @@ solvit_diagnostic_expected='OK (1 test)'
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = file-diff ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-interaction ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = workspace-files ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = git-workbench ]; then solvit_diagnostic_expected='OK (3 tests)'; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role ]; then solvit_diagnostic_iterations=10; fi
+# Stress the reproduced native IME/queue-removal touch race without retrying a failed scenario.
+if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-interaction ]; then solvit_diagnostic_iterations=5; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-keyboard ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-attachments ]; then solvit_diagnostic_iterations=3; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role-sequence ]; then
   solvit_diagnostic_iterations=10
