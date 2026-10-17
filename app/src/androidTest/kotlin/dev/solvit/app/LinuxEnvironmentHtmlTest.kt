@@ -80,7 +80,14 @@ class LinuxEnvironmentHtmlTest {
             waitDom("(()=>{const e=document.querySelector(${kotlinx.serialization.json.JsonPrimitive(selector)}),r=e.getBoundingClientRect();return r.height>=44&&r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})()")
             html.tapElement(selector)
         }
-        fun refresh() { tap("[data-node=refresh]") }
+        fun refresh() {
+            waitDom("!document.querySelector('[data-node=refresh]').disabled")
+            // Observe one actual screen touch, then await its real host/render settlement.
+            // Programmatic busy polling must not satisfy this trusted-click observation.
+            html.js("window.environmentFixtureRefreshClicked=false;document.addEventListener('click',function observe(e){if(e.isTrusted&&e.target.closest('[data-node=refresh]')){window.environmentFixtureRefreshClicked=true;document.removeEventListener('click',observe,true)}},true)")
+            tap("[data-node=refresh]")
+            waitDom("window.environmentFixtureRefreshClicked&&!document.querySelector('[data-node=refresh]').disabled")
+        }
         var phase="initial"
         fun decline() {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
