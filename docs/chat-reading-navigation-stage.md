@@ -24,6 +24,14 @@
 
 补读Google Maven官方ui-test-android1.8.3源码jar，AndroidInputDispatcher.android.kt:72实际向Compose root View直接dispatchTouchEvent，因此Window.Callback不是有效触摸探针。替换为临时、非消费的Compose Initial-pass观察，挂在现有drawer根节点，只记录真实DOWN相对于当时按钮bounds和窗口焦点，并保留其他主界面DOWN作为正控制；失败后仍只探测一帧、仍抛原错误。生产角色/新建处理不变，该临时观察必须在最终交付前移除。首次95完整39024585366与主线94为同一drawer断言失败，生成APK仅核对为build95/既定签名/14内置包同字节，暂不交付。
 
-第二次触摸诊断39026513015再次第1轮失败。真实Compose轨迹有两个正常主界面DOWN作为正控制；按新对话前的语义bounds为0,0,0,0，实际DOWN为0,0且inside=false；focus=true、IME=false，新旧session相同。失败后的drawer完整打开，推进一帧仍不关闭。故是打开动画尚未完成时测试取到了被裁切为零的旧目标，点击未命中新建；不是关闭动画只差一帧，也没有角色提示词未生效的证据。
+第二次触摸诊断39026513015前3轮OK、第4轮失败（按完整原始result-1至4核对，纠正最初仅看日志时的轮次推测）。artifact12098414687，4914034字节、SHA256 46fa6e3cbad579163fd5bbec96fb936ed2827668cb28b320651b9fba05f04189，完整摘要与ZIP CRC核对。真实Compose轨迹有两个正常主界面DOWN作为正控制；按新对话前的语义bounds为0,0,0,0，实际DOWN为0,0且inside=false；focus=true、IME=false，新旧session相同。失败后的drawer完整打开，推进一帧仍不关闭。故是打开动画尚未完成时测试取到了被裁切为零的旧目标，点击未命中新建；不是关闭动画只差一帧，也没有角色提示词未生效的证据。
 
 只修正测试同步：点击前先推进已有排队帧，再等待drawer达到完整宽度、按钮真实非零且完整在屏内、原生焦点恢复和IME收起；仍只有一次点击，原8000ms不加长。新增VM实际session变化、原生已保存role.id和pluginIds断言，保留原UI当前使用断言。诊断模式额外要求真实DOWN位于当时按钮内，并将成功轨迹写入logcat；临时观察仍需在最终提交前移除。待相同场景10轮远程验证后再完成最终完整门禁。
+
+## 同一角色流程10轮复核与移除探针
+
+修正同步后的39027110634（0d44688d）成功，artifact12099191366（782696字节，SHA256 f84f4026dc929ff675e3e683dc3a6820a90a6a5341dd6fecf7d0d1e5ccb081f6）、完整摘要/CRC已核对。10份独立原始result均OK(1 test)，logcat中10条成功记录各自证实真实命中、focus=true、IME=false、原生新session/role/pluginIds已断言。最后一轮实际DOWN(404.5,347.5)在按钮42..767/295..400内；没有把失败重试成成功。
+
+现移除全部临时生产pointerInput/全局回调、Window探针、诊断时钟补点与参数；MainActivity逐字节回到e5e76a3d版本，保留ChatTimeline的返回最新消息UI。永久测试保留点击前真实布局/焦点/IME边界、新旧session变化、原生角色/白名单和原UI使用中断言；失败只留截图/树，不自动补点击或时钟探测。独立门禁新增必需角色继承和真实流式导航方法，最低数量84/3/26及15恢复要求不降。最终无探针完整Android仍待执行，不交付之前失败的e5 APK。
+
+原e5完整失败归档12098990303（11603413字节，SHA256 b2fe20ffa88feab3f6acd318ffa2cc86a3213054f701b3f7f56a067843392ef1）已核对完整摘要/CRC和113项XML：仅角色新建用例失败。失败记录保留，后续成功不会改写它。没有角色提示词/身份策略的生产修复，因此不能把本次测试同步当作真实模型身份质量验收。
