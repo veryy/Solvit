@@ -259,10 +259,16 @@ class PluginPageUiTest {
             assertEquals("Large text floating actions must stay apart and inside the viewport", "true", actionsFit)
             html.tapElement("#options")
             waitDom("!document.getElementById('menu').hidden")
-            assertEquals("Options must open below the resized toolbar and remain scrollable on screen", "true", html.js("""(()=>{
-                const menu=document.getElementById('menu').getBoundingClientRect(),bar=document.getElementById('toolbar').getBoundingClientRect();
-                return menu.top>=bar.bottom+7 && menu.bottom<=innerHeight && menu.right<=innerWidth;
-            })()"""))
+            val menuGeometry = Json.parseToJsonElement(html.js("""(()=>{
+                const element=document.getElementById('menu'),menu=element.getBoundingClientRect(),bar=document.getElementById('toolbar').getBoundingClientRect();
+                const first=element.querySelector('summary').getBoundingClientRect(),style=getComputedStyle(element);
+                return {top:menu.top,bottom:menu.bottom,right:menu.right,height:menu.height,barBottom:bar.bottom,viewportHeight:innerHeight,viewportWidth:innerWidth,
+                    scrollHeight:element.scrollHeight,maxHeight:style.maxHeight,firstBottom:first.bottom,parentDisplay:getComputedStyle(element.parentElement).display};
+            })()""")).jsonObject
+            fun m(key: String) = menuGeometry.getValue(key).jsonPrimitive.double
+            assertTrue("Options must open below the resized toolbar with useful visible contents: $menuGeometry",
+                m("top") >= m("barBottom") + 7 && m("bottom") <= m("viewportHeight") && m("right") <= m("viewportWidth") &&
+                    m("height") >= minOf(m("scrollHeight"), 200.0) && m("firstBottom") <= m("bottom"))
             rule.waitForIdle()
             html.screenshot("memory-large-text-options")
             html.tapElement("#options")
