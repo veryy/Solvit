@@ -213,6 +213,7 @@ class GitHtmlPageTest {
             waitDom("!!document.getElementById('tree-toggle') && !document.getElementById('tree-toggle').disabled")
             html.tapElement("#tree-toggle")
             waitDom("document.getElementById('file-tree').classList.contains('open')")
+            waitDom("(()=>{const b=document.getElementById('tree-close'),r=b.getBoundingClientRect();return document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.closest('#tree-close')===b})()")
             waitDom("!!document.querySelector('[data-open=\"a.txt\"]')")
             html.tapElement("[data-open=\"a.txt\"]")
             waitDom("window.workspaceEditor?.state.doc.toString()==='working after staging 😀\\n'")

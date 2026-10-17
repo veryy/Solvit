@@ -28,7 +28,7 @@ const remoteLabels={
 const cloneLabels={zh:'克隆到空工作目录',en:'Clone into empty directory',ja:'空の作業フォルダにクローン',ko:'빈 작업 폴더에 복제',es:'Clonar en carpeta vacía',fr:'Cloner dans un dossier vide'};
 const credentialLabels={zh:'仓库凭据',en:'Repository credentials',ja:'リポジトリ認証情報',ko:'저장소 자격 증명',es:'Credenciales del repositorio',fr:'Identifiants du dépôt'};
 const labels={
- zh:['Git 工作区','Changes','文件管理','历史','刷新','初始化仓库','未暂存','已暂存','冲突','查看差异','暂存此文件','取消暂存','提交暂存区','提交说明','作者','邮箱','审阅提交','确认','返回','上一页','下一页','无文件变化','读取中','操作失败：','操作已完成','原始文件字节暂存；不支持LFS过滤器。文件或暂存区变化时须重新审阅。'],
+ zh:['Git 工作区','修改','文件管理','历史','刷新','初始化仓库','未暂存','已暂存','冲突','查看差异','暂存此文件','取消暂存','提交暂存区','提交说明','作者','邮箱','审阅提交','确认','返回','上一页','下一页','无文件变化','读取中','操作失败：','操作已完成','原始文件字节暂存；不支持LFS过滤器。文件或暂存区变化时须重新审阅。'],
  en:['Git workspace','Changes','Files','History','Refresh','Initialize repository','Working tree','Staged','Conflict','View diff','Stage this file','Unstage','Commit staged files','Message','Author','Email','Review commit','Confirm','Back','Previous','Next','No changes','Loading','Operation failed: ','Completed','Stages raw bytes; LFS filters are unsupported. Re-review if files or the index change.'],
  ja:['Gitワークスペース','変更','ファイル','履歴','更新','リポジトリ初期化','未ステージ','ステージ済み','競合','差分表示','ステージ','取り消し','ステージをコミット','メッセージ','作者','メール','確認','確定','戻る','前へ','次へ','変更なし','読込中','失敗：','完了','生バイトをステージ。LFS非対応。変更時は再確認してください。'],
  ko:['Git 작업 공간','변경','파일','기록','새로 고침','저장소 초기화','작업 트리','스테이지','충돌','차이 보기','스테이지 추가','스테이지 취소','스테이지 커밋','메시지','작성자','이메일','커밋 검토','확인','뒤로','이전','다음','변경 없음','불러오는 중','실패: ','완료','원본 바이트를 사용합니다. LFS 미지원. 변경 후 다시 검토하세요.'],

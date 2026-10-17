@@ -30,6 +30,10 @@ function menu(id,label,buttons,compact=false){
   closeMenus(details);const bounds=details.closest('main').getBoundingClientRect(),anchor=summary.getBoundingClientRect();
   const below=bounds.bottom-anchor.bottom-8,above=anchor.top-bounds.top-8,up=below<Math.min(panel.scrollHeight,320)&&above>below;
   panel.classList.toggle('above',up);panel.style.maxHeight=`${Math.max(44,Math.min(320,up?above:below))}px`;
+  // Git may expose only New. Align to real space, not DOM child order.
+  panel.style.maxWidth=`${Math.max(44,bounds.width-8)}px`;panel.style.insetInlineStart='0px';
+  const rect=panel.getBoundingClientRect(),shift=Math.max(bounds.left+4-rect.left,Math.min(0,bounds.right-4-rect.right));
+  panel.style.insetInlineStart=`${shift}px`;
  }});
  panel.addEventListener('click',event=>{if(event.target.closest('button'))details.open=false});return details;
 }
