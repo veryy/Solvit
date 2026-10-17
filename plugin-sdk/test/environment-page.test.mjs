@@ -25,3 +25,24 @@ test('environment page needs API21 and does not install during render or progres
  env.supported=false;view=await render(null);assert.ok(view.nodes.some(n=>n.id==='unsupported'));
  assert.equal(view.nodes.some(n=>n.hostAction),false);assert.equal(installs,0);
 });
+
+test('environment progress remains phase-specific while failed reinstall keeps the installed environment available',async()=>{
+ const sandbox=vm.createContext({});vm.runInContext(pkg.source,sandbox);
+ let mutations=0;
+ const env={supported:true,installed:true,stage:'DOWNLOADING',bytes:512,total:null,output:'fixture log',failure:null};
+ const ctx={workspacePage:{query:async op=>op==='environmentStatus'?env:{workspaceId:'current',shells:[]},perform:async()=>{mutations++}}};
+ const render=()=>sandbox.solvitPlugin.pages.main({locale:'zh',event:{nodeId:'refresh',action:'refresh',fields:{}}},ctx);
+ let view=await render();
+ let metadata=JSON.parse(view.nodes.find(n=>n.id==='environment_meta').text);
+ assert.equal(metadata.total,null);assert.equal(metadata.bytes,512);assert.equal(metadata.installed,true);
+ assert.equal(view.nodes.find(n=>n.id==='progress').text.includes('%'),false);
+ assert.equal(view.nodes.find(n=>n.id==='newShell').enabled,false);
+ assert.equal(view.nodes.find(n=>n.id==='software_PYTHON').enabled,false);
+ env.stage='INITIALIZING';env.total=1024;view=await render();
+ assert.equal(view.nodes.some(n=>n.id==='progress'),false,'Completed download is not completed initialization');
+ env.stage='FAILED';env.failure='fixture failure';view=await render();
+ assert.equal(view.nodes.find(n=>n.id==='failure').text,'fixture failure');
+ assert.equal(view.nodes.find(n=>n.id==='newShell').enabled,true);
+ assert.equal(view.nodes.some(n=>n.id==='install'),false,'Existing installation must remain available after failed reinstall');
+ assert.equal(mutations,0);
+});

@@ -31,13 +31,13 @@ export function environmentPage(){
   const text=(id:string,value:string,tone:'body'|'title'|'caption'='body'):PageNode=>({id,kind:'text',text:value,tone});
   const control=(id:string,label:string,operation:Control['operation'],args:Control['arguments']={},enabled=true):PageNode=>
    ({id,kind:'button',text:label,action:id,enabled,confirm:operation==='cancelEnvironment'?undefined:t[13],hostAction:{kind:'workspace.perform',operation,arguments:args}});
-  const nodes:PageNode[]=[text('intro',t[1]),text('environment_meta',JSON.stringify({busy,stage:env.stage})),
+  const nodes:PageNode[]=[text('intro',t[1]),text('environment_meta',JSON.stringify({busy,stage:env.stage,installed:env.installed,supported:env.supported,bytes:env.bytes,total:env.total})),
    text('status',`${env.installed?t[11]:t[12]} · ${stageLabels[keys.indexOf(env.stage)]??env.stage}`,'title')];
   if(message||env.failure)nodes.push(text('failure',message||env.failure||''));
   if(!env.supported)nodes.push(text('unsupported',t[2]));
   else {
    if(busy){
-    if(env.bytes>0)nodes.push(text('progress',`${(env.bytes/1048576).toFixed(1)} MiB${env.total?` / ${(env.total/1048576).toFixed(1)} MiB · ${Math.min(100,Math.floor(env.bytes/env.total*100))}%`:''}`));
+    if(env.stage==='DOWNLOADING'&&env.bytes>0)nodes.push(text('progress',`${(env.bytes/1048576).toFixed(1)} MiB${env.total?` / ${(env.total/1048576).toFixed(1)} MiB · ${Math.min(100,Math.floor(env.bytes/env.total*100))}%`:''}`));
     nodes.push(control('stop',t[4],'cancelEnvironment'));
    }else if(!env.installed)nodes.push(control('install',t[3],'installEnvironment'));
    if(env.installed){

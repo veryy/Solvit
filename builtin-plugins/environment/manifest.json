@@ -2,7 +2,7 @@
   "id": "dev.solvit.environment",
   "name": "Linux 开发环境",
   "description": "无需 root 的 Ubuntu 工作环境：按需下载，安装 Python、Node.js/npm、Java，并为工作区创建 Ubuntu Shell。界面由插件 HTML/JS 绘制，进程及下载由宿主管理。",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "apiVersion": 21,
   "permissions": [
     "workspace",
