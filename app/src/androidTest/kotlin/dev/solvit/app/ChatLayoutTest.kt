@@ -674,6 +674,24 @@ class ChatLayoutTest {
         val previousDefault = runBlocking { app.roles.forNewChat(null) }
         val role = AgentRole("ui-role-switch", "UI role switch", "Answer as a Kotlin developer",pluginIds=setOf("dev.solvit.web-search"))
         runBlocking { app.roles.save(role) }
+        val diagnostic = InstrumentationRegistry.getArguments().getString("roleDrawerDiagnostic") == "true"
+        val vm = rule.runOnUiThread { androidx.lifecycle.ViewModelProvider(rule.activity)[ChatViewModel::class.java] }
+        var sessionBefore: String? = null
+        var clickNode: androidx.compose.ui.semantics.SemanticsNode? = null
+        val presses = java.util.concurrent.ConcurrentLinkedQueue<String>()
+        val window = rule.activity.window
+        val original = checkNotNull(window.callback)
+        if (diagnostic) rule.runOnUiThread {
+            window.callback = object : android.view.Window.Callback by original {
+                override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
+                    if (clickNode != null && event.actionMasked in listOf(android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_UP)) {
+                        val bounds = runCatching { clickNode?.boundsInWindow }.getOrNull()
+                        presses.add("action=${event.actionMasked},x=${event.x},y=${event.y},bounds=$bounds,inside=${bounds?.contains(androidx.compose.ui.geometry.Offset(event.x,event.y))},focus=${window.decorView.hasWindowFocus()}")
+                    }
+                    return original.dispatchTouchEvent(event)
+                }
+            }
+        }
         try {
             rule.onNodeWithContentDescription("设置").performClick()
             rule.onNodeWithText("角色管理与 Skills").performClick()
@@ -683,6 +701,8 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("关闭").performClick()
             rule.onNodeWithContentDescription("返回聊天").performClick()
             rule.onNodeWithContentDescription("对话历史").performClick()
+            sessionBefore = vm.sessionId.value
+            if (diagnostic) clickNode = rule.onNodeWithTag("new_chat").fetchSemanticsNode()
             rule.onNodeWithTag("new_chat").performClick()
             rule.waitUntil(8000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
             rule.waitUntil(8000) {
@@ -694,7 +714,19 @@ class ChatLayoutTest {
             rule.onNodeWithTag("apply_role_${role.id}").performScrollTo()
             rule.onNodeWithTag("apply_role_${role.id}").assertTextEquals("✓ 当前使用")
             screenshot("role-applied-new-chat")
+        } catch (failure: Throwable) {
+            if (diagnostic) {
+                val before = "beforeProbe: sessionBefore=$sessionBefore,sessionNow=${vm.sessionId.value},clock=${rule.mainClock.currentTime},presses=$presses\n" + rule.onRoot().printToString()
+                screenshot("role-drawer-before-clock-probe")
+                rule.mainClock.advanceTimeByFrame()
+                rule.waitForIdle()
+                val after = "afterOneFrame: closed=${runCatching { rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed() }.isSuccess},sessionNow=${vm.sessionId.value},clock=${rule.mainClock.currentTime}\n" + rule.onRoot().printToString()
+                screenshot("role-drawer-after-clock-probe")
+                throw AssertionError("$before\n$after", failure)
+            }
+            throw failure
         } finally {
+            if (diagnostic) rule.runOnUiThread { window.callback = original }
             // Clear bindings before deleting a restricted role, so later fixtures stay usable.
             runBlocking {
                 val store = SqliteChatStore(app)

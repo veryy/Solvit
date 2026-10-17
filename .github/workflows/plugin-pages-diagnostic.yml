@@ -6,7 +6,7 @@ on:
         description: Actual page scenario to reproduce
         type: choice
         default: memory-click
-        options: [memory-viewport, terminal-eof, skills-mcp-ui, environment-ui, memory-labels, mcp-page, memory-click, plugin-document-lifecycle, model-settings, model-task, skills-documents, workspace-files, git-workbench, git-queries, git-credentials, git-clone-recovery, chat-attachments, chat-keyboard, file-diff, chat-interaction-large-text, chat-interaction, chat-stream, chat-branch, terminal-ui, chat-role, chat-role-sequence, project-rules]
+        options: [chat-role-inheritance, memory-viewport, terminal-eof, skills-mcp-ui, environment-ui, memory-labels, mcp-page, memory-click, plugin-document-lifecycle, model-settings, model-task, skills-documents, workspace-files, git-workbench, git-queries, git-credentials, git-clone-recovery, chat-attachments, chat-keyboard, file-diff, chat-interaction-large-text, chat-interaction, chat-stream, chat-branch, terminal-ui, chat-role, chat-role-sequence, project-rules]
 permissions:
   contents: read
 jobs:

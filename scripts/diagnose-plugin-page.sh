@@ -21,6 +21,7 @@ timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-and
 solvit_memory_label_bounds=false
 solvit_chat_font_scale=1
 case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
+  chat-role-inheritance) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#applyingRoleInSettingsPersistsAndNewChatInheritsItsPluginWhitelist' ;;
   memory-viewport) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#memorySearchFramesResultsAfterPanningAndPreservesViewportOnDetailReturn' ;;
   memory-labels) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin'; solvit_memory_label_bounds=true ;;
   memory-click) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin' ;;
@@ -53,6 +54,8 @@ solvit_diagnostic_expected='OK (1 test)'
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = file-diff ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-interaction ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = workspace-files ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = environment-ui ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = skills-mcp-ui ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = git-workbench ]; then solvit_diagnostic_expected='OK (3 tests)'; fi
+solvit_role_drawer_diagnostic=false
+if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role-inheritance ]; then solvit_diagnostic_iterations=10; solvit_role_drawer_diagnostic=true; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role ]; then solvit_diagnostic_iterations=10; fi
 # Stress the reproduced native IME/queue-removal touch race without retrying a failed scenario.
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-interaction ]; then solvit_diagnostic_iterations=5; fi
@@ -63,7 +66,7 @@ if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role-sequence ]; then
 fi
 for ((solvit_diagnostic_iteration=1; solvit_diagnostic_iteration<=solvit_diagnostic_iterations; solvit_diagnostic_iteration++)); do
   solvit_diagnostic_result="ui-screenshots/result-${solvit_diagnostic_iteration}.txt"
-  timeout 180s adb shell am instrument -w -e class "$solvit_diagnostic_class" -e verifyMemoryLabelBounds "$solvit_memory_label_bounds" -e chatFontScale "$solvit_chat_font_scale" dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$solvit_diagnostic_result"
+  timeout 180s adb shell am instrument -w -e class "$solvit_diagnostic_class" -e verifyMemoryLabelBounds "$solvit_memory_label_bounds" -e chatFontScale "$solvit_chat_font_scale" -e roleDrawerDiagnostic "$solvit_role_drawer_diagnostic" dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$solvit_diagnostic_result"
   if ! grep -F "$solvit_diagnostic_expected" "$solvit_diagnostic_result" >/dev/null; then
     # Preserve blocked ART threads before collecting logs; do not hide the failing result.
     solvit_diagnostic_pid=$(timeout 5s adb shell pidof dev.solvit.app | tr -d '\r')
