@@ -249,6 +249,13 @@ class PluginPageUiTest {
             assertEquals("Returning from detail must keep the search viewport", viewport,
                 html.js("(()=>{const cy=document.getElementById('graph')._cyreg.cy;return {pan:cy.pan(),zoom:cy.zoom()}})()"))
             assertEquals("Search query survives the detail round trip", "\"memory-viewport-unique-target\"", html.js("document.getElementById('query').value"))
+            html.js("document.getElementById('query').value='memory-viewport-no-such-record';document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
+            waitDom("!document.getElementById('search-button').disabled && !document.getElementById('empty').hidden && document.querySelectorAll('[data-memory-id]').length===0")
+            html.screenshot("memory-search-empty-large-text")
+            assertEquals("No results must remove stale graph nodes", "0", html.js("document.getElementById('graph')._cyreg.cy.nodes().length"))
+            html.js("document.getElementById('query').value='';document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
+            waitDom("!document.getElementById('search-button').disabled && document.getElementById('empty').hidden && document.querySelectorAll('[data-memory-id]').length>=33")
+            assertTrue("Clearing search restores actual graph nodes", html.js("document.getElementById('graph')._cyreg.cy.nodes().length").toInt() >= 33)
         } finally {
             rule.runOnUiThread { visible = false }
             runBlocking { ids.forEach { runCatching { manager.delete(it) } } }
