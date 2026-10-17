@@ -56,6 +56,9 @@ class BuiltinTerminalUpgradeTest {
     @Test fun wrappedTerminalUpgradesWithoutLosingActivationAndGrants()=runBlocking<Unit> {
         verifyTerminalUpgrade("terminal-1.1.2.solvit.json")
     }
+    @Test fun sessionManagedTerminalUpgradesWithoutLosingActivationAndGrants()=runBlocking<Unit> {
+        verifyTerminalUpgrade("terminal-1.1.4.solvit.json")
+    }
     private suspend fun verifyTerminalUpgrade(resource:String) {
         fixture { market,file ->
             file.writeBytes(javaClass.getResourceAsStream("/$resource")!!.use { it.readBytes() })
@@ -64,7 +67,7 @@ class BuiltinTerminalUpgradeTest {
                 .putStringSet("grants.dev.solvit.terminal",setOf("workspace","shell")).commit()
             market.restore()
             val installed=market.installed.value.single { it.id=="dev.solvit.terminal" }
-            assertEquals("1.1.4",installed.version);assertTrue(installed.enabled)
+            assertEquals("1.1.5",installed.version);assertTrue(installed.enabled)
             assertEquals(setOf("workspace","shell"),prefs.getStringSet("grants.dev.solvit.terminal",emptySet()))
             val page=market.openPage(installed.id,"main","zh")
             try { page.open();assertEquals("ui/index.html",page.document()!!.entry);assertTrue(page.resource("ui/xterm.js").content.isNotEmpty()) }

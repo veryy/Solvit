@@ -1373,10 +1373,15 @@ class ChatLayoutTest {
             val tabWidths = js("JSON.stringify(Array.from(document.querySelectorAll('#shells button')).map(b=>{const s=getComputedStyle(b),c=document.createElement('canvas').getContext('2d');c.font=s.font;return {name:b.textContent,available:b.clientWidth-parseFloat(s.paddingLeft)-parseFloat(s.paddingRight),needed:c.measureText(b.textContent).width}}))")
             assertEquals("Short Shell names are clipped: $tabWidths", "true",
                 js("(()=>{const tabs=JSON.parse($tabWidths).filter(b=>b.name.length<=12);return tabs.length>0&&tabs.every(b=>b.needed<=b.available+1)})()"))
+            fun selectedTabIsVisible() = js("(()=>{const n=document.getElementById('shells'),b=n.querySelector('button.selected');if(!b)return false;const v=n.getBoundingClientRect(),r=b.getBoundingClientRect();return r.left>=v.left-1&&r.right<=v.right+1&&b.getAttribute('aria-pressed')==='true'})()") == "true"
+            rule.waitUntil(8000) { selectedTabIsVisible() }
+            page.screenshot("workspace-terminal-tabs-selected")
             openTerminal();command("stty -echo; printf '__SECOND_%s__\\n' \"\${UI_PTY_STATE:-empty}\"")
             rule.waitUntil(8000) { displayed("__SECOND_empty__") }
             js("document.getElementById('shells').children[0].click()")
+            rule.waitUntil(8000) { selectedTabIsVisible() }
             rule.waitUntil(8000) { displayed("ui-result:retained") }
+            page.screenshot("workspace-terminal-tabs-first")
 
             // Preserve the existing ability to inspect AI-created sessions in this chat.
             val human=app.terminals.sessions.value.first { it.owner==TERMINAL_OWNER && it.chatId!=null && it.active }

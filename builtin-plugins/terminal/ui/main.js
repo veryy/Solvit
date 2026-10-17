@@ -79,10 +79,22 @@
     $('current-session-state').classList.toggle('session-failed',!!entry?.failure||entry?.active===false&&entry.exitCode!=null&&entry.exitCode!==0);
     $('command').disabled=!entry?.active;$('send').disabled=!entry?.active;$('close').disabled=!entry?.active;
   }
+  function revealSelectedShell() {
+    const nav=$('shells'), button=nav.querySelector('button.selected');
+    if (!button) return;
+    const viewport=nav.getBoundingClientRect(), tab=button.getBoundingClientRect();
+    // Move only this horizontal strip; preserve the terminal and document position.
+    if (tab.left < viewport.left) nav.scrollLeft -= viewport.left-tab.left;
+    else if (tab.right > viewport.right) nav.scrollLeft += tab.right-viewport.right;
+  }
   function choose(id) {
     selected=id;
     for (const [shellId,entry] of sessions) entry.container.hidden=shellId!==selected;
-    for (const button of $('shells').children) button.classList.toggle('selected',button.dataset.id===selected);
+    for (const button of $('shells').children) {
+      const active=button.dataset.id===selected;
+      button.classList.toggle('selected',active);button.setAttribute('aria-pressed',String(active));
+    }
+    revealSelectedShell();
     const entry=sessions.get(id);$('welcome').hidden=!!entry;$('terminals').hidden=!entry;
     if (entry) fit(entry);
     // Changing visible Shell is not a new process result; retain its real exit/failure.
@@ -150,7 +162,7 @@
     $('send').disabled=true;rpc('input',{id:entry.id,text:text+'\n'}).then(result=>{if($('command').value===text)$('command').value='';update(entry,result)}).catch(report).finally(()=>{$('send').disabled=!sessions.get(selected)?.active});};
   $('add').onclick=()=>{$('shell-name').value=`Shell ${shells.length+1}`;$('new-shell').showModal()};
   $('new-shell').addEventListener('close',async()=>{if($('new-shell').returnValue!=='create')return;try{await rpc('createShell',{name:$('shell-name').value.trim()});await refreshShells();choose(shells.at(-1)?.id)}catch(error){report(error)}});
-  new ResizeObserver(()=>{const entry=sessions.get(selected);if(entry)fit(entry)}).observe($('terminals'));
+  new ResizeObserver(()=>{const entry=sessions.get(selected);if(entry)fit(entry);revealSelectedShell()}).observe($('terminals'));
   async function poll(){while(!closed){const entry=sessions.get(selected);if(entry?.active && pendingCount===0){try{update(entry,await rpc('status',{id:entry.id}))}catch(error){entry.active=false;entry.term.options.disableStdin=true;choose(selected);report(error)}}await new Promise(resolve=>setTimeout(resolve,200))}}
   window.solvitPageUpdate=state=>{
     manualLabel=({zh:'手动终端',en:'Manual terminal',ja:'手動端末',ko:'수동 터미널',es:'Terminal manual',fr:'Terminal manuel'})[state.locale.split(/[-_]/)[0]]??'Manual terminal';
