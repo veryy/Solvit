@@ -135,6 +135,10 @@ class WorkspaceInstructionsHookTest {
         releasedPackageUpgrade("dev.solvit.environment","1.0.2","1.0.3",
             "e0e2c433cde60f34147178c50e9c51748a6ff445c067dcd1753e861621e43783",setOf("workspace","shell","network"))
     }
+    @Test fun releasedTerminalManagementRetainsGrantsDisabledCustomCodeAndUninstall()=runBlocking<Unit> {
+        releasedPackageUpgrade("dev.solvit.terminal","1.1.3","1.1.4",
+            "a92b18a94aa53900d8a7dc3cca6ea61b7a9cecf8771f8583a3bbc0e12ad1b37d",setOf("workspace","shell"))
+    }
     private suspend fun releasedPackageUpgrade(plugin:String,oldVersion:String,newVersion:String,sha:String,grants:Set<String>) {
         fixture { market,_,_,_ ->
             market.disable(plugin)

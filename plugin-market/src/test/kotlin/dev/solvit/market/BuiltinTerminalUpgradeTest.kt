@@ -64,7 +64,7 @@ class BuiltinTerminalUpgradeTest {
                 .putStringSet("grants.dev.solvit.terminal",setOf("workspace","shell")).commit()
             market.restore()
             val installed=market.installed.value.single { it.id=="dev.solvit.terminal" }
-            assertEquals("1.1.3",installed.version);assertTrue(installed.enabled)
+            assertEquals("1.1.4",installed.version);assertTrue(installed.enabled)
             assertEquals(setOf("workspace","shell"),prefs.getStringSet("grants.dev.solvit.terminal",emptySet()))
             val page=market.openPage(installed.id,"main","zh")
             try { page.open();assertEquals("ui/index.html",page.document()!!.entry);assertTrue(page.resource("ui/xterm.js").content.isNotEmpty()) }

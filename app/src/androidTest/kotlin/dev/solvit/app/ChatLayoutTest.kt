@@ -1191,7 +1191,22 @@ class ChatLayoutTest {
             js("document.getElementById('manage').click()")
             assertEquals("true", js("document.getElementById('session-manager').open"))
             rule.waitUntil(8000) { js("Array.from(document.getElementById('running').children).some(e=>e.textContent.includes('test.html-terminal.model'))") == "true" }
-            assertEquals("true", js("(()=>{const bounds=document.getElementById('session-manager').getBoundingClientRect();return Array.from(document.querySelectorAll('#session-manager button')).every(button=>{const r=button.getBoundingClientRect();return r.width>0 && r.left>=bounds.left && r.right<=bounds.right && r.top>=bounds.top && r.bottom<=bounds.bottom})})()"))
+            assertEquals("false",js("document.getElementById('manager-shortcuts').open"))
+            assertEquals("true",js("document.getElementById('current-session-state').textContent.includes('运行中')"))
+            val beforeDisclosure=app.terminals.sessions.value.map { it.id to it.active }.toSet()
+            page.tapElement("#manager-shortcuts > summary")
+            rule.waitUntil(8000) { js("document.getElementById('manager-shortcuts').open") == "true" }
+            assertEquals("7",js("document.querySelectorAll('#manager-keys button').length"))
+            // Every original control remains reachable after expansion, including on short viewports.
+            for(selector in listOf("#refresh","#attach","#close","#dismiss")+(1..7).map { "#manager-keys button:nth-of-type($it)" }) {
+                val encoded=kotlinx.serialization.json.JsonPrimitive(selector)
+                js("document.querySelector($encoded).scrollIntoView({block:'center'})")
+                rule.waitUntil(8000) { js("(()=>{const button=document.querySelector($encoded),r=button.getBoundingClientRect(),bounds=document.getElementById('session-manager').getBoundingClientRect();return r.height>=44&&r.width>0&&r.left>=bounds.left&&r.right<=bounds.right&&r.top>=bounds.top&&r.bottom<=bounds.bottom&&r.bottom<=innerHeight&&button.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})()") == "true" }
+            }
+            assertEquals(beforeDisclosure,app.terminals.sessions.value.map { it.id to it.active }.toSet())
+            js("document.querySelector('#manager-shortcuts > summary').scrollIntoView({block:'center'})")
+            page.tapElement("#manager-shortcuts > summary")
+            rule.waitUntil(8000) { js("!document.getElementById('manager-shortcuts').open") == "true" }
             page.screenshot("workspace-terminal-session-manager")
             js("document.getElementById('running').value=${kotlinx.serialization.json.JsonPrimitive(model.id)};document.getElementById('attach').click()")
             rule.waitUntil(8000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
@@ -1233,6 +1248,10 @@ class ChatLayoutTest {
             selectShell(human.shellId);selectShell(secondShell.id)
             assertEquals("Closed terminal must retain its actual exit code after switching Shell", "true",
                 js("document.getElementById('status').textContent.endsWith(' · 7')"))
+            js("document.getElementById('manage').click()")
+            rule.waitUntil(8000) { js("document.getElementById('current-session-state').textContent.endsWith(' · 7')") == "true" }
+            assertEquals("true",js("document.getElementById('current-session-state').classList.contains('session-failed')"))
+            assertEquals("true",js("document.getElementById('close').disabled"))
             page.screenshot("workspace-terminal-closed-exit-code")
         } catch (e: Throwable) {
             val metrics=runCatching { js("JSON.stringify({viewport:[innerWidth,innerHeight],body:document.body.getBoundingClientRect().toJSON(),terminal:document.getElementById('terminals').getBoundingClientRect().toJSON(),rows:document.querySelector('.xterm-rows')?.textContent,status:document.getElementById('status').textContent})") }.getOrNull()

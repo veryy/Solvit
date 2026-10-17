@@ -20,7 +20,15 @@
     es: ['Gestionar terminales','Terminales de este chat','Conectar sesión','Actualizar terminales','Cerrar terminal actual','Volver al terminal','Más teclas','Menos teclas','Añadir Shell'],
     fr: ['Gérer les terminaux','Terminaux de cette conversation','Connecter une session','Actualiser les terminaux','Fermer le terminal actuel','Retour au terminal','Plus de touches','Moins de touches','Ajouter un Shell']
   };
-  let controlLabels=controls.en;
+  const management={
+    zh:['当前连接','尚未打开终端','当前聊天没有运行中的终端'],
+    en:['Current connection','No terminal opened','No running terminals in this chat'],
+    ja:['現在の接続','端末はまだ開かれていません','このチャットに実行中の端末はありません'],
+    ko:['현재 연결','열린 터미널 없음','이 채팅에 실행 중인 터미널이 없습니다'],
+    es:['Conexión actual','Ningún terminal abierto','No hay terminales activos en este chat'],
+    fr:['Connexion actuelle','Aucun terminal ouvert','Aucun terminal actif dans cette conversation']
+  };
+  let controlLabels=controls.en,managerLabels=management.en;
   function report(error) { $('status').textContent = error instanceof Error ? error.message : String(error); }
   function rpc(operation, args = {}) {
     if (closed || !token) return Promise.reject(Error('Page closed'));
@@ -58,21 +66,27 @@
     if (entry.position < start || entry.position > end) { entry.term.reset();entry.position=start;entry.gap=true; }
     const text = result.output.slice(entry.position-start);
     if (text) entry.term.write(text);
-    entry.position=end;entry.active=result.active;
+    entry.position=end;entry.active=result.active;entry.exitCode=result.exitCode;entry.failure=result.failure;
     entry.term.options.disableStdin=!entry.active;
-    if (sessions.get(selected) === entry) {
-      $('status').textContent = result.failure || (entry.gap ? labels[11]+' · ' : '') + (entry.active ? `${labels[9]} · ${entry.rows} × ${entry.columns}` : `${labels[10]} · ${result.exitCode ?? '—'}`);
-      $('command').disabled=!entry.active;$('send').disabled=!entry.active;$('close').disabled=!entry.active;
-    }
+    if (sessions.get(selected) === entry) renderStatus(entry);
+  }
+  function renderStatus(entry) {
+    const text=entry?.failure || (entry?.gap ? labels[11]+' · ' : '') + (entry ? (entry.active ? `${labels[9]} · ${entry.rows} × ${entry.columns}` : `${labels[10]} · ${entry.exitCode ?? '—'}`) : '');
+    $('status').textContent=text;
+    const shell=shells.find(s=>s.id===selected);
+    $('current-session-name').textContent=shell?`${shell.name} · ${shell.runtime==='UBUNTU'?'Ubuntu':'Android'}`:'';
+    $('current-session-state').textContent=text||managerLabels[1];
+    $('current-session-state').classList.toggle('session-failed',!!entry?.failure||entry?.active===false&&entry.exitCode!=null&&entry.exitCode!==0);
+    $('command').disabled=!entry?.active;$('send').disabled=!entry?.active;$('close').disabled=!entry?.active;
   }
   function choose(id) {
     selected=id;
     for (const [shellId,entry] of sessions) entry.container.hidden=shellId!==selected;
     for (const button of $('shells').children) button.classList.toggle('selected',button.dataset.id===selected);
     const entry=sessions.get(id);$('welcome').hidden=!!entry;$('terminals').hidden=!entry;
-    if (!entry) $('status').textContent='';
-    $('command').disabled=!entry?.active;$('send').disabled=!entry?.active;$('close').disabled=!entry?.active;
-    if (entry) { fit(entry);update(entry,{id:entry.id,outputOffset:entry.position,output:'',active:entry.active,exitCode:null}); }
+    if (entry) fit(entry);
+    // Changing visible Shell is not a new process result; retain its real exit/failure.
+    renderStatus(entry);
   }
   function terminalChoices(state) {
     availableTerminals=state.terminals;
@@ -83,6 +97,7 @@
     }));
     if(availableTerminals.some(s=>s.id===previous))$('running').value=previous;
     $('sessions').hidden=!availableTerminals.length;
+    $('no-sessions').hidden=!!availableTerminals.length;
   }
   async function refreshShells() {
     const state=await rpc('snapshot');shells=state.shells;
@@ -144,6 +159,11 @@
     for(const [id,index] of [['title',0],['intro',1],['open',2],['send',4],['close',5],['name-label',6],['cancel',7],['create',8]])$(id).textContent=labels[index];
     controlLabels=controls[state.locale.split(/[-_]/)[0]]??controls.en;
     for(const [id,index] of [['manager-title',0],['running-label',1],['attach',2],['refresh',3],['close',4],['dismiss',5]])$(id).textContent=controlLabels[index];
+    managerLabels=management[state.locale.split(/[-_]/)[0]]??management.en;
+    $('current-session-label').textContent=managerLabels[0];$('no-sessions').textContent=managerLabels[2];
+    $('manager-keys-label').textContent=controlLabels[6];
+    $('refresh').setAttribute('aria-label',controlLabels[3]);$('refresh').title=controlLabels[3];$('refresh').textContent='↻';
+    renderStatus(sessions.get(selected));
     $('manage').setAttribute('aria-label',controlLabels[0]);$('manage').title=controlLabels[0];
     $('add').setAttribute('aria-label',controlLabels[8]);$('add').title=controlLabels[8];
     $('toggle-keys').textContent=controlLabels[$('extra-keys').hidden?6:7];
