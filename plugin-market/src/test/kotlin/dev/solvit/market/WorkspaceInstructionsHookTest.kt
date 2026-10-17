@@ -141,17 +141,18 @@ class WorkspaceInstructionsHookTest {
     }
     @Test fun releasedEnvironment0UpgradesWithoutResettingGrantsDisabledCustomCodeOrUninstall()=runBlocking<Unit> {
         releasedPackageUpgrade("dev.solvit.environment","1.0.0","1.0.3",
-            "4d5d07cc8c8ed309ccc918b05cf3517a82c76bc80d3febce4506958d4c6f01b7",setOf("workspace","shell","network"))
+            "4d5d07cc8c8ed309ccc918b05cf3517a82c76bc80d3febce4506958d4c6f01b7",setOf("workspace","shell","network"),resource="/legacy/environment-api21-v1.0.0.solvit.json")
     }
     @Test fun releasedEnvironment1UpgradesWithoutResettingGrantsDisabledCustomCodeOrUninstall()=runBlocking<Unit> {
         releasedPackageUpgrade("dev.solvit.environment","1.0.1","1.0.3",
-            "1856e4c2391b9d589b31095b5c8dae64d9e75311590d62b278c2419ba8c2d5f0",setOf("workspace","shell","network"))
+            "1856e4c2391b9d589b31095b5c8dae64d9e75311590d62b278c2419ba8c2d5f0",setOf("workspace","shell","network"),resource="/legacy/environment-api21-v1.0.1.solvit.json")
     }
-    private suspend fun releasedPackageUpgrade(plugin:String,oldVersion:String,newVersion:String,sha:String,grants:Set<String>) {
+    private suspend fun releasedPackageUpgrade(plugin:String,oldVersion:String,newVersion:String,sha:String,grants:Set<String>,
+        resource:String="/legacy/$plugin-$oldVersion.solvit.json") {
         fixture { market,_,_,_ ->
             market.disable(plugin)
             if(plugin=="dev.solvit.workspace")market.configure(plugin,mapOf("projectRules" to "false"))
-            val old=javaClass.getResourceAsStream("/legacy/$plugin-$oldVersion.solvit.json")!!.use { it.readBytes() }
+            val old=javaClass.getResourceAsStream(resource)!!.use { it.readBytes() }
             assertEquals(sha,java.security.MessageDigest.getInstance("SHA-256").digest(old).joinToString(""){"%02x".format(it)})
             val app=RuntimeEnvironment.getApplication()
             val file=java.io.File(app.filesDir,"extensions/$plugin.solvit.json").apply { writeBytes(old) }

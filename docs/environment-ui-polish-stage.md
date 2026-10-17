@@ -31,3 +31,5 @@ DSH d743267388641bc76f17c45ce8b4c231aed1d32c的packages/client/ui-tool/src/clien
 终端控件采样39002444616 artifact12089832313（4633257字节，SHA256 8ced037b3438b2081de2bf969086d0edb895434e20ed509f884f2453195a9787）摘要/CRC/原始logcat核对：精确失败selector=#dismiss，高42.7619px且hit=true；其余原控件均44px且命中。将返回按钮最小高度补为44px，保留原断言，临时全部按钮日志探针已移除，仅失败上下文保留selector。实际截图亦已查看。
 
 插件宿主原theme只提供六个颜色键，插件已有var(--error)无法解析，导致错误/关闭动作视觉无区分。新增Material语义色error/onError/errorContainer/onErrorContainer/onSurfaceVariant，属于兼容的主题字段补充；实际环境大字深色用例核对收到原生darkColorScheme的error值。没有新增权限或改变安装器/PTY。环境源码生成39002134288的SDK145/市场7通过，artifact12089357683 SHA256 dddda680d0468ff398aca44eb90b08024c2be952a1f759baaaa55693971c2c3e、CRC通过；只两个目标包变化，等待最终样式核验再导入。
+
+生成39003072846的市场门禁捕获重复版本：原市场已以environment-api21-v1.0.0/1.0.1名称保留同两份原字节包，本阶段新增命名副本导致Duplicate plugin version。核对两份各自逐字节一致后移除本阶段重复副本，升级回归改为引用现有不可变legacy文件，精确摘要白名单不变。保留市场拒绝重复版本的门禁，重新生成验证。
