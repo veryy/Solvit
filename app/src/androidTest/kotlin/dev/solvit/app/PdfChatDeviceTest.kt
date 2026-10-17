@@ -230,6 +230,9 @@ class PdfChatDeviceTest {
                     android.util.Log.i("SolvitPdfFixture","[DEBUG-solvit-pdf-touch] settled|touches=$sendTouches|sessionMatches=${vm.sessionId.value==session}|draftPresent=${vm.inputDrafts.value[session]?.text?.isNotBlank()==true}|busy=${vm.busy.value}|queued=${vm.queuedMessages.value.size}|requests=${server.requestCount}")
                 }
             }
+            assertTrue("An accepted PDF send must clear its conversation draft after real HTTP failure settles",
+                vm.inputDrafts.value[session]?.text.isNullOrEmpty())
+            rule.onNodeWithTag("chat_input").assertTextEquals("")
             if(traceSend)assertEquals("The original single physical send must land inside its actual button on down and up",listOf(true,true),rule.runOnUiThread { sendTouches.toList() })
             fun requestContent():String {
                 val request=server.takeRequest(5,TimeUnit.SECONDS)?:error("missing PDF request")

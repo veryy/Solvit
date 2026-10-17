@@ -15,3 +15,12 @@
 ## 实际上游阅读
 
 参考仓库九个固定版本已再次通过 `fetch-upstreams.py --verify-only`。Operit `dbf71916fae9750cfdc9f9a774f5a0fee56633fb` 的 `ui/features/chat/components/style/input/agent/AgentChatInputSection.kt` 中 `handleEnterSendAction` 和KeyboardActions共用发送/排队逻辑；`ChatMessageTest.kt` 验证消息角色及内容数据，不覆盖原生IME触摸，不能冒充此问题的上游回归。DSH `d743267388641bc76f17c45ce8b4c231aed1d32c` 的 `ui-conversation/src/client/input/submission-policy.ts` 及 `tests/submission-policy.client.spec.ts` 验证忙碌时的实际提交选择，不证明Android触摸已经送达。本阶段只借鉴区分提交动作与宿主权威状态的边界，Android诊断采用本项目已有真实pointer观察及IME几何检查。已阅读LGPL-3.0/MIT许可，无代码复制、无新增依赖。
+
+## 第一轮对照：通过流程不等于编辑器状态正确
+
+`39070457299`（pdf-send）和`39070457383`（pdf-send-ime）各8个原PDF流程通过；64条实际pointer/发送状态日志已读取，每次down/up都在发送按钮内、会话匹配且最终HTTP请求1。它们没有复现原来请求0的失败，不能认定IME是假设中的根因。观察代码在点击前获取语义节点并切换主线程，也可能改变时序，单独通过不替代失败原顺序。
+
+检查日志却发现pdf-send第2和第7轮在真实HTTP500结算后`draftPresent=true`，其余6轮以及IME组8轮为空。已发送后输入复现是另一个实际编辑器状态缺陷，原断言未覆盖。新增永久断言：原HTTP失败结算后，当前会话VM草稿及实际TextField都为空；仍只进行原一次点击，仍保留扫描/选页/重试/重开/分支。先用原7c生产APK复测红色，再改生产状态，不将8个绿色runner当成问题已解决。
+
+此项排序：①StateFlow经生命周期收集回传TextField存在额外调度，使清空被旧编辑值覆盖；②迟到IME编辑事件独立于Flow回传仍覆盖新值；③清空目标会话错误。已读Google官方BasicTextField契约和本地官方foundation1.8.3 `commonMain/androidx/compose/foundation/text/BasicTextField.kt`，要求onValueChange值在下一帧前回传；官方迁移文档也说明StateFlow与文本输入同步的风险。它们支持优先验证①，不替代实际修复后的同一路径回归。参考 https://developer.android.com/reference/kotlin/androidx/compose/foundation/text/BasicTextField.composable 和 https://developer.android.com/develop/ui/compose/text/migrate-state-based 。本阶段尚未修改生产代码。
+
