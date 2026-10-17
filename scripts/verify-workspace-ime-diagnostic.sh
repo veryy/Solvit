@@ -5,6 +5,7 @@ solvit_diagnostic_expected='OK (1 test)'
 solvit_chat_font_scale=1
 solvit_memory_label_bounds=false
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
+  chat-drafts-sequence) solvit_diagnostic_test='dev.solvit.app.ChatAttachmentWorkspaceHtmlTest,dev.solvit.app.ChatAttachmentsDeviceTest,dev.solvit.app.ChatHistoryDrawerTest,dev.solvit.app.ChatInteractionDeviceTest,dev.solvit.app.ChatLayoutTest#javascriptPluginUsesPersistentPtyAndDisableClosesItsProcess,dev.solvit.app.ChatLayoutTest#largeNativeTranscriptReopensAndBranchesThroughRealAndroidCursorWindows,dev.solvit.app.ChatLayoutTest#roleAppliedThroughSettingsReachesProviderAndNewChatRequest,dev.solvit.app.ChatLayoutTest#contextBudgetDialogValidatesAndReturnsSavedValues,dev.solvit.app.ChatLayoutTest#memoryTaskRetryRequiresConfirmationAndDisplaysSource,dev.solvit.app.ChatLayoutTest#actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat,dev.solvit.app.ChatLayoutTest#javascriptPluginCanCreateShellAndRunActualAndroidCommand,dev.solvit.app.ChatLayoutTest#switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty'; solvit_diagnostic_expected='OK (13 tests)' ;;
   chat-drafts) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty' ;;
   environment-ui) solvit_diagnostic_test='dev.solvit.app.LinuxEnvironmentHtmlTest'; solvit_diagnostic_expected='OK (2 tests)' ;;
   history-search) solvit_diagnostic_test='dev.solvit.app.ChatHistoryDrawerTest,dev.solvit.app.ChatLayoutTest#historyTitleSearchOpensPersistedConversationAndReopeningResetsTheFilter'; solvit_diagnostic_expected='OK (2 tests)' ;;
@@ -51,7 +52,7 @@ solvit_diagnostic_repetitions=${SOLVIT_DIAGNOSTIC_REPETITIONS:-8}
 [[ "$solvit_diagnostic_repetitions" =~ ^[1-8]$ ]] || exit 1
 mkdir -p ui-screenshots
 capture() {
-  timeout 15s adb logcat -d -s WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I SolvitPdfFixture:I PluginPageFixture:I TestRunner:I '*:S' > ui-screenshots/page-diagnostic-logcat.txt || true
+  timeout 15s adb logcat -d -s SOLVIT_DRAFT_TRACE:I WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I SolvitPdfFixture:I PluginPageFixture:I TestRunner:I '*:S' > ui-screenshots/page-diagnostic-logcat.txt || true
   # Keep native Chromium crashes as well as test assertions; filtered logs hide SIGSEGV.
   timeout 15s adb logcat -d > ui-screenshots/page-diagnostic-native-logcat.txt || true
   timeout 15s adb shell dumpsys webviewupdate > ui-screenshots/page-diagnostic-webview-provider.txt || true
@@ -65,12 +66,13 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   solvit_iteration_timeout=120s
   solvit_recreations=3
   case "${SOLVIT_DIAGNOSTIC_CASE:-}" in
-    workspace-startup-sequence|queued-ui-follow-up|plugin-native-entry) solvit_iteration_timeout=300s ;;
+    chat-drafts-sequence|workspace-startup-sequence|queued-ui-follow-up|plugin-native-entry) solvit_iteration_timeout=300s ;;
     workspace-startup-stress|workspace-user-lifecycle-stress|webview-plugin-host-control) solvit_iteration_timeout=300s; solvit_recreations=30 ;;
   esac
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
     -e chatFontScale "$solvit_chat_font_scale" \
+    -e draftTrace "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-drafts-sequence ] && echo true || echo false)" \
     -e verifyMemoryLabelBounds "$solvit_memory_label_bounds" \
     -e workspaceRecreations "$solvit_recreations" \
     -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \
