@@ -21,6 +21,7 @@ timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-and
 solvit_memory_label_bounds=false
 solvit_chat_font_scale=1
 case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
+  memory-viewport) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#memorySearchFramesResultsAfterPanningAndPreservesViewportOnDetailReturn' ;;
   memory-labels) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin'; solvit_memory_label_bounds=true ;;
   memory-click) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin' ;;
   plugin-document-lifecycle) solvit_diagnostic_class='dev.solvit.app.PluginWebPageLifecycleTest' ;;

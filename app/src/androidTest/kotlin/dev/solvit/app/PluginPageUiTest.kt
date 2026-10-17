@@ -204,6 +204,56 @@ class PluginPageUiTest {
             runBlocking { runCatching { manager.delete(id) }; runCatching { manager.delete(relatedId) } }
         }
     }
+    @Test fun memorySearchFramesResultsAfterPanningAndPreservesViewportOnDetailReturn() {
+        val app = rule.activity.application as SolvitApplication
+        val manager = dev.solvit.market.BuiltinMemoryManager(app)
+        val ids = mutableListOf<String>()
+        var visible by mutableStateOf(true)
+        val html = HtmlPageProbe(rule.activity)
+        fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
+        try {
+            runBlocking {
+                withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }
+                app.marketplace.disable("dev.solvit.memory")
+                repeat(33) { index ->
+                    val text = if (index == 0) "memory-viewport-unique-target" else "memory-viewport-background-$index"
+                    ids += manager.save(text, "fact", emptyList()).getValue("fact").jsonObject.getValue("id").jsonPrimitive.content
+                }
+            }
+            rule.runOnUiThread { rule.activity.setContent { MaterialTheme(colorScheme = darkColorScheme()) {
+                if (visible) PluginPageScreen("记忆", { manager.openPage("zh") }) { visible = false }
+            } } }
+            waitDom("window.memoryPageReady===true && document.querySelectorAll('[data-memory-id]').length>=33")
+            html.screenshot("memory-dense-graph-before-search")
+            // Use the actual graph engine's viewport API to reproduce a user panning
+            // away. Do not replace its layout, positions, document or native storage.
+            html.js("document.getElementById('graph')._cyreg.cy.pan({x:-4000,y:-4000})")
+            html.setTextZoom(150)
+            html.js("document.getElementById('query').value='memory-viewport-unique-target';document.getElementById('query').dispatchEvent(new Event('input'));document.getElementById('search').dispatchEvent(new Event('submit',{cancelable:true}))")
+            waitDom("!document.getElementById('search-button').disabled && document.querySelectorAll('[data-memory-id]').length===1 && !!document.querySelector('[data-memory-id=${ids.first()}]')")
+            html.screenshot("memory-search-single-result-large-text")
+            val bounds = Json.parseToJsonElement(html.js("""(()=>{
+                const cy=document.getElementById('graph')._cyreg.cy;
+                const b=cy.nodes().renderedBoundingBox();
+                return {x1:b.x1,y1:b.y1,x2:b.x2,y2:b.y2,width:cy.width(),height:cy.height(),zoom:cy.zoom()};
+            })()""")).jsonObject
+            fun n(key: String) = bounds.getValue(key).jsonPrimitive.double
+            assertTrue("Search must bring the actual result into view after panning: $bounds",
+                n("x1") >= 0 && n("y1") >= 64 && n("x2") <= n("width") && n("y2") <= n("height") - 64)
+            assertTrue("A single search result must use its readable base scale: $bounds", n("zoom") >= .99 && n("zoom") <= 1.01)
+            val viewport = html.js("(()=>{const cy=document.getElementById('graph')._cyreg.cy;return {pan:cy.pan(),zoom:cy.zoom()}})()")
+            html.tapMemoryNode(ids.first())
+            waitDom("document.querySelector('[data-node=body]')?.textContent==='memory-viewport-unique-target'")
+            html.js("document.querySelector('[data-node=back]').click()")
+            waitDom("document.getElementById('sheet').hidden && !!document.querySelector('[data-memory-id=${ids.first()}]')")
+            assertEquals("Returning from detail must keep the search viewport", viewport,
+                html.js("(()=>{const cy=document.getElementById('graph')._cyreg.cy;return {pan:cy.pan(),zoom:cy.zoom()}})()"))
+            assertEquals("Search query survives the detail round trip", "\"memory-viewport-unique-target\"", html.js("document.getElementById('query').value"))
+        } finally {
+            rule.runOnUiThread { visible = false }
+            runBlocking { ids.forEach { runCatching { manager.delete(it) } } }
+        }
+    }
     @Test fun installedPluginOpensGenericPageFromDetailsAndPersistsThroughRealMarket() {
         val app = rule.activity.application as SolvitApplication
         val id = "test.page-entry"
