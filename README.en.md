@@ -12,7 +12,7 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The current release is [0.43.8](https://github.com/veryy/Solvit/releases/tag/v0.43.8). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The current release is [0.43.9](https://github.com/veryy/Solvit/releases/tag/v0.43.9). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 
@@ -28,9 +28,11 @@ The current release is [0.43.8](https://github.com/veryy/Solvit/releases/tag/v0.
 - **Git workspace:** Changes, diffs, staging, commits, and history, plus HTTPS clone, fetch, pull/push reviews, merge conflicts, progress, and cancellation. Credentials are entered through a native secure form and stored encrypted. Review interrupted clones before resuming or downloading again; conflicts preserve files, and discarding removes private staging only. AI Git tools are currently read-only.
 - **Updates:** release notes, APK downloads with progress, and an installation entry inside the app. API keys are encrypted with Android Keystore.
 
-## File browser polish in 0.43.8
+## 0.43.9 UI polish
 
-Paths, parent navigation, the file tree, and refresh now share one compact header. New / Import / More menus leave room for file rows; secondary file actions stay in each row’s menu. Failed navigation keeps the matching path and files, and a changed workspace clears old rows. Git uses the same plugin component. [Actual screenshots and evidence](docs/workspace-ui-polish-stage.md).
+The Linux page now puts environment status and the relevant action first. Software, installation logs, and background information expand when needed. Refresh keeps your reading position; unknown download sizes show no invented percentage. Terminal management separates the current connection, session selection, shortcuts, and closing. A real PTY regression also fixed an exit code disappearing after switching sessions.
+
+Existing official environment and terminal packages upgrade while retaining configuration, permissions, and disabled state. Modified packages and uninstall choices are preserved. [Changes and verification](docs/release-0.43.9.md).
 
 ## What comes next
 
@@ -53,7 +55,7 @@ Unsent drafts and queued messages do not survive process death; startup cleans u
 
 Configuration backups include model connections, API keys, roles, prompts, language, and appearance, but exclude chats, plugin packages, plugin credentials, and memories. Keep backups outside the app. Conversation context is sent to your configured model service.
 
-The published APK is a debug build. [Formal 0.43.8 validation](https://github.com/veryy/Solvit/actions/runs/38998957947) passed 619 unit tests, lint, stable signing, 110 regular emulator cases, full chat at 1.5× text size, 15 process-death recovery cases, upgrade persistence, actual stdio host termination, and Ubuntu checks. Raw reports and actual screenshots were reviewed; public APK/source downloads match the build artifacts exactly. Real-model tasks and ARM64 physical devices remain unverified. [Release evidence](docs/release-0.43.8.md) · [Native lifecycle investigation](docs/webview-user-lifecycle-stage.md).
+The published APK is a debug build. [0.43.9 passed the complete remote gates](https://github.com/veryy/Solvit/actions/runs/39004170518): 623 unit tests, lint, stable signing, 111 regular emulator cases, full chat at 1.5× text size, 15 process-death recovery cases, upgrade persistence, actual stdio host termination, and Ubuntu checks. Raw reports and actual screenshots were reviewed; public APK/source downloads match the build artifacts exactly. Real-model tasks and ARM64 physical devices remain unverified. [Release evidence](docs/release-0.43.9.md) · [Native lifecycle investigation](docs/webview-user-lifecycle-stage.md).
 
 ## Development
 
