@@ -17,3 +17,5 @@ DSH d7432673 packages/client/ui-conversation/src/client/draft.ts使用有所有�
 新增回归同时检查不同会话文字、新会话为空、手动清空不影响另一个会话、选区及Activity实际重建后的恢复。App最低86增至87并加入必需方法，其他角色/流式/附件/队列门禁保留。build97候选待GitHub Actions完整验证与新APK，不因修正源码声称已通过。生产无临时诊断日志，未执行本地Android/TS构建或测试。
 
 第一轮98f14eee / Android39056255551在测试Kotlin编译阶段失败：ChatLayoutTest.kt:966 performTextInputSelection要求ExperimentalTestApi显式OptIn。生产assembleDebug已完成，设备尚未执行，不能将此记作草稿验证失败或成功。补充该方法的OptIn注解，保留原文字/选区/重建断言，生产逻辑不改；不交付该失败轮次产物。
+
+在候选提交处理时，统一普通提交与立即打断的输入读取：事件边界核对绑定会话仍为当前会话，并读取ViewModel当前文字/附件，再使用原布尔接受规则清空对应ID；避免依赖上一帧用于绘制的输入快照。此为同一草稿所有权修正的一部分，未据此宣称另一个已远程复现的缺陷。ce187fca正在执行时被后续提交替代，最终检查必须针对新的实际源码完成。

@@ -166,6 +166,19 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val agentBusy by agents.busy.collectAsStateWithLifecycle()
     val inputDrafts by vm.inputDrafts.collectAsStateWithLifecycle()
     val input = inputDrafts[selected] ?: TextFieldValue()
+    fun submitInput(interrupt: Boolean = false) {
+        val id = selected ?: return
+        if (vm.sessionId.value != id) return
+        // Read at the event boundary; the rendered value may be from the previous frame.
+        val editor = vm.inputDrafts.value[id] ?: TextFieldValue()
+        val attachments = vm.attachmentDrafts.value[id].orEmpty()
+        val accepted = if (interrupt) vm.interruptAndSend(editor.text, attachments)
+            else vm.send(editor.text, attachments)
+        if (accepted) {
+            vm.clearSentAttachments(id)
+            vm.updateInputDraft(id, TextFieldValue())
+        }
+    }
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     val memoryManager = remember(app) { dev.solvit.market.BuiltinMemoryManager(app) }
     var memoryOpen by rememberSaveable { mutableStateOf(false) }
@@ -288,12 +301,12 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                             Spacer(Modifier.width(8.dp))
                             if(busy)IconButton(onClick=vm::stop,enabled=!switching,modifier=Modifier.testTag("chat_stop")) { UiIcon(Icons.Default.Stop,"停止生成") }
                             FilledIconButton(
-                                onClick = { if (vm.send(input.text, selectedAttachments)) { selected?.let(vm::clearSentAttachments); vm.updateInputDraft(selected, TextFieldValue()) } },
+                                onClick = { submitInput() },
                                 enabled = ready && !branching && !importingAttachment && (input.text.isNotBlank() || selectedAttachments.isNotEmpty()) && !missingRole && !agentBusy,
                                 modifier = Modifier.size(52.dp).testTag("chat_send"),
                             ) { UiIcon(Icons.AutoMirrored.Filled.Send,if(busy) "加入等待队列" else "发送") }
                         }
-                        if(busy && (input.text.isNotBlank() || selectedAttachments.isNotEmpty()))TextButton(onClick={if(vm.interruptAndSend(input.text,selectedAttachments)){selected?.let(vm::clearSentAttachments);vm.updateInputDraft(selected,TextFieldValue())}},enabled=!switching&&!missingRole&&!agentBusy,
+                        if(busy && (input.text.isNotBlank() || selectedAttachments.isNotEmpty()))TextButton(onClick={submitInput(interrupt = true)},enabled=!switching&&!missingRole&&!agentBusy,
                             modifier=Modifier.align(Alignment.End).testTag("chat_interrupt_send")) { UiText("立即发送并打断") }
                     }
                     }
