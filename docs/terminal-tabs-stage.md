@@ -23,3 +23,9 @@ DSH固定d7432673（完整revision见upstream-sources.json）：`packages/client
 扩展已有`ChatLayoutTest.interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput`：在真实页面创建Second HTML Shell后，保存真实截图并读取每个标签的文字、可见宽度、内容宽度；不超过12字符的短名称必须完整显示，长名称允许有限省略。保留后续真实PTY、环境隔离、Ctrl-C、AI会话、管理与退出码断言。独立`terminal-tabs`入口复用相同生产源APK，构建和测试仅在Actions运行。
 
 当前待远程测量，不计为通过，也不把现有截图当作新测试结果。
+
+## 两标签基线与覆盖修正
+
+定向39059472042/source dc5a8c5f在22.227秒通过原实际PTY场景；artifact12110487842，sha256:0af2d68e95b617133ad5de921e06c51f56ad5bf3c6dd5a5dace25a6ff21768b0，大小/摘要/CRC、原始runner与截图均实际核对。截图只有Shell 1与Second HTML Shell两个标签，短名称完整，未复现原完整回归的三标签拥挤。不能据此宣称问题已修复或布局没有问题。
+
+修正同一实际回归的准备步骤：经真实HTML创建及原生内联授权再增加短名称Shell 2，随后创建原长名称，固定复现截图中的至少三标签条件；原始宽度断言与后续PTY行为断言保留。生产代码和APK仍完全不改。下一轮以相同生产APK重新测量这个明确缺失的条件，非重试相同场景。

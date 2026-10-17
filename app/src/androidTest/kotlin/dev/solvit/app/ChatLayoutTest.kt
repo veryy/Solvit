@@ -1355,6 +1355,12 @@ class ChatLayoutTest {
             }
             command("printf '__INTERRUPT_%s__\\n' OK")
             rule.waitUntil(8000) { displayed("__INTERRUPT_OK__") }
+            // Reproduce the three-tab viewport seen in the full suite, even when
+            // this method runs alone with only the initial workspace Shell.
+            js("document.getElementById('add').click();document.getElementById('shell-name').value='Shell 2';document.getElementById('new-shell').close('create')")
+            rule.waitUntil(8000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("terminal_page_allow").performClick()
+            rule.waitUntil(8000) { js("Array.from(document.getElementById('shells').children).some(e=>e.textContent==='Shell 2' && e.classList.contains('selected'))") == "true" }
             js("document.getElementById('add').click();document.getElementById('shell-name').value='Second HTML Shell';document.getElementById('new-shell').close('create')")
             rule.waitUntil(8000) { rule.onAllNodesWithTag("terminal_page_allow").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("terminal_page_allow").performClick()
