@@ -207,7 +207,7 @@ class GitHtmlPageTest {
             click("git_files"); click("directory")
             waitDom("!!document.getElementById('workspace-new-menu') && !!document.querySelector('.workspace-navigation [data-node=refresh]')")
             html.tapElement("#workspace-new-menu > summary")
-            waitDom("(()=>{const r=document.querySelector('[data-node=new]').getBoundingClientRect(),v=document.getElementById('content').getBoundingClientRect();return r.width>0&&r.top>=v.top&&r.bottom<=v.bottom&&r.right<=innerWidth})()")
+            waitDom("(()=>{const r=document.querySelector('[data-node=new]').getBoundingClientRect(),v=document.getElementById('content').getBoundingClientRect();return document.getElementById('workspace-new-menu').open&&r.width>0&&r.height>0&&r.top>=v.top&&r.bottom<=v.bottom&&r.left>=0&&r.right<=innerWidth})()")
             html.screenshot("git-workbench-shared-directory-menu")
             html.tapElement("#workspace-new-menu > summary")
             waitDom("!!document.getElementById('tree-toggle') && !document.getElementById('tree-toggle').disabled")
