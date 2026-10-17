@@ -58,3 +58,13 @@ MCP窗口原有FLAG_SECURE令系统截图为黑色，这是预期保护；实际
 部署能力核对：现有SSH agent无身份，默认SSH batch登录返回Permission denied；没有尝试猜测认证或将认证写入项目。当前准备好完整市场更新归档，但尚未写入服务器。
 
 ![真实设备页面：Skills库、资源、150%字体和键盘；MCP列表、旧权限编辑与深色管理](images/skills-mcp-ui-0.43.10.png)
+
+## 完整回归再次发现PTY结束结算竞态
+
+完整Android39010939695最终失败，前段build成功不能称为整条验证通过。Skills/MCP完整交互用例已完成，旧权限覆盖升级的Skills实际截图确认新界面生效；整套失败在既有ChatLayoutTest.interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput:1248。宿主TerminalSession已active=false却exitCode=null（页面为已关闭·—）；因此“只在页面切换时丢码”的解释不成立。失败快照中的真实PTY退格还导致JUnit XML非法&#8引用；保留原始失败报告，后续仅对测试失败诊断文本去除XML非法控制字符，未修改原始结果使其变绿。
+
+按diagnose先列输出序号去重、旧订阅覆盖、原生退出结果竞态三项假设；实际状态确认第三项。AndroidTerminals在read EOF后仅一次查询NativePty.exitCode（waitpid WNOHANG），子进程尚未reap时返回null；随即发布关闭并finally close掉句柄，结果永久丢失。
+
+上游复核：DSH锁定d7432673的packages/terminal/terminal-bash/src/session.ts:517–522同时等待outputEnded和SubprocessOutcome才发布exited；对应tests/session-buffer.spec.ts读取真实producer.exit与session_exit结算用例。OperitTerminalCore锁定checkout的src/main/java/com/ai/assistance/operit/terminal/TerminalManager.kt:491–505在进程结束后读取process.waitFor；读取其LGPL3根许可证，未复制上游实现。Android适配采用协程delay等待非空原生退出码，不持有跨挂起原生锁；关闭、身份撤销和shutdown仍可取消并回收。
+
+独立远程terminal-eof用例先使用文件门控，run39013136354通过但未充分触发自然teardown，未据此宣称消除问题。提取实际自然exit7路径连续96次，run39013515600在第2次（attempt1）明确失败expected7/actualnull，建立失败反馈；保留同一断言和关闭门控场景，修复后再远程验收。设备发布门禁增加实际新回归名称及terminal26下限（常规总112），门禁自身验证也覆盖所有模块的required case，未放宽旧用例或超时。

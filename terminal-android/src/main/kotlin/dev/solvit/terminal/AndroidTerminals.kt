@@ -139,7 +139,15 @@ class AndroidTerminals(private val scope: CoroutineScope, private val workspace:
             }
             flushOutput()
 
-            update(entry) { it.copy(active = false, exitCode = entry.pty.exitCode(), revision = it.revision + 1) }
+            // PTY EOF can precede waitpid's final outcome. Do not publish a closed
+            // session or close its handle until the real child result is available.
+            // delay keeps this wait cancellable by close, revocation and shutdown.
+            var exitCode = entry.pty.exitCode()
+            while (exitCode == null) {
+                delay(10)
+                exitCode = entry.pty.exitCode()
+            }
+            update(entry) { it.copy(active = false, exitCode = exitCode, revision = it.revision + 1) }
         } catch (e: CancellationException) { throw e }
         catch (e: Exception) {
             if (entry.state.active) update(entry) { it.copy(active = false, failure = e.message ?: "终端读取失败", revision = it.revision + 1) }
