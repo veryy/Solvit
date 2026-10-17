@@ -79,7 +79,7 @@ function graph(graphNode,theme) {
           ...graphNode.edges.map((e,i)=>({data:{id:`edge-${i}`,source:e.from,target:e.to,label:e.label}}))];
         cy.elements().remove();cy.add(elements);
       });
-      if(first || graphNode.nodes.some(n=>!positions.has(n.id)))cy.layout({name:'cose',animate:false,randomize:first,numIter:250,fit:false,padding:60}).run();
+      if(first || graphNode.nodes.some(n=>!positions.has(n.id)))cy.layout({name:'cose',nodeDimensionsIncludeLabels:true,animate:false,randomize:first,numIter:250,fit:false,padding:60}).run();
       if(first)fitGraph();else{cy.pan(pan);cy.zoom(zoom)}
     }
   }

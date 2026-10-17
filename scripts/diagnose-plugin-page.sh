@@ -11,7 +11,9 @@ if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = git-clone-recovery ]; then
 fi
 timeout 90s adb install -r app/build/outputs/apk/debug/app-debug.apk || exit 1
 timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk || exit 1
+solvit_memory_label_bounds=false
 case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
+  memory-labels) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin'; solvit_memory_label_bounds=true ;;
   memory-click) solvit_diagnostic_class='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin' ;;
   plugin-document-lifecycle) solvit_diagnostic_class='dev.solvit.app.PluginWebPageLifecycleTest' ;;
   model-settings) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations' ;;
@@ -46,7 +48,7 @@ if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role-sequence ]; then
 fi
 for ((solvit_diagnostic_iteration=1; solvit_diagnostic_iteration<=solvit_diagnostic_iterations; solvit_diagnostic_iteration++)); do
   solvit_diagnostic_result="ui-screenshots/result-${solvit_diagnostic_iteration}.txt"
-  timeout 180s adb shell am instrument -w -e class "$solvit_diagnostic_class" dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$solvit_diagnostic_result"
+  timeout 180s adb shell am instrument -w -e class "$solvit_diagnostic_class" -e verifyMemoryLabelBounds "$solvit_memory_label_bounds" dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner | tee "$solvit_diagnostic_result"
   if ! grep -F "$solvit_diagnostic_expected" "$solvit_diagnostic_result" >/dev/null; then
     # Preserve blocked ART threads before collecting logs; do not hide the failing result.
     solvit_diagnostic_pid=$(timeout 5s adb shell pidof dev.solvit.app | tr -d '\r')

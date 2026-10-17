@@ -7,3 +7,5 @@
 核对现用Cytoscape3.34.3实际[CoSE源码](https://github.com/cytoscape/cytoscape.js/blob/v3.34.3/src/extensions/layout/cose.mjs)：默认nodeDimensionsIncludeLabels=false，Solvit未覆盖此项；这是优先验证的原因，不宣称未跑验证就已解决。其次检查长词换行与缩放后边界，最后检查重用位置与尺寸变更。采用既有组件实际尺寸，避免重写整个关系图。
 
 回归使用实际Android宿主→QuickJS→打包HTML→Canvas图谱，读取锁定引擎容器registration中的实际renderedBoundingBox（[源码依据](https://github.com/cytoscape/cytoscape.js/blob/v3.34.3/src/core/index.mjs)）；仅测试使用内部注册入口，无生产诊断。原始页面随机初始化，最多8次真实重开，首次重叠即失败，未手动挪动节点、伪造布局或调整随机种子。保留原主题、真实触摸选中、编辑/删除确认和重开持久化路径。先在未改插件的d88c731c APK（38983023229）执行，结果待定。
+
+原APK任务38984051218实际失败于第三次初始布局（attempt2）：两组引擎实际文字/节点边界均有效，重叠宽约113.68 CSS px、高36.85 CSS px，明确为几何重叠；不是编译、WebView初始化或内部注册入口失败。只启用既有CoSE的nodeDimensionsIncludeLabels，保留随机初始化、布局迭代、字号、缩放和既有位置复用；插件升为1.4.2，未改权限和数据格式。使用既有远程plugin-pages流程重建JS/Android作图谱定向验证，SDK生成流程另行上传可审阅插件包；不在本地运行Android或TS构建/测试。诊断APK仅证明图谱，不替代完整Linux生产APK验收。结果待定，生成包尚未合入。
