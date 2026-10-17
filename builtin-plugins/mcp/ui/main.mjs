@@ -25,7 +25,8 @@ mountCollectionPage(document.getElementById('content'),document.getElementById('
   for(const card of cards){
    const index=card.dataset.node.slice(7),actions=node('actions_'+index);
    const heading=element('div','connection-heading');node('name_'+index).before(heading);heading.append(node('name_'+index),node('state_'+index));
-   const management=disclosure('connection-manage-'+index,t[2],[node('toggle_'+index),node('delete_'+index)]);node('delete_'+index).classList.add('destructive');actions.after(management);
+   const toggle=node('toggle_'+index),remove=node('delete_'+index);remove.classList.add('destructive');
+   const management=disclosure('connection-manage-'+index,t[2],[toggle,remove]);actions.after(management);
    const stateNode=state.view.nodes.find(n=>n.id===card.dataset.node)?.children?.find(n=>n.id==='actions_'+index)?.children?.find(n=>n.id==='probe_'+index);
    // Only show enabled/disabled presentation from the supplied state, never infer connection success.
    card.classList.toggle('connection-disabled',stateNode?.enabled===false&&!node('workspace_hint_'+index));

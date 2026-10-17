@@ -40,6 +40,14 @@ class McpPageUiTest {
             waitDom("""(()=>{const e=document.querySelector(${JsonPrimitive(selector)}),r=e.getBoundingClientRect();return !e.disabled&&r.width>=43.9&&r.height>=43.9&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})()""")
             html.tapElement(selector)
         }
+        // This method has reset all connections to generated fixtures. Production keeps FLAG_SECURE.
+        fun fixtureScreenshot(name: String) {
+            assertTrue(html.secureWindow())
+            rule.runOnUiThread { rule.activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
+            try { html.screenshot(name).recycle() }
+            finally { rule.runOnUiThread { rule.activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) } }
+            assertTrue(html.secureWindow())
+        }
         fun add(name: String, token: String) {
             click("new"); waitDom("!!document.getElementById('field-name')")
             html.js("(()=>{for(const [id,value]of Object.entries({name:'$name',url:'https://$name.example.invalid/mcp',token:'$token'})){const input=document.getElementById('field-'+id);input.value=value;input.dispatchEvent(new Event('input'))}document.querySelector('[data-node=save]').click()})()")
@@ -66,7 +74,7 @@ class McpPageUiTest {
             waitDom("window.pluginPageReady===true && document.querySelectorAll('.card').length===2")
             waitDom("innerHeight>300 && document.getElementById('content').getBoundingClientRect().height>innerHeight*.5 && document.getElementById('actions').getBoundingClientRect().top>innerHeight*.7 && Array.from(document.querySelectorAll('.card')).every(n=>n.getBoundingClientRect().bottom<document.getElementById('actions').getBoundingClientRect().top)")
             waitDom("document.querySelectorAll('.collection-disclosure[open]').length===0")
-            html.screenshot("mcp-html-connection-library").recycle()
+            fixtureScreenshot("mcp-html-connection-library")
             val beforeFilter=profiles().toString()
             html.js("(()=>{const e=document.getElementById('connection-query');e.value='docs';e.dispatchEvent(new Event('input'))})()")
             waitDom("!document.querySelector('[data-node=server_0]').hidden&&document.querySelector('[data-node=server_1]').hidden")
@@ -78,16 +86,16 @@ class McpPageUiTest {
             rule.runOnUiThread { dark=true };html.setTextZoom(150)
             touch("#connection-manage-0 > summary")
             waitDom("document.getElementById('connection-manage-0').open&&document.documentElement.scrollWidth<=innerWidth")
-            html.screenshot("mcp-html-large-text-management").recycle()
+            fixtureScreenshot("mcp-html-large-text-management")
             rule.runOnUiThread { dark=false };html.setTextZoom(100)
             click("edit_0"); waitDom("!!document.getElementById('field-token')")
             waitDom("document.querySelector('[data-node=transport_http]').getAttribute('aria-pressed')==='true'&&!document.getElementById('mcp-advanced').open")
-            html.screenshot("mcp-html-https-editor").recycle()
+            fixtureScreenshot("mcp-html-https-editor")
             touch("[data-node=transport_stdio]")
             waitDom("document.querySelector('[data-node=transport_stdio]').getAttribute('aria-pressed')==='true'&&!!document.getElementById('field-env')")
             touch("#mcp-advanced > summary")
             waitDom("document.getElementById('mcp-advanced').open")
-            html.screenshot("mcp-html-stdio-advanced").recycle()
+            fixtureScreenshot("mcp-html-stdio-advanced")
             touch("[data-node=transport_http]");waitDom("!!document.getElementById('field-token')")
             assertEquals("\"\"", html.js("document.getElementById('field-token').value"))
             assertEquals("\"password\"", html.js("document.getElementById('field-token').type"))
