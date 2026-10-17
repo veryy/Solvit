@@ -15,6 +15,7 @@ function harness(bound=true,directories=null,notices=[],backups=[],cleanups=[]){
  const savedFiles=Array.from({length:25},(_,i)=>({messageId:`message-${25-i}`,messageNumber:25-i,attachmentId:`attachment-${i}`,name:`saved-${i}.txt`,mimeType:'text/plain',bytes:2048,sha256:'f'.repeat(64)}));
  const snapshot={workspaceId:bound?'ws':null,workspaces:bound?[{id:'ws',name:'Project'}]:[],shells:bound?[{id:'s',name:'Shell 1'}]:[],draftInstallAllowed:false};
  const files=Array.from({length:45},(_,i)=>({name:`file-${i}.txt`,path:`file-${i}.txt`,directory:false,bytes:3}));
+ let failedDirectory=null;
  const queries=[];
  const entryActions=[];
  const ctx={workspacePage:{query:async(op,args={})=>{
@@ -52,7 +53,7 @@ function harness(bound=true,directories=null,notices=[],backups=[],cleanups=[]){
    assert.equal(args.id,importSelection.id);assert.equal(args.sha256,importSelection.sha256);
    return {width:12,height:8,source:'data:image/jpeg;base64,/9gq/9k='};
   }
-  if(op==='list'){const entries=directories?.[args.path]??files;return {files:entries.slice(args.offset,args.offset+40),total:entries.length}}
+  if(op==='list'){if(args.path===failedDirectory)throw Error('Directory temporarily unavailable');const entries=directories?.[args.path]??files;return {files:entries.slice(args.offset,args.offset+40),total:entries.length}}
   if(op==='read')return {text:'old',sha256:'a'.repeat(64)};
   if(op==='readChunk'){
    let end=Math.min(args.offset+4096,document.length);
@@ -123,7 +124,7 @@ function harness(bound=true,directories=null,notices=[],backups=[],cleanups=[]){
   return view;
  };
  const event=async(id,fields={})=>{const node=nodes().find(n=>n.id===id);assert.ok(node,`missing ${id}`);assert.notEqual(node.enabled,false);approved=node.hostAction;return render({nodeId:id,action:node.action,fields:{...Object.fromEntries(nodes().filter(n=>n.kind==='field').map(n=>[n.id,n.value])),...fields}})};
- return {render,event,nodes,queries,entryActions,cleanupActions,set pauseImport(value){pauseImport=value},snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set reviewTarget(value){reviewTarget=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
+ return {render,event,nodes,queries,set failedDirectory(value){failedDirectory=value},entryActions,cleanupActions,set pauseImport(value){pauseImport=value},snapshot,imports,savedFiles,set nextSelection(value){nextSelection=value},set importConflict(value){importConflict=value},set reviewTarget(value){reviewTarget=value},set document(value){document=value},get document(){return document},get draft(){return draft},get created(){return created},get writes(){return writes},get approved(){return approved}};
 }
 test('file imports preserve metadata and require a separate reviewed create; conflicts stay renameable',async()=>{
  const h=harness();await h.render();
@@ -422,4 +423,23 @@ test('interrupted cleanup pages offer safe return or record-only dismissal and n
  assert.ok(h.nodes().find(n=>n.id==='message').text.includes('review again'));
  await h.event('cleanup_dismiss_3');assert.equal(h.cleanupActions[1].operation,'dismissImportBackupCleanup');
  assert.equal(h.cleanupActions.length,2);assert.equal(h.imports.length,0);
+});
+
+test('failed directory navigation preserves the displayed path and its matching entries',async()=>{
+ const h=harness(true,{'':[{name:'src',path:'src',directory:true,bytes:0}],src:[]});
+ await h.render();await h.event('directory');h.failedDirectory='src';await h.event('file_0');
+ assert.equal(h.nodes().find(n=>n.id==='directory').text,'/');
+ assert.equal(h.nodes().find(n=>n.id==='file_name_0').text,'▸ src');
+ assert.ok(h.nodes().find(n=>n.id==='message').text.includes('Directory temporarily unavailable'));
+ h.failedDirectory=null;await h.event('file_0');
+ assert.equal(h.nodes().find(n=>n.id==='directory').text,'src');
+ assert.ok(h.nodes().some(n=>n.id==='empty'));
+});
+test('failed initial directory read is not rendered as an empty successful listing and can retry',async()=>{
+ const h=harness(true,{'':[]});await h.render();h.failedDirectory='';await h.event('directory');
+ assert.ok(!h.nodes().some(n=>n.id==='empty'));
+ assert.ok(h.nodes().some(n=>n.id==='directory_unavailable'));
+ h.failedDirectory=null;await h.event('refresh');
+ assert.ok(h.nodes().some(n=>n.id==='empty'));
+ assert.ok(!h.nodes().some(n=>n.id==='directory_unavailable'));
 });
