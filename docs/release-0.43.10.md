@@ -12,6 +12,8 @@
 
 [完整Android Actions](https://github.com/veryy/Solvit/actions/runs/39027709716)在源码[eb960e3f](https://github.com/veryy/Solvit/commit/eb960e3f9ac768ff571d0958a2a8b8b6e3652530)上成功：626项单元、Lint、固定签名、113项常规模拟器用例（App84/Web3/terminal26）及15场独立进程中断恢复通过。原始XML/runner/PID、摘要/CRC和实际截图已核对，必需角色继承和流式导航用例齐全，无failure/error/skip。此前[角色继承10轮复核](https://github.com/veryy/Solvit/actions/runs/39027110634)还逐轮核对了真实触摸落点与原生角色数据；最终完整任务已移除全部临时探针。
 
+[合入后的主线复验39029725906](https://github.com/veryy/Solvit/actions/runs/39029725906)也已成功：构建、既定签名、模拟器与独立报告门禁通过。主线仅增加阶段文档和实际截图，应用源码与上述候选一致；本次主线日志与门禁已核对，候选的原始产物核对证据保留。
+
 [下载solvit-debug-apk候选产物](https://github.com/veryy/Solvit/actions/runs/39027709716/artifacts/12099262099)（GitHub可能需要登录）。实际包名dev.solvit.app、版本0.43.10/build95，59651083字节，签名沿用原版，可覆盖同签名旧版。APK SHA-256：
 
 ```text
