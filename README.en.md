@@ -12,7 +12,7 @@ Install the APK, then open Settings → Model configuration and enter your servi
 
 Requires Android 8.0+. The app defaults to Chinese and also supports English, Japanese, Korean, Spanish, and French. Choose a light, dark, or system theme, with dynamic colors on Android 12+.
 
-The current release is [0.43.3](https://github.com/veryy/Solvit/releases/tag/v0.43.3). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
+The current release is [0.43.6](https://github.com/veryy/Solvit/releases/tag/v0.43.6). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
 ## What you can use today
 
@@ -28,13 +28,18 @@ The current release is [0.43.3](https://github.com/veryy/Solvit/releases/tag/v0.
 - **Git workspace:** Changes, diffs, staging, commits, and history, plus HTTPS clone, fetch, pull/push reviews, merge conflicts, progress, and cancellation. Credentials are entered through a native secure form and stored encrypted. Review interrupted clones before resuming or downloading again; conflicts preserve files, and discarding removes private staging only. AI Git tools are currently read-only.
 - **Updates:** release notes, APK downloads with progress, and an installation entry inside the app. API keys are encrypted with Android Keystore.
 
+## Interface polish in 0.43.6
+
+Settings now use grouped navigation and a separate appearance page. Plugin details prioritize state and pages; failed pages can reopen in place. Tool approval stays in chat, with collapsible arguments and permission scope. Queued messages start collapsed, and workspace submissions show progress and retain failed drafts. Memory graphs improve long-label spacing; updates preserve existing data, and an older catalog cannot overwrite a newer installed plugin.
+
 ## What comes next
 
 Image, text, and code attachments are now available. Next priorities:
 
-1. Verify plugin operations with a real GitHub account and complete project tasks. Interrupted clone recovery, import capacity checks, and backup management are available.
-2. Validate ARM64 physical devices, older kernels, third-party MCP servers, and Skills dependencies.
-3. Validate roles, visible streaming, tool selection, and complete tasks with real models; improve plugins and memory.
+1. Refine workspace path navigation, file rows, and grouped New / Import / More actions.
+2. Verify plugin operations with a real GitHub account and complete project tasks. Interrupted clone recovery, import capacity checks, and backup management are available.
+3. Validate ARM64 physical devices, older kernels, third-party MCP servers, and Skills dependencies.
+4. Validate roles, visible streaming, tool selection, and complete tasks with real models; improve plugins and memory.
 
 **Screen control is deferred.** Larger-file editing, AI Git writes, and autonomous project tasks remain on the [roadmap](docs/product-roadmap.md).
 
@@ -48,7 +53,7 @@ Unsent drafts and queued messages do not survive process death; startup cleans u
 
 Configuration backups include model connections, API keys, roles, prompts, language, and appearance, but exclude chats, plugin packages, plugin credentials, and memories. Keep backups outside the app. Conversation context is sent to your configured model service.
 
-The published APK is a debug build. [The formal 0.43.3 validation](https://github.com/veryy/Solvit/actions/runs/38826293232) passed the build, 611 unit tests, lint, stable signing, 98 regular device tests, 15 recovery cases, upgrade checks, and actual Ubuntu checks; raw reports were independently verified. The Compose lifecycle fix has a failing/passing regression at the same entry point. However, extra stress testing with normal app scheduling reproduced the native WebView124 crash after 50 completed operations on this same release APK. Its cause remains unresolved. Real-model tasks and ARM64 physical devices remain unverified. [Release evidence](docs/release-0.43.3.md) · [Native crash investigation](docs/webview-user-lifecycle-stage.md).
+The published APK is a debug build. [Formal 0.43.6 validation](https://github.com/veryy/Solvit/actions/runs/38989335525) passed 617 unit tests, lint, stable signing, 110 regular device cases, the full chat scenario at 1.5× text size, 15 process-death recovery cases, upgrade persistence, actual stdio host termination, and Ubuntu checks. Raw reports and actual screenshots were reviewed; public APK/source downloads match the build artifacts exactly. The WebView lifecycle change passed repeated checks in the specified emulator environment; real-model tasks and ARM64 physical devices remain unverified. [Release evidence](docs/release-0.43.6.md) · [Native lifecycle investigation](docs/webview-user-lifecycle-stage.md).
 
 ## Development
 

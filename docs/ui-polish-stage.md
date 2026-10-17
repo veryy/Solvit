@@ -218,3 +218,11 @@ DSH `d743267388641bc76f17c45ce8b4c231aed1d32c`：
 最终候选38987190372在110项常规设备成功后，外部am instrument立即返回Unable to find instrumentation info，独立大字号38987771834则使用显式安装的相同包成功。现有stdio强杀脚本已明确处理UTP测试后卸载测试包。先以pm list instrumentation记录，再恢复本构建App与测试APK，保持原大字号/恢复/stdio及独立报告断言；不增加超时、不吞失败。已停止正式38988324855；0.43.5标签保留、未发布。继任0.43.6/build89仅版本与验证脚本变化，待完整同路径远程重跑。
 
 38987190372设备归档12083998311 SHA256 042991851e47a25f2c9646d5767b34735d55ed0f245008bb01dc61442386c695、CRC及原始XML已核对：App82/Web3/终端25均零失败、错误、跳过；日志明确常规BUILD SUCCESS后即运行器缺失，不能把中断归为聊天断言失败。已查看同包设置分组、插件详情大字号截图。0.43.5正式617单元/Lint/固定签名通过，搜索artifact12084171230、插件12084066712、Linux12083864463摘要/CRC核对，Linux实际3项设备及Python3.12.3/Node24.21.0/npm11.19.0通过；这仍不能代替完整发布。0.43.6正式任务38989335525使用efec6f09不可变标签，待后置安装记录和完整门禁，不移动旧标签。
+
+### 0.43.6正式交付
+
+[正式38989335525](https://github.com/veryy/Solvit/actions/runs/38989335525)全部门禁及发布成功。efec6f09标签不变。完整设备artifact12085201777 SHA256 edfc3834f27ef6bc40bf709ab26a6a9d7bf070b2de0523fbd1d59afaff8996cc、CRC及原始XML已核对：App82/Web3/终端25，零失败/错误/跳过；15场恢复各自原始verify为OK且PID先存在后消失，升级seed及常规UpgradePersistence通过。UTP结束后运行器列表实际为空，同构建App/测试包安装均Success，恢复后组件存在；原大字号完整聊天实际OK (1 test)，随后stdio实际宿主/监督/worker/descendant全部gone。故该缺陷是后置运行器安装生命周期，不是通过删除聊天断言解决。已查看本次正式大字授权折叠/展开及深色图谱截图；信息完整、图谱双节点标签分离。
+
+正式617单元artifact12084104509 SHA256 03412712c705e33ef7a5a294b5f7df6aabd7b0aaedd48432078988d440c875b1；原始XML零失败/错误/跳过，Lint及既定签名通过。插件141 SDK/7市场及线上MCP/Skills通过，生成记忆包与仓库两处资源逐字节一致。搜索实际3组查询和正文证据通过。Linux artifact12085020379 SHA256 8517e5f11e0ee4de18539c752ec8f9535860fb83f14d2465a2e9f1d43ae4b2b6、CRC/原始3设备用例核对，生产Python3.12.3/Node24.21.0/npm11.19.0。
+
+公开release415513597为非草稿、非预发布；APK649174139及源码649174264已实际下载，与正式APK/source内层文件逐字节一致，摘要及CRC核对。APK SHA256 47b651fe83ce34358d96109e1cda42e0aa08750346a36582519401f3f6f0cb24。0.43.4/0.43.5未发布、旧标签保留。真实模型/真实账号任务、ARM64和稠密图谱仍未完整验收；下一批目录交互见workspace-ui-polish-stage.md。
