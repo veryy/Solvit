@@ -178,7 +178,8 @@ class PdfChatDeviceTest {
                 throw failure
             }
             try {
-                rule.onNodeWithTag("chat_input").assertTextEquals("")
+                rule.onNodeWithTag("chat_input").assert(SemanticsMatcher.expectValue(
+                SemanticsProperties.EditableText, androidx.compose.ui.text.AnnotatedString("")))
                 assertTrue("An accepted PDF send must clear its conversation draft after real HTTP failure settles",
                     vm.inputDrafts.value[session]?.text.isNullOrEmpty())
             } catch(failure:Throwable) {
