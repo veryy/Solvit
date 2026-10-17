@@ -2,7 +2,7 @@
   "id": "dev.solvit.skills",
   "name": "Skills 技能库",
   "description": "TS 技能库：导入与角色绑定、按需读取、授权准备资源目录，配合 Ubuntu Shell 运行脚本。",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "apiVersion": 31,
   "permissions": [
     "storage",

@@ -2,7 +2,7 @@
   "id": "dev.solvit.mcp",
   "name": "MCP 连接",
   "description": "JS/TS 多服务器 MCP：管理具名 HTTPS 和 Ubuntu 本地 stdio 连接；加密保存认证与环境，AI 按服务器发现及调用工具。",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "apiVersion": 30,
   "permissions": [
     "network",

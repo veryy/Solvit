@@ -147,15 +147,28 @@ class WorkspaceInstructionsHookTest {
         releasedPackageUpgrade("dev.solvit.environment","1.0.1","1.0.3",
             "1856e4c2391b9d589b31095b5c8dae64d9e75311590d62b278c2419ba8c2d5f0",setOf("workspace","shell","network"),resource="/legacy/environment-api21-v1.0.1.solvit.json")
     }
+    @Test fun releasedSkillsLibraryUpgradesWithoutLosingDataGrantsOrUninstallChoice()=runBlocking<Unit> {
+        releasedPackageUpgrade("dev.solvit.skills","1.2.0","1.2.1",
+            "541c979ba8038b50a886680cfeb51d1bc59f66d51cc193186de687c009e3bfad",setOf("storage","workspace"))
+    }
+    @Test fun releasedMcpConnectionsUpgradeWithoutLosingConfigurationGrantsOrUninstallChoice()=runBlocking<Unit> {
+        releasedPackageUpgrade("dev.solvit.mcp","1.2.0","1.2.1",
+            "ef9e3f012876d085365c7fa27f28b833a15ec1139ed71025be1e21449eae585d",setOf("network","workspace","shell"))
+    }
     private suspend fun releasedPackageUpgrade(plugin:String,oldVersion:String,newVersion:String,sha:String,grants:Set<String>,
         resource:String="/legacy/$plugin-$oldVersion.solvit.json") {
         fixture { market,_,_,_ ->
             market.disable(plugin)
+            val retainedConfig=if(plugin=="dev.solvit.mcp") mapOf("connections" to """[{"name":"kept","url":"https://kept.example.invalid/mcp","token":"fixture-only-not-a-secret"}]""") else null
+            if(retainedConfig!=null)market.configure(plugin,retainedConfig)
             if(plugin=="dev.solvit.workspace")market.configure(plugin,mapOf("projectRules" to "false"))
             val old=javaClass.getResourceAsStream(resource)!!.use { it.readBytes() }
             assertEquals(sha,java.security.MessageDigest.getInstance("SHA-256").digest(old).joinToString(""){"%02x".format(it)})
             val app=RuntimeEnvironment.getApplication()
             val file=java.io.File(app.filesDir,"extensions/$plugin.solvit.json").apply { writeBytes(old) }
+            val data=app.getSharedPreferences("extension_data.$plugin",0)
+            val retainedData="""{"format":1,"skills":[{"name":"kept","description":"Retained fixture","body":"Keep this instruction","files":{"SKILL.md":"---\nname: kept\ndescription: Retained fixture\n---\nKeep this instruction","references/note.txt":"Original resource"}}]}"""
+            if(plugin=="dev.solvit.skills")check(data.edit().putString("skills.v1",retainedData).commit())
             val prefs=app.getSharedPreferences("extension_permissions",0)
             check(prefs.edit().putBoolean("seeded.$plugin.solvit.json",true).putBoolean("enabled.$plugin",false)
                 .putStringSet("grants.$plugin",grants).commit())
@@ -163,6 +176,13 @@ class WorkspaceInstructionsHookTest {
             assertEquals(newVersion,market.installed.value.single { it.id==plugin }.version)
             assertFalse(market.installed.value.single { it.id==plugin }.enabled)
             assertEquals(grants,prefs.getStringSet("grants.$plugin",emptySet()))
+            if(retainedConfig!=null)assertEquals(retainedConfig,market.configuration(plugin))
+            if(plugin=="dev.solvit.skills"){
+                assertEquals(retainedData,data.getString("skills.v1",null))
+                market.enable(plugin,grants)
+                assertEquals("Keep this instruction",NativeSkillLibrary(market).load("kept").instructions)
+                market.disable(plugin)
+            }
             if(plugin=="dev.solvit.workspace")assertEquals("false",market.configuration(plugin)["projectRules"])
             val modified=old+"\n".toByteArray();file.writeBytes(modified);market.restore()
             assertContentEquals(modified,file.readBytes())

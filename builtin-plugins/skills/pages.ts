@@ -81,7 +81,7 @@ export function createSkillsPage(store:Store){
   if(mode==='list'){
    nodes.push({id:'query',kind:'field',label:t[1],value:query},{id:'search',kind:'button',text:t[1],action:'search'});
    const needle=query.toLocaleLowerCase();const visible=db.skills.filter(s=>(s.name+' '+s.description).toLocaleLowerCase().includes(needle));names=visible.map(s=>s.name);
-   if(!visible.length)nodes.push(text('empty',t[10]));
+   if(!visible.length)nodes.push(text('empty',query?({zh:'没有匹配的技能，请调整或清空搜索。',en:'No matching skills. Change or clear your search.',ja:'一致するスキルがありません。検索を変更またはクリアしてください。',ko:'일치하는 스킬이 없습니다. 검색을 변경하거나 지우세요.',es:'Sin skills coincidentes. Cambia o borra la búsqueda.',fr:'Aucun skill correspondant. Modifiez ou effacez la recherche.'}[input.locale.split(/[-_]/)[0] as keyof typeof words]??'No matching skills. Change or clear your search.'):t[10]));
    visible.forEach((s,index)=>nodes.push({id:`skill_${index}`,kind:'card',children:[text(`name_${index}`,s.name,'title'),text(`description_${index}`,Array.from(s.description).slice(0,180).join(''),'caption'),button(`open_${index}`,t[4],'open')]}));
    footer.push({...button('import',t[2]),hostAction:{kind:'document.open',mimeTypes:['text/*','application/json','application/zip','application/octet-stream'],maxBytes:524288}},button('refresh',t[3]));
   }else{

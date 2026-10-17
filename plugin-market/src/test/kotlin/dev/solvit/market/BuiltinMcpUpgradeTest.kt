@@ -34,7 +34,7 @@ class BuiltinMcpUpgradeTest {
             assertEquals(setOf("storage"), prefs.getStringSet("grants.$id", emptySet()))
             market.installLocal(app.assets.open("builtin-plugins/$id.solvit.json").use { it.readBytes() })
             val updated = market.installed.value.single { it.id == id }
-            assertEquals("1.2.0", updated.version); assertFalse(updated.enabled)
+            assertEquals("1.2.1", updated.version); assertFalse(updated.enabled)
             assertFalse(prefs.contains("grants.$id"))
             assertEquals(saved, data.getString("skills.v1", null))
             assertFailsWith<IllegalStateException> { market.enable(id, setOf("storage")) }

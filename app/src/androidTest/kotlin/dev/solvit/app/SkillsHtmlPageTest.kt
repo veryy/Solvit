@@ -104,6 +104,11 @@ class SkillsHtmlPageTest {
             waitDom("document.querySelector('[data-node='+${JsonPrimitive(id)}+']')?.disabled===false")
             html.js("document.querySelector('[data-node='+${JsonPrimitive(id)}+']').click()")
         }
+        fun touch(selector: String) {
+            html.js("document.querySelector(${JsonPrimitive(selector)}).scrollIntoView({block:'center'})")
+            waitDom("""(()=>{const e=document.querySelector(${JsonPrimitive(selector)}),r=e.getBoundingClientRect();return !e.disabled&&r.width>=43.9&&r.height>=43.9&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})()""")
+            html.tapElement(selector)
+        }
         fun confirm() {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugin_page_confirm").performClick()
@@ -135,6 +140,27 @@ class SkillsHtmlPageTest {
             waitDom("window.pluginPageReady===true && document.body.textContent.includes(${JsonPrimitive(name)})")
             waitDom("document.getElementById('content').getBoundingClientRect().height>innerHeight*.5 && Array.from(document.querySelectorAll('.card')).every(n=>n.getBoundingClientRect().bottom<document.getElementById('actions').getBoundingClientRect().top)")
             html.screenshot("skills-html-library").recycle()
+            val namesBeforeSearch=runBlocking { app.skills.list().map { it.name } }
+            fun search(value: String) {
+                html.js("(()=>{const field=document.getElementById('field-query');field.value=${JsonPrimitive(value)};field.dispatchEvent(new Event('input'))})()")
+                touch("[data-node=search]")
+                waitDom("document.getElementById('field-query')?.value===${JsonPrimitive(value)}&&!document.querySelector('[data-node=search]').disabled")
+            }
+            search(name)
+            waitDom("document.querySelectorAll('.card').length===1&&document.querySelector('[data-node^=name_]').textContent===${JsonPrimitive(name)}")
+            openSkill(); waitDom("!!document.querySelector('.skill-resource')&&!document.getElementById('skill-about').open")
+            html.screenshot("skills-html-resource-detail").recycle()
+            click("back"); waitDom("document.getElementById('field-query')?.value===${JsonPrimitive(name)}")
+            search("no-matching-skill-fixture")
+            waitDom("document.querySelectorAll('.card').length===0&&document.querySelector('[data-node=empty]')?.textContent==='没有匹配的技能，请调整或清空搜索。'")
+            touch("#clear-search"); waitDom("document.querySelectorAll('.card').length>0&&document.getElementById('field-query')?.value===''")
+            assertEquals(namesBeforeSearch,runBlocking { app.skills.list().map { it.name } })
+            html.setTextZoom(150)
+            touch("#field-query")
+            rule.waitUntil(10_000) { html.keyboardVisible() }
+            waitDom("(()=>{const e=document.querySelector('[data-node=search]'),r=e.getBoundingClientRect();return r.height>=43.9&&r.width>=43.9&&r.bottom<=innerHeight&&document.documentElement.scrollWidth<=innerWidth})()")
+            html.screenshot("skills-html-large-text-keyboard").recycle()
+            html.hideKeyboard(); rule.waitUntil(10_000) { !html.keyboardVisible() };html.setTextZoom(100)
             openSkill(); click("export"); confirm()
             downloads()
             clickSystem { it.isEnabled && it.text?.toString()?.equals("Save", ignoreCase = true) == true }

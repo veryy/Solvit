@@ -19,6 +19,7 @@ case "${SOLVIT_PAGE_DIAGNOSTIC:-memory-click}" in
   plugin-document-lifecycle) solvit_diagnostic_class='dev.solvit.app.PluginWebPageLifecycleTest' ;;
   model-settings) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#nativeProtocolSettingsSaveOptionsAndReopenThroughProviderDeclarations' ;;
   model-task) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#modelProfilesUiSavesAndAssignsASeparateToolModel' ;;
+  skills-mcp-ui) solvit_diagnostic_class='dev.solvit.app.SkillsHtmlPageTest,dev.solvit.app.McpPageUiTest' ;;
   skills-documents) solvit_diagnostic_class='dev.solvit.app.SkillsHtmlPageTest' ;;
   mcp-page) solvit_diagnostic_class='dev.solvit.app.McpPageUiTest' ;;
   project-rules) solvit_diagnostic_class='dev.solvit.app.ChatLayoutTest#actualAndroidTsProjectRulesRefreshWithoutChangingRoleOrCreatingUnboundWorkspace' ;;
@@ -42,6 +43,7 @@ esac
 solvit_diagnostic_iterations=1
 solvit_diagnostic_expected='OK (1 test)'
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = file-diff ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-interaction ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = workspace-files ] || [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = environment-ui ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
+if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = skills-mcp-ui ]; then solvit_diagnostic_expected='OK (2 tests)'; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = git-workbench ]; then solvit_diagnostic_expected='OK (3 tests)'; fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = chat-role ]; then solvit_diagnostic_iterations=10; fi
 # Stress the reproduced native IME/queue-removal touch race without retrying a failed scenario.

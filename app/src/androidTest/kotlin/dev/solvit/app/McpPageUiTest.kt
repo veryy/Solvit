@@ -2,6 +2,8 @@ package dev.solvit.app
 
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -33,6 +35,11 @@ class McpPageUiTest {
             waitDom("!!document.querySelector('[data-node=$node]')&&!document.querySelector('[data-node=$node]').disabled")
             html.js("document.querySelector('[data-node=$node]').click()")
         }
+        fun touch(selector: String) {
+            html.js("document.querySelector(${JsonPrimitive(selector)}).scrollIntoView({block:'center'})")
+            waitDom("""(()=>{const e=document.querySelector(${JsonPrimitive(selector)}),r=e.getBoundingClientRect();return !e.disabled&&r.width>=43.9&&r.height>=43.9&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})()""")
+            html.tapElement(selector)
+        }
         fun add(name: String, token: String) {
             click("new"); waitDom("!!document.getElementById('field-name')")
             html.js("(()=>{for(const [id,value]of Object.entries({name:'$name',url:'https://$name.example.invalid/mcp',token:'$token'})){const input=document.getElementById('field-'+id);input.value=value;input.dispatchEvent(new Event('input'))}document.querySelector('[data-node=save]').click()})()")
@@ -41,8 +48,9 @@ class McpPageUiTest {
             waitDom("!!document.querySelector('[data-node=server_0]') && !document.querySelector('[data-node=new]').disabled")
         }
         var visible by mutableStateOf(true)
+        var dark by mutableStateOf(false)
         try {
-            rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
+            rule.runOnUiThread { rule.activity.setContent { MaterialTheme(colorScheme=if(dark)darkColorScheme() else lightColorScheme()) {
                 if (visible) PluginPageScreen("MCP 服务器", { app.marketplace.openPage(id, "main", "zh") }) { visible = false }
             } } }
             waitDom("window.pluginPageReady===true")
@@ -57,7 +65,30 @@ class McpPageUiTest {
             rule.runOnUiThread { visible = true }
             waitDom("window.pluginPageReady===true && document.querySelectorAll('.card').length===2")
             waitDom("innerHeight>300 && document.getElementById('content').getBoundingClientRect().height>innerHeight*.5 && document.getElementById('actions').getBoundingClientRect().top>innerHeight*.7 && Array.from(document.querySelectorAll('.card')).every(n=>n.getBoundingClientRect().bottom<document.getElementById('actions').getBoundingClientRect().top)")
+            waitDom("document.querySelectorAll('.collection-disclosure[open]').length===0")
+            html.screenshot("mcp-html-connection-library").recycle()
+            val beforeFilter=profiles().toString()
+            html.js("(()=>{const e=document.getElementById('connection-query');e.value='docs';e.dispatchEvent(new Event('input'))})()")
+            waitDom("!document.querySelector('[data-node=server_0]').hidden&&document.querySelector('[data-node=server_1]').hidden")
+            html.js("(()=>{const e=document.getElementById('connection-query');e.value='no-match-fixture';e.dispatchEvent(new Event('input'))})()")
+            waitDom("!document.getElementById('connection-empty').hidden&&Array.from(document.querySelectorAll('.card')).every(n=>n.hidden)")
+            touch("#clear-connections");waitDom("Array.from(document.querySelectorAll('.card')).every(n=>!n.hidden)")
+            html.hideKeyboard();rule.waitUntil(10_000) { !html.keyboardVisible() }
+            assertEquals(beforeFilter,profiles().toString())
+            rule.runOnUiThread { dark=true };html.setTextZoom(150)
+            touch("#connection-manage-0 > summary")
+            waitDom("document.getElementById('connection-manage-0').open&&document.documentElement.scrollWidth<=innerWidth")
+            html.screenshot("mcp-html-large-text-management").recycle()
+            rule.runOnUiThread { dark=false };html.setTextZoom(100)
             click("edit_0"); waitDom("!!document.getElementById('field-token')")
+            waitDom("document.querySelector('[data-node=transport_http]').getAttribute('aria-pressed')==='true'&&!document.getElementById('mcp-advanced').open")
+            html.screenshot("mcp-html-https-editor").recycle()
+            touch("[data-node=transport_stdio]")
+            waitDom("document.querySelector('[data-node=transport_stdio]').getAttribute('aria-pressed')==='true'&&!!document.getElementById('field-env')")
+            touch("#mcp-advanced > summary")
+            waitDom("document.getElementById('mcp-advanced').open")
+            html.screenshot("mcp-html-stdio-advanced").recycle()
+            touch("[data-node=transport_http]");waitDom("!!document.getElementById('field-token')")
             assertEquals("\"\"", html.js("document.getElementById('field-token').value"))
             assertEquals("\"password\"", html.js("document.getElementById('field-token').type"))
             click("save")
@@ -65,12 +96,13 @@ class McpPageUiTest {
             rule.onNodeWithTag("plugin_page_confirm").performClick()
             waitDom("!!document.querySelector('[data-node=server_1]')")
             assertEquals("ui-private-docs", profiles()[0].jsonObject.getValue("token").jsonPrimitive.content)
-            click("toggle_1"); waitDom("document.querySelector('[data-node=state_1]')?.textContent==='已停用'")
+            touch("#connection-manage-1 > summary")
+            touch("[data-node=toggle_1]"); waitDom("document.querySelector('[data-node=state_1]')?.textContent==='已停用'")
             assertTrue(profiles()[1].jsonObject.getValue("disabled").jsonPrimitive.boolean)
-            click("delete_1")
+            touch("[data-node=delete_1]")
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("取消").performClick(); assertEquals(2, profiles().size)
-            click("delete_1"); rule.onNodeWithTag("plugin_page_confirm").performClick()
+            touch("[data-node=delete_1]"); rule.onNodeWithTag("plugin_page_confirm").performClick()
             waitDom("document.querySelectorAll('.card').length===1")
             assertEquals("docs", profiles().single().jsonObject.getValue("name").jsonPrimitive.content)
         } finally {
