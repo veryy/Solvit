@@ -43,9 +43,24 @@ class McpPageUiTest {
         // This method has reset all connections to generated fixtures. Production keeps FLAG_SECURE.
         fun fixtureScreenshot(name: String) {
             assertTrue(html.secureWindow())
-            rule.runOnUiThread { rule.activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
-            try { html.screenshot(name).recycle() }
-            finally { rule.runOnUiThread { rule.activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) } }
+            lateinit var root: android.view.View
+            var originalFlags=0
+            rule.runOnUiThread {
+                root=android.view.inspector.WindowInspector.getGlobalWindowViews().asReversed().first { it.hasWindowFocus() }
+                val params=android.view.WindowManager.LayoutParams().apply { copyFrom(root.layoutParams as android.view.WindowManager.LayoutParams) }
+                originalFlags=params.flags
+                params.flags=params.flags and android.view.WindowManager.LayoutParams.FLAG_SECURE.inv()
+                rule.activity.windowManager.updateViewLayout(root,params)
+            }
+            try {
+                rule.waitUntil(10_000) { !html.secureWindow() }
+                html.screenshot(name).recycle()
+            } finally {
+                rule.runOnUiThread {
+                    val params=android.view.WindowManager.LayoutParams().apply { copyFrom(root.layoutParams as android.view.WindowManager.LayoutParams);flags=originalFlags }
+                    rule.activity.windowManager.updateViewLayout(root,params)
+                }
+            }
             assertTrue(html.secureWindow())
         }
         fun add(name: String, token: String) {

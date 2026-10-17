@@ -21,3 +21,7 @@ MCP窗口原有FLAG_SECURE令系统截图为黑色，这是预期保护；实际
 正式发布仍需线上Skills包同步。旧部署入口/private/tmp/solvit-deploy-browser-market.py及solvit-server-exec.py已不存在；只读SSH因没有已知host key而未连接，未降低校验。GitHub仓库仅配置签名密钥。当前具备源码与远程Android验证能力，继续完成候选及下载产物；恢复部署能力后再过现有live Skills精确字节门禁，不把生成成功写成正式发布。
 
 修正后的远程生成39007681241成功，artifact12091418677（880845字节，SHA256 af30da7c6f6f87af0c72f17c808c872e3a553839005c6631bab24a611ddc8b3c）摘要/CRC核对，仅Skills和MCP两包变化，已导入Android和市场资源。0.43.10/build93为候选，当前正式发布仍为0.43.9。已重新只读取得线上API31目录：两包均为原1.2.0，摘要与本阶段保留的legacy字节一致；需要有权限的部署入口同步新1.2.1后再正式发布。
+
+第二轮页面39007679352成功，原始OK(2 tests)及artifact12092210124（913204字节，SHA256 55c3dbce3806c0bdbb16071787938aacc6d2c3ca4250b11b76efb10b29b39702）摘要/CRC已核对。实际查看Skills库、资源详情及大字键盘图片；MCP四张截图仍为黑色，不能称为已视觉验收。原因是安全页属于独立Dialog窗口，先前测试辅助函数只操作Activity窗口。改为仅此已重置虚构连接的用例操作实际聚焦窗口，截图期间确认原FLAG_SECURE确实关闭、finally恢复原flags并再次确认保护开启；产品及布局、原生确认、测试条件和时限不改。候选完整Android39007863963仍在原提交运行，不因截图观察不足而重启；新捕获定向检查单独核对。
+
+提交资源一致性/SDK145/市场7/公开搜索/HTTPS MCP在39007865691均通过，最后live Skills以Live Skills package differs from committed package失败。线上精确字节门禁保留，此失败是未同步新包的实际证据，不能标为完整发布成功。
