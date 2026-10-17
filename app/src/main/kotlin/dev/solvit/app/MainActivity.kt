@@ -36,6 +36,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -162,7 +164,8 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val switching by vm.switching.collectAsStateWithLifecycle()
     val missingRole by agents.missingRole.collectAsStateWithLifecycle()
     val agentBusy by agents.busy.collectAsStateWithLifecycle()
-    var input by rememberSaveable(selected) { mutableStateOf("") }
+    val inputDrafts by vm.inputDrafts.collectAsStateWithLifecycle()
+    val input = inputDrafts[selected] ?: TextFieldValue()
     var settingsOpen by rememberSaveable { mutableStateOf(false) }
     val memoryManager = remember(app) { dev.solvit.market.BuiltinMemoryManager(app) }
     var memoryOpen by rememberSaveable { mutableStateOf(false) }
@@ -194,7 +197,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     }
     LaunchedEffect(selected, branchInput, inputPlaced) {
         branchInput?.takeIf { it.first == selected }?.let {
-            input=it.second
+            vm.updateInputDraft(it.first, TextFieldValue(it.second, TextRange(it.second.length)))
             if (inputPlaced) { inputFocus.requestFocus(); keyboard?.show() }
             if (vm.branchInput.value == it) vm.branchInput.value=null
         }
@@ -274,7 +277,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                         if (importingAttachment) LinearProgressIndicator(Modifier.fillMaxWidth())
                         Row(verticalAlignment = Alignment.Bottom) {
                             ChatAttachmentPicker(vm, selected, ready && !importingAttachment && !branching && !switching)
-                            TextField(value = input, onValueChange = { input = it },
+                            TextField(value = input, onValueChange = { vm.updateInputDraft(selected, it) },
                                 placeholder = { UiText("和${roleName}聊聊…", maxLines = 1, overflow = TextOverflow.Ellipsis) },
                                 modifier = Modifier.weight(1f).testTag("chat_input").focusRequester(inputFocus).onGloballyPositioned { inputPlaced = true }, maxLines = 5, enabled = ready,
                                 shape = RoundedCornerShape(24.dp),
@@ -285,12 +288,12 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                             Spacer(Modifier.width(8.dp))
                             if(busy)IconButton(onClick=vm::stop,enabled=!switching,modifier=Modifier.testTag("chat_stop")) { UiIcon(Icons.Default.Stop,"停止生成") }
                             FilledIconButton(
-                                onClick = { if (vm.send(input, selectedAttachments)) { selected?.let(vm::clearSentAttachments); input = "" } },
-                                enabled = ready && !branching && !importingAttachment && (input.isNotBlank() || selectedAttachments.isNotEmpty()) && !missingRole && !agentBusy,
+                                onClick = { if (vm.send(input.text, selectedAttachments)) { selected?.let(vm::clearSentAttachments); vm.updateInputDraft(selected, TextFieldValue()) } },
+                                enabled = ready && !branching && !importingAttachment && (input.text.isNotBlank() || selectedAttachments.isNotEmpty()) && !missingRole && !agentBusy,
                                 modifier = Modifier.size(52.dp).testTag("chat_send"),
                             ) { UiIcon(Icons.AutoMirrored.Filled.Send,if(busy) "加入等待队列" else "发送") }
                         }
-                        if(busy && (input.isNotBlank() || selectedAttachments.isNotEmpty()))TextButton(onClick={if(vm.interruptAndSend(input,selectedAttachments)){selected?.let(vm::clearSentAttachments);input=""}},enabled=!switching&&!missingRole&&!agentBusy,
+                        if(busy && (input.text.isNotBlank() || selectedAttachments.isNotEmpty()))TextButton(onClick={if(vm.interruptAndSend(input.text,selectedAttachments)){selected?.let(vm::clearSentAttachments);vm.updateInputDraft(selected,TextFieldValue())}},enabled=!switching&&!missingRole&&!agentBusy,
                             modifier=Modifier.align(Alignment.End).testTag("chat_interrupt_send")) { UiText("立即发送并打断") }
                     }
                     }

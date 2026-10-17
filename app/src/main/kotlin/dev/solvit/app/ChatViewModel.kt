@@ -1,6 +1,7 @@
 package dev.solvit.app
 
 import androidx.lifecycle.ViewModel
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.viewModelScope
 import dev.solvit.core.*
 import kotlinx.coroutines.*
@@ -48,6 +49,16 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     val ready = MutableStateFlow(false)
     val modelConfigured = MutableStateFlow(false)
     val busy = MutableStateFlow(false)
+    // Native editor state belongs to a conversation, including its cursor/selection.
+    // Keep it in memory only, alongside attachment drafts, across view recreation.
+    private val userInputDrafts = MutableStateFlow<Map<String, TextFieldValue>>(emptyMap())
+    val inputDrafts = userInputDrafts.asStateFlow()
+    fun updateInputDraft(session: String?, value: TextFieldValue) {
+        if (session == null) return
+        userInputDrafts.update { drafts ->
+            if (value.text.isEmpty()) drafts - session else drafts + (session to value)
+        }
+    }
     val attachmentDrafts = MutableStateFlow<Map<String, List<ChatAttachment>>>(emptyMap())
     val importingAttachment = MutableStateFlow(false)
     suspend fun importAttachment(session: String, name: String, mime: String, input: java.io.InputStream) {
@@ -233,6 +244,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                 chat.deleteSession(id)
                 queuedMessages.value = queuedMessages.value.filterNot { it.sessionId == id }
                 attachmentDrafts.value = attachmentDrafts.value - id
+                userInputDrafts.update { it - id }
                 pausedChats.remove(id)
                 if (selected.value == id) chooseSession(chat.sessions().first().firstOrNull()?.id ?: createRoleSession(null).id)
             } catch (e: Exception) { error.value = "删除对话失败" }
