@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import dev.solvit.market.EncryptedPluginConfiguration
@@ -98,11 +99,17 @@ class McpPageUiTest {
             touch("#clear-connections");waitDom("Array.from(document.querySelectorAll('.card')).every(n=>!n.hidden)")
             html.hideKeyboard();rule.waitUntil(10_000) { !html.keyboardVisible() }
             assertEquals(beforeFilter,profiles().toString())
-            rule.runOnUiThread { dark=true };html.setTextZoom(150)
+            rule.runOnUiThread { dark=true }
+            val darkSurface="#%06x".format(darkColorScheme().surface.toArgb() and 0xffffff)
+            waitDom("getComputedStyle(document.documentElement).getPropertyValue('--surface').trim()===${JsonPrimitive(darkSurface)}")
+            html.setTextZoom(150)
             touch("#connection-manage-0 > summary")
             waitDom("document.getElementById('connection-manage-0').open&&document.documentElement.scrollWidth<=innerWidth")
             fixtureScreenshot("mcp-html-large-text-management")
-            rule.runOnUiThread { dark=false };html.setTextZoom(100)
+            rule.runOnUiThread { dark=false }
+            val lightSurface="#%06x".format(lightColorScheme().surface.toArgb() and 0xffffff)
+            waitDom("getComputedStyle(document.documentElement).getPropertyValue('--surface').trim()===${JsonPrimitive(lightSurface)}")
+            html.setTextZoom(100)
             click("edit_0"); waitDom("!!document.getElementById('field-token')")
             waitDom("document.querySelector('[data-node=transport_http]').getAttribute('aria-pressed')==='true'&&!document.getElementById('mcp-advanced').open")
             fixtureScreenshot("mcp-html-https-editor")
