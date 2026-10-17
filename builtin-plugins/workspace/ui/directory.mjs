@@ -1,3 +1,5 @@
+import css from './directory-style.mjs';
+const stylesheet=document.createElement('style');stylesheet.textContent=css;document.head.append(stylesheet);
 // The plugin owns file-browser presentation; existing host-backed buttons keep
 // their handlers, identifiers and confirmations when moved into these groups.
 const labels={
