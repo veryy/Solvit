@@ -282,7 +282,7 @@ class ChatLayoutTest {
                 if (wasEnabled) app.marketplace.disable(id)
                 app.marketplace.configure(id, mapOf("projectRules" to "true"))
                 app.marketplace.enable(id, setOf("workspace", "shell"))
-                assertEquals("1.11.0", app.marketplace.installed.value.single { it.id == id }.version)
+                assertEquals("1.11.1", app.marketplace.installed.value.single { it.id == id }.version)
                 val provider = object : ModelProvider {
                     override val id = "android-project-rules-fixture"
                     override fun stream(request: ModelRequest): Flow<ModelChunk> {
