@@ -15,6 +15,9 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.jsonArray
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -91,6 +94,14 @@ class LinuxEnvironmentHtmlTest {
             waitDom("window.environmentFixtureRefreshClicked&&!document.querySelector('[data-node=refresh]').disabled")
         }
         var phase="initial"
+        fun dumpTouchTrace() {
+            if (!traceEnabled) return
+            val encoded = html.js("JSON.stringify(window.environmentFixtureTouchTrace)")
+            val events = Json.parseToJsonElement(Json.parseToJsonElement(encoded).jsonPrimitive.content).jsonArray
+            events.forEachIndexed { index, event ->
+                android.util.Log.i("ENVIRONMENT_TOUCH_DIAG", "[DEBUG-solvit-env-touch] phase=$phase index=$index event=$event")
+            }
+        }
         fun decline() {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("取消").performClick()
@@ -105,6 +116,8 @@ class LinuxEnvironmentHtmlTest {
             if (traceEnabled) html.js("""
                 (()=>{
                   const trace=window.environmentFixtureTouchTrace=[];
+                  const ids=new WeakMap();let sequence=0;
+                  const identity=node=>{if(!node)return null;if(!ids.has(node))ids.set(node,++sequence);return ids.get(node)};
                   const record=(kind,event)=>{
                     const button=document.querySelector('[data-node=refresh]');
                     const r=button?.getBoundingClientRect();
@@ -112,7 +125,8 @@ class LinuxEnvironmentHtmlTest {
                     let stage;try{stage=JSON.parse(metadata?.textContent??'{}').stage}catch{}
                     const hit=event?document.elementFromPoint(event.clientX,event.clientY):null;
                     trace.push({kind,time:Math.round(performance.now()),stage,disabled:button?.disabled,
-                      rect:r?[r.x,r.y,r.width,r.height]:null,trusted:event?.isTrusted,
+                      rect:r?[r.x,r.y,r.width,r.height]:null,buttonId:identity(button),trusted:event?.isTrusted,
+                      targetButtonId:identity(event?.target?.closest?.('[data-node=refresh]')),
                       target:event?.target?.closest?.('[data-node]')?.dataset.node,
                       hit:hit?.closest?.('[data-node]')?.dataset.node,
                       point:event?[event.clientX,event.clientY]:null});
@@ -168,11 +182,12 @@ class LinuxEnvironmentHtmlTest {
             html.screenshot("linux-plugin-dark-large-text-failure-log")
             assertEquals(0,mutations.get())
             assertNull(runBlocking { app.workspaces.bound(chat) })
-            if (traceEnabled) android.util.Log.i("ENVIRONMENT_TOUCH_DIAG", "[DEBUG-solvit-env-touch] success=" + html.js("JSON.stringify(window.environmentFixtureTouchTrace)"))
+            dumpTouchTrace()
         } catch(error:Throwable) {
             // Fixture state and geometry only: never output, prompts, file contents or credentials.
             val metrics=runCatching { html.js("JSON.stringify({metadata:document.querySelector('[data-node=environment_meta]')?.textContent,refreshDisabled:document.querySelector('[data-node=refresh]')?.disabled,progress:document.querySelector('progress')?.value,max:document.querySelector('progress')?.max,progressAttribute:document.querySelector('progress')?.getAttribute('value'),refreshClicked:window.environmentFixtureRefreshClicked})") }.getOrNull()
             runCatching { html.screenshot("linux-plugin-workbench-failure") }
+            runCatching { dumpTouchTrace() }
             val trace = if (traceEnabled) runCatching { html.js("JSON.stringify(window.environmentFixtureTouchTrace)") }.getOrNull() else null
             throw AssertionError("Environment fixture phase=$phase metrics=$metrics trace=$trace",error)
         } finally { html.setTextZoom(100);rule.runOnUiThread { visible=false } }

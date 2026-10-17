@@ -58,3 +58,10 @@ DSH d743267388641bc76f17c45ce8b4c231aed1d32c的packages/client/ui-tool/src/clien
 实际重读DSH固定d7432673 ui-tool/src/client/tool/models/terminal-card-model.ts的terminalFailed与tests/terminal-card.client.spec.tsx对应运行/失败/完成断言，保留显示状态和实际执行事实分离；这些测试不验证Android trusted touch。其MIT许可已查阅，无复制/新依赖。同时读取本项目environment/ui/main.mjs、workbench.mjs、SDK browser-page.mjs和HtmlPageProbe：状态版本变化会重建DOM，原测试用即时down/up，尚不能确定丢失在更新、坐标还是原生窗口。
 
 排序假设：1）更新在真实按下/抬起间替换或禁用按钮，预期down/up之间出现update、click缺失或目标改变；2）滚动/重排改变坐标，预期实际hit和按钮几何不匹配；3）原生窗口/焦点拦截，预期DOM根本没有pointer事件。仅environmentTrace=true诊断记录受控fixture阶段、按钮几何/启用、trusted输入及更新前后事件，不输出日志正文、凭据或page token。该诊断使一次真实按压维持80ms以提高时序问题复现率，不重试点击、不改10000ms和原业务断言；普通完整模式仍使用原即时触摸。复用已完成成功build的相同生产APK远程运行，未改生产环境/SDK。临时[DEBUG-solvit-env-touch]完成诊断后删除。
+
+
+### 80ms定向八轮通过，完整前序诊断继续
+
+2810ceae的39065852369实际8轮各OK(2 tests)，每轮14.683–15.153秒；artifact12113546856（1216225字节，sha256:95520183d27c245fae785a76a0ea104e56f48eaa513d92704fc0cdd9a503d08e）大小/摘要/CRC和八份runner核对。八份成功trace均被Android截为4100字符，无法作为完整事件顺序证明；现在逐条记录受控事件，增加仅内存序号标识按钮对象而不记录page token。之前整条日志的采集设计不充分，已修正，未把这次不复现称为根因解决。
+
+新增environment-ui-sequence，精确保留失败XML中前48项（到环境workbench），沿用同一按压/trace和生产APK。此前这48项原始耗时合计353.559秒，因此该诊断有单次600秒上限和期望48项；只执行一轮，原每条件10秒/一次真实触摸/业务断言不变。与八轮独立新仪器调用相比，改变的是实际前序与进程环境，观察完整回归上下文是否提高复现率。该定向仍不替代最终628单元、116完整设备及15恢复和无探针交付。没有生产代码、权限、数据库或签名改变。
