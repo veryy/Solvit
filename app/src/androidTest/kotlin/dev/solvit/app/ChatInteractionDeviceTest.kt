@@ -7,6 +7,11 @@ import android.database.sqlite.SQLiteDatabase
 import android.os.ParcelFileDescriptor
 import android.view.WindowInsets
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalDensity
@@ -97,6 +102,7 @@ class ChatInteractionDeviceTest {
         val models=mutableListOf<androidx.lifecycle.ViewModel>()
         lateinit var vm:ChatViewModel;lateinit var agents:AgentLibraryViewModel
         var phase = "prepare"
+        var approvalTouchNode: androidx.compose.ui.semantics.SemanticsNode? = null
         try {
             rule.runOnUiThread {
                 val settings=object:SettingsStore {
@@ -114,7 +120,21 @@ class ChatInteractionDeviceTest {
                 rule.activity.setContent {
                     val density = LocalDensity.current
                     CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale ?: density.fontScale)) {
-                        MaterialTheme { ChatScreen(vm,updates,market,agents,workspaces) }
+                        MaterialTheme {
+                            Box(Modifier.fillMaxSize().pointerInput(Unit) {
+                                awaitPointerEventScope {
+                                    while (true) {
+                                        val event = awaitPointerEvent(PointerEventPass.Initial)
+                                        if (phase == "remembered-approval-click") event.changes.filter { it.pressed != it.previousPressed }.forEach { pointer ->
+                                            val bounds = runCatching { approvalTouchNode?.boundsInRoot }.getOrNull()
+                                            val decor = rule.activity.window.decorView
+                                            val insets = decor.rootWindowInsets
+                                            android.util.Log.i("ChatDockFixture", "CHAT_DOCK_POINTER|pressed=${pointer.pressed}|position=${pointer.position}|bounds=$bounds|focus=${decor.hasWindowFocus()}|ime=${insets?.isVisible(WindowInsets.Type.ime())}|imeBottom=${insets?.getInsets(WindowInsets.Type.ime())?.bottom}")
+                                        }
+                                    }
+                                }
+                            }) { ChatScreen(vm,updates,market,agents,workspaces) }
+                        }
                     }
                 }
             }
@@ -141,6 +161,7 @@ class ChatInteractionDeviceTest {
             send("first")
             rule.waitUntil(10_000) { vm.toolApproval.value!=null }
             rule.onNodeWithTag("chat_tool_approval").assertIsDisplayed()
+            approvalTouchNode = rule.onNodeWithTag("tool_allow_remember").fetchSemanticsNode()
             assertTrue(rule.onAllNodes(isDialog()).fetchSemanticsNodes().isEmpty())
             screenshot("chat-approval-keyboard")
             // Exercise the missing combined state: waiting for approval while another message is queued.
@@ -209,26 +230,7 @@ class ChatInteractionDeviceTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("chat_queue").fetchSemanticsNodes().isEmpty() }
             rule.waitForIdle()
             phase = "remembered-approval-click"
-            val rememberButton = rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed()
-            val rememberSemantics = rememberButton.fetchSemanticsNode()
-            val originalWindowCallback = rule.runOnUiThread { checkNotNull(rule.activity.window.callback) }
-            // Fixture-only coordinates identify a stale test touch during native IME reflow.
-            // Keep the exact original touch and result deadline; never retry authorization.
-            rule.runOnUiThread {
-                android.util.Log.i("ChatDockFixture", "CHAT_DOCK_TOUCH_BEFORE|bounds=${rememberSemantics.boundsInWindow}")
-                rule.activity.window.callback = object : android.view.Window.Callback by originalWindowCallback {
-                    override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
-                        if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN || event.actionMasked == android.view.MotionEvent.ACTION_UP) {
-                            val bounds = runCatching { rememberSemantics.boundsInWindow }.getOrNull()
-                            val insets = rule.activity.window.decorView.rootWindowInsets
-                            android.util.Log.i("ChatDockFixture", "CHAT_DOCK_TOUCH|action=${event.actionMasked}|x=${event.x}|y=${event.y}|bounds=$bounds|ime=${insets?.isVisible(WindowInsets.Type.ime())}|imeBottom=${insets?.getInsets(WindowInsets.Type.ime())?.bottom}")
-                        }
-                        return originalWindowCallback.dispatchTouchEvent(event)
-                    }
-                }
-            }
-            try { rememberButton.performClick() }
-            finally { rule.runOnUiThread { rule.activity.window.callback = originalWindowCallback } }
+            rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed().performClick()
             phase = "remembered-approval-result"
             rule.waitUntil(10_000) { requests.size==2&&executed.size==1 }
             phase = "queue-edit-and-interrupt"
