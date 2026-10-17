@@ -15,3 +15,5 @@ DSH d7432673 packages/client/ui-conversation/src/client/draft.ts使用有所有�
 排序假设已在修改前展示：1）rememberSaveable(selected)因key变化重建；2）新建清空全局草稿；3）未实际切换或键盘提交。真实ID断言排除未切换。最小改变为将原生TextFieldValue由ChatViewModel按sessionId保存，包含文字、光标/选区；UI读取当前项，空文字移除当前项，删除成功只清该会话。原来的发送/排队/打断布尔返回值规则保留：被接受才清当前草稿；被拒绝仍保留。编辑分支仍只预填目标会话，不自动发送。无数据库/协议/签名或附件格式变化。
 
 新增回归同时检查不同会话文字、新会话为空、手动清空不影响另一个会话、选区及Activity实际重建后的恢复。App最低86增至87并加入必需方法，其他角色/流式/附件/队列门禁保留。build97候选待GitHub Actions完整验证与新APK，不因修正源码声称已通过。生产无临时诊断日志，未执行本地Android/TS构建或测试。
+
+第一轮98f14eee / Android39056255551在测试Kotlin编译阶段失败：ChatLayoutTest.kt:966 performTextInputSelection要求ExperimentalTestApi显式OptIn。生产assembleDebug已完成，设备尚未执行，不能将此记作草稿验证失败或成功。补充该方法的OptIn注解，保留原文字/选区/重建断言，生产逻辑不改；不交付该失败轮次产物。

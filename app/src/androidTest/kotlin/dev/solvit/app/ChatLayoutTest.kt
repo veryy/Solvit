@@ -917,6 +917,7 @@ class ChatLayoutTest {
         }
     }
 
+    @OptIn(ExperimentalTestApi::class)
     @Test fun switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty() {
         ready()
         val app = rule.activity.application as SolvitApplication
