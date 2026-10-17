@@ -48,9 +48,9 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         val point = Json.parseToJsonElement(js("(()=>{const node=document.querySelector('[data-memory-id='+${JsonPrimitive(id)}+']');return [Number(node.dataset.x),Number(node.dataset.y),innerWidth]})()")) .jsonArray
         tapPoint(point)
     }
-    fun tapElement(selector: String, pressMillis: Long = 0) {
+    fun tapElement(selector: String) {
         val point = Json.parseToJsonElement(js("(()=>{const r=document.querySelector(${JsonPrimitive(selector)}).getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2,innerWidth]})()")) .jsonArray
-        tapPoint(point, pressMillis)
+        tapPoint(point)
     }
     fun setTextZoom(percent: Int) = runBlocking {
         val result = CompletableDeferred<Unit>()
@@ -79,8 +79,7 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         }
         withTimeout(10_000) { result.await() }
     }
-    private fun tapPoint(point: JsonArray, pressMillis: Long = 0) {
-        require(pressMillis in 0L..500L)
+    private fun tapPoint(point: JsonArray) {
         var x = 0f; var y = 0f
         val ready = CompletableDeferred<Unit>()
         activity.runOnUiThread {
@@ -97,7 +96,6 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, x, y, 0).let {
             it.source = android.view.InputDevice.SOURCE_TOUCHSCREEN; instrument.sendPointerSync(it); it.recycle()
         }
-        if (pressMillis > 0) SystemClock.sleep(pressMillis)
         MotionEvent.obtain(now, SystemClock.uptimeMillis(), MotionEvent.ACTION_UP, x, y, 0).let {
             it.source = android.view.InputDevice.SOURCE_TOUCHSCREEN; instrument.sendPointerSync(it); it.recycle()
         }
