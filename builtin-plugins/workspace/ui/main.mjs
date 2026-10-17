@@ -1,4 +1,5 @@
 import {mountPage} from '../../../plugin-sdk/src/browser-page.mjs';
+import {polishDirectory} from './directory.mjs';
 import {basicSetup} from 'codemirror';
 import {EditorState,Compartment} from '@codemirror/state';
 import {EditorView} from '@codemirror/view';
@@ -141,7 +142,10 @@ function updateTree(items){
  const toggle=document.createElement('button');toggle.id='tree-toggle';toggle.textContent=treeLabels()[0];toggle.onclick=()=>tree.classList.toggle('open');
  if(!tree.hidden){root.prepend(toggle);drawTree();if(!folders.has('')&&!treeRequest)treeRequest={path:'',offset:0}}
 }
+let directoryPagination=false;
+root.addEventListener('click',event=>{if(['prev','next'].includes(event.target.closest?.('button')?.dataset.node))directoryPagination=true},true);
 window.solvitPageUpdate=next=>{
+ const previousDirectory=root.querySelector('[data-node="directory_actions"]')?root.querySelector('[data-node="directory"]')?.textContent:null,previousScroll=root.scrollTop;
  if(pending!==null){if(next.busy)pendingBusy=true;if(next.token!==pending||pendingBusy&&!next.busy)pending=null}
  state=next;baseUpdate(next);
  if(renderedToken===next.token){
@@ -150,6 +154,7 @@ window.solvitPageUpdate=next=>{
   syncEditorMode();status();if(!next.busy&&pending===null)queueMicrotask(nextTransfer);return;
  }
  renderedToken=next.token;
+ footer.classList.remove('workspace-directory-footer');
  const items=nodes(),info=items.find(n=>n.id==='document_meta');
  for(const node of items.filter(n=>n.kind==='image')){
   const holder=root.querySelector(`[data-node="${node.id}"]`);if(!holder)continue;
@@ -166,6 +171,9 @@ window.solvitPageUpdate=next=>{
   bar.max=Math.max(1,value.total);bar.value=value.completed;bar.style.width='100%';
   root.querySelector('[data-node="import_progress"]')?.replaceWith(bar);
  }else updateTree(items);
+ polishDirectory(root,footer,next.locale);
+ if(previousDirectory!==null&&!directoryPagination&&root.classList.contains('workspace-directory')&&root.querySelector('[data-node=directory]')?.textContent===previousDirectory)root.scrollTop=previousScroll;
+ directoryPagination=false;
  if(!info){
   if(!items.some(n=>n.id==='save_sha')){editor?.destroy();editor=null;key=null;window.workspaceEditor=null;dirty=false}
   meta=null;root.classList.remove('editing');if(!next.busy&&pending===null)queueMicrotask(nextTransfer);return;
