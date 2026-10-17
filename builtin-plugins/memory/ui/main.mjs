@@ -134,7 +134,14 @@ window.solvitPageUpdate = next => {
 };
 $('search').onsubmit=event=>{event.preventDefault();fields.query=$('query').value;send('filter')};
 $('query').oninput=()=>{fields.query=$('query').value};
-$('options').onclick=()=>{$('menu').hidden=!$('menu').hidden};
+function positionMenu(){
+  if($('menu').hidden)return;
+  const root=$('memory').getBoundingClientRect(),top=$('toolbar').getBoundingClientRect().bottom+8;
+  $('menu').style.top=`${top}px`;
+  $('menu').style.maxHeight=`${Math.max(0,Math.min(root.height*.65,root.bottom-top-12))}px`;
+}
+$('options').onclick=()=>{$('menu').hidden=!$('menu').hidden;positionMenu()};
+window.addEventListener('resize',positionMenu);
 $('fit').onclick=fitGraph;$('new').onclick=()=>send('new');
 solvitHost.onmessage=event=>{
   const message=JSON.parse(event.data);
@@ -142,5 +149,5 @@ solvitHost.onmessage=event=>{
   pendingToken=null;updateDisabled();
   if(message.type==='error'){$('status').textContent=words()[2];$('status').hidden=false}
 };
-window.addEventListener('pagehide',()=>cy?.destroy(),{once:true});
+window.addEventListener('pagehide',()=>{window.removeEventListener('resize',positionMenu);cy?.destroy()},{once:true});
 solvitHost.postMessage(JSON.stringify({type:'ready'}));
