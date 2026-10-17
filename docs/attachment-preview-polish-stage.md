@@ -42,3 +42,9 @@ App必需设备数87增至88，新方法加入独立报告门禁；保留其他�
 按顺序检查：①测试在异步桥消息/Compose生成弹窗前点击；②第二次真实触摸未送达；③视图刷新撤销确认。实际HtmlPageProbe.tapPoint只注入DOWN/UP，不等待JS→host→Compose；PluginPageContent.deliver异步建立确认。仅补齐与第一次删除相同的有界等待，保留真实触摸、取消后两条记录、确认后只剩docs及密钥检查；不加sleep、不绕过确认、不改变生产插件或权限。若事件未送达或确认被撤销，新等待和原数据断言仍会失败，不能仅凭后续通过宣称其他可能已根治。
 
 本次继续读取DSH锁定ui-settings-shell/tests/apply.client.spec.ts的vi.waitFor服务/页面注册断言、Solvit确认与实际WebView触摸实现；上游测试并非Android确认测试，不复制其实现。新增mcp-page同生产APK定向入口，等待远程检查及完整新源码门禁，保留本次失败。
+
+## build100实际交付结果
+
+采用标准64dp TopAppBar，普通字号不保证比旧48dp行更矮；本轮验收单行标题、导航对齐和完整信息，不声称节省固定正文高度。
+
+最终源码2afc3da5的[完整Android](https://github.com/veryy/Solvit/actions/runs/39077647058)以none模式通过628单元、Lint、App88/Web3/terminal26、15独立恢复、覆盖升级、150%聊天及stdio实际宿主强杀。独立报告/原始XML零失败、跳过和缺失，runner/PID及最终APK版本100、固定签名、14内置插件、六语目录和归档摘要/CRC均核对。[定向39075712947](https://github.com/veryy/Solvit/actions/runs/39075712947)两轮实际5.101/4.572秒成功；其APK来自首轮5403cb0a构建，最终APK SHA256相同，两次源码间仅测试、诊断脚本/工作流及文档有差异，生产实现相同，已核对。MCP定向39077648784两轮通过，实际耗时[19.435, 18.443]秒，APK与最终包逐字节一致；保留原39075710944缺少第二次确认等待的失败，实际生产实现未变。实际长标题/信息浅深色150%、真实PDF和已保存文本截图已查看，当前/历史对比图已收入版本说明。候选APK、Linux源码和验收JSON独立保存，build99文件和历史失败不改。正式市场/真实模型任务/真机等边界仍保留；整体UI打磨和完整Agent路线继续。

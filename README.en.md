@@ -14,7 +14,7 @@ Requires Android 8.0+. The app defaults to Chinese and also supports English, Ja
 
 The current release is [0.43.9](https://github.com/veryy/Solvit/releases/tag/v0.43.9). Updates using the same signing certificate retain data. Uninstalling deletes local data, so export your configuration before reinstalling.
 
-Preview: [0.43.10/build99 download and notes](docs/release-0.43.10.md), with per-conversation drafts, more consistent text input, and clearer terminal tabs. Full remote Android checks passed; this is a candidate, not a formal release.
+Preview: [0.43.10/build100 download and notes](docs/release-0.43.10.md), with consistent attachment preview navigation and complete file information, plus the previous draft and terminal improvements. Full remote Android checks passed; this is a candidate, not a formal release.
 
 ## What you can use today
 
