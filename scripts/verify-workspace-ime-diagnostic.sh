@@ -5,6 +5,7 @@ solvit_diagnostic_expected='OK (1 test)'
 solvit_chat_font_scale=1
 solvit_memory_label_bounds=false
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
+  mcp-page) solvit_diagnostic_test='dev.solvit.app.McpPageUiTest' ;;
   attachment-preview) solvit_diagnostic_test='dev.solvit.app.AttachmentPreviewLayoutTest' ;;
   pdf-chat) solvit_diagnostic_test='dev.solvit.app.PdfChatDeviceTest#pickerSelectedScanPreviewHttpRetryReopenAndEditPreserveTheSameSelection' ;;
   terminal-tabs) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput' ;;

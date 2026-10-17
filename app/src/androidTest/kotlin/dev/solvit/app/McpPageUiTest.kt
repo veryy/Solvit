@@ -134,7 +134,11 @@ class McpPageUiTest {
             touch("[data-node=delete_1]")
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("取消").performClick(); assertEquals(2, profiles().size)
-            touch("[data-node=delete_1]"); rule.onNodeWithTag("plugin_page_confirm").performClick()
+            touch("[data-node=delete_1]")
+            // WebView touch delivery returns before its asynchronous host message
+            // creates the native dialog, just as on the first delete above.
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty() }
+            rule.onNodeWithTag("plugin_page_confirm").performClick()
             waitDom("document.querySelectorAll('.card').length===1")
             assertEquals("docs", profiles().single().jsonObject.getValue("name").jsonPrimitive.content)
             // The same page must remain usable without workspace/shell grants on retained HTTPS packages.

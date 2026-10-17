@@ -34,3 +34,11 @@ App必需设备数87增至88，新方法加入独立报告门禁；保留其他�
 5403cb0a的Android39074885859构建通过628单元、Lint、version100和固定签名，APK59665075字节、SHA256 ff32b837baa3160c6e50add6d4e865b99898aacab5023ed628a0c5699c5cd7b1。定向39075273987在4.237秒处失败：实际大小文本为“128 B”，assertTextContains("128")却使用默认substring=false，按整段文本匹配。已读取官方ui-test1.8.3 Assertions.kt确认API默认值；仅改为substring=true，不改变生产UI、文件大小或其他断言。原始归档12117076057大小/SHA/CRC已核对，浅色150%标题和信息截图实际查看；此前单行、几何与完整文件名检查通过，尚未走到系统返回及深色，不能记作整套通过。
 
 首个完整流程由修正后的同分支完整流程替代，历史失败保留。修正后可先复用同生产源码的已构建APK运行定向，随后核对最终APK字节与完整新源码结果；不靠重新提交生产代码去掩盖测试API误用。
+
+## 完整流程中的MCP测试同步缺口
+
+4a72bd5f完整Android39075710944的构建通过；普通设备App88/Web3/terminal26全部产生报告，其中只有McpPageUiTest失败。归档12117985289的大小、SHA256、CRC与原始XML已核对。失败在137行取消删除后再次删除：立刻查找plugin_page_confirm时节点不存在；第一次删除与保存都有显式等待，这一处缺失。最终150%聊天/stdio强杀因普通套件失败未运行，不记整套成功。
+
+按顺序检查：①测试在异步桥消息/Compose生成弹窗前点击；②第二次真实触摸未送达；③视图刷新撤销确认。实际HtmlPageProbe.tapPoint只注入DOWN/UP，不等待JS→host→Compose；PluginPageContent.deliver异步建立确认。仅补齐与第一次删除相同的有界等待，保留真实触摸、取消后两条记录、确认后只剩docs及密钥检查；不加sleep、不绕过确认、不改变生产插件或权限。若事件未送达或确认被撤销，新等待和原数据断言仍会失败，不能仅凭后续通过宣称其他可能已根治。
+
+本次继续读取DSH锁定ui-settings-shell/tests/apply.client.spec.ts的vi.waitFor服务/页面注册断言、Solvit确认与实际WebView触摸实现；上游测试并非Android确认测试，不复制其实现。新增mcp-page同生产APK定向入口，等待远程检查及完整新源码门禁，保留本次失败。
