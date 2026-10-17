@@ -6,7 +6,7 @@ on:
         description: Actual page scenario to reproduce
         type: choice
         default: memory-click
-        options: [skills-mcp-ui, environment-ui, memory-labels, mcp-page, memory-click, plugin-document-lifecycle, model-settings, model-task, skills-documents, workspace-files, git-workbench, git-queries, git-credentials, git-clone-recovery, chat-attachments, chat-keyboard, file-diff, chat-interaction-large-text, chat-interaction, chat-stream, chat-branch, terminal-ui, chat-role, chat-role-sequence, project-rules]
+        options: [terminal-eof, skills-mcp-ui, environment-ui, memory-labels, mcp-page, memory-click, plugin-document-lifecycle, model-settings, model-task, skills-documents, workspace-files, git-workbench, git-queries, git-credentials, git-clone-recovery, chat-attachments, chat-keyboard, file-diff, chat-interaction-large-text, chat-interaction, chat-stream, chat-branch, terminal-ui, chat-role, chat-role-sequence, project-rules]
 permissions:
   contents: read
 jobs:
@@ -49,7 +49,11 @@ jobs:
           chmod 600 .signing/debug.keystore
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
           if [ "$SOLVIT_PAGE_DIAGNOSTIC" = environment-ui ]; then bash scripts/build-android-proot.sh; fi
-          ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+          if [ "$SOLVIT_PAGE_DIAGNOSTIC" = terminal-eof ]; then
+            ./gradlew :terminal-android:assembleDebugAndroidTest --stacktrace
+          else
+            ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+          fi
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

@@ -32,6 +32,28 @@ class AndroidTerminalsTest {
             val state=service.sessions.value.singleOrNull { it.id==id }
             throw AssertionError("Missing $marker: active=${state?.active}, offset=${state?.outputOffset}, chars=${state?.output?.length}, revision=${state?.revision}, tail=${state?.output?.takeLast(160)}",error)
         }
+    @Test fun eofBeforeProcessExitWaitsForRealOutcomeAndRemainsCancellable() = runBlocking {
+        fixture { ws, service, workspace, shell ->
+            val directory = java.io.File(ws.location(workspace.id))
+            suspend fun startWaiting(suffix: String): TerminalSession {
+                val terminal = service.open(workspace.id, shell.id)
+                service.input(workspace.id, terminal.id,
+                    "exec /system/bin/sh -c 'echo ready > eof-ready-$suffix; exec 0<&- 1>&- 2>&-; while [ ! -f eof-release-$suffix ]; do /system/bin/sleep 0.05; done; exit 7'\n")
+                withTimeout(8000) { while (!java.io.File(directory, "eof-ready-$suffix").exists()) delay(10) }
+                // Hold the child alive after EOF, independently of scheduling or native reaping speed.
+                delay(250)
+                assertTrue("EOF must not publish a completed process with a missing exit code", service.status(workspace.id, terminal.id).active)
+                return terminal
+            }
+            val terminal = startWaiting("outcome")
+            java.io.File(directory, "eof-release-outcome").writeText("release")
+            val final = withTimeout(8000) { service.sessions.first { list -> list.any { it.id == terminal.id && !it.active } }.single { it.id == terminal.id } }
+            assertEquals(7, final.exitCode)
+            val cancelled = startWaiting("cancel")
+            withTimeout(3000) { service.close(workspace.id, cancelled.id) }
+            assertFalse(service.status(workspace.id, cancelled.id).active)
+        }
+    }
     @Test fun liveServicePreservesStateAndSupportsInteractiveAnswers() = runBlocking {
         fixture { _, service, workspace, shell ->
             val session = service.open(workspace.id, shell.id)

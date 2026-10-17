@@ -1258,7 +1258,9 @@ class ChatLayoutTest {
         } catch (e: Throwable) {
             val metrics=runCatching { js("JSON.stringify({viewport:[innerWidth,innerHeight],body:document.body.getBoundingClientRect().toJSON(),terminal:document.getElementById('terminals').getBoundingClientRect().toJSON(),rows:document.querySelector('.xterm-rows')?.textContent,status:document.getElementById('status').textContent})") }.getOrNull()
             runCatching { page.screenshot("workspace-interactive-html-failure") }
-            throw AssertionError("Manager control="+managerControl+"; HTML metrics="+metrics+"\nPTY state=" + app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }, e)
+            val diagnostics="Manager control="+managerControl+"; HTML metrics="+metrics+"\nPTY state=" + app.terminals.sessions.value.filter { it.owner==TERMINAL_OWNER }
+            // Raw PTY backspaces are invalid in XML 1.0 failure reports.
+            throw AssertionError(diagnostics.filter { it >= ' ' || it in "\n\r\t" }, e)
         }
     }
 

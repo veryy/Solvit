@@ -2,6 +2,13 @@
 # Focused reproduction only; never replaces full release gates.
 set -uo pipefail
 mkdir -p ui-screenshots
+if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = terminal-eof ]; then
+  timeout 90s adb install -r terminal-android/build/outputs/apk/androidTest/debug/terminal-android-debug-androidTest.apk || exit 1
+  timeout 60s adb shell am instrument -w -e class dev.solvit.terminal.AndroidTerminalsTest#eofBeforeProcessExitWaitsForRealOutcomeAndRemainsCancellable dev.solvit.terminal.test/androidx.test.runner.AndroidJUnitRunner | tee ui-screenshots/result.txt
+  timeout 15s adb logcat -d > ui-screenshots/logcat.txt || true
+  grep -F 'OK (1 test)' ui-screenshots/result.txt || exit 1
+  exit 0
+fi
 if [ "${SOLVIT_PAGE_DIAGNOSTIC:-}" = git-clone-recovery ]; then
   bash scripts/verify-workspace-clone-process-death.sh
   solvit_clone_status=$?
