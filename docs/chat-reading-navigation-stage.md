@@ -23,3 +23,7 @@
 首次诊断39025791229在第1轮再次失败。artifact12098054718（4567964字节，SHA256 1b9ecb8f7805817da1c6eb0acc7d43963287bcc6b622f27b9df302f1cbdeffd7）、CRC/原始runner已核对，推进一帧后仍未关闭，VM的session也没变化。实际截图显示drawer完全打开、可用的新对话按钮，排除了仅一帧未推进和仅残留细边，但Window.Callback记录为空，不能据此证明触摸不存在。
 
 补读Google Maven官方ui-test-android1.8.3源码jar，AndroidInputDispatcher.android.kt:72实际向Compose root View直接dispatchTouchEvent，因此Window.Callback不是有效触摸探针。替换为临时、非消费的Compose Initial-pass观察，挂在现有drawer根节点，只记录真实DOWN相对于当时按钮bounds和窗口焦点，并保留其他主界面DOWN作为正控制；失败后仍只探测一帧、仍抛原错误。生产角色/新建处理不变，该临时观察必须在最终交付前移除。首次95完整39024585366与主线94为同一drawer断言失败，生成APK仅核对为build95/既定签名/14内置包同字节，暂不交付。
+
+第二次触摸诊断39026513015再次第1轮失败。真实Compose轨迹有两个正常主界面DOWN作为正控制；按新对话前的语义bounds为0,0,0,0，实际DOWN为0,0且inside=false；focus=true、IME=false，新旧session相同。失败后的drawer完整打开，推进一帧仍不关闭。故是打开动画尚未完成时测试取到了被裁切为零的旧目标，点击未命中新建；不是关闭动画只差一帧，也没有角色提示词未生效的证据。
+
+只修正测试同步：点击前先推进已有排队帧，再等待drawer达到完整宽度、按钮真实非零且完整在屏内、原生焦点恢复和IME收起；仍只有一次点击，原8000ms不加长。新增VM实际session变化、原生已保存role.id和pluginIds断言，保留原UI当前使用断言。诊断模式额外要求真实DOWN位于当时按钮内，并将成功轨迹写入logcat；临时观察仍需在最终提交前移除。待相同场景10轮远程验证后再完成最终完整门禁。

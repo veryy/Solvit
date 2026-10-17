@@ -695,12 +695,33 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("关闭").performClick()
             rule.onNodeWithContentDescription("返回聊天").performClick()
             rule.onNodeWithContentDescription("对话历史").performClick()
+            // The drawer's child semantics already exist while the queued open
+            // animation still clips their bounds to zero. Drain that work and
+            // wait for the actual target before deriving a single touch point.
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitUntil(8000) {
+                val target = geometry("new_chat")
+                val panel = geometry("chat_drawer").bounds
+                val focused = rule.runOnUiThread { window.decorView.hasWindowFocus() }
+                focused && !target.keyboardVisible && target.bounds.width > 0 && target.bounds.height > 0 &&
+                    panel.width >= target.width * 0.75f - 2 && target.bounds.left >= 0 &&
+                    target.bounds.right <= panel.right && target.bounds.top >= 0 && target.bounds.bottom <= target.height
+            }
+            rule.onNodeWithTag("new_chat").assertIsEnabled()
             sessionBefore = vm.sessionId.value
             if (diagnostic) {
                 clickNode = rule.onNodeWithTag("new_chat").fetchSemanticsNode()
                 presses.add("before: bounds=${clickNode?.boundsInRoot},focus=${rule.runOnUiThread { window.decorView.hasWindowFocus() }}")
             }
             rule.onNodeWithTag("new_chat").performClick()
+            rule.waitUntil(8000) { vm.sessionId.value != null && vm.sessionId.value != sessionBefore }
+            val inherited = runBlocking { app.roles.selected(checkNotNull(vm.sessionId.value)) }
+            assertEquals(role.id, inherited?.id)
+            assertEquals(role.pluginIds, inherited?.pluginIds)
+            if (diagnostic) {
+                assertTrue("The real single press must land within the new-chat button", presses.any { "inside=true" in it && "focus=true" in it && "ime=false" in it })
+                android.util.Log.i("SolvitRoleDrawer", "new session created; role and whitelist inherited; presses=$presses")
+            }
             rule.waitUntil(8000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
             rule.waitUntil(8000) {
                 runCatching { rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed() }.isSuccess
