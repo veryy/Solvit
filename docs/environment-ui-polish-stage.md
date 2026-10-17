@@ -49,3 +49,12 @@ DSH d743267388641bc76f17c45ce8b4c231aed1d32c的packages/client/ui-tool/src/clien
 ![实际模拟器环境页：左0.43.8，右0.43.9](images/environment-ui-0.43.9.png)
 
 ![实际模拟器终端管理：左0.43.8，右0.43.9](images/terminal-manager-ui-0.43.9.png)
+
+
+## build98再次捕获刷新丢失，先加强实际触摸反馈
+
+完整39063571454/source3dfced5d中原环境用例phase=failed等待trusted click失败，metadata已经FAILED、刷新启用且refreshClicked=false，实际PNG显示失败摘要和日志；安装服务调用计数原断言保留。与build96前曾出现的相同现象一致，不宣称是Ubuntu安装器失败。其余草稿/终端真实用例已完成，整套仍未通过。
+
+实际重读DSH固定d7432673 ui-tool/src/client/tool/models/terminal-card-model.ts的terminalFailed与tests/terminal-card.client.spec.tsx对应运行/失败/完成断言，保留显示状态和实际执行事实分离；这些测试不验证Android trusted touch。其MIT许可已查阅，无复制/新依赖。同时读取本项目environment/ui/main.mjs、workbench.mjs、SDK browser-page.mjs和HtmlPageProbe：状态版本变化会重建DOM，原测试用即时down/up，尚不能确定丢失在更新、坐标还是原生窗口。
+
+排序假设：1）更新在真实按下/抬起间替换或禁用按钮，预期down/up之间出现update、click缺失或目标改变；2）滚动/重排改变坐标，预期实际hit和按钮几何不匹配；3）原生窗口/焦点拦截，预期DOM根本没有pointer事件。仅environmentTrace=true诊断记录受控fixture阶段、按钮几何/启用、trusted输入及更新前后事件，不输出日志正文、凭据或page token。该诊断使一次真实按压维持80ms以提高时序问题复现率，不重试点击、不改10000ms和原业务断言；普通完整模式仍使用原即时触摸。复用已完成成功build的相同生产APK远程运行，未改生产环境/SDK。临时[DEBUG-solvit-env-touch]完成诊断后删除。

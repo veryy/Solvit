@@ -58,6 +58,7 @@ class LinuxEnvironmentHtmlTest {
         } finally { rule.runOnUiThread { visible = false } }
     }
     @Test fun environmentWorkbenchKeepsDisclosureLogAndHonestProgressWithoutInstallingOnRefresh() {
+        val traceEnabled = androidx.test.platform.app.InstrumentationRegistry.getArguments().getString("environmentTrace") == "true"
         val app=rule.activity.application as SolvitApplication
         runBlocking { withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() } }
         val chat="linux-workbench-${java.util.UUID.randomUUID()}"
@@ -79,7 +80,7 @@ class LinuxEnvironmentHtmlTest {
         fun tap(selector:String) {
             html.js("document.querySelector(${kotlinx.serialization.json.JsonPrimitive(selector)}).scrollIntoView({block:'center'})")
             waitDom("(()=>{const e=document.querySelector(${kotlinx.serialization.json.JsonPrimitive(selector)}),r=e.getBoundingClientRect();return r.height>=44&&r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})()")
-            html.tapElement(selector)
+            html.tapElement(selector, if (traceEnabled) 80 else 0)
         }
         fun refresh() {
             waitDom("!document.querySelector('[data-node=refresh]').disabled")
@@ -101,6 +102,29 @@ class LinuxEnvironmentHtmlTest {
                 if(visible)PluginPageScreen("Linux",{manager.openPage("zh",WorkspacePageBridge(app.workspaces,app.pluginDrafts,chat,linux=service))}) { visible=false }
             } } }
             waitDom("!!document.querySelector('.environment-page')&&!document.querySelector('[data-node=refresh]').disabled")
+            if (traceEnabled) html.js("""
+                (()=>{
+                  const trace=window.environmentFixtureTouchTrace=[];
+                  const record=(kind,event)=>{
+                    const button=document.querySelector('[data-node=refresh]');
+                    const r=button?.getBoundingClientRect();
+                    const metadata=document.querySelector('[data-node=environment_meta]');
+                    let stage;try{stage=JSON.parse(metadata?.textContent??'{}').stage}catch{}
+                    const hit=event?document.elementFromPoint(event.clientX,event.clientY):null;
+                    trace.push({kind,time:Math.round(performance.now()),stage,disabled:button?.disabled,
+                      rect:r?[r.x,r.y,r.width,r.height]:null,trusted:event?.isTrusted,
+                      target:event?.target?.closest?.('[data-node]')?.dataset.node,
+                      hit:hit?.closest?.('[data-node]')?.dataset.node,
+                      point:event?[event.clientX,event.clientY]:null});
+                    if(trace.length>100)trace.shift();
+                  };
+                  for(const kind of ['pointerdown','pointerup','pointercancel','click'])
+                    document.addEventListener(kind,event=>record(kind,event),true);
+                  const update=window.solvitPageUpdate;
+                  window.solvitPageUpdate=state=>{record('before-update');update(state);record('after-update')};
+                  record('installed');
+                })()
+            """.trimIndent()) // [DEBUG-solvit-env-touch] controlled fixture geometry/events only.
             assertEquals("true",html.js("Array.from(document.querySelectorAll('details')).every(e=>!e.open)"))
             assertEquals("false",html.js("!!document.querySelector('[data-node=newShell]')"))
             html.screenshot("linux-plugin-ready-collapsed")
@@ -144,11 +168,13 @@ class LinuxEnvironmentHtmlTest {
             html.screenshot("linux-plugin-dark-large-text-failure-log")
             assertEquals(0,mutations.get())
             assertNull(runBlocking { app.workspaces.bound(chat) })
+            if (traceEnabled) android.util.Log.i("ENVIRONMENT_TOUCH_DIAG", "[DEBUG-solvit-env-touch] success=" + html.js("JSON.stringify(window.environmentFixtureTouchTrace)"))
         } catch(error:Throwable) {
             // Fixture state and geometry only: never output, prompts, file contents or credentials.
             val metrics=runCatching { html.js("JSON.stringify({metadata:document.querySelector('[data-node=environment_meta]')?.textContent,refreshDisabled:document.querySelector('[data-node=refresh]')?.disabled,progress:document.querySelector('progress')?.value,max:document.querySelector('progress')?.max,progressAttribute:document.querySelector('progress')?.getAttribute('value'),refreshClicked:window.environmentFixtureRefreshClicked})") }.getOrNull()
             runCatching { html.screenshot("linux-plugin-workbench-failure") }
-            throw AssertionError("Environment fixture phase=$phase metrics=$metrics",error)
+            val trace = if (traceEnabled) runCatching { html.js("JSON.stringify(window.environmentFixtureTouchTrace)") }.getOrNull() else null
+            throw AssertionError("Environment fixture phase=$phase metrics=$metrics trace=$trace",error)
         } finally { html.setTextZoom(100);rule.runOnUiThread { visible=false } }
     }
 
