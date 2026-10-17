@@ -5,6 +5,7 @@ import android.view.WindowInsets
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -18,6 +19,7 @@ import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 class ChatHistoryDrawerTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
 
@@ -42,7 +44,7 @@ class ChatHistoryDrawerTest {
                 val density = LocalDensity.current
                 CompositionLocalProvider(LocalDensity provides Density(density.density, 1.5f)) {
                     MaterialTheme {
-                        Box(Modifier.width(300.dp).fillMaxHeight()) {
+                        ModalDrawerSheet(Modifier.width(300.dp)) {
                             ChatHistoryDrawerContent(sessions, "same-b", true, !busy, busy,
                                 {}, { chosen = it.id }, { deleted = it.id }, {})
                         }
@@ -76,6 +78,7 @@ class ChatHistoryDrawerTest {
         finishSearchKeyboard()
         rule.onNodeWithTag("history_list").performScrollToIndex(0)
         rule.onNodeWithTag("history_session_same-b").assertIsDisplayed()
+        rule.onNodeWithTag("history_settings").assertIsDisplayed()
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/history-search-large-text.png")).use { it.readBytes() }

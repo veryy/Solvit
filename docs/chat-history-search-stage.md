@@ -25,3 +25,13 @@ DSH d7432673 `packages/client/ui-workspace/src/client/rows/Rows.tsx` 的SearchRe
 新增大字体用例在清空后直接assertExists第三条会话失败。针对“查询未清空”与“LazyColumn未组合屏外行”的区分，追加真实EditableText为空断言，再通过真实列表滚动到目标并断言显示，保留同名会话ID、selected、busy及删除回调断言。不是增加等待或重试点击；下一次远程结果将验证这一判断。
 
 原始XML确认真实SQLite标题搜索→打开目标→关闭重开重置、以及原生角色继承用例通过，实际搜索键盘/匹配结果PNG已审阅：列表与设置在键盘上方，筛选目标正常展示。仍不把部分通过当作完整门禁成功；修正测试后重新执行完整Android检查，无本地Android/TS构建或测试。
+
+## 第二轮完整回归与环境页定向诊断（2026-10-18）
+
+修正测试后的dfdd6098 / Android39050077984构建、626单元、Lint和固定签名再次通过。UI artifact12108067541（12077728字节，SHA256 2b4da09c383f6d1b0d39127b0378e77636fefdb3017f7188374e34b44a30ed13）已核对整包摘要/CRC和全部115项原始XML：之前6项失败全部通过，唯一新失败为LinuxEnvironmentHtmlTest.environmentWorkbenchKeepsDisclosureLogAndHonestProgressWithoutInstallingOnRefresh。没有交付本次失败的APK，尽管生产APK与64b4aef9相同。
+
+实际大字体截图已审阅，同名长标题省略与选中保持正常；孤立组件测试原来用普通Box，没有生产ModalDrawerSheet消费系统栏，截图里底部设置落入导航栏。测试宿主改用与应用相同的ModalDrawerSheet，并追加设置可见断言；生产侧栏原来就使用该组件，不据此宣称修复生产系统栏缺陷。需定向重新查看截图。
+
+环境页失败在phase=failed的refresh()等待真实trusted click，日志已是FAILED metadata且按钮enabled；实际失败截图已显示失败摘要与展开日志，不是Ubuntu下载失败或环境状态未到达。排查顺序：状态/自动轮询更新在触摸中替换按钮DOM；重新布局让触点偏移；scrollIntoView/原生触摸时序。保留原一次实际触摸、isTrusted要求、10000ms以及进度/失败/无安装全部断言，只加入临时非消费的document输入事件与solvitPageUpdate前后采样，输出受控夹具stage、busy、disabled、按钮几何与目标ID，不输出程序日志、密钥或token。成功刷新留正对照，失败留相同trace，诊断结束移除探针。
+
+复读原环境阶段所引用DSH d7432673 terminal-card-model.ts及terminal-card.client.spec.tsx的真实运行/失败状态区分；原生/JS仍以各自实际状态为准。沿用既有HTML页面和真实屏幕触摸桥，不改安装器/PTY或重写渲染器。正式diagnostic复用已完成成功build任务的同生产APK/native资源，仅远程编译当前测试包，源码差异门禁继续限制为测试/工作流/脚本/文档。新增environment-ui和history-search两个定向入口，首失败停止，既有完整Android门禁不减。
