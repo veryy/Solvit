@@ -33,3 +33,5 @@ DSH d743267388641bc76f17c45ce8b4c231aed1d32c的packages/client/ui-tool/src/clien
 插件宿主原theme只提供六个颜色键，插件已有var(--error)无法解析，导致错误/关闭动作视觉无区分。新增Material语义色error/onError/errorContainer/onErrorContainer/onSurfaceVariant，属于兼容的主题字段补充；实际环境大字深色用例核对收到原生darkColorScheme的error值。没有新增权限或改变安装器/PTY。环境源码生成39002134288的SDK145/市场7通过，artifact12089357683 SHA256 dddda680d0468ff398aca44eb90b08024c2be952a1f759baaaa55693971c2c3e、CRC通过；只两个目标包变化，等待最终样式核验再导入。
 
 生成39003072846的市场门禁捕获重复版本：原市场已以environment-api21-v1.0.0/1.0.1名称保留同两份原字节包，本阶段新增命名副本导致Duplicate plugin version。核对两份各自逐字节一致后移除本阶段重复副本，升级回归改为引用现有不可变legacy文件，精确摘要白名单不变。保留市场拒绝重复版本的门禁，重新生成验证。
+
+终端复核39003071203通过，完整原流程及exit7切换回归均保留。最终生成39003291670通过SDK145/市场7，artifact12089878361 SHA256 573e5c83c7af32b34d4a696748e211bd7c9be04d386cf33a2029a1e88848ee1e、CRC核对，仅环境与终端变化；已将这两份远程包导入市场和Android资源，其他包字节保持一致。进入0.43.9/build92候选，当前公开版仍为0.43.8，等待最终环境颜色/设备、升级与完整门禁，不以本说明声称发布。
