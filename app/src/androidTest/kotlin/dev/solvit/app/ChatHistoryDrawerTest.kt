@@ -1,6 +1,7 @@
 package dev.solvit.app
 
 import android.os.ParcelFileDescriptor
+import android.view.WindowInsets
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +20,13 @@ import org.junit.Test
 
 class ChatHistoryDrawerTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+
+    private fun finishSearchKeyboard() {
+        rule.onNodeWithTag("history_search").performImeAction()
+        rule.waitUntil(8000) {
+            rule.runOnUiThread { rule.activity.window.decorView.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) != true }
+        }
+    }
 
     @Test fun largeTextSearchKeepsCorrectSessionActionsAndCanRecoverFromNoResults() {
         val sessions = listOf(
@@ -43,7 +51,7 @@ class ChatHistoryDrawerTest {
             }
         }
         rule.onNodeWithTag("history_search").performTextInput("  aNdRoId  ")
-        rule.onNodeWithTag("history_search").performImeAction()
+        finishSearchKeyboard()
         rule.onNodeWithTag("history_session_other").assertDoesNotExist()
         rule.onNodeWithTag("history_session_same-b").assertIsSelected()
         rule.onNodeWithTag("history_session_same-a").performClick()
@@ -58,11 +66,15 @@ class ChatHistoryDrawerTest {
         rule.onNodeWithTag("history_empty").assertIsDisplayed()
         rule.onNodeWithTag("history_session_same-a").assertDoesNotExist()
         rule.onNodeWithTag("history_clear_search").assertIsDisplayed().performClick()
-        rule.onNodeWithTag("history_session_other").assertExists()
+        assertEquals("", rule.onNodeWithTag("history_search").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.EditableText].text)
+        rule.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_session_other"))
+        rule.onNodeWithTag("history_session_other").assertIsDisplayed()
+        rule.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_session_same-b"))
         rule.onNodeWithTag("history_session_same-b").assertIsSelected()
         rule.onNodeWithTag("history_clear_search").assertDoesNotExist()
         rule.onNodeWithTag("history_search").performTextInput("Android")
-        rule.onNodeWithTag("history_search").performImeAction()
+        finishSearchKeyboard()
+        rule.onNodeWithTag("history_list").performScrollToIndex(0)
         rule.onNodeWithTag("history_session_same-b").assertIsDisplayed()
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }

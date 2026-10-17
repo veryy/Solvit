@@ -159,7 +159,7 @@ class PdfChatDeviceTest {
             screenshot("pdf-chat-original-scan")
             rule.onNodeWithTag("pdf_original_close").performClick()
             rule.onNodeWithTag("attachment_preview_close").performClick()
-            rule.onNode(hasSetTextAction()).performTextInput("read selected page")
+            rule.onNodeWithTag("chat_input").performTextInput("read selected page")
             rule.onNodeWithTag("chat_send").performClick()
             try {
                 rule.waitUntil(90_000) { !vm.busy.value && vm.messages.value.lastOrNull()?.status==MessageStatus.FAILED }

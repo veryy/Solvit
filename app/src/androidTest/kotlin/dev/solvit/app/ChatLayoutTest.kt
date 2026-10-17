@@ -472,7 +472,7 @@ class ChatLayoutTest {
         }
         try {
             ready()
-            rule.onNode(hasSetTextAction()).performTextInput("stream test")
+            rule.onNodeWithTag("chat_input").performTextInput("stream test")
             rule.onNodeWithContentDescription("发送").performClick()
             rule.waitUntil(8000) { rule.onAllNodesWithText("live-first-token").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithText("live-first-token").assertIsDisplayed()
@@ -635,13 +635,13 @@ class ChatLayoutTest {
             rule.waitUntil(8000) { !agents.busy.value && agents.activeRole.value?.id == role.id }
             rule.onNodeWithContentDescription("关闭").performClick()
             rule.onNodeWithContentDescription("返回聊天").performClick()
-            rule.onNode(hasSetTextAction()).performTextInput("你是什么角色？")
+            rule.onNodeWithTag("chat_input").performTextInput("你是什么角色？")
             tapRoleSend()
             awaitRoleRequest(1)
             rule.onNodeWithContentDescription("对话历史").performClick()
             rule.onNodeWithTag("new_chat").performClick()
             rule.waitUntil(8000) { vm.sessionId.value != originalSession && agents.activeRole.value?.id == role.id }
-            rule.onNode(hasSetTextAction()).performTextInput("新对话中你是谁？")
+            rule.onNodeWithTag("chat_input").performTextInput("新对话中你是谁？")
             tapRoleSend()
             awaitRoleRequest(2)
             val sent = requests.toList()
@@ -858,7 +858,7 @@ class ChatLayoutTest {
     }
     @Test fun startupFocusesInputAndFloatingComposerStaysAboveRealKeyboard() {
         ready()
-        rule.onNode(hasSetTextAction()).assertIsFocused()
+        rule.onNodeWithTag("chat_input").assertIsFocused()
         rule.waitUntil(10_000) { geometry("chat_composer").keyboardVisible }
         // isVisible flips before the IME animation and Compose inset layout finish.
         rule.waitUntil(10_000) {

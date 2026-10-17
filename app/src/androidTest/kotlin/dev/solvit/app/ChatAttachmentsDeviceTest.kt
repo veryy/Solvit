@@ -248,7 +248,7 @@ class ChatAttachmentsDeviceTest {
             val editCopies = vm.attachmentDrafts.value.getValue(branch)
             assertTrue(editCopies.none { copy -> attachments.any { it.id == copy.id } })
             assertEquals(0, runBlocking { store.history(branch).size })
-            rule.onNode(hasSetTextAction()).assertTextEquals("edited attachment question")
+            rule.onNodeWithTag("chat_input").assertTextEquals("edited attachment question")
             val copiedImage = editCopies.single { it.mimeType == "image/png" }
             val copiedText = editCopies.single { it.mimeType == "text/plain" }
             assertArrayEquals(imageBytes, runBlocking { files.read(branch, copiedImage) })
