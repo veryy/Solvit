@@ -1,6 +1,6 @@
 # 记忆搜索视野与返回行为（2026-10-17）
 
-0.43.10候选的后续打磨，继续使用现有插件HTML/Cytoscape界面。前一轮仅验证双节点图谱，不能据此宣称大量记忆下的搜索视野已验收。本阶段先复现，尚未修改生产代码或发布新APK。
+0.43.10/build94候选已完成本轮远程构建、完整设备回归与实际截图审阅，尚未正式发布。继续使用现有插件HTML/Cytoscape界面。下文保留复现、失败与修正的时间记录，不能将其中的早期“待验证”状态当作当前结论。
 
 参考实现已用 `scripts/fetch-upstreams.py --verify-only` 核对锁定版本。Operit dbf71916 的 `app/src/main/java/com/ai/assistance/operit/ui/features/memory/screens/MemoryScreen.kt:354` 保持图谱挂载；`screens/graph/GraphVisualizer.kt:244–273,307–357` 保存视野及已有节点位置，根据节点/边变化处理布局。其测试目录没有对应图谱视野测试；读取 `api/chat/library/ChatMemoryWindowPlannerTest.kt` 只作为记忆上下文测试边界，不把它当图谱验证。DSH d7432673 的 `packages/client/ui-slots/src/index.ts` 及 `tests/core.client.spec.ts` 明确插件拥有视图注册契约；本项目继续由记忆插件控制图谱，不向原生宿主加入记忆业务。Operit LGPL-3.0、DSH MIT；未复制源码或增加依赖。
 
@@ -37,3 +37,15 @@
 远程生成 `39020928762` 成功，artifact12096273965（881320字节，SHA256 `ef268b2321e578de43ed1736e022bcec1e72fb6e6c9279c71f84103d2b9f0cbb`）核对摘要/CRC，只有记忆包变化，HTML/CSS资源与当前源文件逐字节相符。最终记忆1.4.3包540360字节、SHA256 `6c5e0fa4e5596ba15f0756aca32fb62a0636af90b504377053d57873609a392c`。补读DSH ui-slots `src/index.ts:1203–1311` 实际注册/幂等释放及 `tests/core.client.spec.ts:105–132` 递归释放、重复释放测试，页面resize监听随pagehide释放，未引入第二个长期订阅。
 
 中间界面源提交仅显式运行远程生成及定向设备验证，避免在截图仍有缺陷时反复执行完整门禁；本次资产提交正常触发完整Android、TS和市场检查，不替代或跳过最终门禁。完整回归增加真实键盘打开/关闭后的菜单边界及截图，结果待后续补记。
+
+## 最终候选验证与交付
+
+源码986700d60a674252d4750876e25ca386369f8fb8的[完整Android39021588635](https://github.com/veryy/Solvit/actions/runs/39021588635)成功，TS39021588562与市场39021588589成功。626项原始单元XML（artifact12097341566，SHA256 e80832e40c31548490846dcc49afc3fcdfc6ee4f58742e9bf0777ac2baa7d484）摘要以实际artifact元数据为准；原始报告无failure/error/skip，包含旧记忆1.4.2事实/授权/启用状态升级回归。Lint与既定签名通过。
+
+设备artifact12097368700，SHA256 c2465f7b4b50cb1a0f4bf23c38e655ef835d6552b4a492cebf82663a7ad742ef，12426492字节，下载完整摘要/ZIP CRC已核对。原始XML App84/Web3/terminal26共113项，必需记忆视野及终端EOF回归均存在，无failure/error/skip；15场独立进程恢复的原始runner均OK，真实前后PID先存在后消失。覆盖升级seed、实际1.5倍字体完整聊天、同构建测试运行器恢复，以及实际SIGKILL后的stdio宿主/监督/worker/descendant四进程全部gone。
+
+已查看本次完整回归五张实际PNG：33条无边记忆概览、150%文字单条搜索、空结果、菜单、真实键盘。单条结果回到可见区域；返回保留视野与查询；无结果清掉旧图谱并隐藏定位；大字按钮分离；菜单内容可见，键盘弹出后在页面内限制高度并可滚动。拼图左上为原红测实际截图，其余来自本次完整成功产物，见[前后截图](images/memory-search-ui-0.43.10.png)。本轮不宣称全部稠密图谱布局、大量长标签可读性、所有系统字体/主题已验收。
+
+APK artifact12097142103外层SHA256 2ea4b89232f8cae248987dedd3de97f697e22c75d2a3b133fca653e0c7c6a7a9。APK实际包名dev.solvit.app、版本0.43.10/build94、59647287字节、SHA256 ad33ce97ca876bda184b0569c474b01d8b489fea6df9b73c1f1498f6c5ca32a9；固定签名f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3延续，5份内置包均与本次仓库逐字节一致。Linux源码artifact12097440688外层SHA256 27e5231d141dabcdacbabf037b73de29c76fbb3f107dfee4dfdc19959d3c3427；内层源码1072711字节、SHA256 3e9e1f005b5d8198fa169aa6fdb9857f49f95c5ec338196512971985e10b7757，双层CRC核对。Linux实现未改，本次分支未运行正式标签Linux/搜索/插件独立任务，不能代替正式标签全部门禁。
+
+已保存新的build94候选APK、Linux源码及JSON验证记录，旧build93文件保持原样。正式Release仍0.43.9；2026-10-17T09:44:12Z真实SSH batch登录exit255 Permission denied。线上记忆1.4.1、Skills/MCP1.2.0；9文件市场同步ZIP已准备且未部署，725829字节、SHA256 1be93926ba68ae7629631f47c9995bd5f9b0002271389130fd577da157ab846c。恢复有效部署连接后按历史包先行的顺序同步，再运行原有严格live及正式标签门禁；没有创建0.43.10正式标签或降低检查。真机、真实模型任务、ARM64及更多服务兼容仍未验收。
