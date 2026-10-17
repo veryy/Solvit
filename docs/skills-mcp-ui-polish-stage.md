@@ -70,3 +70,15 @@ MCP窗口原有FLAG_SECURE令系统截图为黑色，这是预期保护；实际
 独立远程terminal-eof用例先使用文件门控，run39013136354通过但未充分触发自然teardown，未据此宣称消除问题。提取实际自然exit7路径连续96次，run39013515600在第2次（attempt1）明确失败expected7/actualnull，建立失败反馈；保留同一断言和关闭门控场景，修复后再远程验收。设备发布门禁增加实际新回归名称及terminal26下限（常规总112），门禁自身验证也覆盖所有模块的required case，未放宽旧用例或超时。
 
 修复2056b5fe的相同专项run39013928562成功，原始runner耗时8.991秒、OK(1 test)，对应96次自然exit7循环及门控结束/关闭流程。产物12093649415（454449字节、SHAe9c61df7b1894a2931df707994c61fe19ee12a02adecac41115e8c558dd9508b）整ZIP SHA/CRC和原始结果已核对；未改变红测断言、未通过延长等待隐藏失败。完整Android39013850707仍在执行，尚不交付候选。
+
+## 已验证候选（正式发布仍待市场同步）
+
+完整Android39013850707在2056b5fe成功。原始单位XML625例与常规设备XML App83/Web3/terminal26（合112）全无failure/error/skip，所有required回归都在；15场process-death runner与真实before/after PID、覆盖升级、1.5倍完整聊天、实际stdio四层进程强杀回收均已独立核对。UI产物12094651275（11779334字节，SHA00acbac25b166a6349c687660521dd1513b3ce4a82d9c8749bdebcd2e0e008b4）整ZIP SHA/CRC与最终截图已核对。本页六联图已换成本次完整回归的实际截图；终端真实截图确认切换后显示已关闭·7。
+
+APK产物12094555586（ZIP58353221字节，SHAf58e6aa99cb0abbf7ce779de58f4480e240a2f2584fbcd10a7ec1ef5d0846799）下载整包核对后，APK内current与compat的四个包逐字节对照提交，APK本体CRC通过；本体59646927字节，SHAb48df5e7c0687699d42a7bb665ff949addada87f2cef67471404d5d3cca676d0。构建日志证书SHA仍f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3，Gradle成功。Linux依赖源码内ZIP也检查CRC并与候选一起提供。
+
+2026-10-17最终公开查询再次确认：Release为v0.43.9/415598425，Skills/MCP市场为1.2.0。另备只包含六个包及清单/说明的225621字节市场更新归档（SHAe0f584399fa93cba8890010a1a5de059fa7741b1aa33d544108f4cf43cb2f87a）：先保留旧1.2.0历史，再加入1.1.2兼容包，最后原子更新current1.2.1；不替换服务器配置或删除其他历史。该更新尚未部署，严格live Skills未被减弱。
+
+此状态为已验证候选，不能记作正式Release或全部UI目标完成。真实模型、账号任务、ARM64真机以及完整插件协议/交互路线继续保留。
+
+![真实终端状态：切换Shell后保留实际退出码7](images/terminal-exit-state-0.43.10.png)
