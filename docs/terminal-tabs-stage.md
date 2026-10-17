@@ -53,3 +53,5 @@ DSH固定d7432673（完整revision见upstream-sources.json）：`packages/client
 Actions39061763605/sourcef0ebac5e已生成插件包并通过SDK TypeScript检查与147项测试；市场server.test.mjs:154仍期望终端1.1.4而新清单为1.1.5，导致市场测试失败，尚未进行其后的在线检查。这里漏同步了版本契约，现改为准确期望1.1.5，保留API13、完整性、下载与禁写等全部原断言，不据此称该轮成功。
 
 产物12111666364（881565字节，sha256:3bead74bfba83d3a3555d4c746240be8d2d49d2b9af81858b60139f88694dec6）整包摘要/CRC与全部15个包实际比较，只有terminal变化。新终端包331481字节，清单逐字段等于源码；只有ui/main.js和ui/style.css资源改变，其余资源、许可证、编译后的运行逻辑与旧包完全相同。将实际远程生成字节同步到市场和Android内置资源，不在本地生成。后续以关闭generate_packages的严格模式重新验证源码与已提交包一致；Android及真实WebView回归仍待执行。
+
+升级同时将原始1.1.4包按原SHA字节保留到市场legacy目录，旧的按版本下载地址继续提供相同内容；现有HTTP包下载完整性回归增加该版本，避免仅保留Git历史却使原市场URL消失。只追加历史包，不改写既有legacy文件或目录顺序。

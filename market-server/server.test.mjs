@@ -161,7 +161,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(agentPackage.manifest.agentEnabledSetting, 'selected');
     assert.deepEqual(agentPackage.manifest.permissions, ['agent']);
     assert.equal(api12.plugins.find(plugin => plugin.id === 'dev.solvit.terminal').version, '1.0.0');
-    for(const [id,previous] of [['memory','1.4.0'],['memory','1.4.1'],['terminal','1.1.0'],['terminal','1.1.1'],['terminal','1.1.2']]) {
+    for(const [id,previous] of [['memory','1.4.0'],['memory','1.4.1'],['terminal','1.1.0'],['terminal','1.1.1'],['terminal','1.1.2'],['terminal','1.1.4']]) {
       const original = Buffer.from(await (await fetch(base + `/api/v1/packages/dev.solvit.${id}/${previous}`)).arrayBuffer());
       assert.deepEqual(original, await readFile(new URL(`./packages/legacy/dev.solvit.${id}-${previous}.solvit.json`, import.meta.url)));
     }
