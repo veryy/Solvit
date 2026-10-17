@@ -100,10 +100,15 @@ class WorkspaceHtmlPageTest {
             val lightBackground = html.js("getComputedStyle(document.body).backgroundColor")
             rule.runOnUiThread { dark = true }
             waitDom("getComputedStyle(document.body).backgroundColor!==$lightBackground")
+            // Material TopAppBar animates its container after the plugin theme has arrived.
+            rule.mainClock.advanceTimeBy(1_000)
+            rule.waitForIdle()
             html.setTextZoom(150)
             html.tapElement("#workspace-new-menu > summary")
             waitDom("(()=>{const r=document.querySelector('[data-node=mkdir]').getBoundingClientRect();return r.width>0&&r.bottom<=document.getElementById('content').getBoundingClientRect().bottom&&r.right<=innerWidth})()")
-            html.screenshot("workspace-directory-dark-large-text-menu")
+            val darkFrame = html.screenshot("workspace-directory-dark-large-text-menu")
+            assertTrue("Native toolbar must settle to the same dark theme",
+                androidx.core.graphics.ColorUtils.calculateLuminance(darkFrame.getPixel(darkFrame.width * 9 / 10, darkFrame.height / 10)) < .3)
             html.setTextZoom(100)
             rule.runOnUiThread { dark = false }
             waitDom("getComputedStyle(document.body).backgroundColor===$lightBackground")
