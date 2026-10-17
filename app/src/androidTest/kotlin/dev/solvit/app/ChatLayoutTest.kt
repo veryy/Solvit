@@ -917,6 +917,51 @@ class ChatLayoutTest {
         }
     }
 
+    @Test fun historyTitleSearchOpensPersistedConversationAndReopeningResetsTheFilter() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        val marker = "drawer-find-" + java.util.UUID.randomUUID().toString().take(8)
+        val chat = app.ready.value!!.getOrThrow()
+        val vm = rule.runOnUiThread { androidx.lifecycle.ViewModelProvider(rule.activity)[ChatViewModel::class.java] }
+        val fixture = runBlocking {
+            val created = SqliteChatStore(app).use { store ->
+                val session = store.createSession()
+                store.append(ChatMessage(java.util.UUID.randomUUID().toString(), session.id, Role.USER, marker))
+                session
+            }
+            chat.createSession() // Refresh the real storage Flow after the fixture transaction.
+            created
+        }
+        try {
+            rule.waitUntil(8000) { vm.sessions.value.any { it.id == fixture.id && it.title.contains(marker) } }
+            rule.onNodeWithContentDescription("对话历史").performClick()
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitUntil(8000) {
+                val panel = geometry("chat_drawer")
+                panel.bounds.width >= panel.width * 0.75f - 2 && geometry("history_search").bounds.width > 0
+            }
+            rule.onNodeWithTag("history_search").performTextInput(marker.uppercase())
+            rule.onNodeWithTag("history_search").performImeAction()
+            rule.onNodeWithTag("history_session_" + fixture.id).assertIsDisplayed()
+            screenshot("history-search-persisted-match")
+            rule.onNodeWithTag("history_session_" + fixture.id).performClick()
+            rule.waitUntil(8000) { vm.sessionId.value == fixture.id }
+            rule.waitUntil(8000) {
+                runCatching { rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed() }.isSuccess
+            }
+            rule.onNode(hasText(marker) and hasAnyAncestor(hasTestTag("chat_messages"))).assertIsDisplayed()
+            rule.onNodeWithContentDescription("对话历史").performClick()
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitUntil(8000) { geometry("chat_drawer").bounds.width >= geometry("chat_drawer").width * 0.75f - 2 }
+            assertEquals("", rule.onNodeWithTag("history_search").fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.EditableText].text)
+            rule.onNodeWithTag("history_clear_search").assertDoesNotExist()
+            rule.onNodeWithTag("history_session_" + fixture.id).assertIsSelected()
+            assertTrue(runBlocking { chat.messages(fixture.id).first().any { it.content == marker } })
+        } finally {
+            runBlocking { chat.deleteSession(fixture.id) }
+        }
+    }
+
     @Test fun wideDrawerOpensSettingsAndLastSettingsRowCanBeSeen() {
         ready()
         rule.onNodeWithContentDescription("对话历史").performClick()

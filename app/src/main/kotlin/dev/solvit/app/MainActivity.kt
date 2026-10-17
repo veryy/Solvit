@@ -205,30 +205,14 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val dockDensity = LocalDensity.current
     ModalNavigationDrawer(drawerState = drawer, drawerContent = {
         ModalDrawerSheet(Modifier.width(LocalConfiguration.current.screenWidthDp.dp * 0.75f).testTag("chat_drawer")) {
-            UiText("Solvit", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(24.dp))
-            FilledTonalButton(onClick = { vm.newChat(); scope.launch { drawer.close() } }, enabled = ready && !busy && !branching,
-                modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().testTag("new_chat")) {
-                UiIcon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); UiText("新对话")
-            }
-            Spacer(Modifier.height(12.dp))
-            LazyColumn(Modifier.weight(1f)) {
-                items(sessions, key = { it.id }) { session ->
-                    NavigationDrawerItem(
-                        label = { Text(session.title + if (session.originSessionId != null && !session.title.endsWith(" · 分支")) uiString(" · 分支") else "", maxLines = 1) },
-                        selected = selected == session.id,
-                        onClick = { if (!busy) { vm.select(session.id); scope.launch { drawer.close() } } },
-                        badge = { IconButton(onClick = { deleteTarget = session }, enabled = !busy) {
-                            UiIcon(Icons.Default.DeleteOutline, "删除 ${session.title}")
-                        } },
-                        modifier = Modifier.padding(horizontal = 12.dp),
-                    )
-                }
-            }
-            HorizontalDivider()
-            TextButton(onClick = { scope.launch { drawer.close(); settingsOpen = true } },
-                modifier = Modifier.padding(12.dp).fillMaxWidth()) {
-                UiIcon(Icons.Default.Settings, null); Spacer(Modifier.width(8.dp)); UiText("设置")
-            }
+            ChatHistoryDrawerContent(
+                sessions = sessions, selected = selected, open = drawer.isOpen,
+                canCreate = ready && !busy && !branching, busy = busy,
+                onNew = { vm.newChat(); scope.launch { drawer.close() } },
+                onSelect = { vm.select(it.id); scope.launch { drawer.close() } },
+                onDelete = { deleteTarget = it },
+                onSettings = { scope.launch { drawer.close(); settingsOpen = true } },
+            )
         }
     }) {
         Scaffold(

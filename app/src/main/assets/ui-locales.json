@@ -5526,5 +5526,37 @@
     "ko": "최신 메시지로 이동",
     "es": "Ir al último mensaje",
     "fr": "Aller au dernier message"
+  },
+  "按标题搜索": {
+    "zh": "按标题搜索",
+    "en": "Search titles",
+    "ja": "タイトルで検索",
+    "ko": "제목 검색",
+    "es": "Buscar por título",
+    "fr": "Rechercher par titre"
+  },
+  "清空搜索": {
+    "zh": "清空搜索",
+    "en": "Clear search",
+    "ja": "検索をクリア",
+    "ko": "검색 지우기",
+    "es": "Borrar búsqueda",
+    "fr": "Effacer la recherche"
+  },
+  "还没有对话": {
+    "zh": "还没有对话",
+    "en": "No conversations yet",
+    "ja": "会話はまだありません",
+    "ko": "아직 대화가 없습니다",
+    "es": "Aún no hay conversaciones",
+    "fr": "Aucune conversation pour le moment"
+  },
+  "没有匹配的对话": {
+    "zh": "没有匹配的对话",
+    "en": "No matching conversations",
+    "ja": "一致する会話がありません",
+    "ko": "일치하는 대화가 없습니다",
+    "es": "No hay conversaciones coincidentes",
+    "fr": "Aucune conversation correspondante"
   }
 }
