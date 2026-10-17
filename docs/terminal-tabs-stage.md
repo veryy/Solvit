@@ -35,3 +35,9 @@ DSH固定d7432673（完整revision见upstream-sources.json）：`packages/client
 定向39059969679/source59db4173原runner在22.852秒报告通过，但实际查看artifact12110754262（sha256:c1a175a0b59fed82b4f3d77e1e9e5a6a044a232d3ca16c9080495c6be9358aaa）的三标签PNG，Shell 1与Shell 2均显示She…，与build96完整截图一致。整包大小/摘要/CRC已核对。说明已视觉复现，旧断言未捕捉缺陷，不能称作有效绿测。
 
 原生HTML button的scrollWidth可只反映已压缩的匿名内容盒，即使文字已ellipsis，仍等于clientWidth。修正同一真实页面回归：用按钮实际computed font测量标签文字宽度，和clientWidth减去真实左右padding的可用文字宽度比较。断言输出每个名称、needed和available，以区分CSS字体/内边距和容器布局。仅测试变更，保留三标签创建、截图和全部真实PTY行为；产品布局仍未改动。此轮变化针对已证明的断言盲区，不重试原无效测量。
+
+## 有效红测：短名称被压缩
+
+定向39060467479/sourceadf3b88c在13.54秒实际失败于新增宽度断言；artifact12111645609，sha256:8825204d57440a8aeefa637914b6c8ecd55188be70ffc2be81559b5cdfe73858，整包大小/SHA/CRC与原始runner已核对。Shell 1和Shell 2文字各需要47.5390625 CSS像素，实际文字可用区仅41像素；长名称需要139.1796875而可用121。前面的实际PTY输入、持久环境、原始按键与Ctrl-C均已通过，失败位置是所需布局边界，不是编译或Shell执行。
+
+这与build96完整三标签截图、59db4173独立三标签截图一致，支持默认flex-shrink将短标签压窄的第一假设。尚未实现布局修正；下一步沿用Operit已读的有界自然宽度/独立横向视口原则，避免压缩短名称，并验证选中标签可见。完整聊天草稿回归的超时优先调查，不能把这个红测分支合进build97。
