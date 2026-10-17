@@ -2,6 +2,8 @@ package dev.solvit.app
 
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -33,10 +35,19 @@ class WorkspaceHtmlPageTest {
         val initialText = "<script>window.executed=true</script>\n第一版🙂\n" + "const value = 1; // 中文\n".repeat(3000)
         val marker = "IME_EDIT"
         var visible by mutableStateOf(true)
+        var dark by mutableStateOf(false)
         fun waitDom(expression: String) { rule.waitUntil(10_000) { runCatching { html.js(expression) == "true" }.getOrDefault(false) } }
         fun click(id: String) {
             waitDom("!!document.querySelector('[data-node=$id]') && !document.querySelector('[data-node=$id]').disabled")
-            html.js("document.querySelector('[data-node=$id]').click()")
+            val menu = Json.parseToJsonElement(html.js("document.querySelector('[data-node=$id]').closest('details')?.id??''")).jsonPrimitive.content
+            if (menu.isNotEmpty()) {
+                if (html.js("document.getElementById('$menu').open") != "true") {
+                    html.js("document.querySelector('#$menu > summary').scrollIntoView({block:'nearest'})")
+                    html.tapElement("#$menu > summary")
+                }
+                waitDom("(()=>{const b=document.querySelector('[data-node=$id]'),r=b.getBoundingClientRect(),v=document.getElementById('content').getBoundingClientRect();return document.getElementById('$menu').open&&r.width>0&&r.top>=v.top&&r.bottom<=v.bottom&&r.left>=0&&r.right<=innerWidth})()")
+                html.tapElement("[data-node=$id]")
+            } else html.js("document.querySelector('[data-node=$id]').click()")
         }
         fun field(id: String, text: String) { html.js("(()=>{const input=document.getElementById('field-$id');input.value=${JsonPrimitive(text)};input.dispatchEvent(new Event('input'))})()") }
         fun document(text: String) {
@@ -50,7 +61,7 @@ class WorkspaceHtmlPageTest {
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isEmpty() }
         }
         try {
-            rule.runOnUiThread { rule.activity.setContent { MaterialTheme {
+            rule.runOnUiThread { rule.activity.setContent { MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
                 if (visible) PluginPageScreen("工作区", { manager.openPage("zh", WorkspacePageBridge(app.workspaces, app.pluginDrafts, chat)) }) { visible = false }
             } } }
             waitDom("window.pluginPageReady===true && !!document.querySelector('[data-node=create]')")
@@ -65,7 +76,30 @@ class WorkspaceHtmlPageTest {
             val workspace = checkNotNull(runBlocking { app.workspaces.bound(chat) })
             assertEquals("HTML 工作目录", workspace.name)
             assertEquals(1, app.workspaces.state.value.shells.count { it.workspaceId == workspace.id })
-            click("directory"); waitDom("!!document.querySelector('[data-node=new]')")
+            click("directory"); waitDom("!!document.getElementById('workspace-new-menu')")
+            waitDom("!document.querySelector('details.workspace-menu[open]') && document.querySelector('[data-node=new]').getClientRects().length===0")
+            val emptyFiles = runBlocking { app.workspaces.list(workspace.id) }
+            html.tapElement("#workspace-new-menu > summary")
+            waitDom("document.getElementById('workspace-new-menu').open")
+            assertEquals(emptyFiles, runBlocking { app.workspaces.list(workspace.id) })
+            rule.onAllNodesWithTag("plugin_page_confirm").assertCountEquals(0)
+            html.screenshot("workspace-directory-new-menu")
+            html.tapElement("#workspace-import-menu > summary")
+            waitDom("document.getElementById('workspace-import-menu').open && !document.getElementById('workspace-new-menu').open")
+            assertEquals(emptyFiles, runBlocking { app.workspaces.list(workspace.id) })
+            click("chatFiles");waitDom("!!document.querySelector('[data-node=chat_files_empty]')")
+            click("chatFilesBack");click("backupOpen");waitDom("!!document.querySelector('[data-node=backupBack]')")
+            click("backupBack");waitDom("!!document.getElementById('workspace-new-menu')")
+            val lightBackground = html.js("getComputedStyle(document.body).backgroundColor")
+            rule.runOnUiThread { dark = true }
+            waitDom("getComputedStyle(document.body).backgroundColor!==$lightBackground")
+            html.setTextZoom(150)
+            html.tapElement("#workspace-new-menu > summary")
+            waitDom("(()=>{const r=document.querySelector('[data-node=mkdir]').getBoundingClientRect();return r.width>0&&r.bottom<=document.getElementById('content').getBoundingClientRect().bottom&&r.right<=innerWidth})()")
+            html.screenshot("workspace-directory-dark-large-text-menu")
+            html.setTextZoom(100)
+            rule.runOnUiThread { dark = false }
+            waitDom("getComputedStyle(document.body).backgroundColor===$lightBackground")
             click("new"); waitDom("!!window.workspaceEditor && !!document.querySelector('.cm-content[contenteditable=true]')")
             field("path", "src/note.ts");document(initialText)
             waitDom("(()=>{const line=document.querySelector('.cm-line:last-child');if(!line)return false;const r=line.getBoundingClientRect();return r.top>=0 && r.bottom<document.getElementById('actions').getBoundingClientRect().top})()")

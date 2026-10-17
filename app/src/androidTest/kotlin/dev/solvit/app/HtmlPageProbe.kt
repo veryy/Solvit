@@ -52,6 +52,16 @@ internal class HtmlPageProbe(private val activity: MainActivity) {
         val point = Json.parseToJsonElement(js("(()=>{const r=document.querySelector(${JsonPrimitive(selector)}).getBoundingClientRect();return [r.x+r.width/2,r.y+r.height/2,innerWidth]})()")) .jsonArray
         tapPoint(point)
     }
+    fun setTextZoom(percent: Int) = runBlocking {
+        val result = CompletableDeferred<Unit>()
+        activity.runOnUiThread {
+            val browser = checkNotNull(activeBrowser())
+            browser.settings.textZoom = percent
+            check(browser.settings.textZoom == percent)
+            result.complete(Unit)
+        }
+        withTimeout(10_000) { result.await() }
+    }
     fun keyboardVisible(): Boolean = runBlocking {
         val result = CompletableDeferred<Boolean>()
         activity.runOnUiThread {

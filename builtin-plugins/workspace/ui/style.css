@@ -14,3 +14,5 @@ main.editing{display:flex;flex-direction:column;gap:8px;overflow:hidden;padding:
 .workspace-menu:not([open])>.workspace-menu-panel{display:none}
 
 .workspace-menu-panel{max-height:320px;overflow:auto}.workspace-menu-panel.above{top:auto;bottom:calc(100% + 4px)}.workspace-file-name{margin:0}.workspace-directory [data-node=directory_unavailable]{padding:12px;border-inline-start:3px solid var(--primary);background:var(--surfaceContainer)}
+
+.workspace-navigation{position:sticky;top:0;z-index:15;background:var(--surface)}
