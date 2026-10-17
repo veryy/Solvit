@@ -27,3 +27,11 @@ ee6b9fff的同生产APK定向39079602869已实际失败：选中深色并返回�
 AndroidX官方activity1.9.3源码归档的EdgeToEdge.kt 71–97/135–145/298–320也已读：默认auto读取resources.configuration.uiMode，设置导航对比遮罩及按系统夜间模式的图标。Solvit手动主题只修改自身AppearanceStore，因此单次onCreate默认调用不足以覆盖手动应用配色。来源是现有依赖的官方源码，只阅读不复制；Python下载因本机CA链失败，随后curl正常验证TLS取得源码，未关闭TLS检查，也未运行本地构建。
 
 新增共享applySystemBarAppearance，FullScreenPage保持原行为，主SolvitTheme在SideEffect对明确传入的Activity窗口应用同一契约，以surface亮度确定图标。版本code101便于覆盖安装，versionName仍0.43.10。原真实设备断言不变；等待修复后的同场景及完整远程回归、实际截图、稳定签名APK核对。不能把条带的具体机制或更广泛真机兼容写成已证明。
+
+## 标志通过但截图未通过，继续定位
+
+218c09f7完整构建已通过628单元/Lint，生成同固定签名version101 APK（SHA256 4d63178f6995d57c2da757159ecf7db6d348e623c200e810c7cfdfff90eec03c）。定向39080590481以原设备断言在10.856秒通过，五张PNG及归档12119050608的大小/摘要/CRC已核对；测试文件与旧APK红测逐字节相同。
+
+实际查看全部五张截图后发现不满足视觉验收：系统浅/应用深及重建的上下条带仍浅，白色状态图标因此不可读；跟随系统深色的条带才与页面一致。因此未交付此APK，也未将原标志绿色当作最终修复。旧断言验证窗口标志，没有验证绘制背景；App提交一帧亦不能单独保证系统UI绘制完成。
+
+下一提交仅加强设备回归：等实际UiAutomation空闲后截图，读取真实系统栏insets，在实际PNG无文字左边距采样正文/状态栏/导航栏明暗，并在失败中报告Decor、android.R.id.content及首子View的实际屏幕位置/尺寸/padding、systemUiVisibility与fitInsetsTypes。保留全部旧标志/持久化/设置操作/重建断言，不改生产布局或添加延时重试。用同一218c09f7 APK区分系统UI过渡与窗口绘制范围问题；完整首候选流程继续保留，当前仍未交付101。

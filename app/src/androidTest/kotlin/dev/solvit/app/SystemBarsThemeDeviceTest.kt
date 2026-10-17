@@ -3,12 +3,16 @@ package dev.solvit.app
 import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.BitmapFactory
 import android.os.ParcelFileDescriptor
+import android.view.View
+import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.inputmethod.InputMethodManager
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.core.view.WindowCompat
+import androidx.core.graphics.ColorUtils
 import androidx.test.platform.app.InstrumentationRegistry
 import kotlinx.coroutines.*
 import org.junit.Assert.*
@@ -19,10 +23,9 @@ import org.junit.Test
 class SystemBarsThemeDeviceTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
 
-    private fun shell(command: String) {
+    private fun shell(command: String): ByteArray =
         ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation()
             .uiAutomation.executeShellCommand(command)).use { it.readBytes() }
-    }
 
     private fun mainPage() {
         rule.waitUntil(30_000) { rule.onAllNodesWithTag("chat_composer").fetchSemanticsNodes().isNotEmpty() }
@@ -74,6 +77,8 @@ class SystemBarsThemeDeviceTest {
             }
             withTimeout(10_000) { frame.await() }
         }
+        // App frame completion alone does not synchronize the separate System UI process.
+        InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(100, 2_000)
         shell("mkdir -p /data/local/tmp/solvit-ui")
         shell("screencap -p /data/local/tmp/solvit-ui/$name.png")
         rule.runOnUiThread {
@@ -83,6 +88,31 @@ class SystemBarsThemeDeviceTest {
             assertEquals("$name: navigation icons must follow the actual app surface", light, controller.isAppearanceLightNavigationBars)
             assertFalse("$name: navigation scrim must not add a contrasting strip", window.isNavigationBarContrastEnforced)
         }
+        val (statusHeight, navigationHeight, geometry) = rule.runOnUiThread {
+            val window = rule.activity.window
+            val decor = window.decorView
+            val content = rule.activity.findViewById<View>(android.R.id.content)
+            fun box(view: View?): String {
+                if (view == null) return "absent"
+                val position = IntArray(2); view.getLocationOnScreen(position)
+                return "${position.toList()}/${view.width}x${view.height}/padding=${view.paddingTop},${view.paddingBottom}"
+            }
+            val insets = decor.rootWindowInsets
+            Triple(insets.getInsets(WindowInsets.Type.statusBars()).top,
+                insets.getInsets(WindowInsets.Type.navigationBars()).bottom,
+                "decor=${box(decor)} content=${box(content)} child=${box((content as? ViewGroup)?.getChildAt(0))} uiFlags=${decor.systemUiVisibility} fitTypes=${window.attributes.fitInsetsTypes}")
+        }
+        val bytes = shell("cat /data/local/tmp/solvit-ui/$name.png")
+        val image = checkNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
+        try {
+            assertTrue("Expected visible system bars: $geometry", statusHeight > 0 && navigationHeight > 0)
+            // Sample a clear left margin, outside icons and chat text, in the actual OS screenshot.
+            val x = image.width / 100
+            val luminance = listOf(image.height / 2, statusHeight / 2, image.height - navigationHeight / 2)
+                .map { ColorUtils.calculateLuminance(image.getPixel(x, it)) }
+            assertTrue("$name: app/status/nav backgrounds must follow the selected surface; luminance=$luminance; $geometry",
+                luminance.all { if (light) it > .7 else it < .2 })
+        } finally { image.recycle() }
     }
 
     @Test fun manualThemeAndSystemThemeKeepMainWindowBarsReadableAfterReturnAndRecreation() {
