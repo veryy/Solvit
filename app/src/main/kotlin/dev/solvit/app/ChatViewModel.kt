@@ -1,6 +1,8 @@
 package dev.solvit.app
 
 import androidx.lifecycle.ViewModel
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.viewModelScope
 import dev.solvit.core.*
@@ -51,11 +53,12 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
     val busy = MutableStateFlow(false)
     // Native editor state belongs to a conversation, including its cursor/selection.
     // Keep it in memory only, alongside attachment drafts, across view recreation.
-    private val userInputDrafts = MutableStateFlow<Map<String, TextFieldValue>>(emptyMap())
-    val inputDrafts = userInputDrafts.asStateFlow()
+    // TextField edits must be fed back by the next frame, without a Flow collector hop.
+    private val userInputDrafts = mutableStateOf<Map<String, TextFieldValue>>(emptyMap())
+    val inputDrafts: State<Map<String, TextFieldValue>> = userInputDrafts
     fun updateInputDraft(session: String?, value: TextFieldValue) {
         if (session == null) return
-        userInputDrafts.update { drafts ->
+        userInputDrafts.value = userInputDrafts.value.let { drafts ->
             if (value.text.isEmpty()) drafts - session else drafts + (session to value)
         }
     }
@@ -244,7 +247,7 @@ class ChatViewModel(private val chat: ChatService, private val settings: Setting
                 chat.deleteSession(id)
                 queuedMessages.value = queuedMessages.value.filterNot { it.sessionId == id }
                 attachmentDrafts.value = attachmentDrafts.value - id
-                userInputDrafts.update { it - id }
+                userInputDrafts.value = userInputDrafts.value - id
                 pausedChats.remove(id)
                 if (selected.value == id) chooseSession(chat.sessions().first().firstOrNull()?.id ?: createRoleSession(null).id)
             } catch (e: Exception) { error.value = "删除对话失败" }

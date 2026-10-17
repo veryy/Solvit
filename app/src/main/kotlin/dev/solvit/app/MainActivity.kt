@@ -164,7 +164,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     val switching by vm.switching.collectAsStateWithLifecycle()
     val missingRole by agents.missingRole.collectAsStateWithLifecycle()
     val agentBusy by agents.busy.collectAsStateWithLifecycle()
-    val inputDrafts by vm.inputDrafts.collectAsStateWithLifecycle()
+    val inputDrafts by vm.inputDrafts
     val input = inputDrafts[selected] ?: TextFieldValue()
     fun submitInput(interrupt: Boolean = false) {
         val id = selected ?: return
