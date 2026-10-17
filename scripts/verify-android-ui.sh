@@ -54,13 +54,28 @@ timeout --signal=TERM --kill-after=30s 12m ./gradlew :web-android:connectedDebug
 solvit_test_status=$?
 if [ "$solvit_test_status" -eq 0 ]; then
   # Keep the real authorization/queue/IME/role scenario at large text in the release gate.
-  # This runs on the same installed APK; its screenshots have a separate prefix.
-  timeout --signal=TERM --kill-after=10s 180s adb shell am instrument -w \
+  # UTP cleans up installed packages after connectedDebugAndroidTest. Restore
+  # this build's exact APKs before the external instrumentation invocation,
+  # as the stdio process-death check already does for its library test APK.
+  timeout 15s adb shell pm list instrumentation > ui-screenshots/chat-large-text-before-install.txt
+  timeout 90s adb install -r app/build/outputs/apk/debug/app-debug.apk > ui-screenshots/chat-large-text-app-install.txt
+  solvit_test_status=$?
+  if [ "$solvit_test_status" -eq 0 ]; then
+    timeout 90s adb install -r -t app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk > ui-screenshots/chat-large-text-test-install.txt
+    solvit_test_status=$?
+  fi
+  if [ "$solvit_test_status" -eq 0 ]; then
+    timeout 15s adb shell pm list instrumentation > ui-screenshots/chat-large-text-after-install.txt
+    grep -F 'dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner' ui-screenshots/chat-large-text-after-install.txt >/dev/null || solvit_test_status=1
+  fi
+  if [ "$solvit_test_status" -eq 0 ]; then
+    timeout --signal=TERM --kill-after=10s 180s adb shell am instrument -w \
     -e class dev.solvit.app.ChatInteractionDeviceTest#inlineRememberedApprovalAndEditableQueueInterruptThenNewChatKeepTheActualRole \
     -e chatFontScale 1.5 \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \
     | tee ui-screenshots/chat-large-text.txt
-  solvit_test_status=$?
+    solvit_test_status=$?
+  fi
   if [ "$solvit_test_status" -eq 0 ]; then
     grep -F 'OK (1 test)' ui-screenshots/chat-large-text.txt >/dev/null || solvit_test_status=1
   fi
