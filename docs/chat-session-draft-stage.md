@@ -19,3 +19,9 @@ DSH d7432673 packages/client/ui-conversation/src/client/draft.ts使用有所有�
 第一轮98f14eee / Android39056255551在测试Kotlin编译阶段失败：ChatLayoutTest.kt:966 performTextInputSelection要求ExperimentalTestApi显式OptIn。生产assembleDebug已完成，设备尚未执行，不能将此记作草稿验证失败或成功。补充该方法的OptIn注解，保留原文字/选区/重建断言，生产逻辑不改；不交付该失败轮次产物。
 
 在候选提交处理时，统一普通提交与立即打断的输入读取：事件边界核对绑定会话仍为当前会话，并读取ViewModel当前文字/附件，再使用原布尔接受规则清空对应ID；避免依赖上一帧用于绘制的输入快照。此为同一草稿所有权修正的一部分，未据此宣称另一个已远程复现的缺陷。ce187fca正在执行时被后续提交替代，最终检查必须针对新的实际源码完成。
+
+## 选区检查与原生失焦规则
+
+79e45161的构建、626单元、Lint及固定签名通过；定向39057876254在10.666秒执行后，文字恢复断言已通过，但原测试期待TextRange(2,7)，实际TextRange(7,7)。artifact12110291914已核对大小、摘要、CRC与原始runner；未将该失败忽略。
+
+实际阅读项目既有Compose foundation 1.8.3源包：commonMain/androidx/compose/foundation/text/CoreTextField.kt:339在失焦时调用manager.deselect，selection/TextFieldSelectionManager.kt:572–584对非空选区用selection.max发布折叠光标，不改变已有光标位置。这正好对应2–7变成7–7；原断言把原生失焦时收起高亮当作恢复失败，预期不正确。现保留原生行为，先断言2–7选区确实建立，再断言切至乙时甲发布的光标为7，然后断言切回/Activity重建仍为7而不是文本末尾15；文字、新会话、手动清空隔离等原断言全部保留。生产编辑逻辑不改。先复用同一已验证构建APK定向检查，再执行修正测试的完整Android任务；79e旧完整任务不是最终验收。
