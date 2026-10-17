@@ -50,7 +50,7 @@ case "${SOLVIT_UI_DIAGNOSTIC:-none}" in
     ;;
   *) echo 'Unknown UI diagnostic mode'; exit 1 ;;
 esac
-# 116 device cases: the measured app suite alone took 681s on a slower runner.
+# 116 device cases: the measured app suite alone took 681s in the failed CI run.
 # Include all modules and UTP startup without cutting off the final active case.
 timeout --signal=TERM --kill-after=30s 15m ./gradlew :web-android:connectedDebugAndroidTest :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions,dev.solvit.terminal.StdioProcessDeathTest" --stacktrace
 solvit_test_status=$?
