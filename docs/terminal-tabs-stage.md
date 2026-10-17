@@ -29,3 +29,9 @@ DSH固定d7432673（完整revision见upstream-sources.json）：`packages/client
 定向39059472042/source dc5a8c5f在22.227秒通过原实际PTY场景；artifact12110487842，sha256:0af2d68e95b617133ad5de921e06c51f56ad5bf3c6dd5a5dace25a6ff21768b0，大小/摘要/CRC、原始runner与截图均实际核对。截图只有Shell 1与Second HTML Shell两个标签，短名称完整，未复现原完整回归的三标签拥挤。不能据此宣称问题已修复或布局没有问题。
 
 修正同一实际回归的准备步骤：经真实HTML创建及原生内联授权再增加短名称Shell 2，随后创建原长名称，固定复现截图中的至少三标签条件；原始宽度断言与后续PTY行为断言保留。生产代码和APK仍完全不改。下一轮以相同生产APK重新测量这个明确缺失的条件，非重试相同场景。
+
+## 三标签截图复现与断言修正
+
+定向39059969679/source59db4173原runner在22.852秒报告通过，但实际查看artifact12110754262（sha256:c1a175a0b59fed82b4f3d77e1e9e5a6a044a232d3ca16c9080495c6be9358aaa）的三标签PNG，Shell 1与Shell 2均显示She…，与build96完整截图一致。整包大小/摘要/CRC已核对。说明已视觉复现，旧断言未捕捉缺陷，不能称作有效绿测。
+
+原生HTML button的scrollWidth可只反映已压缩的匿名内容盒，即使文字已ellipsis，仍等于clientWidth。修正同一真实页面回归：用按钮实际computed font测量标签文字宽度，和clientWidth减去真实左右padding的可用文字宽度比较。断言输出每个名称、needed和available，以区分CSS字体/内边距和容器布局。仅测试变更，保留三标签创建、截图和全部真实PTY行为；产品布局仍未改动。此轮变化针对已证明的断言盲区，不重试原无效测量。

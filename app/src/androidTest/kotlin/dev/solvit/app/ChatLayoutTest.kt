@@ -1368,9 +1368,11 @@ class ChatLayoutTest {
             // Read actual WebView layout: short Shell names must remain readable when
             // another tab is added. Long names may still use bounded ellipsis.
             page.screenshot("workspace-terminal-tabs")
-            val tabWidths = js("JSON.stringify(Array.from(document.querySelectorAll('#shells button')).map(b=>({name:b.textContent,visible:b.clientWidth,content:b.scrollWidth})))")
+            // Native button scrollWidth can equal clientWidth even when its anonymous
+            // text box is ellipsized. Measure the actual font and available text area.
+            val tabWidths = js("JSON.stringify(Array.from(document.querySelectorAll('#shells button')).map(b=>{const s=getComputedStyle(b),c=document.createElement('canvas').getContext('2d');c.font=s.font;return {name:b.textContent,available:b.clientWidth-parseFloat(s.paddingLeft)-parseFloat(s.paddingRight),needed:c.measureText(b.textContent).width}}))")
             assertEquals("Short Shell names are clipped: $tabWidths", "true",
-                js("(()=>{const tabs=Array.from(document.querySelectorAll('#shells button')).filter(b=>b.textContent.length<=12);return tabs.length>0&&tabs.every(b=>b.scrollWidth<=b.clientWidth+1)})()"))
+                js("(()=>{const tabs=JSON.parse($tabWidths).filter(b=>b.name.length<=12);return tabs.length>0&&tabs.every(b=>b.needed<=b.available+1)})()"))
             openTerminal();command("stty -echo; printf '__SECOND_%s__\\n' \"\${UI_PTY_STATE:-empty}\"")
             rule.waitUntil(8000) { displayed("__SECOND_empty__") }
             js("document.getElementById('shells').children[0].click()")
