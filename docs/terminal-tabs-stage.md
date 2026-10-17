@@ -61,3 +61,9 @@ Actions39061763605/sourcef0ebac5e已生成插件包并通过SDK TypeScript检查
 严格Actions39062011282/source8a968a9d通过TypeScript检查、147项SDK、7项市场测试（含旧包URL），已提交包与重新生成包完全一致检查，以及默认公网搜索和真实HTTPS MCP初始化/发现/调用/断开。最后线上Skills检查失败，原文Live Skills package differs from committed package；不能称整条工作流成功。该门禁检测部署端尚未同步的既有Skills页面包，与本次终端API/权限无关，不删除检查或把候选当正式发布；既有服务器部署认证问题继续保留。未重复运行已通过的代码检查来获取绿色状态。
 
 为避免未通过的build97和新终端修改分别交付，整合33987c1d的测试诊断路径到build98候选，保留完整历史及两个独立诊断入口。生产98同时包含会话草稿归属修正与新终端页面；完整Android启用原临时草稿步骤/线程探针，原12分钟及全部门禁保留。最终交付仍需解决实际卡点、清理探针并通过完整无探针回归；现不发布第二个未验证APK或正式标签。
+
+## Android首轮版本断言失败，仍无新APK
+
+完整39062250423/sourcedab9c5d6的build job117482431283在plugin-market单元阶段失败，582项原始XML中唯一失败为WorkspaceInstructionsHookTest.releasedTerminalManagementRetainsGrantsDisabledCustomCodeAndUninstall：其升级目标仍写1.1.4，实际新包为1.1.5。之前只同步了专用终端升级类，遗漏了此处跨包恢复断言，现准确更新目标；保留1.1.3历史输入、原SHA、停用/授权/自定义/卸载全部断言。原始artifact12112425789的大小/摘要/CRC及原始XML已核对；App剩余单元、Lint与APK/设备未执行，不能宣称627全部通过或生成了APK。
+
+同一实际market.restore路径再增加1.1.4原包升级用例，使用已经保留的原字节与SHA，验证其停用状态、授权、自定义内容和卸载选择；与已有1.1.4启用升级用例互补，完整单元预期因此为628。版本仍code98，因为失败轮没有交付包；TypeScript/终端页面资源和生产实现未再变化，无需重复已通过的插件代码校验。继续远程完整诊断，不提高原超时或移除断言。

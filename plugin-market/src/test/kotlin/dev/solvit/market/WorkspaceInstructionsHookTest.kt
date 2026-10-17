@@ -136,8 +136,13 @@ class WorkspaceInstructionsHookTest {
             "e0e2c433cde60f34147178c50e9c51748a6ff445c067dcd1753e861621e43783",setOf("workspace","shell","network"))
     }
     @Test fun releasedTerminalManagementRetainsGrantsDisabledCustomCodeAndUninstall()=runBlocking<Unit> {
-        releasedPackageUpgrade("dev.solvit.terminal","1.1.3","1.1.4",
+        releasedPackageUpgrade("dev.solvit.terminal","1.1.3","1.1.5",
             "a92b18a94aa53900d8a7dc3cca6ea61b7a9cecf8771f8583a3bbc0e12ad1b37d",setOf("workspace","shell"))
+    }
+    @Test fun sessionManagedTerminalUpgradeRetainsGrantsDisabledCustomCodeAndUninstall()=runBlocking<Unit> {
+        releasedPackageUpgrade("dev.solvit.terminal","1.1.4","1.1.5",
+            "02433235f4c727d7cd5d9513fb50b9433d0ebf7aa7e78779389d3fafcded9166",setOf("workspace","shell"),
+            resource="/terminal-1.1.4.solvit.json")
     }
     @Test fun releasedEnvironment0UpgradesWithoutResettingGrantsDisabledCustomCodeOrUninstall()=runBlocking<Unit> {
         releasedPackageUpgrade("dev.solvit.environment","1.0.0","1.0.3",
