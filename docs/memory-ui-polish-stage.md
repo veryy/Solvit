@@ -11,3 +11,5 @@
 原APK任务38984051218实际失败于第三次初始布局（attempt2）：两组引擎实际文字/节点边界均有效，重叠宽约113.68 CSS px、高36.85 CSS px，明确为几何重叠；不是编译、WebView初始化或内部注册入口失败。只启用既有CoSE的nodeDimensionsIncludeLabels，保留随机初始化、布局迭代、字号、缩放和既有位置复用；插件升为1.4.2，未改权限和数据格式。使用既有远程plugin-pages流程重建JS/Android作图谱定向验证，SDK生成流程另行上传可审阅插件包；不在本地运行Android或TS构建/测试。诊断APK仅证明图谱，不替代完整Linux生产APK验收。结果待定，生成包尚未合入。
 
 候选38984643507实际在第一次布局失败：启用CoSE标签尺寸后仍重叠约94.27×16.25 CSS px，未合入主线。锁定CoSE源码299–311使用layoutDimensions但宽高对应颠倒，且底部标签偏移不等于节点中心；不据此单独断言唯一根因。下一单变量换用现有Cytoscape的concentric布局（无新依赖），保留真实标签尺寸与图谱交互，按现有组件默认的节点关系度数分圈，避免随机初始方向导致文字碰撞。读取[锁定实际实现](https://github.com/cytoscape/cytoscape.js/blob/v3.34.3/src/extensions/layout/concentric.mjs)的layoutDimensions、maxNodeSize和avoidOverlap间距计算；该库未找到独立collection-layout.js测试文件（404），使用本项目真实页面回归验证。保持8次真实重开和编辑/删除路径，不手动伪造位置或改断言。市场测试锁定最新记忆版本同步为1.4.2，旧API版本断言保留；目录摘要仍由真实包字节计算。
+
+远程SDK生成38985352820已通过typecheck、141 SDK测试、市场完整检查及线上搜索/MCP；生成artifact12082712563 SHA256 6ae164b46a9ea3c3cff6d8b48cc9741417266399cf0da379bb39e8b06a4bdc2a、ZIP CRC已核对。只导入memory1.4.2的同字节市场包/Android资源，其他14包与已提交字节一致；旧1.4.1原包移动到legacy保留下载，新增历史字节断言。提交后还须正常模式验证生成资源与源码一致，真实图谱设备任务仍未完成，不能计作交付。
