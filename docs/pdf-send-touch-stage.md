@@ -24,3 +24,6 @@
 
 此项排序：①StateFlow经生命周期收集回传TextField存在额外调度，使清空被旧编辑值覆盖；②迟到IME编辑事件独立于Flow回传仍覆盖新值；③清空目标会话错误。已读Google官方BasicTextField契约和本地官方foundation1.8.3 `commonMain/androidx/compose/foundation/text/BasicTextField.kt`，要求onValueChange值在下一帧前回传；官方迁移文档也说明StateFlow与文本输入同步的风险。它们支持优先验证①，不替代实际修复后的同一路径回归。参考 https://developer.android.com/reference/kotlin/androidx/compose/foundation/text/BasicTextField.composable 和 https://developer.android.com/develop/ui/compose/text/migrate-state-based 。本阶段尚未修改生产代码。
 
+### 首轮新增界面断言校正
+
+e5b98c3f/39071428686首轮失败是assertTextEquals把空输入框的占位提示也合并比较：原始语义明确EditableText=''、InputText=''，Text为提示文字。它不是草稿未清空的红色证据。归档12115716230大小708515已核对摘要/CRC和runner。界面断言改查实际EditableText属性，保留VM草稿为空的独立断言，不移除占位提示、不改变产品来满足测试。生产代码仍未改。

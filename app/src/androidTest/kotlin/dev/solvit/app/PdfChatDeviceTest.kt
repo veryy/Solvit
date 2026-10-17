@@ -232,7 +232,8 @@ class PdfChatDeviceTest {
             }
             assertTrue("An accepted PDF send must clear its conversation draft after real HTTP failure settles",
                 vm.inputDrafts.value[session]?.text.isNullOrEmpty())
-            rule.onNodeWithTag("chat_input").assertTextEquals("")
+            rule.onNodeWithTag("chat_input").assert(SemanticsMatcher.expectValue(
+                SemanticsProperties.EditableText, androidx.compose.ui.text.AnnotatedString("")))
             if(traceSend)assertEquals("The original single physical send must land inside its actual button on down and up",listOf(true,true),rule.runOnUiThread { sendTouches.toList() })
             fun requestContent():String {
                 val request=server.takeRequest(5,TimeUnit.SECONDS)?:error("missing PDF request")
