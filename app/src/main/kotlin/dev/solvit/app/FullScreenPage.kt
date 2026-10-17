@@ -1,6 +1,5 @@
 package dev.solvit.app
 
-import android.graphics.Color
 import android.os.Build
 import android.view.View
 import android.view.ViewGroup
@@ -53,18 +52,7 @@ fun FullScreenPage(onDismissRequest: () -> Unit, secure: Boolean = false, conten
                     }
                 }
                 window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-                @Suppress("DEPRECATION")
-                window.statusBarColor = Color.TRANSPARENT
-                @Suppress("DEPRECATION")
-                window.navigationBarColor = Color.TRANSPARENT
-                if (Build.VERSION.SDK_INT >= 29) {
-                    window.isStatusBarContrastEnforced = false
-                    window.isNavigationBarContrastEnforced = false
-                }
-                WindowCompat.getInsetsController(window, view).apply {
-                    isAppearanceLightStatusBars = light
-                    isAppearanceLightNavigationBars = light
-                }
+                applySystemBarAppearance(window, view, light)
             }
         }
         Surface(Modifier.fillMaxSize()) {

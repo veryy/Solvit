@@ -2,6 +2,7 @@ package dev.solvit.app
 
 import android.os.Build
 import android.os.Bundle
+import android.view.Window
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -21,6 +22,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.layout.onSizeChanged
@@ -54,7 +56,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         val app = application as SolvitApplication
         setContent {
-            SolvitTheme {
+            SolvitTheme(window) {
                 Surface(Modifier.fillMaxSize()) {
                     val result by app.ready.collectAsStateWithLifecycle()
                     when {
@@ -99,7 +101,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-private fun SolvitTheme(content: @Composable () -> Unit) {
+private fun SolvitTheme(window: Window, content: @Composable () -> Unit) {
     val context = LocalContext.current
     val appearance = (context.applicationContext as SolvitApplication).appearance
     val app = context.applicationContext as SolvitApplication
@@ -113,6 +115,9 @@ private fun SolvitTheme(content: @Composable () -> Unit) {
         dynamic && Build.VERSION.SDK_INT >= 31 -> dynamicLightColorScheme(context)
         dark -> darkColorScheme(primary = Color(0xFFBACDA8), secondary = Color(0xFFBBCAB4))
         else -> lightColorScheme(primary = Color(0xFF526743), secondary = Color(0xFF576350), tertiary = Color(0xFF38666B))
+    }
+    SideEffect {
+        applySystemBarAppearance(window, window.decorView, colors.surface.luminance() > .5f)
     }
     CompositionLocalProvider(LocalUiStrings provides strings, LocalUiLanguage provides language) {
         MaterialTheme(colorScheme = colors, content = content)
