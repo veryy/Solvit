@@ -53,7 +53,7 @@ solvit_diagnostic_repetitions=${SOLVIT_DIAGNOSTIC_REPETITIONS:-8}
 [[ "$solvit_diagnostic_repetitions" =~ ^[1-8]$ ]] || exit 1
 mkdir -p ui-screenshots
 capture() {
-  timeout 15s adb logcat -d -s SOLVIT_DRAFT_TRACE:I WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I SolvitPdfFixture:I PluginPageFixture:I TestRunner:I '*:S' > ui-screenshots/page-diagnostic-logcat.txt || true
+  timeout 15s adb logcat -d -s WORKSPACE_IME_DIAG:I WORKSPACE_PAGE_DIAG:I SolvitPdfFixture:I PluginPageFixture:I TestRunner:I '*:S' > ui-screenshots/page-diagnostic-logcat.txt || true
   # Keep native Chromium crashes as well as test assertions; filtered logs hide SIGSEGV.
   timeout 15s adb logcat -d > ui-screenshots/page-diagnostic-native-logcat.txt || true
   timeout 15s adb shell dumpsys webviewupdate > ui-screenshots/page-diagnostic-webview-provider.txt || true
@@ -73,7 +73,6 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
     -e chatFontScale "$solvit_chat_font_scale" \
-    -e draftTrace "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-drafts-sequence ] && echo true || echo false)" \
     -e verifyMemoryLabelBounds "$solvit_memory_label_bounds" \
     -e workspaceRecreations "$solvit_recreations" \
     -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \

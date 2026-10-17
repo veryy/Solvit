@@ -39,3 +39,12 @@ main仍保留build96；没有保存build97为已验证下载或生成成功说�
 sourcef9d7e27b定向39060910887在83.981秒通过13项；artifact12111855812，sha256:5f2e0e6e931cad37c8be936c26957c569a7e90cd75cb21cdd4a28d343a7a6ec9，大小/摘要/CRC、原始runner与步骤日志已核对。目标草稿方法19:10:38.895Z开始，19:10:46.255Z结束；ready、两次新建、文字/选区、切换、重建、清空与cleanup均结束，没有到15秒线程栈采样。尚未复现完整流水线阻塞，不证明已修复。
 
 新增仅手动选择的完整Android ui_diagnostic=chat-drafts-trace：在原有旧包seed、15场进程恢复、Gradle UTP执行和完整用例集中启用既有draftTrace参数；额外保存独立过滤的线程/步骤日志。保持原12分钟常规回归与全部必需方法、后续大字体和stdio检查；普通运行参数不变。生产源码、APK版本与签名不变。本轮旨在获得真实完整环境的阻塞栈，不是无诊断地重试或将定向成功替代正式门禁。临时[DEBUG-solvit-draft]探针在根因确认后清理。
+
+
+## 完整栈定位到测试侧栏滚动，清理后重新验收
+
+完整诊断39061479592/source33987c1d仍以原12分钟上限退出124；artifact12112630436（3129301字节，sha256:b6933d53b81b3ab9b7f1a9ab7b87191eea6a3602f93ccec32b27ed142f7f3652）已核对大小、摘要、CRC和原始XML。App第13项未完成，不能将零failure当通过。15/30/45秒三次实际栈均停在select-history-scroll → Compose Actions.performScrollToNode → fetchSemanticsNode → Espresso.onIdle；main在MessageQueue空闲。前面的两次新建、各自输入和选区断言均完成，排除最初怀疑的关闭等待和输入动作卡点。
+
+实际重读既有Compose ui-test1.8.3源包Actions.kt:238–296：performScrollToNode内部循环提交ScrollBy后立即读取下一轮结果；本类使用StandardTestDispatcher，异步列表滚动须推进UI帧。项目已有QueuedScroll.kt和远程回归记录，逐帧执行真实语义滚动、检查已放置目标的完整几何可见性，再按真实ID点击。此前新增用例漏用了该助手；现仅替换这一调用，保留原真实选择、文字/光标、Activity重建、新建/清空隔离与删除断言，不修改产品UI或提高超时。完整回归仍需证明此修正有效，不能仅凭栈宣布通过。
+
+移除本轮[DEBUG-solvit-draft]步骤/线程采样、draftTrace参数和chat-drafts-trace工作流选项。保留永久草稿回归及不带探针的定向入口；最终按普通none模式运行完整Android，要求628单元、Lint、116设备与15独立恢复，实际签名/原始报告和截图核对后才交付整合build98。没有本地Android/TS构建或测试。

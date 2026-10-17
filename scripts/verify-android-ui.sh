@@ -37,10 +37,8 @@ if [ "$solvit_clone_status" -ne 0 ]; then
   timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
   exit "$solvit_clone_status"
 fi
-solvit_runner_diagnostic_args=()
 case "${SOLVIT_UI_DIAGNOSTIC:-none}" in
   none) ;;
-  chat-drafts-trace) solvit_runner_diagnostic_args+=("-Pandroid.testInstrumentationRunnerArguments.draftTrace=true") ;;
   memory-filter-stress)
     bash scripts/verify-memory-page-stress.sh
     solvit_diagnostic_status=$?
@@ -52,7 +50,7 @@ case "${SOLVIT_UI_DIAGNOSTIC:-none}" in
     ;;
   *) echo 'Unknown UI diagnostic mode'; exit 1 ;;
 esac
-timeout --signal=TERM --kill-after=30s 12m ./gradlew :web-android:connectedDebugAndroidTest :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions,dev.solvit.terminal.StdioProcessDeathTest" "${solvit_runner_diagnostic_args[@]}" --stacktrace
+timeout --signal=TERM --kill-after=30s 12m ./gradlew :web-android:connectedDebugAndroidTest :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions,dev.solvit.terminal.StdioProcessDeathTest" --stacktrace
 solvit_test_status=$?
 if [ "$solvit_test_status" -eq 0 ]; then
   # Keep the real authorization/queue/IME/role scenario at large text in the release gate.
@@ -89,9 +87,6 @@ fi
 if [ "$solvit_test_status" -ne 0 ]; then
   timeout 15s adb logcat -d -t 1500 > ui-screenshots/emulator-logcat.txt || true
   timeout 15s adb shell dumpsys activity activities > ui-screenshots/emulator-activity.txt || true
-fi
-if [ "${SOLVIT_UI_DIAGNOSTIC:-none}" = chat-drafts-trace ]; then
-  timeout 15s adb logcat -d -s SOLVIT_DRAFT_TRACE:I '*:S' > ui-screenshots/chat-draft-trace.txt || true
 fi
 timeout 30s adb pull /data/local/tmp/solvit-ui/ ui-screenshots || true
 exit "$solvit_test_status"

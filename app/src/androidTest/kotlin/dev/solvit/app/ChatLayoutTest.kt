@@ -919,35 +919,13 @@ class ChatLayoutTest {
 
     @OptIn(ExperimentalTestApi::class)
     @Test fun switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty() {
-        val traceEnabled = InstrumentationRegistry.getArguments().getString("draftTrace") == "true"
-        val stage = java.util.concurrent.atomic.AtomicReference("ready")
-        val testThread = Thread.currentThread()
-        val traceCount = java.util.concurrent.atomic.AtomicInteger()
-        val tracer = if (traceEnabled) java.util.concurrent.Executors.newSingleThreadScheduledExecutor { task ->
-            Thread(task, "solvit-draft-trace").apply { isDaemon = true }
-        }.also { executor -> executor.scheduleAtFixedRate({
-            if (traceCount.incrementAndGet() <= 3) {
-                android.util.Log.i("SOLVIT_DRAFT_TRACE", "[DEBUG-solvit-draft] blocked-stage=" + stage.get())
-                Thread.getAllStackTraces().filterKeys { it === testThread || it.name == "main" || it.name.contains("Compose") }
-                    .forEach { (thread, frames) ->
-                        android.util.Log.i("SOLVIT_DRAFT_TRACE", "[DEBUG-solvit-draft] thread=${thread.name} state=${thread.state}\n" + frames.take(24).joinToString("\n"))
-                    }
-            }
-        }, 15, 15, java.util.concurrent.TimeUnit.SECONDS) } else null
-        fun mark(value: String) {
-            stage.set(value)
-            if (traceEnabled) android.util.Log.i("SOLVIT_DRAFT_TRACE", "[DEBUG-solvit-draft] stage=$value")
-        }
         ready()
-        mark("ready-complete")
         val app = rule.activity.application as SolvitApplication
         val chat = app.ready.value!!.getOrThrow()
         val vm = rule.runOnUiThread { androidx.lifecycle.ViewModelProvider(rule.activity)[ChatViewModel::class.java] }
         val created = mutableListOf<String>()
         fun openHistory() {
-            mark("history-click")
             rule.onNodeWithContentDescription("对话历史").performClick()
-            mark("history-clicked")
             rule.mainClock.advanceTimeByFrame()
             rule.waitUntil(8000) {
                 val panel = geometry("chat_drawer")
@@ -955,20 +933,16 @@ class ChatLayoutTest {
             }
         }
         fun awaitClosed() {
-            mark("drawer-close-wait")
             rule.waitUntil(8000) {
                 runCatching { rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed() }.isSuccess
             }
-            mark("drawer-closed")
         }
         fun text() = rule.onNodeWithTag("chat_input").fetchSemanticsNode()
             .config[androidx.compose.ui.semantics.SemanticsProperties.EditableText].text
         fun newConversation(): String {
             val before = vm.sessionId.value
             openHistory()
-            mark("new-chat-click")
             rule.onNodeWithTag("new_chat").assertIsEnabled().performClick()
-            mark("new-chat-clicked")
             rule.waitUntil(8000) { vm.sessionId.value != null && vm.sessionId.value != before }
             awaitClosed()
             val id = vm.sessionId.value!!
@@ -978,11 +952,8 @@ class ChatLayoutTest {
         }
         fun selectConversation(id: String) {
             openHistory()
-            mark("select-history-scroll")
-            rule.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_session_" + id))
-            mark("select-history-click")
+            rule.onNodeWithTag("history_list").performQueuedScrollToNode(rule, hasTestTag("history_session_" + id))
             rule.onNodeWithTag("history_session_" + id).assertIsDisplayed().performClick()
-            mark("select-history-clicked")
             rule.waitUntil(8000) { vm.sessionId.value == id }
             awaitClosed()
         }
@@ -990,14 +961,10 @@ class ChatLayoutTest {
         val secondText = "Draft B: prepare a separate question"
         try {
             val first = newConversation()
-            mark("first-input")
             rule.onNodeWithTag("chat_input").performTextInput(firstText)
-            mark("first-input-complete")
             assertEquals(firstText, text())
             val selection = androidx.compose.ui.text.TextRange(2, 7)
-            mark("selection")
             rule.onNodeWithTag("chat_input").performTextInputSelection(selection)
-            mark("selection-complete")
             assertEquals(selection, rule.onNodeWithTag("chat_input").fetchSemanticsNode()
                 .config[androidx.compose.ui.semantics.SemanticsProperties.TextSelectionRange])
             val second = newConversation()
@@ -1006,18 +973,14 @@ class ChatLayoutTest {
             val cursor = androidx.compose.ui.text.TextRange(selection.max)
             assertEquals("The native field publishes its caret before switching back", cursor,
                 vm.inputDrafts.value[first]?.selection)
-            mark("second-input")
             rule.onNodeWithTag("chat_input").performTextInput(secondText)
-            mark("second-input-complete")
             assertEquals(secondText, text())
             selectConversation(first)
             screenshot("chat-session-draft-return")
             assertEquals("Returning to the first conversation must restore its unsent input", firstText, text())
             assertEquals(cursor, rule.onNodeWithTag("chat_input").fetchSemanticsNode()
                 .config[androidx.compose.ui.semantics.SemanticsProperties.TextSelectionRange])
-            mark("recreate")
             rule.activityRule.scenario.recreate()
-            mark("recreated")
             ready()
             assertEquals(first, vm.sessionId.value)
             assertEquals("Recreating the screen retains the active conversation's editor", firstText, text())
@@ -1033,9 +996,7 @@ class ChatLayoutTest {
             assertEquals("An explicitly cleared draft must stay empty", "", text())
             newConversation()
         } finally {
-            mark("cleanup")
-            try { runBlocking { created.forEach { chat.deleteSession(it) } } }
-            finally { tracer?.shutdownNow() }
+            runBlocking { created.forEach { chat.deleteSession(it) } }
         }
     }
 

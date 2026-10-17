@@ -15,7 +15,6 @@ on:
         options:
           - none
           - memory-filter-stress
-          - chat-drafts-trace
 permissions:
   contents: read
 concurrency:
