@@ -1222,6 +1222,18 @@ class ChatLayoutTest {
             js("document.getElementById('close').click()")
             rule.waitUntil(8000) { js("document.getElementById('close').disabled") == "true" }
             assertTrue(app.terminals.sessions.value.any { it.id==model.id && !it.active })
+            // The actual exit code must survive leaving and returning to a closed PTY.
+            val secondShell=app.workspaces.state.value.shells.single { it.workspaceId==human.workspaceId && it.name=="Second HTML Shell" }
+            val secondSession=app.terminals.sessions.value.single { it.shellId==secondShell.id && it.owner==TERMINAL_OWNER && it.active }
+            fun selectShell(id:String) { js("Array.from(document.getElementById('shells').children).find(e=>e.dataset.id===${kotlinx.serialization.json.JsonPrimitive(id)}).click()") }
+            selectShell(secondShell.id)
+            command("exit 7")
+            rule.waitUntil(8000) { app.terminals.sessions.value.any { it.id==secondSession.id && !it.active && it.exitCode==7 } }
+            rule.waitUntil(8000) { js("document.getElementById('status').textContent.endsWith(' · 7')") == "true" }
+            selectShell(human.shellId);selectShell(secondShell.id)
+            assertEquals("Closed terminal must retain its actual exit code after switching Shell", "true",
+                js("document.getElementById('status').textContent.endsWith(' · 7')"))
+            page.screenshot("workspace-terminal-closed-exit-code")
         } catch (e: Throwable) {
             val metrics=runCatching { js("JSON.stringify({viewport:[innerWidth,innerHeight],body:document.body.getBoundingClientRect().toJSON(),terminal:document.getElementById('terminals').getBoundingClientRect().toJSON(),rows:document.querySelector('.xterm-rows')?.textContent,status:document.getElementById('status').textContent})") }.getOrNull()
             runCatching { page.screenshot("workspace-interactive-html-failure") }
