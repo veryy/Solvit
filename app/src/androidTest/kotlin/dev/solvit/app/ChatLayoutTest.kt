@@ -418,6 +418,8 @@ class ChatLayoutTest {
         val app = rule.activity.application as SolvitApplication
         val advance = CompletableDeferred<Unit>()
         val finish = CompletableDeferred<Unit>()
+        val whileReading = CompletableDeferred<Unit>()
+        val afterReturn = CompletableDeferred<Unit>()
         // A pending model must not hold a second helper on the app's shared database.
         // The real runtime and UI still run; storage is replaced through its interface.
         val store = object : ChatStore {
@@ -437,6 +439,10 @@ class ChatLayoutTest {
                 emit(ModelChunk.Text("**live-first-token**"))
                 advance.await()
                 emit(ModelChunk.Text("\n" + (1..45).joinToString("\n") { "stream line $it" } + "\nlive-last-token"))
+                whileReading.await()
+                emit(ModelChunk.Text("\n" + (46..70).joinToString("\n") { "stream line $it" } + "\narrived-while-reading"))
+                afterReturn.await()
+                emit(ModelChunk.Text("\n" + (71..90).joinToString("\n") { "stream line $it" } + "\narrived-after-return"))
                 finish.await()
                 emit(ModelChunk.Done)
             }
@@ -481,6 +487,31 @@ class ChatLayoutTest {
             assertTrue(tail.bottom <= composer.top)
             assertTrue(vm.busy.value); assertFalse(finish.isCompleted)
             screenshot("chat-live-stream-before-done")
+            rule.onNodeWithTag("chat_return_latest").assertDoesNotExist()
+            // Actual reader gesture, while the same provider stream is still suspended.
+            rule.onNodeWithTag("chat_messages").performTouchInput { swipeDown(durationMillis = 500) }
+            rule.waitUntil(8000) { !rule.onNodeWithTag("chat_tail").isDisplayed() &&
+                rule.onNodeWithTag("chat_return_latest").isDisplayed() }
+            val jump = geometry("chat_return_latest").bounds
+            val timeline = geometry("chat_messages").bounds
+            assertTrue(jump.left >= timeline.left && jump.right <= timeline.right)
+            assertTrue(jump.top >= timeline.top && jump.bottom <= geometry("chat_composer").bounds.top)
+            whileReading.complete(Unit)
+            rule.waitUntil(20000) { vm.draft.value.contains("arrived-while-reading") }
+            rule.waitForIdle()
+            assertFalse("Stream growth must not pull a reader back to the tail", rule.onNodeWithTag("chat_tail").isDisplayed())
+            rule.onNodeWithTag("chat_return_latest").assertIsDisplayed()
+            screenshot("chat-reading-history-while-streaming")
+            rule.onNodeWithTag("chat_return_latest").performClick()
+            rule.waitUntil(8000) { rule.onNodeWithTag("chat_tail").isDisplayed() &&
+                rule.onAllNodesWithTag("chat_return_latest").fetchSemanticsNodes().isEmpty() }
+            afterReturn.complete(Unit)
+            rule.waitUntil(20000) { vm.draft.value.contains("arrived-after-return") }
+            rule.waitUntil(8000) { rule.onNodeWithTag("chat_tail").isDisplayed() }
+            rule.onNodeWithTag("chat_return_latest").assertDoesNotExist()
+            assertTrue(geometry("chat_tail").bounds.bottom <= geometry("chat_composer").bounds.top)
+            assertTrue(vm.busy.value); assertFalse(finish.isCompleted)
+            screenshot("chat-return-latest-stream-following")
             finish.complete(Unit)
             rule.waitUntil(8000) { !vm.busy.value }
             rule.mainClock.advanceTimeByFrame()
@@ -503,7 +534,7 @@ class ChatLayoutTest {
             screenshot("chat-live-stream-failure")
             throw AssertionError(rule.onRoot().printToString(), e)
         } finally {
-            advance.complete(Unit); finish.complete(Unit)
+            advance.complete(Unit); whileReading.complete(Unit); afterReturn.complete(Unit); finish.complete(Unit)
             rule.runOnUiThread { vm.stop() }
             rule.waitUntil(8000) { !vm.busy.value }
             rule.runOnUiThread { listOf(vm,agents,workspaces,updates,market).forEach { it.viewModelScope.cancel() } }
