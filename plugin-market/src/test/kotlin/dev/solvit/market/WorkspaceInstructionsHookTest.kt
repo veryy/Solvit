@@ -139,6 +139,14 @@ class WorkspaceInstructionsHookTest {
         releasedPackageUpgrade("dev.solvit.terminal","1.1.3","1.1.4",
             "a92b18a94aa53900d8a7dc3cca6ea61b7a9cecf8771f8583a3bbc0e12ad1b37d",setOf("workspace","shell"))
     }
+    @Test fun releasedEnvironment0UpgradesWithoutResettingGrantsDisabledCustomCodeOrUninstall()=runBlocking<Unit> {
+        releasedPackageUpgrade("dev.solvit.environment","1.0.0","1.0.3",
+            "4d5d07cc8c8ed309ccc918b05cf3517a82c76bc80d3febce4506958d4c6f01b7",setOf("workspace","shell","network"))
+    }
+    @Test fun releasedEnvironment1UpgradesWithoutResettingGrantsDisabledCustomCodeOrUninstall()=runBlocking<Unit> {
+        releasedPackageUpgrade("dev.solvit.environment","1.0.1","1.0.3",
+            "1856e4c2391b9d589b31095b5c8dae64d9e75311590d62b278c2419ba8c2d5f0",setOf("workspace","shell","network"))
+    }
     private suspend fun releasedPackageUpgrade(plugin:String,oldVersion:String,newVersion:String,sha:String,grants:Set<String>) {
         fixture { market,_,_,_ ->
             market.disable(plugin)
