@@ -1,30 +1,29 @@
-# Solvit 0.43.10/build96（已验证候选，尚未正式发布）
+# Solvit 0.43.10/build99（已验证候选）
 
-这版继续整理聊天侧栏，承接build95的阅读导航，以及前轮的记忆图谱、Skills/MCP插件页面和终端修复。
+这版先修日常操作，保留此前聊天搜索、阅读导航、记忆和插件页面的改进。
 
-- 增加“按标题搜索”，忽略大小写与首尾空格；可一键清空，无结果时明确提示。只搜索标题。
-- 关闭后重新打开侧栏会恢复全部对话；同名会话仍按原ID选择和删除，排序与删除确认保留。
-- 搜索键盘弹出后，列表与底部设置保持在键盘上方；搜索键收起键盘。长标题省略，150%字体下设置与会话操作可见。
-- 保留“回到最新消息”和继续跟随输出；角色统一来源、原生新会话继承与此前插件页优化继续保留。
+- **聊天草稿各自保留**：切到其他聊天再回来，文字和光标还在；新建为空，清空或删除一个不会影响其他聊天。Activity重建后恢复，进程退出后仍不保留未发送草稿。
+- **输入状态同步**：原生输入框直接读取同一份编辑状态，减少输入法与异步收集的往返。发送、排队或打断被接受才清空；拒绝时保留文字和附件。
+- **终端标签更好辨认**：短名称不再被挤成相似的省略号；标签横向滚动，选中后进入可见区域。继续使用真实xterm.js/PTY。终端插件1.1.5保留旧包授权、启停状态和自定义包保护，1.1.4历史包仍可取回。
 
-![实际模拟器：键盘搜索、匹配会话和150%长标题](images/chat-history-search-0.43.10.png)
+![实际模拟器：草稿恢复和终端标签](images/chat-draft-terminal-0.43.10.png)
 
-## 远程验证与下载
+## 下载
 
-[完整Android Actions39053920487](https://github.com/veryy/Solvit/actions/runs/39053920487)在源码[a1408f66](https://github.com/veryy/Solvit/commit/a1408f66dfbc48e0a878a95c075abd1ec48f17b5)上成功：626项单元、Lint、固定签名、115项常规模拟器用例（App86/Web3/terminal26）及15场独立进程中断恢复。原始XML/runner/PID、必需角色/流式/搜索回归、整包摘要/CRC和实际截图已核对。真实存储搜索及150%字体定向2项通过；无探针环境定向8轮各2项通过。此前一次环境刷新超时未再现，根因仍未证明，未修改环境生产逻辑。
+[下载solvit-debug-apk候选产物](https://github.com/veryy/Solvit/actions/runs/39072422869/artifacts/12115930953)，GitHub可能要求登录。包名dev.solvit.app，版本0.43.10/build99，59659895字节，沿用固定签名，可覆盖同签名旧版。请不要先卸载；卸载会删除本地数据。
 
-[下载solvit-debug-apk候选产物](https://github.com/veryy/Solvit/actions/runs/39053920487/artifacts/12108279914)（GitHub可能需要登录）。实际包名dev.solvit.app、版本0.43.10/build96，59659415字节，签名沿用原版，可覆盖同签名旧版。APK SHA-256：
+APK SHA-256：`d3a535fd9efa1a9e6e3d047c16dd1205d56fbc3e696c0d4188605238334e7a3f`。
 
-```text
-1a7a311979d3434c8f9bb43586586690b6e224e3731eb495ac1ea6ce809e678a
-```
+[对应Linux源码产物](https://github.com/veryy/Solvit/actions/runs/39072422869/artifacts/12116260097)：内层ZIP 1072711字节，SHA-256 `60a77db50f0dd5423db8d24f5ba7b1eacee2e3b3d6f2f81e4f08b447a50f7b94`。本轮未改Linux运行时。
 
-[对应Linux源码产物](https://github.com/veryy/Solvit/actions/runs/39053920487/artifacts/12108373885)内层ZIP为1072711字节，SHA256 3ef1f98bab68f62281bc2e196f2017b1bb2539e3760fcafcf5295f7172497c2f。本轮未改Linux实现；仅正式标签触发的Linux/搜索/插件独立门禁仍需在正式发布时执行。
+## 实际验证与边界
 
-## 正式发布与尚未验收的部分
+[完整Android Actions](https://github.com/veryy/Solvit/actions/runs/39072422869)对应源码[ae9dd436](https://github.com/veryy/Solvit/commit/ae9dd43616a23ba9065bf3d063c23ff4e1d5d21d)。普通无探针流程通过628单元、Lint、116常规模拟器用例和15场独立进程中断恢复；覆盖升级、150%聊天字体和stdio宿主实际强杀通过。原始XML、runner/PID、产物大小/摘要/CRC、版本、固定签名、14内置插件和实际截图已核对。
 
-2026-10-17实际查询：正式Release仍0.43.9。此前市场同步包已准备，服务器SSH batch认证被拒绝，尚未部署；需恢复有效连接、保留历史包同步，并通过原有严格live和正式标签检查，才正式发布0.43.10。没有降低门禁或移动历史标签。
+[PDF定向Actions](https://github.com/veryy/Solvit/actions/runs/39072935471)用同一APK完成8轮原真实路径：选页、本地OCR、原图、一次发送、HTTP500结算、输入框及会话草稿清空、重试、重开和编辑分支。没有额外触摸探针、重复点击或直接调用VM发送。它不证明此前偶发请求0问题已根治。
 
-真机、真实模型回答质量、实际账号任务、ARM64及更多第三方服务兼容仍未验收。截图与设备用例使用可控Provider。本轮[阶段记录](chat-history-search-stage.md)保留各次失败、定向结果与最终证据；未运行本地Android/TS构建或测试。
+原98候选的额外诊断曾在Compose销毁、PDF发送和附件导入处失败；失败证据保留。原APK对照实际观察到2/8结算后草稿状态残留，但正确的UI断言没有稳定复现；本次采用同步编辑状态并通过上述检查，仍不将输入法、点击或Compose崩溃的根因写成已证明。详见[编辑状态记录](chat-editor-sync-stage.md)、[草稿记录](chat-session-draft-stage.md)、[终端记录](terminal-tabs-stage.md)和[环境诊断](environment-ui-polish-stage.md)。
 
-此前[build95原说明](https://github.com/veryy/Solvit/blob/9042ac00a25da1f30e72ac623d9089840de80472/docs/release-0.43.10.md)、[聊天阅读导航](chat-reading-navigation-stage.md)、[记忆记录](memory-search-viewport-stage.md)、[Skills/MCP记录](skills-mcp-ui-polish-stage.md)保留，历史失败未改写。完整路线见[后续方向](agent-direction.md)。
+正式Release仍为0.43.9。公开插件市场部署认证与严格live包一致性门禁尚未完成，因此这是独立候选，没有创建正式标签或降低发布门禁。真机、真实模型回答与任务质量、真实账号写入、ARM64和更广泛第三方兼容仍未验收。未运行本地Android/TS构建或测试。
+
+[build96原说明](https://github.com/veryy/Solvit/blob/ec15899e4864e923ce0ca81b338bc4b03b008a18/docs/release-0.43.10.md) · [完整后续路线](agent-direction.md)
