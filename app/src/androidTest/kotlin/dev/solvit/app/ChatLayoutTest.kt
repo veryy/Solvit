@@ -505,6 +505,12 @@ class ChatLayoutTest {
             rule.onNodeWithTag("chat_return_latest").performClick()
             rule.waitUntil(8000) { rule.onNodeWithTag("chat_tail").isDisplayed() &&
                 rule.onAllNodesWithTag("chat_return_latest").fetchSemanticsNodes().isEmpty() }
+            // Reaching the bottom by gesture must also restore following after a fling.
+            rule.onNodeWithTag("chat_messages").performTouchInput { swipeDown(durationMillis = 500) }
+            rule.waitUntil(8000) { rule.onNodeWithTag("chat_return_latest").isDisplayed() }
+            rule.onNodeWithTag("chat_messages").performTouchInput { swipeUp(durationMillis = 500) }
+            rule.waitUntil(8000) { rule.onNodeWithTag("chat_tail").isDisplayed() &&
+                rule.onAllNodesWithTag("chat_return_latest").fetchSemanticsNodes().isEmpty() }
             afterReturn.complete(Unit)
             rule.waitUntil(20000) { vm.draft.value.contains("arrived-after-return") }
             rule.waitUntil(8000) { rule.onNodeWithTag("chat_tail").isDisplayed() }

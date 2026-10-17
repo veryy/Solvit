@@ -5518,5 +5518,13 @@
     "ko": "설치됨: {0}",
     "es": "Instalada: {0}",
     "fr": "Installée : {0}"
+  },
+  "回到最新消息": {
+    "zh": "回到最新消息",
+    "en": "Jump to latest message",
+    "ja": "最新のメッセージへ",
+    "ko": "최신 메시지로 이동",
+    "es": "Ir al último mensaje",
+    "fr": "Aller au dernier message"
   }
 }

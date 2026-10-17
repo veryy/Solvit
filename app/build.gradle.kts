@@ -7,7 +7,7 @@ android {
         minSdk = 26
         targetSdk = 35
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 94
+        versionCode = 95
         versionName = "0.43.10"
     }
     // setup-android can change ANDROID_USER_HOME. Never rely on AGP's implicit
