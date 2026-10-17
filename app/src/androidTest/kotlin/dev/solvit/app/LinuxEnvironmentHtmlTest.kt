@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import dev.solvit.core.*
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.runtime.*
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -136,6 +137,8 @@ class LinuxEnvironmentHtmlTest {
             rule.runOnUiThread { dark=true }
             waitDom("getComputedStyle(document.body).backgroundColor!==$light")
             rule.mainClock.advanceTimeBy(1_000);rule.waitForIdle();html.setTextZoom(150)
+            val expectedError="#%06x".format(darkColorScheme().error.toArgb() and 0xffffff)
+            waitDom("getComputedStyle(document.documentElement).getPropertyValue('--error').trim()===${kotlinx.serialization.json.JsonPrimitive(expectedError)}")
             tap("#environment-log > summary")
             waitDom("(()=>{const r=document.querySelector('[data-node=log]').getBoundingClientRect();return r.width>0&&r.left>=0&&r.right<=innerWidth})()")
             html.screenshot("linux-plugin-dark-large-text-failure-log")

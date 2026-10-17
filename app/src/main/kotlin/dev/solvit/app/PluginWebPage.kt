@@ -98,6 +98,9 @@ private fun PluginWebPageDocument(view: ScriptPageView, document: ExtensionPageD
             color("surface", colors.surface); color("onSurface", colors.onSurface)
             color("primary", colors.primary); color("outline", colors.outline)
             color("surfaceContainer", colors.surfaceContainer); color("onPrimary", colors.onPrimary)
+            color("onSurfaceVariant", colors.onSurfaceVariant); color("error", colors.error)
+            color("onError", colors.onError); color("errorContainer", colors.errorContainer)
+            color("onErrorContainer", colors.onErrorContainer)
         }
     }.toString()
     val latestState by rememberUpdatedState(state)
