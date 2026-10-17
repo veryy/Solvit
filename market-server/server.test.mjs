@@ -101,7 +101,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(recoveryWorkspace.version,'1.10.0');assert.equal(recoveryWorkspace.apiVersion,27);
     const api28=await(await fetch(base+'/api/v1/plugins?hostApi=28')).json();
     const managedBackups=api28.plugins.find(plugin=>plugin.id==='dev.solvit.workspace');
-    assert.equal(managedBackups.version,'1.11.0');assert.equal(managedBackups.apiVersion,28);
+    assert.equal(managedBackups.version,'1.11.1');assert.equal(managedBackups.apiVersion,28);
     assert.equal(api28.plugins.find(plugin=>plugin.id==='dev.solvit.git').version,'1.2.7');
     const api29=await(await fetch(base+'/api/v1/plugins?hostApi=29')).json();
     const recoveryGit=api29.plugins.find(plugin=>plugin.id==='dev.solvit.git');

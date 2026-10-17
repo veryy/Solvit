@@ -24,7 +24,11 @@ function menu(id,label,buttons,compact=false){
  if(compact){summary.append(icon('more'));summary.classList.add('workspace-icon-button')}
  else{summary.append(document.createTextNode(label),icon('chevron'))}
  const panel=document.createElement('div');panel.className='workspace-menu-panel';panel.append(...buttons);
- details.append(summary,panel);details.addEventListener('toggle',()=>{if(details.isConnected&&details.open)closeMenus(details)});
+ details.append(summary,panel);details.addEventListener('toggle',()=>{if(details.isConnected&&details.open){
+  closeMenus(details);const bounds=details.closest('main').getBoundingClientRect(),anchor=summary.getBoundingClientRect();
+  const below=bounds.bottom-anchor.bottom-8,above=anchor.top-bounds.top-8,up=below<Math.min(panel.scrollHeight,320)&&above>below;
+  panel.classList.toggle('above',up);panel.style.maxHeight=`${Math.max(44,Math.min(320,up?above:below))}px`;
+ }});
  panel.addEventListener('click',event=>{if(event.target.closest('button'))details.open=false});return details;
 }
 function iconButton(button,name){if(!button)return;const label=button.textContent;button.setAttribute('aria-label',label);button.title=label;button.replaceChildren(icon(name));button.classList.add('workspace-icon-button')}
@@ -45,8 +49,8 @@ export function polishDirectory(root,footer,locale){
   if(!name||!open)return;
   const directory=name.textContent.startsWith('▸ '),title=directory?name.textContent.slice(2):name.textContent;
   row.className='workspace-file';open.className='workspace-file-open';open.title=title;open.setAttribute('aria-label',title);
-  const copy=document.createElement('span');copy.className='workspace-file-copy';const text=document.createElement('span');text.className='workspace-file-name';text.textContent=title;copy.append(text);if(size)copy.append(size);
-  open.replaceChildren(icon(directory?'folder':'file'),copy);name.remove();row.prepend(open);
+  const copy=document.createElement('span');copy.className='workspace-file-copy';name.className='workspace-file-name';name.textContent=title;copy.append(name);if(size)copy.append(size);
+  open.replaceChildren(icon(directory?'folder':'file'),copy);row.prepend(open);
   const more=menu(`workspace-file-menu-${index}`,`${t[2]} · ${title}`,[get(`rename_${index}`),get(`delete_${index}`)].filter(Boolean),true);if(more)row.append(more);
  });
  footer.classList.toggle('workspace-directory-footer',true);

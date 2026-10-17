@@ -89,7 +89,7 @@ class WorkspaceInstructionsHookTest {
             check(prefs.edit().putBoolean("seeded.$id.solvit.json",true).putBoolean("enabled.$id",true)
                 .putStringSet("grants.$id",setOf("workspace","shell")).commit())
             market.restore()
-            assertEquals("1.11.0",market.installed.value.single { it.id==id }.version)
+            assertEquals("1.11.1",market.installed.value.single { it.id==id }.version)
             assertTrue(market.installed.value.single { it.id==id }.enabled)
             assertEquals("false",market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace","shell"),prefs.getStringSet("grants.$id",emptySet()))
@@ -100,11 +100,11 @@ class WorkspaceInstructionsHookTest {
         }
     }
     @Test fun releasedApi26WorkspaceRetainsSettingsGrantsCustomCodeAndUninstall()=runBlocking<Unit> {
-        releasedPackageUpgrade("dev.solvit.workspace","1.9.0","1.11.0",
+        releasedPackageUpgrade("dev.solvit.workspace","1.9.0","1.11.1",
             "c4bd5bfa19dd9bca67d6913c02a48bc2624858d9be5eb32f7863c6a0273d5f5e",setOf("workspace","shell"))
     }
     @Test fun releasedApi27WorkspaceRetainsSettingsGrantsCustomCodeAndUninstall()=runBlocking<Unit> {
-        releasedPackageUpgrade("dev.solvit.workspace","1.10.0","1.11.0",
+        releasedPackageUpgrade("dev.solvit.workspace","1.10.0","1.11.1",
             "e275e637b3cdbe3e56d800d9abbefc221169b7f1e07faed8f29c5d6a611cbfd9",setOf("workspace","shell"))
     }
     @Test fun releasedGitRetainsDisabledStateGrantsCustomCodeAndUninstall()=runBlocking<Unit> {
@@ -122,6 +122,10 @@ class WorkspaceInstructionsHookTest {
     @Test fun releasedApi29GitPatchRetainsSettingsGrantsCustomCodeAndUninstall()=runBlocking<Unit> {
         releasedPackageUpgrade("dev.solvit.git","1.3.0","1.3.1",
             "0e2a8f1d09cf800530f4d0fd6000a0174a491c8d59a8e5843c221decbc795235",setOf("workspace","git","network"))
+    }
+    @Test fun releasedDirectoryPackageRetainsSettingsGrantsCustomCodeAndUninstall()=runBlocking<Unit> {
+        releasedPackageUpgrade("dev.solvit.workspace","1.11.0","1.11.1",
+            "f93659db19f95f0a33251eebb707078775cc72522f12bf173f5e4c280e410d82",setOf("workspace","shell"))
     }
     private suspend fun releasedPackageUpgrade(plugin:String,oldVersion:String,newVersion:String,sha:String,grants:Set<String>) {
         fixture { market,_,_,_ ->
@@ -157,7 +161,7 @@ class WorkspaceInstructionsHookTest {
             check(prefs.edit().putBoolean("seeded.$id.solvit.json",true).putBoolean("enabled.$id",true)
                 .putStringSet("grants.$id",setOf("workspace","shell")).commit())
             market.restore()
-            assertEquals("1.11.0",market.installed.value.single { it.id==id }.version)
+            assertEquals("1.11.1",market.installed.value.single { it.id==id }.version)
             assertTrue(market.installed.value.single { it.id==id }.enabled)
             assertEquals("false",market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace","shell"),prefs.getStringSet("grants.$id",emptySet()))
@@ -178,7 +182,7 @@ class WorkspaceInstructionsHookTest {
                 .putBoolean("enabled.dev.solvit.workspace", true).putStringSet("grants.dev.solvit.workspace", setOf("workspace", "shell")).commit())
             market.restore()
             val upgraded = market.installed.value.single { it.id == "dev.solvit.workspace" }
-            assertEquals("1.11.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals("1.11.1", upgraded.version); assertTrue(upgraded.enabled)
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.dev.solvit.workspace", emptySet()))
             market.disable(upgraded.id)
             val modified = original + "\n".toByteArray()
@@ -192,7 +196,7 @@ class WorkspaceInstructionsHookTest {
         fixture { market, ws, hooks, _ ->
             val plugin = "dev.solvit.workspace"
             market.enable(plugin, setOf("workspace", "shell"))
-            assertEquals("1.11.0", market.installed.value.single { it.id == plugin }.version)
+            assertEquals("1.11.1", market.installed.value.single { it.id == plugin }.version)
             val a = ws.forChat("ts-chat"); ws.write(a.id, "AGENTS.md", "TS_RULE_ACTUAL")
             val input = ContextInput(AgentRole("ts-role", "TS role", pluginIds = setOf(plugin)), "work", ConversationContext("ts-chat", a.id))
             val first = hooks.prepareReport(input)
@@ -219,7 +223,7 @@ class WorkspaceInstructionsHookTest {
                 .putStringSet("grants.$id",setOf("workspace","shell")).commit())
             market.restore()
             val upgraded=market.installed.value.single { it.id==id }
-            assertEquals("1.11.0",upgraded.version);assertTrue(upgraded.enabled)
+            assertEquals("1.11.1",upgraded.version);assertTrue(upgraded.enabled)
             assertEquals("false",market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace","shell"),prefs.getStringSet("grants.$id",emptySet()))
             assertEquals(listOf("main"),upgraded.pages.map { it.id })
@@ -243,7 +247,7 @@ class WorkspaceInstructionsHookTest {
                 .putStringSet("grants.$id", setOf("workspace", "shell")).commit())
             market.restore()
             val upgraded = market.installed.value.single { it.id == id }
-            assertEquals("1.11.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals("1.11.1", upgraded.version); assertTrue(upgraded.enabled)
             assertEquals("false", market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
             val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
@@ -267,7 +271,7 @@ class WorkspaceInstructionsHookTest {
                 .putStringSet("grants.$id", setOf("workspace", "shell")).commit())
             market.restore()
             val upgraded = market.installed.value.single { it.id == id }
-            assertEquals("1.11.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals("1.11.1", upgraded.version); assertTrue(upgraded.enabled)
             assertEquals("false", market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
             val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
@@ -291,7 +295,7 @@ class WorkspaceInstructionsHookTest {
                 .putStringSet("grants.$id", setOf("workspace", "shell")).commit())
             market.restore()
             val upgraded = market.installed.value.single { it.id == id }
-            assertEquals("1.11.0", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals("1.11.1", upgraded.version); assertTrue(upgraded.enabled)
             assertEquals("false", market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace", "shell"), prefs.getStringSet("grants.$id", emptySet()))
             val manifest = dev.solvit.plugins.ScriptPackage.parse(file.readBytes()).manifest
@@ -315,7 +319,7 @@ class WorkspaceInstructionsHookTest {
                 .putStringSet("grants.$id",setOf("workspace","shell")).commit())
             market.restore()
             val upgraded=market.installed.value.single { it.id==id }
-            assertEquals("1.11.0",upgraded.version);assertTrue(upgraded.enabled)
+            assertEquals("1.11.1",upgraded.version);assertTrue(upgraded.enabled)
             assertEquals("false",market.configuration(id)["projectRules"])
             assertEquals(setOf("workspace","shell"),prefs.getStringSet("grants.$id",emptySet()))
             assertEquals(listOf("main"),upgraded.pages.map { it.id })

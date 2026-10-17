@@ -203,7 +203,7 @@ test('image preview remains separate from original import and preserves its dest
  assert.ok(!h.nodes().some(n=>n.id==='import_picture'));
 });
 test('workspace HTML preserves immutable API4 package and previews create before any native mutation',async()=>{
- assert.equal(pkg.manifest.apiVersion,28);assert.equal(pkg.manifest.version,'1.11.0');assert.ok(pkg.resources['ui/main.js']);
+ assert.equal(pkg.manifest.apiVersion,28);assert.equal(pkg.manifest.version,'1.11.1');assert.ok(pkg.resources['ui/main.js']);
  assert.ok(pkg.resources['ui/editor-NOTICE.txt'].includes('Permission is hereby granted'));
  const api17=await readFile('../market-server/packages/legacy/dev.solvit.workspace-1.3.0.solvit.json');
  assert.equal(createHash('sha256').update(api17).digest('hex'),'95531ef7faaf38df4f1d56954505c848243bdcb2e4a773ac588b74e471ff037b');
