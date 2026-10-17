@@ -45,6 +45,13 @@ class AndroidTerminalsTest {
                 assertTrue("EOF must not publish a completed process with a missing exit code", service.status(workspace.id, terminal.id).active)
                 return terminal
             }
+            // Natural shell teardown reproduced the full UI failure; exercise that exact boundary repeatedly.
+            repeat(96) { attempt ->
+                val exiting = service.open(workspace.id, shell.id)
+                service.input(workspace.id, exiting.id, "exit 7\n")
+                val completed = withTimeout(8000) { service.sessions.first { list -> list.any { it.id == exiting.id && !it.active } }.single { it.id == exiting.id } }
+                assertEquals("Natural exit must retain its actual code (attempt $attempt)", 7, completed.exitCode)
+            }
             val terminal = startWaiting("outcome")
             java.io.File(directory, "eof-release-outcome").writeText("release")
             val final = withTimeout(8000) { service.sessions.first { list -> list.any { it.id == terminal.id && !it.active } }.single { it.id == terminal.id } }
