@@ -73,7 +73,7 @@ MCP窗口原有FLAG_SECURE令系统截图为黑色，这是预期保护；实际
 
 ## 已验证候选（正式发布仍待市场同步）
 
-完整Android39013850707在2056b5fe成功。原始单位XML625例与常规设备XML App83/Web3/terminal26（合112）全无failure/error/skip，所有required回归都在；15场process-death runner与真实before/after PID、覆盖升级、1.5倍完整聊天、实际stdio四层进程强杀回收均已独立核对。UI产物12094651275（11779334字节，SHA00acbac25b166a6349c687660521dd1513b3ce4a82d9c8749bdebcd2e0e008b4）整ZIP SHA/CRC与最终截图已核对。本页六联图已换成本次完整回归的实际截图；终端真实截图确认切换后显示已关闭·7。
+完整Android39013850707在2056b5fe成功。原始单元XML625例与常规设备XML App83/Web3/terminal26（合112）全无failure/error/skip，所有required回归都在；15场process-death runner与真实before/after PID、覆盖升级、1.5倍完整聊天、实际stdio四层进程强杀回收均已独立核对。UI产物12094651275（11779334字节，SHA00acbac25b166a6349c687660521dd1513b3ce4a82d9c8749bdebcd2e0e008b4）整ZIP SHA/CRC与最终截图已核对。本页六联图已换成本次完整回归的实际截图；终端真实截图确认切换后显示已关闭·7。
 
 APK产物12094555586（ZIP58353221字节，SHAf58e6aa99cb0abbf7ce779de58f4480e240a2f2584fbcd10a7ec1ef5d0846799）下载整包核对后，APK内current与compat的四个包逐字节对照提交，APK本体CRC通过；本体59646927字节，SHAb48df5e7c0687699d42a7bb665ff949addada87f2cef67471404d5d3cca676d0。构建日志证书SHA仍f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3，Gradle成功。Linux依赖源码内ZIP也检查CRC并与候选一起提供。
 
@@ -82,3 +82,5 @@ APK产物12094555586（ZIP58353221字节，SHAf58e6aa99cb0abbf7ce779de58f4480e24
 此状态为已验证候选，不能记作正式Release或全部UI目标完成。真实模型、账号任务、ARM64真机以及完整插件协议/交互路线继续保留。
 
 ![真实终端状态：切换Shell后保留实际退出码7](images/terminal-exit-state-0.43.10.png)
+
+已保留全部历史并fast-forward推送main至6b33c98f，实际GitHub远端refs/heads/main已查询确认；与已验证APK源2056b5fe相比仅文档/实际截图变化。main推送会自动执行同一工作流；本候选的完整成功验证对应上文39013850707，不把新触发的状态视作已完成。
