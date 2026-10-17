@@ -80,6 +80,9 @@ class SkillsHtmlPageTest {
     @Test fun importsTextZipThroughSystemPickerExportsReimportsAndUsesActualDeleteConfirmation() {
         val app = rule.activity.application as SolvitApplication
         runBlocking { withTimeout(30_000) { app.ready.filterNotNull().first().getOrThrow() }; app.marketplace.enable("dev.solvit.skills", app.marketplace.installed.value.single { it.id == "dev.solvit.skills" }.permissions) }
+        val installedSkills=app.marketplace.installed.value.single { it.id == "dev.solvit.skills" }
+        assertTrue(installedSkills.version in setOf("1.1.2", "1.2.1"))
+        if(installedSkills.version == "1.1.2") assertEquals(setOf("storage"),installedSkills.permissions)
         val name = "page-documents-writing"
         val vm = AgentLibraryViewModel(app.roles, app.skills, app.marketplace)
         vm.setSession("skills-html-settings-fixture")

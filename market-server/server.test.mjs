@@ -49,7 +49,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     const oldMcp = api9.plugins.find(plugin => plugin.id === 'dev.solvit.mcp');
     assert.equal(oldMcp.version, '1.0.0'); assert.equal(oldMcp.apiVersion, 2);
     const multiMcp = api10.plugins.find(plugin => plugin.id === 'dev.solvit.mcp');
-    assert.equal(multiMcp.version, '1.1.1'); assert.equal(multiMcp.apiVersion, 10);
+    assert.equal(multiMcp.version, '1.1.2'); assert.equal(multiMcp.apiVersion, 10);
     assert.equal(multiMcp.pages[0].entry, 'ui/index.html');
     const mcpPackage = await (await fetch(base + multiMcp.downloadPath)).json();
     assert.ok(mcpPackage.resources['ui/main.js']);
@@ -58,7 +58,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(previousSkills.version, '1.0.2'); assert.equal(previousSkills.apiVersion, 3);
     const api11 = await (await fetch(base + '/api/v1/plugins?hostApi=11')).json();
     const htmlSkills = api11.plugins.find(plugin => plugin.id === 'dev.solvit.skills');
-    assert.equal(htmlSkills.version, '1.1.1'); assert.equal(htmlSkills.apiVersion, 11);
+    assert.equal(htmlSkills.version, '1.1.2'); assert.equal(htmlSkills.apiVersion, 11);
     const api12 = await (await fetch(base + '/api/v1/plugins?hostApi=12')).json();
     const htmlWorkspace = api12.plugins.find(plugin => plugin.id === 'dev.solvit.workspace');
     assert.equal(htmlWorkspace.version, '1.1.0'); assert.equal(htmlWorkspace.apiVersion, 12);
@@ -262,29 +262,31 @@ test('API21 environment is offered only to compatible hosts and API20 remains in
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
 
-test('API30 offers local MCP while API10 through API29 retain immutable HTTPS MCP',async()=>{
+test('API30 offers local MCP while older hosts receive UI-only HTTPS MCP updates',async()=>{
  const server=createMarketServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const base=`http://127.0.0.1:${server.address().port}`;
  try{
+  assert.deepEqual(Buffer.from(await(await fetch(base+'/api/v1/packages/dev.solvit.mcp/1.1.1')).arrayBuffer()),await readFile(new URL('./packages/legacy/dev.solvit.mcp-1.1.1.solvit.json',import.meta.url)));
   for(let api=10;api<=29;api++){
    const catalog=await(await fetch(base+`/api/v1/plugins?hostApi=${api}`)).json();
-   const mcp=catalog.plugins.find(p=>p.id==='dev.solvit.mcp');assert.equal(mcp.version,'1.1.1');assert.equal(mcp.apiVersion,10);
+   const mcp=catalog.plugins.find(p=>p.id==='dev.solvit.mcp');assert.equal(mcp.version,'1.1.2');assert.equal(mcp.apiVersion,10);
    const bytes=Buffer.from(await(await fetch(base+mcp.downloadPath)).arrayBuffer());
-   assert.deepEqual(bytes,await readFile(new URL('./packages/legacy/dev.solvit.mcp-1.1.1.solvit.json',import.meta.url)));
+   assert.deepEqual(bytes,await readFile(new URL('./packages/legacy/dev.solvit.mcp-1.1.2.solvit.json',import.meta.url)));
   }
   const catalog=await(await fetch(base+'/api/v1/plugins?hostApi=30')).json();const mcp=catalog.plugins.find(p=>p.id==='dev.solvit.mcp');
   assert.equal(mcp.version,'1.2.1');assert.equal(mcp.apiVersion,30);assert.deepEqual(mcp.nativeServices,['environment.linux','process.stdio']);
  }finally{await new Promise(resolve=>server.close(resolve))}
 });
 
-test('API31 Skills resources retain the exact read-only Skills package for API11 through API30',async()=>{
+test('API31 Skills resources keep read-only contracts with a UI-only update for API11 through API30',async()=>{
  const server=createMarketServer();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const base=`http://127.0.0.1:${server.address().port}`;
  try{
-  const historical=await readFile(new URL('./packages/legacy/dev.solvit.skills-1.1.1.solvit.json',import.meta.url));
+  assert.deepEqual(Buffer.from(await(await fetch(base+'/api/v1/packages/dev.solvit.skills/1.1.1')).arrayBuffer()),await readFile(new URL('./packages/legacy/dev.solvit.skills-1.1.1.solvit.json',import.meta.url)));
+  const historical=await readFile(new URL('./packages/legacy/dev.solvit.skills-1.1.2.solvit.json',import.meta.url));
   for(let api=11;api<=30;api++){
    const catalog=await(await fetch(base+`/api/v1/plugins?hostApi=${api}`)).json();
-   const skills=catalog.plugins.find(p=>p.id==='dev.solvit.skills');assert.equal(skills.version,'1.1.1');
+   const skills=catalog.plugins.find(p=>p.id==='dev.solvit.skills');assert.equal(skills.version,'1.1.2');
    assert.deepEqual(Buffer.from(await(await fetch(base+skills.downloadPath)).arrayBuffer()),historical);
   }
   const latest=await(await fetch(base+'/api/v1/plugins?hostApi=31')).json();

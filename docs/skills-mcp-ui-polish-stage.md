@@ -27,3 +27,13 @@ MCP窗口原有FLAG_SECURE令系统截图为黑色，这是预期保护；实际
 提交资源一致性/SDK145/市场7/公开搜索/HTTPS MCP在39007865691均通过，最后live Skills以Live Skills package differs from committed package失败。线上精确字节门禁保留，此失败是未同步新包的实际证据，不能标为完整发布成功。
 
 实际Dialog捕获39008334929成功，artifact12091514225（1376726字节，SHA256 0a9eaf021e145d6612e6c9a56ea32d9f94fb9461984acdd12cef14db2bcaa410）的摘要/CRC/原始OK(2 tests)已核对；已实际查看MCP列表、HTTPS、stdio高级项和大字管理四图，原生确认与保护恢复断言完整。但大字图仍为浅色，不能据变量dark=true声明深色验收通过。新增实际CSS --surface必须等于原生darkColorScheme().surface的检查，并在恢复浅色后同样检查；这是具体剩余主题风险的验证，尚无产品改动。
+
+## 2026-10-17 覆盖升级回归发现与修复
+
+078ab3f2完整Android run39007863963的构建、625单元测试与签名通过，但完整设备套件失败：SkillsHtmlPageTest在搜索触摸几何检查失败。原始截图证明仍是旧只读1.1.1整行搜索/底部刷新界面，原因是权限扩张回退有意保留旧包。未通过放宽触摸断言、静默授予workspace或让用例强装最新包掩盖问题。
+
+新增只改UI资源的1.1.2兼容包：完整复用不可变1.1.1的执行source与manifest（仅版本变化），Skills仍API11/storage，MCP仍API10/network；新版页面资源与1.2.1共用。restore仅识别原始1.1.1精确哈希并选择兼容UI包，保留授权/启用/数据；原始1.1.1下载保持不可变。MCP页面兼容旧HTTP-only表单，无传输选择器时不会异常，清除认证仍在高级折叠和原生确认中。Skills旧执行源的无匹配文案由页面层本地化。
+
+新增远程SDK兼容合同测试核对不可变哈希、完整source、manifest除version完全一致及两种UI字节一致；原有权限扩张测试仍要求显式安装及fresh consent。完整Skills系统文件用例保留当前已安装版本，旧升级状态必须是storage-only 1.1.2；MCP完整设备流程额外在network-only 1.1.2上打开、编辑、返回并核对原加密连接不变。尚待新资源远程生成和重跑完整Android。
+
+外部发布依赖尚未解决：实际公开市场API31当前仍是1.2.0；常规插件run39007865691通过源包一致性/SDK145/market7/公开搜索/HTTPS MCP，严格live Skills精确字节校验失败。未削弱校验，未发布0.43.10；0.43.9仍是正式最新版。

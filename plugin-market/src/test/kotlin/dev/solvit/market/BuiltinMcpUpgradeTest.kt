@@ -1,6 +1,7 @@
 package dev.solvit.market
 
 import dev.solvit.core.*
+import dev.solvit.plugins.ScriptPackage
 import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 import okhttp3.OkHttpClient
@@ -29,7 +30,11 @@ class BuiltinMcpUpgradeTest {
             val saved = """{"format":1,"skills":[]}"""
             data.edit().putString("skills.v1", saved).commit()
             market.restore()
-            assertContentEquals(old, file.readBytes())
+            val compatible = app.assets.open("builtin-compat/skills-1.1.2.solvit.json").use { it.readBytes() }
+            assertContentEquals(compatible, file.readBytes())
+            val before = ScriptPackage.parse(old); val after = ScriptPackage.parse(compatible)
+            assertEquals(before.source, after.source)
+            assertEquals(before.manifest.permissions, after.manifest.permissions)
             assertTrue(market.installed.value.single { it.id == id }.enabled)
             assertEquals(setOf("storage"), prefs.getStringSet("grants.$id", emptySet()))
             market.installLocal(app.assets.open("builtin-plugins/$id.solvit.json").use { it.readBytes() })
@@ -59,7 +64,7 @@ class BuiltinMcpUpgradeTest {
             market.restore()
             for (id in listOf("dev.solvit.skills", "dev.solvit.mcp")) {
                 val installed = market.installed.value.single { it.id == id }
-                assertEquals("1.1.1", installed.version); assertTrue(installed.enabled)
+                assertEquals("1.1.2", installed.version); assertTrue(installed.enabled)
                 val page = market.openPage(id, "main", "en")
                 try { page.open(); assertNotNull(page.document()) } finally { page.close() }
             }
@@ -88,7 +93,7 @@ class BuiltinMcpUpgradeTest {
                 .putBoolean("enabled.dev.solvit.skills", true).putStringSet("grants.dev.solvit.skills", setOf("storage")).commit()
             market.restore()
             val upgraded = market.installed.value.single { it.id == "dev.solvit.skills" }
-            assertEquals("1.1.1", upgraded.version); assertTrue(upgraded.enabled)
+            assertEquals("1.1.2", upgraded.version); assertTrue(upgraded.enabled)
             assertEquals(setOf("storage"), prefs.getStringSet("grants.dev.solvit.skills", emptySet()))
             assertEquals(saved, data.getString("skills.v1", null))
             val page = market.openPage("dev.solvit.skills", "main", "en")
@@ -148,7 +153,7 @@ class BuiltinMcpUpgradeTest {
             prefs.edit().putBoolean("enabled.dev.solvit.mcp", true).putStringSet("grants.dev.solvit.mcp", setOf("network")).commit()
             market.restore()
             val installed = market.installed.value.single { it.id == "dev.solvit.mcp" }
-            assertEquals("1.1.1", installed.version); assertTrue(installed.enabled)
+            assertEquals("1.1.2", installed.version); assertTrue(installed.enabled)
             assertEquals("fixture-upgrade-token", config.read("dev.solvit.mcp")["token"])
             val page = market.openPage("dev.solvit.mcp", "main", "en")
             try {

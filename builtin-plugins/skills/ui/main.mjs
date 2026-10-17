@@ -1,5 +1,5 @@
 import {mountCollectionPage,element,iconButton,disclosure} from '../../../plugin-sdk/src/collection-page.mjs';
-const labels={zh:['清空搜索','技能','关于此技能'],en:['Clear search','skills','About this skill'],ja:['検索をクリア','スキル','このスキルについて'],ko:['검색 지우기','스킬','스킬 정보'],es:['Borrar búsqueda','skills','Acerca del skill'],fr:['Effacer la recherche','skills','À propos du skill']};
+const labels={zh:['清空搜索','技能','关于此技能','没有匹配的技能，请调整或清空搜索。'],en:['Clear search','skills','About this skill','No matching skills. Change or clear your search.'],ja:['検索をクリア','スキル','このスキルについて','一致するスキルがありません。検索を変更またはクリアしてください。'],ko:['검색 지우기','스킬','스킬 정보','일치하는 스킬이 없습니다. 검색을 변경하거나 지우세요.'],es:['Borrar búsqueda','skills','Acerca del skill','Sin skills coincidentes. Cambia o borra la búsqueda.'],fr:['Effacer la recherche','skills','À propos du skill','Aucun skill correspondant. Modifiez ou effacez la recherche.']};
 const content=document.getElementById('content'),footer=document.getElementById('actions');
 mountCollectionPage(content,footer,{
  key:state=>state.view.nodes.some(n=>n.id==='query')?'list':`${state.view.nodes.some(n=>n.id==='preview')?'preview':'detail'}:${state.view.nodes.find(n=>n.id==='name')?.text}:${state.view.nodes.find(n=>n.id==='resource')?.value}`,
@@ -18,6 +18,8 @@ mountCollectionPage(content,footer,{
    root.prepend(toolbar);
    const count=element('p','collection-count',`${root.querySelectorAll('.card').length} ${t[1]}`);count.id='collection-count';toolbar.after(count);
    for(const card of root.querySelectorAll('.card'))card.classList.add('skill-tile');
+   // Old read-only packages have the same nodes but predate the distinct no-match copy.
+   const empty=node('empty');if(empty&&field.value.trim()&&!root.querySelector('.card'))empty.textContent=t[3];
   }else{
    const notice=node('notice');if(notice){const info=disclosure('skill-about',t[2],[notice]);root.append(info)}
    const body=Array.from(root.querySelectorAll('[data-node^="body_"]'));

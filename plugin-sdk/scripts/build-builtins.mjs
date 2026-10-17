@@ -27,3 +27,14 @@ await buildPlugin(join(agent, 'index.ts'), join(agent, 'manifest.json'),
 const policy = resolve('../plugin-examples/agent-policy');
 await buildPlugin(join(policy, 'index.ts'), join(policy, 'manifest.json'),
   resolve('../market-server/packages/example.agent-policy.solvit.json'));
+
+// UI-only upgrades for users who have not granted workspace or local-execution access.
+// Keep the immutable historical source and manifest contracts; share current page resources.
+for (const id of ['skills', 'mcp']) {
+  const historical = JSON.parse(await readFile(resolve(`../market-server/packages/legacy/dev.solvit.${id}-1.1.1.solvit.json`), 'utf8'));
+  const current = JSON.parse(await readFile(resolve(`../market-server/packages/dev.solvit.${id}.solvit.json`), 'utf8'));
+  const payload = JSON.stringify({ ...historical,
+    manifest: { ...historical.manifest, version: '1.1.2' }, resources: current.resources }, null, 2) + '\n';
+  await writeFile(resolve(`../market-server/packages/legacy/dev.solvit.${id}-1.1.2.solvit.json`), payload);
+  await writeFile(resolve(`../plugin-market/src/main/assets/builtin-compat/${id}-1.1.2.solvit.json`), payload);
+}

@@ -31,6 +31,12 @@ jobs:
         with:
           name: solvit-builtin-plugins
           path: market-server/packages/*.solvit.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solvit-compatible-plugin-pages
+          path: |
+            market-server/packages/legacy/dev.solvit.skills-1.1.2.solvit.json
+            market-server/packages/legacy/dev.solvit.mcp-1.1.2.solvit.json
       - run: npm run typecheck && npm test
         working-directory: plugin-sdk
       - run: npm test
@@ -38,8 +44,8 @@ jobs:
       - name: Require committed packages to match the current source
         if: github.event_name != 'workflow_dispatch' || inputs.generate_packages != true
         run: |
-          git diff --exit-code -- market-server/packages plugin-market/src/main/assets/builtin-plugins
-          test -z "$(git ls-files --others --exclude-standard -- market-server/packages plugin-market/src/main/assets/builtin-plugins)"
+          git diff --exit-code -- market-server/packages plugin-market/src/main/assets/builtin-plugins plugin-market/src/main/assets/builtin-compat
+          test -z "$(git ls-files --others --exclude-standard -- market-server/packages plugin-market/src/main/assets/builtin-plugins plugin-market/src/main/assets/builtin-compat)"
       - name: Verify no-configuration public web search
         run: node scripts/check-live-web-search.mjs
         working-directory: plugin-sdk

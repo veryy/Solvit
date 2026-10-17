@@ -7,17 +7,17 @@ const labels={
 let query='';
 mountCollectionPage(document.getElementById('content'),document.getElementById('actions'),{
  passwordFields:['token','env','headers','config'],
- key:state=>state.view.nodes.some(n=>n.id==='transports')?'edit':state.view.nodes.some(n=>n.id==='config')?'import':'list',
+ key:state=>state.view.nodes.some(n=>n.id==='name'&&n.kind==='field')?'edit':state.view.nodes.some(n=>n.id==='config')?'import':'list',
  decorate(root,footer,state){
   const t=labels[state.locale.split(/[-_]/)[0]]??labels.en;
   const node=id=>document.querySelector(`[data-node="${id}"]`),editing=!!document.getElementById('field-name');
   root.classList.toggle('mcp-editor',editing);root.classList.toggle('mcp-library',!editing&&!document.getElementById('field-config'));
   if(editing){
    const stdio=!!document.getElementById('field-command');
-   for(const kind of ['http','stdio']){const button=node('transport_'+kind);button.setAttribute('aria-pressed',String((kind==='stdio')===stdio))}
+   for(const kind of ['http','stdio']){const button=node('transport_'+kind);button?.setAttribute('aria-pressed',String((kind==='stdio')===stdio))}
    const fields=(stdio?['env','cwd']:['headers']).map(id=>document.getElementById('field-'+id)?.parentElement).filter(Boolean);
    if(fields.length)root.append(disclosure('mcp-advanced',t[3],fields));
-   const clear=node('clear_auth');if(clear){clear.classList.add('destructive');const advanced=document.getElementById('mcp-advanced');advanced.append(clear)}
+   const clear=node('clear_auth');if(clear){clear.classList.add('destructive');let advanced=document.getElementById('mcp-advanced');if(!advanced){advanced=disclosure('mcp-advanced',t[3],[]);root.append(advanced)}advanced.append(clear)}
    return;
   }
   if(document.getElementById('field-config'))return;

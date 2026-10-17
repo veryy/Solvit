@@ -135,6 +135,22 @@ class McpPageUiTest {
             touch("[data-node=delete_1]"); rule.onNodeWithTag("plugin_page_confirm").performClick()
             waitDom("document.querySelectorAll('.card').length===1")
             assertEquals("docs", profiles().single().jsonObject.getValue("name").jsonPrimitive.content)
+            // The same page must remain usable without workspace/shell grants on retained HTTPS packages.
+            rule.runOnUiThread { visible = false }; rule.waitForIdle()
+            runBlocking {
+                app.marketplace.disable(id)
+                app.marketplace.installLocal(app.assets.open("builtin-compat/mcp-1.1.2.solvit.json").use { it.readBytes() })
+                app.marketplace.enable(id, setOf("network"))
+            }
+            assertEquals(setOf("network"), app.marketplace.installed.value.single { it.id == id }.permissions)
+            val compatibleConfiguration=profiles().toString()
+            rule.runOnUiThread { visible = true }
+            waitDom("!!document.getElementById('connection-query')&&document.querySelectorAll('.card').length===1")
+            touch("[data-node=edit_0]");waitDom("!!document.getElementById('field-name')&&!document.querySelector('[data-node=transport_stdio]')")
+            touch("#mcp-advanced > summary");waitDom("document.getElementById('mcp-advanced').open")
+            fixtureScreenshot("mcp-html-compatible-https-editor")
+            assertEquals(compatibleConfiguration,profiles().toString())
+            touch("[data-node=back]");waitDom("!!document.getElementById('connection-query')")
         } finally {
             rule.runOnUiThread { visible = false }
             runBlocking { app.marketplace.disable(id); app.marketplace.configure(id, emptyMap()) }
