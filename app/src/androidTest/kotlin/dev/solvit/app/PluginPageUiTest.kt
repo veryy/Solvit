@@ -271,6 +271,15 @@ class PluginPageUiTest {
                     m("height") >= minOf(m("scrollHeight"), 200.0) && m("firstBottom") <= m("bottom"))
             rule.waitForIdle()
             html.screenshot("memory-large-text-options")
+            html.tapElement("#menu summary")
+            waitDom("document.querySelector('#menu details').open")
+            html.tapElement("#field-category_filter")
+            rule.waitUntil(10_000) { html.keyboardVisible() }
+            rule.waitForIdle()
+            waitDom("(()=>{const r=document.getElementById('menu').getBoundingClientRect();return r.height>=44 && r.bottom<=innerHeight && r.top>=document.getElementById('toolbar').getBoundingClientRect().bottom+7})()")
+            html.screenshot("memory-large-text-keyboard")
+            html.hideKeyboard()
+            rule.waitUntil(10_000) { !html.keyboardVisible() }
             html.tapElement("#options")
             rule.waitForIdle()
             html.screenshot("memory-search-single-result-large-text")
