@@ -40,3 +40,5 @@ Git与工作区使用同一个directory-style.mjs，由共用目录组件注入�
 真实页面38992158388：第二项实际Shell/目录截图通过，完整HTML路径在新增chatFiles入口等待超时；原测试WorkspacePageBridge未配置chatAttachments，源码该查询明确要求此服务。将测试接入真实ChatStore会话及同应用SavedChatAttachmentSource，保留入口/菜单/原确认和业务断言；新增仅失败时安全节点ID/菜单状态及截图，不输出文件内容/密钥，不提高等待时长。重跑待验证，不能将这次失败算作整页成功。
 
 共用样式最终生成38992611786成功，artifact12085309700 SHA256 402d79945b318d292f04e6dc7a6e7911ae0f4f0d777139eb147db0c24488524a、CRC核对。仅工作区1.11.1和Git1.3.2变化，两份Android/市场资源已导入同字节；其他包逐字节不变。旧原包摘要也与v0.43.6标签内容一致。实际页面/旧包升级及完整门禁尚待完成。
+
+所有权补充回归38993062176实际仅新加的changed-workspace场景失败，证明旧行仍在新工作区首次失败后出现。重读锁定DSH files-body.client.spec.tsx的abort/forgotten bucket测试；现在工作区ID变化时清空目录UI缓存，仅同一工作区刷新失败保留原行。组件与样式放在browser/，由两插件ui入口打包，避免把未使用的组件独立入口也作为页面资源输出。权限/业务数据格式不变。原断言重跑及完整APK门禁待定。

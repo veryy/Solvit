@@ -141,7 +141,7 @@ export function workspacePage(importsEnabled=true){
   const cf=chatFileLabels[locale.split(/[-_]/)[0] as keyof typeof chatFileLabels]??chatFileLabels.en;
   const api=ctx.workspacePage;if(!api)throw Error('Workspace page needs API12');
   if(mode!=='importTransfer')snapshot=await api.query('snapshot') as unknown as Snapshot;
-  if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear()}
+  if(treeWorkspace!==snapshot.workspaceId){treeWorkspace=snapshot.workspaceId;treeResult=null;treeEntries.clear();directory='';offset=0;total=0;files=[];directoryError=false}
   const refresh=async()=>{snapshot=await api.query('snapshot') as unknown as Snapshot};
   const loadRecoveries=async():Promise<void>=>{
    if(!importsEnabled||!snapshot.workspaceId){recoveries=[];recoveryTotal=0;return}

@@ -1,5 +1,5 @@
 import {mountPage} from '../../../plugin-sdk/src/browser-page.mjs';
-import {polishDirectory} from './directory.mjs';
+import {polishDirectory} from '../browser/directory.mjs';
 import {basicSetup} from 'codemirror';
 import {EditorState,Compartment} from '@codemirror/state';
 import {EditorView} from '@codemirror/view';
