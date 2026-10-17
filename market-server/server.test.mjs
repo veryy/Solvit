@@ -41,7 +41,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.deepEqual(memoryPage.pages, [{id:'main',title:'记忆'},{id:'tasks',title:'自动记忆任务'}]);
     const api10 = await (await fetch(base + '/api/v1/plugins?hostApi=10')).json();
     const htmlMemory = api10.plugins.find(plugin => plugin.id === 'dev.solvit.memory');
-    assert.equal(htmlMemory.apiVersion, 10); assert.equal(htmlMemory.version, '1.4.1');
+    assert.equal(htmlMemory.apiVersion, 10); assert.equal(htmlMemory.version, '1.4.2');
     assert.ok(htmlMemory.pages.every(page => page.entry === 'ui/index.html'));
     const htmlPackage = await (await fetch(base + htmlMemory.downloadPath)).json();
     assert.ok(htmlPackage.resources['ui/index.html'].includes('id="graph"'));
@@ -161,7 +161,7 @@ test('catalog downloads match their declared integrity and expose no write API',
     assert.equal(agentPackage.manifest.agentEnabledSetting, 'selected');
     assert.deepEqual(agentPackage.manifest.permissions, ['agent']);
     assert.equal(api12.plugins.find(plugin => plugin.id === 'dev.solvit.terminal').version, '1.0.0');
-    for(const [id,previous] of [['memory','1.4.0'],['terminal','1.1.0'],['terminal','1.1.1'],['terminal','1.1.2']]) {
+    for(const [id,previous] of [['memory','1.4.0'],['memory','1.4.1'],['terminal','1.1.0'],['terminal','1.1.1'],['terminal','1.1.2']]) {
       const original = Buffer.from(await (await fetch(base + `/api/v1/packages/dev.solvit.${id}/${previous}`)).arrayBuffer());
       assert.deepEqual(original, await readFile(new URL(`./packages/legacy/dev.solvit.${id}-${previous}.solvit.json`, import.meta.url)));
     }
