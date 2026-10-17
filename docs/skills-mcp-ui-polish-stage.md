@@ -37,3 +37,24 @@ MCP窗口原有FLAG_SECURE令系统截图为黑色，这是预期保护；实际
 新增远程SDK兼容合同测试核对不可变哈希、完整source、manifest除version完全一致及两种UI字节一致；原有权限扩张测试仍要求显式安装及fresh consent。完整Skills系统文件用例保留当前已安装版本，旧升级状态必须是storage-only 1.1.2；MCP完整设备流程额外在network-only 1.1.2上打开、编辑、返回并核对原加密连接不变。尚待新资源远程生成和重跑完整Android。
 
 外部发布依赖尚未解决：实际公开市场API31当前仍是1.2.0；常规插件run39007865691通过源包一致性/SDK145/market7/公开搜索/HTTPS MCP，严格live Skills精确字节校验失败。未削弱校验，未发布0.43.10；0.43.9仍是正式最新版。
+
+## 兼容资源远程生成与专项验收
+
+生成run39010583875的build/SDK147通过，market最初发现API19目录排序断言仍假定Skills/MCP为1.1.1。实际服务按版本优先排序，新的1.1.2应排在Git1.1.1之前；保留Git原始版本与精确哈希以及旧1.1.1下载不变，修正声明的预期顺序。ec08a0bd的插件run39010939662与market run39010939790均成功，包含SDK147、market7及生成源包一致性。未将push上不运行的live Skills视作已通过。
+
+生成产物整ZIP SHA/CRC核对后导入，未改其他15个内置包：
+
+| 包 | SHA-256 |
+| --- | --- |
+| Skills1.2.1 | 3f1c51aee9aaba3c90370ae5d38fb111a1d06585b774a00e2d9e051d964ee7b7 |
+| MCP1.2.1 | 1b3f38f7ed589e385d1b2205a316a49c6b7b56ceb8c443b9e78d3f90d8ee4360 |
+| Skills1.1.2只读 | 9230b0d8787b76154ddf39494818974dcbe1cd44707c6f6d2a937864fdf3eb50 |
+| MCP1.1.2 HTTPS | ae137ef42516b83babc0518cee62169281dfcb520c7339eb22cb59de4042eea9 |
+
+当前源ec08a0bd专项run39011012512原始OK(2 tests)，产物12092637710（1468758字节、SHA5cd8174f8c54f45c631c2eff003680dc4d72e169639aafab0e536fd9ac0701d4）整ZIP SHA/CRC与真实页面截图已核对。MCP测试使用自己生成的虚构连接，临时仅对实际Dialog关闭secure用于截图并立即恢复；生产secure策略未变。主题截图需等待Compose原生颜色动画settle，不能只依赖WebView CSS已更新来证明完整界面主题。实看已完成的深色/150%截图与HTTPS兼容编辑页，未以过渡帧作主题证明。
+
+完整Android run39010939695的build成功，625单元原始XML均无failure/error/skip（含旧只读显式更新授权与原包恢复），Lint成功，签名仍为固定证书；设备阶段尚在执行，本段不代表整条Actions成功。Linux run39007867317的原始产物12091892116已整ZIP SHA/CRC核对，3项真实Ubuntu设备测试均通过，Python3.12.3、Node24.21.0、npm11.19.0；其后无Linux运行时代码改动。
+
+部署能力核对：现有SSH agent无身份，默认SSH batch登录返回Permission denied；没有尝试猜测认证或将认证写入项目。当前准备好完整市场更新归档，但尚未写入服务器。
+
+![真实设备页面：Skills库、资源、150%字体和键盘；MCP列表、旧权限编辑与深色管理](images/skills-mcp-ui-0.43.10.png)
