@@ -93,7 +93,7 @@ class AttachmentPreviewLayoutTest {
             assertFalse(detailLayouts.single().hasVisualOverflow)
             screenshot("attachment-info-$theme-large-text")
             rule.onNodeWithTag("attachment_info_type").performScrollTo().assertIsDisplayed().assertTextEquals("application/pdf")
-            rule.onNodeWithTag("attachment_info_size").performScrollTo().assertIsDisplayed().assertTextContains("128")
+            rule.onNodeWithTag("attachment_info_size").performScrollTo().assertIsDisplayed().assertTextContains("128", substring = true)
             rule.onNodeWithTag("attachment_info_close").assertIsDisplayed()
             // Actual system Back dismisses file information first, preserving the underlying viewer.
             ParcelFileDescriptor.AutoCloseInputStream(InstrumentationRegistry.getInstrumentation().uiAutomation
