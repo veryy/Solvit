@@ -105,6 +105,7 @@ const labels={
  fr:['Espace de travail','Créer un espace','Lier un espace','Nom','Créer','Lier','Délier','Répertoire','Retour','Actualiser','Nouveau texte','Chemin relatif','Texte UTF-8 (maximum 4 Ko)','Vérifier la sauvegarde','Confirmer','Annuler','Parent','Précédent','Suivant','Répertoire vide','Aucun espace pour cette conversation','Enregistré','Échec : ','Brouillons','Voir','Installer désactivé','Remplace le même ID et reste désactivé. Autorisez-le séparément.','Autorisations','Terminé','Écrire le fichier','Nom Shell','Ajouter un Shell']
 };
 export function workspacePage(importsEnabled=true){
+ let directoryError=false;
  let mode='home',directory='',offset=0,total=0,files:FileEntry[]=[],names:W[]=[],workspaceOffset=0,path='',textValue='',sha:string|null=null,originalPath='',message='';
  let pending:Extract<PageHostAction,{kind:'workspace.perform'}>|null=null,returnMode='home',drafts:Draft[]=[],selected:Draft|null=null,draftOffset=0,draftTotal=0,draftText='';
  let editorId=0,chunk:TextChunk|null=null,phase='ready',uploadId='',uploadOffset=0;
@@ -160,7 +161,11 @@ export function workspacePage(importsEnabled=true){
    backupPage=await api.query('importBackups',{offset:backupOffset}) as unknown as BackupPage;
    if(backupOffset>=backupPage.total&&backupOffset>0){backupOffset=Math.max(0,Math.floor((backupPage.total-1)/5)*5);backupPage=await api.query('importBackups',{offset:backupOffset}) as unknown as BackupPage}
   };
-  const list=async()=>{const result=await api.query('list',{path:directory,offset}) as unknown as {files:FileEntry[];total:number};files=result.files;total=result.total};
+  const list=async(target=directory,start=offset)=>{
+   try{const result=await api.query('list',{path:target,offset:start}) as unknown as {files:FileEntry[];total:number};
+    directory=target;offset=start;files=result.files;total=result.total;directoryError=false;
+   }catch(error){directoryError=true;throw error}
+  };
   const loadChatFiles=async()=>{const page=await api.query('chatAttachments',{offset:chatFileOffset}) as unknown as {attachments:ChatFile[];total:number};chatFiles=page.attachments;chatFileTotal=page.total};
   const loadDrafts=async()=>{drafts=await api.query('drafts') as unknown as Draft[]};
   const loadDraft=async()=>{if(!selected)return;const result=await api.query('draft',{id:selected.id,offset:draftOffset}) as unknown as {text:string;total:number;sha256:string};if(result.sha256!==selected.sha256)throw Error('Draft changed');draftText=result.text;draftTotal=result.total};
@@ -284,7 +289,7 @@ export function workspacePage(importsEnabled=true){
     }
     else if(action==='treeOpen'){
      const entry=treeEntries.get(event.fields.treeTarget??'');if(!entry)throw Error('Refresh the file tree first');
-     if(entry.directory){directory=entry.path;offset=0;await list();mode='list'}
+     if(entry.directory){await list(entry.path,0);mode='list'}
      else{path=originalPath=entry.path;sha=null;editorId++;await readChunk(0);mode='editor'}
     }
     else if(action==='home'){mode='home';pending=null}
@@ -297,11 +302,11 @@ export function workspacePage(importsEnabled=true){
     else if(action==='prepareUnbind')prepare('unbind',{});
     else if(action==='shell'){mode='shell'}
     else if(action==='prepareShell')prepare('createShell',{name:(event.fields.name??'').trim()});
-    else if(action==='directory'){mode='list';directory='';offset=0;await list()}
+    else if(action==='directory'){mode='list';await list('',0)}
     else if(action==='refresh'){if(mode==='list'){await list();treeRevision++;treeResult=null;treeEntries.clear()}else if(mode==='drafts')await loadDrafts()}
-    else if(action==='parent'){directory=directory.includes('/')?directory.slice(0,directory.lastIndexOf('/')):'';offset=0;await list()}
-    else if(action==='prev'){offset=Math.max(0,offset-40);await list()}
-    else if(action==='next'){offset+=40;await list()}
+    else if(action==='parent'){await list(directory.includes('/')?directory.slice(0,directory.lastIndexOf('/')):'',0)}
+    else if(action==='prev'){await list(directory,Math.max(0,offset-40))}
+    else if(action==='next'){await list(directory,offset+40)}
     else if(action==='mkdir'){mode='mkdir';managementPath=directory?directory+'/new-folder':'new-folder'}
     else if(action==='prepareDirectory')prepare('makeDirectory',{path:(event.fields.destination??'').trim()});
     else if(action==='renameEntry'||action==='deleteEntry'){
@@ -312,7 +317,7 @@ export function workspacePage(importsEnabled=true){
     else if(action==='prepareMove')prepare('moveEntry',{path:managementPath,destination:(event.fields.destination??'').trim()});
     else if(action==='file'){
      const file=files[Number(event.nodeId.slice(5))];if(!file)throw Error('Directory changed');
-     if(file.directory){directory=file.path;offset=0;await list()}else{
+     if(file.directory){await list(file.path,0)}else{
       path=originalPath=file.path;sha=null;editorId++;await readChunk(0);mode='editor';
      }
     }else if(action==='new'){
@@ -442,7 +447,8 @@ export function workspacePage(importsEnabled=true){
   }else if(mode==='list'){
    nodes.push(text('directory',directory||'/','title'),{id:'directory_actions',kind:'row',children:[
     ...(importsEnabled?[selectImport(),fromChat(),button('backupOpen',bl[0])]:[]),button('new',t[10]),button('mkdir',f[0])]});
-   if(!files.length)nodes.push(text('empty',t[19]));
+   if(directoryError)nodes.push(text('directory_unavailable',({zh:'目录读取失败，可刷新重试',en:'Could not read the directory. Refresh to retry.',ja:'ディレクトリを読み込めません。更新して再試行してください。',ko:'디렉터리를 읽을 수 없습니다. 새로 고침 후 다시 시도하세요.',es:'No se pudo leer la carpeta. Actualiza para reintentar.',fr:'Impossible de lire le dossier. Actualisez pour réessayer.'}[locale.split(/[-_]/)[0]]??'Could not read the directory. Refresh to retry.')));
+   else if(!files.length)nodes.push(text('empty',t[19]));
    files.forEach((entry,i)=>nodes.push({id:`entry_${i}`,kind:'card',children:[text(`file_name_${i}`,(entry.directory?'▸ ':'')+entry.name),text(`file_size_${i}`,entry.directory?t[7]:`${entry.bytes} B`,'caption'),button(`file_${i}`,t[24],'file'),
     button(`rename_${i}`,f[1],'renameEntry'),button(`delete_${i}`,f[2],'deleteEntry')]}));
    footer.push(button('home',t[8]),button('refresh',t[9]));if(directory)footer.push(button('parent',t[16]));if(offset>0)footer.push(button('prev',t[17]));if(offset+40<total)footer.push(button('next',t[18]));
