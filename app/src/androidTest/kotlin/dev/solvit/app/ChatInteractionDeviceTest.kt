@@ -159,7 +159,7 @@ class ChatInteractionDeviceTest {
             rule.onNodeWithTag("tool_allow_once").assertIsDisplayed()
             rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed()
             rule.onNodeWithTag("chat_send").assertIsDisplayed()
-            rule.onNodeWithText("queue_fixture").assertIsDisplayed()
+            rule.onNode(hasText("queue_fixture") and hasAnyAncestor(hasTestTag("chat_tool_approval"))).assertIsDisplayed()
             val density = rule.activity.resources.displayMetrics.density
             assertTrue("Queue header must retain a usable button, not a clipped strip: $regions",
                 regions.getValue("queue_toggle").height >= 40 * density - 1)
