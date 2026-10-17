@@ -159,7 +159,14 @@ class ChatInteractionDeviceTest {
             rule.onNodeWithTag("tool_allow_once").assertIsDisplayed()
             rule.onNodeWithTag("tool_allow_remember").assertIsDisplayed()
             rule.onNodeWithTag("chat_send").assertIsDisplayed()
-            rule.onNode(hasText("queue_fixture") and hasAnyAncestor(hasTestTag("chat_tool_approval"))).assertIsDisplayed()
+            val pendingName = rule.onNode(hasText("queue_fixture") and hasAnyAncestor(hasTestTag("chat_tool_approval")))
+            pendingName.assertIsDisplayed()
+            val nameLayouts = mutableListOf<TextLayoutResult>()
+            pendingName.performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(nameLayouts) }
+            assertEquals(1, nameLayouts.size)
+            val nameBounds = pendingName.fetchSemanticsNode().boundsInWindow
+            assertTrue("Pending tool name must show a complete line, not a clipped sliver: $nameBounds / ${nameLayouts.single().size}",
+                nameBounds.height >= nameLayouts.single().size.height - 1)
             val density = rule.activity.resources.displayMetrics.density
             assertTrue("Queue header must retain a usable button, not a clipped strip: $regions",
                 regions.getValue("queue_toggle").height >= 40 * density - 1)
