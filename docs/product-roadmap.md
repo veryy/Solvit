@@ -18,7 +18,7 @@ README增加中英文简介和英文页面，GitHub仓库简介同步；未完�
 
 ## 当前交付清单（2026-10-17）
 
-当前公开版本为[0.43.6](release-0.43.6.md)，build89/API31。本轮设置分组、插件详情/页面、聊天授权与队列、工作区提交反馈及记忆布局已交付；[正式远程验证](https://github.com/veryy/Solvit/actions/runs/38989335525)与公开APK/源码字节核对通过。下一轮是[工作目录的导航、文件列表与操作分组](workspace-ui-polish-stage.md)。真实模型、GitHub任务及ARM64等完整目标与下列历史路线保留。
+当前公开版本为[0.43.8](release-0.43.8.md)，build91/API31。工作目录导航、操作分组和文件行与Git共用，目录失败和工作区缓存所有权修复已交付；[完整远程验证](https://github.com/veryy/Solvit/actions/runs/38998957947)和公开APK/源码字节核对通过。[本轮证据](workspace-ui-polish-stage.md)。此前0.43.6设置、插件、聊天授权与队列等调整保留。下一轮整理Linux环境状态、安装操作、日志与终端会话管理；真实模型、GitHub任务及ARM64等完整目标与下列历史路线保留。
 
 ### 0.43.2 交付基线
 

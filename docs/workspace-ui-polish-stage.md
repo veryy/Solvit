@@ -1,4 +1,4 @@
-# 工作目录交互打磨
+# 工作目录交互打磨（0.43.8已交付）
 
 2026-10-17，开始前已运行锁定参考仓库的 `--verify-only`。0.43.6为已发布基线；本阶段继续整理工作目录，下列保留实施前源码核对和验收设计。
 
@@ -84,3 +84,11 @@ Compose指针诊断38997706445在第3轮复现同一结果等待失败（前2轮
 0.43.8正式候选38998957947，标签feb298e40f4d5134cc0bd88cd8bd52ab5312b949：build、plugins、public-search、android-proot通过，完整UI/恢复仍进行中，尚未发布。单元artifact12088741000 SHA256 a8eec51f33f2d486a49e9926ae8f111b44c3b5f31858ffc59dd0599c0cec56ab，摘要/CRC/原始XML619项零失败/错误/跳过，两个新旧包升级方法实际存在；固定签名日志匹配原证书。插件artifact12088640624 SHA256 875f50181351106834dfb3641994f4ef22f587756fc0592365562015f4d33bce，15份市场包与提交字节一致，两个更改的Android内置包一致；远程144 SDK/7市场用例通过。搜索artifact12088710420 SHA256 39fa44e4173576ce31f5df995399d3ac70fba2a68747de20031e766c1da5e39f，三组真实查询/正文和主源失败后回退证据核对。
 
 Linux artifact12088452589 SHA256 70b21c5b8da24ed88dda058d45efeb3279c8a7ee87375737945aad3c108a0c94、CRC通过；Android x86_64模拟器三项实际Linux测试及日志核对：Python3.12.3、Node24.21.0/npm11.19.0、Java17；Python/Node stdio初始化→发现→调用→EOF/显式环境/共享文件，以及QuickJS权限与Skills失败修复流程均有原始标记。确定性Provider不等同真实模型，ARM64真机仍待验收。源码artifact12087474238 SHA256 92823db8ce3c0d2a775280d73bd3ba71c29ba7e9959540803c7de72bfb6facc8核对。APK artifact12088308651归档SHA256 3555014b20cc960704140d1bde3246cf5ed92e8e8798ad3353debd936f902542；其中APK59546506字节、SHA256 7c6fafd94facbecbda2d07c24667ea81ee52379638ed11fe305784fc80e31e8b，摘要/CRC通过。以上仍是候选产物，等待完整门禁和实际公开下载核对。
+
+## 0.43.8正式交付
+
+[完整38998957947](https://github.com/veryy/Solvit/actions/runs/38998957947)全部门禁及发布成功。完整设备artifact12088931494 sha256:e08b5e550d1dad81fce9c0c335d407b26cd12cb9e24060b8da1ff79a3f1bb735、CRC及原始XML核对：App82/Web3/终端25，零失败/错误/跳过，既定必需回归存在；15场恢复的原始verify为OK且实际PID先存在后消失。旧版seed、覆盖升级、原1.5倍字体完整聊天、测试包重新安装及stdio真实host/supervisor/worker/descendant全部gone通过。已实际查看本次正式目录、深色大字菜单、Git菜单和文件树截图；Git菜单左右边界完整，未以定向设备包代替正式产物。
+
+公开release415569617非草稿、非预发布，APK及源码实际下载与正式产物逐字节一致，摘要和CRC通过。APK SHA256 7c6fafd94facbecbda2d07c24667ea81ee52379638ed11fe305784fc80e31e8b，固定签名与标签不变。619项单元包含新增旧官方包升级验证，144 SDK包含三个真实目录回归；真实模型/账号任务、ARM64、第三方依赖及大量文件下的滚动保持专项仍未完整验收。下一轮围绕环境状态和终端会话整理UI，保留完整路线。
+
+![实际模拟器同场景目录对比：左0.43.6，右0.43.8](images/workspace-directory-0.43.8.png)

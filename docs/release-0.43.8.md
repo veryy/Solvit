@@ -10,6 +10,10 @@
 - 原有文本/代码预览编辑、外部修改检查、导入与备份、原生确认、文件树、Shell和Git操作继续使用既有业务链。页面由插件自己的HTML/JS绘制。
 - 工作区插件更新为1.11.1，Git为1.3.2。原版内置包可保留设置、权限和停用状态升级，用户改过的包及卸载选择继续保留；没有新增插件权限。
 
-0.43.8/build91，固定签名与数据格式继续沿用。覆盖更新保留数据，卸载仍会删除本地数据。完整远程门禁与下载核对完成前，本文件仅是候选说明，不表示已发布。
+0.43.8/build91，固定签名与数据格式继续沿用。覆盖更新保留数据，卸载仍会删除本地数据。[正式Actions](https://github.com/veryy/Solvit/actions/runs/38998957947)完整门禁通过：619项单元、Lint、固定签名、110项常规模拟器用例、1.5倍字体完整聊天、15场实际进程中断恢复、覆盖升级、stdio宿主实际强杀，以及插件、公开搜索和Ubuntu检查。原始XML、runner与实际截图已核对。
 
 阶段记录见[目录交互打磨](workspace-ui-polish-stage.md)。真实模型任务、真实GitHub账号写入、ARM64真机和第三方依赖兼容仍待验收；屏幕操控继续暂缓。
+
+[下载APK](https://github.com/veryy/Solvit/releases/download/v0.43.8/solvit-debug.apk) · [solvit-debug-apk构建产物](https://github.com/veryy/Solvit/actions/runs/38998957947/artifacts/12088308651)
+
+公开APK及Linux源码包已实际下载，与本次正式产物逐字节一致，GitHub摘要与ZIP CRC通过。APK SHA-256：`7c6fafd94facbecbda2d07c24667ea81ee52379638ed11fe305784fc80e31e8b`。固定签名证书SHA-256：`f076abf86de542063f8655abf9021cb88b642ab9b664cafc46c0f16b4303bcc3`。标签`feb298e40f4d5134cc0bd88cd8bd52ab5312b949`保留。
