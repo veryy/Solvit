@@ -35,3 +35,11 @@ DSH d7432673 `packages/client/ui-workspace/src/client/rows/Rows.tsx` 的SearchRe
 环境页失败在phase=failed的refresh()等待真实trusted click，日志已是FAILED metadata且按钮enabled；实际失败截图已显示失败摘要与展开日志，不是Ubuntu下载失败或环境状态未到达。排查顺序：状态/自动轮询更新在触摸中替换按钮DOM；重新布局让触点偏移；scrollIntoView/原生触摸时序。保留原一次实际触摸、isTrusted要求、10000ms以及进度/失败/无安装全部断言，只加入临时非消费的document输入事件与solvitPageUpdate前后采样，输出受控夹具stage、busy、disabled、按钮几何与目标ID，不输出程序日志、密钥或token。成功刷新留正对照，失败留相同trace，诊断结束移除探针。
 
 复读原环境阶段所引用DSH d7432673 terminal-card-model.ts及terminal-card.client.spec.tsx的真实运行/失败状态区分；原生/JS仍以各自实际状态为准。沿用既有HTML页面和真实屏幕触摸桥，不改安装器/PTY或重写渲染器。正式diagnostic复用已完成成功build任务的同生产APK/native资源，仅远程编译当前测试包，源码差异门禁继续限制为测试/工作流/脚本/文档。新增environment-ui和history-search两个定向入口，首失败停止，既有完整Android门禁不减。
+
+## 定向采样结果及探针清理
+
+8989612b的environment-ui复用dfdd生产APK，39053033448成功8轮；artifact12108840510（1181227字节，SHA256 6194cd14c29cb7bb024f7e13af8687932486bb93c24ffd8cb6cffdde82071acc）整包摘要/CRC核对，8份独立runner均OK(2 tests)，48次正刷新trace具有真实trusted pointer/click。FAILED步骤的成功对照有“触摸时仍INITIALIZING，点击后渲染FAILED”的顺序；未捕获原失败，不足以证明DOM替换或其他假设是根因，生产页面/宿主不作猜测性修改。
+
+同提交history-search39053064460失败，artifact12108756540（692807字节，SHA256 21b6091718529e8df93ef4d598498a97f580eaf60c9a434be5b1b82f4e1b93c9）原始结果与摘要/CRC核对：真实App搜索通过，150%组件在对第二条同名记录注入删除触摸时节点未组合。改用LazyColumn真实滚动使每个被选或删除的目标进入视野，再进行原一次触摸，绝不重试删除；busy和同名ID回调不变。新增设置底边不超过原生系统导航栏顶边的几何断言，避免只凭assertIsDisplayed接受部分遮挡。
+
+现在移除全部ENVIRONMENT_REFRESH_DIAG的document事件/solvitPageUpdate包装、成功日志和trace字段；原环境UI流程、一次真实刷新、isTrusted/10000ms/进度/失败/无安装断言均恢复，只在既有失败上下文里补refreshClicked布尔值，便于区分点击未到与宿主未结束。下一轮定向以无探针版本复查，最终仍须完整Android原始报告与APK；原环境触摸根因明确保持未定，不能写成“已修复Ubuntu/环境下载问题”。

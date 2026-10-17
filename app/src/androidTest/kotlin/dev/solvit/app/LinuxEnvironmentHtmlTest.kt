@@ -82,15 +82,12 @@ class LinuxEnvironmentHtmlTest {
             html.tapElement(selector)
         }
         fun refresh() {
-            html.js("window.environmentFixtureTrace=[];window.environmentFixtureTracing=true;window.environmentFixtureExpectedStage="+kotlinx.serialization.json.JsonPrimitive(service.state.value.stage))
             waitDom("!document.querySelector('[data-node=refresh]').disabled")
             // Observe one actual screen touch, then await its real host/render settlement.
             // Programmatic busy polling must not satisfy this trusted-click observation.
             html.js("window.environmentFixtureRefreshClicked=false;document.addEventListener('click',function observe(e){if(e.isTrusted&&e.target.closest('[data-node=refresh]')){window.environmentFixtureRefreshClicked=true;document.removeEventListener('click',observe,true)}},true)")
             tap("[data-node=refresh]")
             waitDom("window.environmentFixtureRefreshClicked&&!document.querySelector('[data-node=refresh]').disabled")
-            android.util.Log.i("PluginPageFixture", "[ENVIRONMENT_REFRESH_DIAG] " + html.js("JSON.stringify({expected:window.environmentFixtureExpectedStage,trace:window.environmentFixtureTrace})"))
-            html.js("window.environmentFixtureTracing=false")
         }
         var phase="initial"
         fun decline() {
@@ -104,20 +101,6 @@ class LinuxEnvironmentHtmlTest {
                 if(visible)PluginPageScreen("Linux",{manager.openPage("zh",WorkspacePageBridge(app.workspaces,app.pluginDrafts,chat,linux=service))}) { visible=false }
             } } }
             waitDom("!!document.querySelector('.environment-page')&&!document.querySelector('[data-node=refresh]').disabled")
-            // Temporary non-consuming probe: fixture stage, geometry and trusted input only.
-            html.js("""(()=>{
-              window.environmentFixtureTrace=[];window.environmentFixtureTracing=false;
-              const snapshot=(type,e)=>{
-                if(!window.environmentFixtureTracing)return;
-                const b=document.querySelector('[data-node=refresh]'),r=b?.getBoundingClientRect();
-                const metadata=JSON.parse(document.querySelector('[data-node=environment_meta]')?.textContent||'{}');
-                if(window.environmentFixtureTrace.length<48)window.environmentFixtureTrace.push({type,stage:metadata.stage,busy:metadata.busy,disabled:b?.disabled,target:e?.target?.closest('[data-node]')?.dataset.node,trusted:e?.isTrusted,x:e?.clientX,y:e?.clientY,bounds:r?{x:r.x,y:r.y,width:r.width,height:r.height}:null});
-              };
-              for(const type of ['pointerdown','pointerup','pointercancel','mousedown','mouseup','click'])document.addEventListener(type,e=>snapshot(type,e),true);
-              const original=window.solvitPageUpdate;
-              window.solvitPageUpdate=state=>{snapshot('before-update');const result=original(state);snapshot('after-update');return result};
-              return true;
-            })()""")
             assertEquals("true",html.js("Array.from(document.querySelectorAll('details')).every(e=>!e.open)"))
             assertEquals("false",html.js("!!document.querySelector('[data-node=newShell]')"))
             html.screenshot("linux-plugin-ready-collapsed")
@@ -163,7 +146,7 @@ class LinuxEnvironmentHtmlTest {
             assertNull(runBlocking { app.workspaces.bound(chat) })
         } catch(error:Throwable) {
             // Fixture state and geometry only: never output, prompts, file contents or credentials.
-            val metrics=runCatching { html.js("JSON.stringify({metadata:document.querySelector('[data-node=environment_meta]')?.textContent,refreshDisabled:document.querySelector('[data-node=refresh]')?.disabled,progress:document.querySelector('progress')?.value,max:document.querySelector('progress')?.max,progressAttribute:document.querySelector('progress')?.getAttribute('value'),expected:window.environmentFixtureExpectedStage,clicked:window.environmentFixtureRefreshClicked,trace:window.environmentFixtureTrace})") }.getOrNull()
+            val metrics=runCatching { html.js("JSON.stringify({metadata:document.querySelector('[data-node=environment_meta]')?.textContent,refreshDisabled:document.querySelector('[data-node=refresh]')?.disabled,progress:document.querySelector('progress')?.value,max:document.querySelector('progress')?.max,progressAttribute:document.querySelector('progress')?.getAttribute('value'),refreshClicked:window.environmentFixtureRefreshClicked})") }.getOrNull()
             runCatching { html.screenshot("linux-plugin-workbench-failure") }
             throw AssertionError("Environment fixture phase=$phase metrics=$metrics",error)
         } finally { html.setTextZoom(100);rule.runOnUiThread { visible=false } }

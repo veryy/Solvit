@@ -55,12 +55,16 @@ class ChatHistoryDrawerTest {
         rule.onNodeWithTag("history_search").performTextInput("  aNdRoId  ")
         finishSearchKeyboard()
         rule.onNodeWithTag("history_session_other").assertDoesNotExist()
+        rule.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_session_same-b"))
         rule.onNodeWithTag("history_session_same-b").assertIsSelected()
+        rule.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_session_same-a"))
         rule.onNodeWithTag("history_session_same-a").performClick()
         assertEquals("same-a", chosen)
+        rule.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_session_same-b"))
         rule.onNode(hasContentDescription("删除 " + sessions[1].title) and hasAnyAncestor(hasTestTag("history_session_same-b")), useUnmergedTree = true).performClick()
         assertEquals("same-b", deleted)
         rule.runOnIdle { busy = true; chosen = null; deleted = null }
+        rule.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_session_same-a"))
         rule.onNodeWithTag("history_session_same-a").performClick()
         assertNull(chosen)
         rule.onNodeWithTag("new_chat").assertIsNotEnabled()
@@ -79,6 +83,12 @@ class ChatHistoryDrawerTest {
         rule.onNodeWithTag("history_list").performScrollToIndex(0)
         rule.onNodeWithTag("history_session_same-b").assertIsDisplayed()
         rule.onNodeWithTag("history_settings").assertIsDisplayed()
+        val settingsBounds = rule.onNodeWithTag("history_settings").fetchSemanticsNode().boundsInRoot
+        val usableBottom = rule.runOnUiThread {
+            val decor = rule.activity.window.decorView
+            decor.height - (decor.rootWindowInsets?.getInsets(WindowInsets.Type.navigationBars())?.bottom ?: 0)
+        }
+        assertTrue("Settings must stay above the actual system navigation bar", settingsBounds.bottom <= usableBottom + 2)
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("mkdir -p /data/local/tmp/solvit-ui")).use { it.readBytes() }
         ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/history-search-large-text.png")).use { it.readBytes() }
