@@ -5,6 +5,7 @@ solvit_diagnostic_expected='OK (1 test)'
 solvit_chat_font_scale=1
 solvit_memory_label_bounds=false
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
+  chat-drafts) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty' ;;
   environment-ui) solvit_diagnostic_test='dev.solvit.app.LinuxEnvironmentHtmlTest'; solvit_diagnostic_expected='OK (2 tests)' ;;
   history-search) solvit_diagnostic_test='dev.solvit.app.ChatHistoryDrawerTest,dev.solvit.app.ChatLayoutTest#historyTitleSearchOpensPersistedConversationAndReopeningResetsTheFilter'; solvit_diagnostic_expected='OK (2 tests)' ;;
   memory-labels) solvit_diagnostic_test='dev.solvit.app.PluginPageUiTest#packagedMemoryPageFiltersEditsAndReopensWithoutEnablingPlugin'; solvit_memory_label_bounds=true ;;

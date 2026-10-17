@@ -917,6 +917,70 @@ class ChatLayoutTest {
         }
     }
 
+    @Test fun switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty() {
+        ready()
+        val app = rule.activity.application as SolvitApplication
+        val chat = app.ready.value!!.getOrThrow()
+        val vm = rule.runOnUiThread { androidx.lifecycle.ViewModelProvider(rule.activity)[ChatViewModel::class.java] }
+        val created = mutableListOf<String>()
+        fun openHistory() {
+            rule.onNodeWithContentDescription("对话历史").performClick()
+            rule.mainClock.advanceTimeByFrame()
+            rule.waitUntil(8000) {
+                val panel = geometry("chat_drawer")
+                panel.bounds.left >= -2 && panel.bounds.right >= panel.width * 0.75f - 2
+            }
+        }
+        fun awaitClosed() {
+            rule.waitUntil(8000) {
+                runCatching { rule.onNodeWithTag("chat_drawer").assertIsNotDisplayed() }.isSuccess
+            }
+        }
+        fun text() = rule.onNodeWithTag("chat_input").fetchSemanticsNode()
+            .config[androidx.compose.ui.semantics.SemanticsProperties.EditableText].text
+        fun newConversation(): String {
+            val before = vm.sessionId.value
+            openHistory()
+            rule.onNodeWithTag("new_chat").assertIsEnabled().performClick()
+            rule.waitUntil(8000) { vm.sessionId.value != null && vm.sessionId.value != before }
+            awaitClosed()
+            val id = vm.sessionId.value!!
+            created += id
+            assertEquals("A new conversation must not inherit another conversation's input", "", text())
+            return id
+        }
+        fun selectConversation(id: String) {
+            openHistory()
+            rule.onNodeWithTag("history_list").performScrollToNode(hasTestTag("history_session_" + id))
+            rule.onNodeWithTag("history_session_" + id).assertIsDisplayed().performClick()
+            rule.waitUntil(8000) { vm.sessionId.value == id }
+            awaitClosed()
+        }
+        val firstText = "草稿甲：准备检查项目配置 🙂"
+        val secondText = "Draft B: prepare a separate question"
+        try {
+            val first = newConversation()
+            rule.onNodeWithTag("chat_input").performTextInput(firstText)
+            assertEquals(firstText, text())
+            val second = newConversation()
+            rule.onNodeWithTag("chat_input").performTextInput(secondText)
+            assertEquals(secondText, text())
+            selectConversation(first)
+            screenshot("chat-session-draft-return")
+            assertEquals("Returning to the first conversation must restore its unsent input", firstText, text())
+            selectConversation(second)
+            assertEquals("The second conversation owns a different unsent input", secondText, text())
+            rule.onNodeWithTag("chat_input").performTextClearance()
+            selectConversation(first)
+            assertEquals(firstText, text())
+            selectConversation(second)
+            assertEquals("An explicitly cleared draft must stay empty", "", text())
+            newConversation()
+        } finally {
+            runBlocking { created.forEach { chat.deleteSession(it) } }
+        }
+    }
+
     @Test fun historyTitleSearchOpensPersistedConversationAndReopeningResetsTheFilter() {
         ready()
         val app = rule.activity.application as SolvitApplication
