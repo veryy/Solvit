@@ -4,7 +4,13 @@ set -euo pipefail
 solvit_diagnostic_expected='OK (1 test)'
 solvit_chat_font_scale=1
 solvit_memory_label_bounds=false
+solvit_pdf_send_trace=false
+solvit_pdf_await_ime=false
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
+  pdf-send|pdf-send-ime)
+    solvit_diagnostic_test='dev.solvit.app.PdfChatDeviceTest#pickerSelectedScanPreviewHttpRetryReopenAndEditPreserveTheSameSelection'
+    solvit_pdf_send_trace=true
+    if [ "${SOLVIT_DIAGNOSTIC_CASE}" = pdf-send-ime ]; then solvit_pdf_await_ime=true; fi ;;
   terminal-tabs) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#interactiveTerminalUiKeepsEnvironmentAndDisplaysOutput' ;;
   chat-drafts-sequence) solvit_diagnostic_test='dev.solvit.app.ChatAttachmentWorkspaceHtmlTest,dev.solvit.app.ChatAttachmentsDeviceTest,dev.solvit.app.ChatHistoryDrawerTest,dev.solvit.app.ChatInteractionDeviceTest,dev.solvit.app.ChatLayoutTest#javascriptPluginUsesPersistentPtyAndDisableClosesItsProcess,dev.solvit.app.ChatLayoutTest#largeNativeTranscriptReopensAndBranchesThroughRealAndroidCursorWindows,dev.solvit.app.ChatLayoutTest#roleAppliedThroughSettingsReachesProviderAndNewChatRequest,dev.solvit.app.ChatLayoutTest#contextBudgetDialogValidatesAndReturnsSavedValues,dev.solvit.app.ChatLayoutTest#memoryTaskRetryRequiresConfirmationAndDisplaysSource,dev.solvit.app.ChatLayoutTest#actualApplicationCompactsOldHistoryBeforeRequestAndRetainsOriginalChat,dev.solvit.app.ChatLayoutTest#javascriptPluginCanCreateShellAndRunActualAndroidCommand,dev.solvit.app.ChatLayoutTest#switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty'; solvit_diagnostic_expected='OK (13 tests)' ;;
   chat-drafts) solvit_diagnostic_test='dev.solvit.app.ChatLayoutTest#switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty' ;;
@@ -73,6 +79,8 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   timeout --signal=TERM --kill-after=10s "$solvit_iteration_timeout" adb shell am instrument -w \
     -e class "$solvit_diagnostic_test" \
     -e chatFontScale "$solvit_chat_font_scale" \
+    -e pdfSendTrace "$solvit_pdf_send_trace" \
+    -e pdfAwaitNativeIme "$solvit_pdf_await_ime" \
     -e verifyMemoryLabelBounds "$solvit_memory_label_bounds" \
     -e workspaceRecreations "$solvit_recreations" \
     -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \

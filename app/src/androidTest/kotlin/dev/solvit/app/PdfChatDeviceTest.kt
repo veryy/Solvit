@@ -13,7 +13,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.*
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.*
@@ -60,6 +65,12 @@ class PdfChatDeviceTest {
         android.os.ParcelFileDescriptor.AutoCloseInputStream(automation.executeShellCommand("screencap -p /data/local/tmp/solvit-ui/$name.png")).use { it.readBytes() }
     }
     @Test fun pickerSelectedScanPreviewHttpRetryReopenAndEditPreserveTheSameSelection() {
+        val arguments=InstrumentationRegistry.getArguments()
+        val traceSend=arguments.getString("pdfSendTrace")=="true"
+        val awaitNativeIme=arguments.getString("pdfAwaitNativeIme")=="true"
+        var observingSend=false
+        var sendTouchNode:androidx.compose.ui.semantics.SemanticsNode?=null
+        val sendTouches=mutableListOf<Boolean>()
         val app=rule.activity.application as SolvitApplication
         rule.waitUntil(15_000) { app.ready.value!=null };check(app.ready.value!!.isSuccess)
         val target=InstrumentationRegistry.getInstrumentation().targetContext
@@ -109,7 +120,25 @@ class PdfChatDeviceTest {
                 val updates=UpdateViewModel(app.updates,app.updateDownloader);val market=MarketplaceViewModel(app.marketplace)
                 models+=listOf(vm,agents,workspaces,updates,market)
                 rule.activity.setContent { CompositionLocalProvider(LocalActivityResultRegistryOwner provides owner) {
-                    MaterialTheme { ChatScreen(vm,updates,market,agents,workspaces) }
+                    MaterialTheme {
+                        if(traceSend)Box(Modifier.fillMaxSize().pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while(true) {
+                                    val event=awaitPointerEvent(PointerEventPass.Initial)
+                                    if(observingSend)event.changes.filter { it.pressed!=it.previousPressed }.forEach { pointer ->
+                                        val bounds=sendTouchNode?.boundsInRoot
+                                        val decor=rule.activity.window.decorView
+                                        val insets=decor.rootWindowInsets
+                                        val ime=insets?.getInsets(android.view.WindowInsets.Type.ime())?.bottom?:0
+                                        val hit=bounds?.contains(pointer.position)==true
+                                        sendTouches+=hit
+                                        android.util.Log.i("SolvitPdfFixture","[DEBUG-solvit-pdf-touch] ${if(pointer.pressed)"down" else "up"}|hit=$hit|point=${pointer.position}|bounds=$bounds|ime=$ime|focus=${decor.hasWindowFocus()}")
+                                    }
+                                }
+                            }
+                        }) { ChatScreen(vm,updates,market,agents,workspaces) }
+                        else ChatScreen(vm,updates,market,agents,workspaces)
+                    }
                 } }
             }
             rule.waitUntil(10_000) { vm.ready.value && vm.sessionId.value!=null }
@@ -160,7 +189,26 @@ class PdfChatDeviceTest {
             rule.onNodeWithTag("pdf_original_close").performClick()
             rule.onNodeWithTag("attachment_preview_close").performClick()
             rule.onNodeWithTag("chat_input").performTextInput("read selected page")
+            if(awaitNativeIme)rule.waitUntil(10_000) {
+                val node=rule.onAllNodesWithTag("chat_composer").fetchSemanticsNodes().singleOrNull()
+                    ?:return@waitUntil false
+                rule.runOnUiThread {
+                    val decor=rule.activity.window.decorView
+                    val insets=decor.rootWindowInsets
+                    val ime=insets?.getInsets(android.view.WindowInsets.Type.ime())?.bottom?:0
+                    val bounds=node.boundsInRoot
+                    decor.hasWindowFocus()&&insets?.isVisible(android.view.WindowInsets.Type.ime())==true&&ime>0&&
+                        bounds.width>0&&bounds.height>0&&bounds.bottom<=decor.height-ime+1
+                }
+            }
+            if(traceSend) {
+                val node=rule.onNodeWithTag("chat_send").fetchSemanticsNode()
+                rule.runOnUiThread { sendTouchNode=node;observingSend=true }
+            }
             rule.onNodeWithTag("chat_send").performClick()
+            if(traceSend)rule.runOnUiThread {
+                android.util.Log.i("SolvitPdfFixture","[DEBUG-solvit-pdf-touch] after|touches=$sendTouches|sessionMatches=${vm.sessionId.value==session}|draftPresent=${vm.inputDrafts.value[session]?.text?.isNotBlank()==true}|busy=${vm.busy.value}|queued=${vm.queuedMessages.value.size}|requests=${server.requestCount}")
+            }
             try {
                 rule.waitUntil(90_000) { !vm.busy.value && vm.messages.value.lastOrNull()?.status==MessageStatus.FAILED }
             } catch (failure: Throwable) {
@@ -176,7 +224,13 @@ class PdfChatDeviceTest {
                 android.util.Log.i("SolvitPdfFixture", "PDF_SEND_INPUT|matches=$inputMatches|ime=$ime")
                 runCatching { screenshot("pdf-chat-send-failure") }
                 throw failure
+            } finally {
+                if(traceSend)rule.runOnUiThread {
+                    observingSend=false
+                    android.util.Log.i("SolvitPdfFixture","[DEBUG-solvit-pdf-touch] settled|touches=$sendTouches|sessionMatches=${vm.sessionId.value==session}|draftPresent=${vm.inputDrafts.value[session]?.text?.isNotBlank()==true}|busy=${vm.busy.value}|queued=${vm.queuedMessages.value.size}|requests=${server.requestCount}")
+                }
             }
+            if(traceSend)assertEquals("The original single physical send must land inside its actual button on down and up",listOf(true,true),rule.runOnUiThread { sendTouches.toList() })
             fun requestContent():String {
                 val request=server.takeRequest(5,TimeUnit.SECONDS)?:error("missing PDF request")
                 val messages=JSONObject(request.body.readUtf8()).getJSONArray("messages")
