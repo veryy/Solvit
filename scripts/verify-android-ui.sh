@@ -50,7 +50,9 @@ case "${SOLVIT_UI_DIAGNOSTIC:-none}" in
     ;;
   *) echo 'Unknown UI diagnostic mode'; exit 1 ;;
 esac
-timeout --signal=TERM --kill-after=30s 12m ./gradlew :web-android:connectedDebugAndroidTest :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions,dev.solvit.terminal.StdioProcessDeathTest" --stacktrace
+# 116 device cases: the measured app suite alone took 681s on a slower runner.
+# Include all modules and UTP startup without cutting off the final active case.
+timeout --signal=TERM --kill-after=30s 15m ./gradlew :web-android:connectedDebugAndroidTest :terminal-android:connectedDebugAndroidTest :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.notClass=$solvit_exclusions,dev.solvit.terminal.StdioProcessDeathTest" --stacktrace
 solvit_test_status=$?
 if [ "$solvit_test_status" -eq 0 ]; then
   # Keep the real authorization/queue/IME/role scenario at large text in the release gate.
