@@ -680,16 +680,10 @@ class ChatLayoutTest {
         var clickNode: androidx.compose.ui.semantics.SemanticsNode? = null
         val presses = java.util.concurrent.ConcurrentLinkedQueue<String>()
         val window = rule.activity.window
-        val original = checkNotNull(window.callback)
         if (diagnostic) rule.runOnUiThread {
-            window.callback = object : android.view.Window.Callback by original {
-                override fun dispatchTouchEvent(event: android.view.MotionEvent): Boolean {
-                    if (clickNode != null && event.actionMasked in listOf(android.view.MotionEvent.ACTION_DOWN, android.view.MotionEvent.ACTION_UP)) {
-                        val bounds = runCatching { clickNode?.boundsInWindow }.getOrNull()
-                        presses.add("action=${event.actionMasked},x=${event.x},y=${event.y},bounds=$bounds,inside=${bounds?.contains(androidx.compose.ui.geometry.Offset(event.x,event.y))},focus=${window.decorView.hasWindowFocus()}")
-                    }
-                    return original.dispatchTouchEvent(event)
-                }
+            chatDrawerPointerProbe = { point ->
+                val bounds = runCatching { clickNode?.boundsInRoot }.getOrNull()
+                if (presses.size < 20) presses.add("point=$point,bounds=$bounds,inside=${bounds?.contains(point)},focus=${window.decorView.hasWindowFocus()},ime=${window.decorView.rootWindowInsets?.isVisible(WindowInsets.Type.ime())}")
             }
         }
         try {
@@ -702,7 +696,10 @@ class ChatLayoutTest {
             rule.onNodeWithContentDescription("返回聊天").performClick()
             rule.onNodeWithContentDescription("对话历史").performClick()
             sessionBefore = vm.sessionId.value
-            if (diagnostic) clickNode = rule.onNodeWithTag("new_chat").fetchSemanticsNode()
+            if (diagnostic) {
+                clickNode = rule.onNodeWithTag("new_chat").fetchSemanticsNode()
+                presses.add("before: bounds=${clickNode?.boundsInRoot},focus=${rule.runOnUiThread { window.decorView.hasWindowFocus() }}")
+            }
             rule.onNodeWithTag("new_chat").performClick()
             rule.waitUntil(8000) { rule.onAllNodesWithText("新建工作区").fetchSemanticsNodes().isNotEmpty() }
             rule.waitUntil(8000) {
@@ -726,7 +723,7 @@ class ChatLayoutTest {
             }
             throw failure
         } finally {
-            if (diagnostic) rule.runOnUiThread { window.callback = original }
+            if (diagnostic) rule.runOnUiThread { chatDrawerPointerProbe = null }
             // Clear bindings before deleting a restricted role, so later fixtures stay usable.
             runBlocking {
                 val store = SqliteChatStore(app)
