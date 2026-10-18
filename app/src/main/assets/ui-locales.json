@@ -5590,5 +5590,13 @@
     "ko": "파일 크기",
     "es": "Tamaño del archivo",
     "fr": "Taille du fichier"
+  },
+  "先连接模型，再开始聊天": {
+    "en": "Connect a model to start chatting",
+    "es": "Conecta un modelo para empezar a conversar",
+    "fr": "Connectez un modèle pour commencer à discuter",
+    "ja": "モデルを接続してチャットを始めましょう",
+    "ko": "모델을 연결하고 대화를 시작하세요",
+    "zh": "先连接模型，再开始聊天"
   }
 }

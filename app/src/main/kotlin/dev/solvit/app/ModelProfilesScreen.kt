@@ -19,11 +19,14 @@ import java.util.UUID
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModelProfilesScreen(service: ModelProfilesService, generating: Boolean, onDismiss: () -> Unit,
-    onFetchModels: suspend (ModelConfig) -> List<AvailableModel>, providers: ModelProviderRegistry) {
+    onFetchModels: suspend (ModelConfig) -> List<AvailableModel>, providers: ModelProviderRegistry,
+    initialChatSetup: Boolean = false) {
     val state by service.state.collectAsStateWithLifecycle()
     val loadError by service.loadError.collectAsStateWithLifecycle()
-    var editing by remember { mutableStateOf<ModelProfile?>(null) }
-    var name by remember { mutableStateOf("") }
+    // Only the first-chat action opens a direct editor. Settings retains its profile list.
+    val firstSetup = remember { initialChatSetup && !state.configured && loadError == null && !generating }
+    var editing by remember { mutableStateOf(state.selected(ModelTask.CHAT).takeIf { firstSetup }) }
+    var name by remember { mutableStateOf(editing?.name.orEmpty()) }
     var task by remember { mutableStateOf<ModelTask?>(null) }
     var deleting by remember { mutableStateOf<ModelProfile?>(null) }
     var busy by remember { mutableStateOf(false) }
@@ -79,8 +82,11 @@ fun ModelProfilesScreen(service: ModelProfilesService, generating: Boolean, onDi
         }
     }
     editing?.let { profile -> key(profile.id) {
-        ModelSettings(profile.config,busy,error,onDismiss={ if(!busy) editing=null },
-            onSave={ config -> operation { service.save(profile.copy(name=name.trim(),config=config)); editing=null } },
+        ModelSettings(profile.config,busy,error,onDismiss={ if(!busy) { if(firstSetup) onDismiss() else editing=null } },
+            onSave={ config -> operation {
+                service.save(profile.copy(name=name.trim(),config=config)); editing=null
+                if(firstSetup) onDismiss()
+            } },
             onFetchModels=onFetchModels,profileName=name,onProfileNameChanged={ name=it },providers=providers)
     } }
     task?.let { selectedTask -> AlertDialog(onDismissRequest={ if(!busy) task=null },title={ UiText("选择任务模型") },text={

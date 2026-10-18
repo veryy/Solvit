@@ -31,7 +31,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -186,6 +185,7 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     var diagnosticsOpen by rememberSaveable { mutableStateOf(false) }
     var permissionsOpen by rememberSaveable { mutableStateOf(false) }
     var modelsOpen by rememberSaveable { mutableStateOf(false) }
+    var quickModelSetup by rememberSaveable { mutableStateOf(false) }
     var backupOpen by rememberSaveable { mutableStateOf(false) }
     var pluginsOpen by rememberSaveable { mutableStateOf(false) }
     var workspaceOpen by rememberSaveable { mutableStateOf(false) }
@@ -238,8 +238,9 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                     title = { Column {
                         Text(roleName, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                             modifier=Modifier.testTag("chat_role_title"))
-                        Text(config.model, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (modelConfigured) Text(config.model, style = MaterialTheme.typography.labelSmall,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.testTag("chat_model_label"))
                     } },
                     navigationIcon = { IconButton(onClick = { hideInput(); scope.launch { drawer.open() } }) { UiIcon(Icons.Default.Menu, "对话历史") } },
                     actions = {
@@ -324,22 +325,10 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
                     UiText("工作区：${workspaceState.workspaces.firstOrNull { it.id == workspaceId }?.name ?: uiString("打开中…")} · Shell / 文件")
                 }
             if (messages.isEmpty() && !busy) {
-                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    val expanded = maxHeight >= 240.dp
-                    val showTitle = maxHeight >= 100.dp
-                    Column(Modifier.padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(if (expanded) 12.dp else 4.dp)) {
-                        Icon(painterResource(R.drawable.ic_solvit_monochrome), null,
-                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(if (expanded) 80.dp else 48.dp))
-                        if (showTitle) UiText("从一个想法开始", style = if (expanded) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleMedium)
-                        if (expanded) {
-                            UiText("一起整理思路、解答问题", style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (!modelConfigured) OutlinedButton(onClick = { hideInput(); modelsOpen = true }) { UiText("配置你的模型") }
-                        }
-                        if (workspaceId == null && showTitle) OutlinedButton(onClick = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true },enabled=ready) { UiText("新建工作区") }
-                    }
-                }
+                ChatEmptyState(modelConfigured, workspaceId != null, ready,
+                    onConfigureModel = { hideInput(); quickModelSetup = true; modelsOpen = true },
+                    onCreateWorkspace = { hideInput(); workspaceCreateRequested = true; workspaceOpen = true },
+                    modifier = Modifier.weight(1f))
             } else {
                 CompositionLocalProvider(LocalChatAppearance provides chatAppearance) {
                 ChatTimeline(chatRows, selected, modifier=Modifier.weight(1f), assistantName=roleName,
@@ -388,7 +377,9 @@ internal fun ChatScreen(vm: ChatViewModel, updates: UpdateViewModel, marketplace
     }
     if (diagnosticsOpen) RequestDiagnosticsDialog(app.requestInspection, vm, app.contextPreparation) { diagnosticsOpen = false }
     if (permissionsOpen) ExecutionPermissionsScreen(app.systemExecution, app.marketplace, app.toolApprovals) { permissionsOpen = false }
-    if (modelsOpen) ModelProfilesScreen(app.modelProfiles, busy, onDismiss = { modelsOpen = false }, onFetchModels = vm::discoverModels, providers = app.modelProviders)
+    if (modelsOpen) ModelProfilesScreen(app.modelProfiles, busy,
+        onDismiss = { modelsOpen = false; quickModelSetup = false }, onFetchModels = vm::discoverModels,
+        providers = app.modelProviders, initialChatSetup = quickModelSetup)
     if (backupOpen) ConfigurationBackupDialog(vm, app.roles, app.appearance, onDismiss = { backupOpen = false })
     if (pluginsOpen) PluginMarketplaceDialog(marketplace, workspaceAccess = { install -> workspaces.pageAccess(install) }, terminalAccess = { owner -> workspaces.terminalPageAccess(owner) }, gitAccess = { workspaces.gitPageAccess() }, onDismiss = { pluginsOpen = false })
     if (agentsOpen) AgentLibraryDialog(agents, onDismiss = { agentsOpen = false })

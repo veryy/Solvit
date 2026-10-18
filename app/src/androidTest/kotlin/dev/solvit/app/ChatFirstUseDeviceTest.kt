@@ -103,6 +103,13 @@ class ChatFirstUseDeviceTest {
             assertTrue("Setup must remain below the header", setupBounds.top >= title.bottom)
             setup.performClick()
             rule.onNodeWithTag("model_settings_list").assertIsDisplayed()
+            rule.onNodeWithContentDescription("关闭设置").performClick()
+            rule.waitUntil(10_000) { rule.onAllNodesWithTag("model_settings_list").fetchSemanticsNodes().isEmpty() &&
+                rule.onAllNodesWithTag("model_profiles_list").fetchSemanticsNodes().isEmpty() }
+            assertFalse("Cancel must not save the default connection", app.modelProfiles.state.value.configured)
+            rule.onNodeWithText("first-use-fixture").assertDoesNotExist()
+            rule.onNodeWithText("配置你的模型").assertIsDisplayed().performClick()
+            rule.onNodeWithTag("model_settings_list").assertIsDisplayed()
             rule.onNodeWithTag("save_model_profile").assertIsDisplayed().performClick()
             rule.waitUntil(10_000) { rule.onAllNodesWithTag("model_settings_list").fetchSemanticsNodes().isEmpty() &&
                 rule.onAllNodesWithTag("model_profiles_list").fetchSemanticsNodes().isEmpty() }
