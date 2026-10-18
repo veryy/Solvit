@@ -81,6 +81,25 @@ class SystemBarsThemeDeviceTest {
         InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(100, 2_000)
         shell("mkdir -p /data/local/tmp/solvit-ui")
         shell("screencap -p /data/local/tmp/solvit-ui/$name.png")
+        if (name == "main-theme-dark-system-light") {
+            // Temporary diagnosis: the launcher can draw the unified navigation buttons,
+            // independently of SystemUI's requested tint. Keep only named drawing fields.
+            val fields = listOf("TaskbarManager:", "TaskbarActivityContext:", "NavbarButtonsViewController:",
+                "mState=", "mSysuiStateFlags=", "mTaskbarNavButtonDarkIntensity=",
+                "mSlideInViewVisibleNavButtonColorOverride=", "mOnTaskbarBackgroundNavButtonColorOverride=",
+                "mOnBackgroundNavButtonColorOverrideMultiplier=", "mAreNavButtonsInSeparateWindow=",
+                "mTaskbarWindowHeight=", "mIsUserUnlocked=", "mTaskbarSharedState=",
+                "mNavigationLight=", "mHasLightNavigationBar=", "mNavbarColorManagedByIme=",
+                "mNavigationBarMode=", "mLightsOut=", "mAutoDim=", "mBackgroundColor=",
+                "mAreNavigationButtonForcedVisible=", "mNavigationMode=")
+            for (command in listOf(
+                "dumpsys activity service com.android.launcher3/com.android.quickstep.TouchInteractionService",
+                "dumpsys activity service com.android.systemui/.SystemUIService")) {
+                shell(command).decodeToString().lineSequence().map(String::trim)
+                    .filter { line -> fields.any { line.startsWith(it) } }
+                    .forEach { println("ROOT_NAV_OWNER $it") }
+            }
+        }
         rule.runOnUiThread {
             val window = rule.activity.window
             val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -134,14 +153,7 @@ class SystemBarsThemeDeviceTest {
         val originalTheme = app.appearance.theme.value
         val originalDynamic = app.appearance.dynamicColors.value
         val originalNight = (app.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager).nightMode
-        val animationScales = listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale")
-            .associateWith { key -> shell("settings get global $key").decodeToString().trim().also {
-                require(it == "null" || it.toFloatOrNull() != null)
-            } }
         try {
-            // Exercise actual system-bar drawing under normal system transitions.
-            // Restore the runner's animation settings after this pixel scenario.
-            animationScales.keys.forEach { shell("settings put global $it 1") }
             rule.runOnUiThread { app.appearance.setTheme("light"); app.appearance.setDynamicColors(false) }
             systemTheme(false)
             // Start with a real light-system Activity so the opposite app mode is observable.
@@ -164,9 +176,6 @@ class SystemBarsThemeDeviceTest {
         } finally {
             rule.runOnUiThread { app.appearance.setTheme(originalTheme); app.appearance.setDynamicColors(originalDynamic) }
             shell("cmd uimode night ${when (originalNight) { UiModeManager.MODE_NIGHT_YES -> "yes"; UiModeManager.MODE_NIGHT_NO -> "no"; else -> "auto" }}")
-            animationScales.forEach { (key, value) ->
-                shell(if (value == "null") "settings delete global $key" else "settings put global $key $value")
-            }
         }
     }
 }
