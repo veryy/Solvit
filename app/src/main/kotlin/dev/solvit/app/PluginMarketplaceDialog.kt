@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import kotlinx.coroutines.launch
@@ -78,6 +79,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
     FullScreenPage(onDismissRequest = onDismiss) {
         val focus = LocalFocusManager.current
         val keyboard = LocalSoftwareKeyboardController.current
+        val imeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
         fun finishSearch() { focus.clearFocus(); keyboard?.hide() }
         Surface(Modifier.fillMaxSize()) {
             Scaffold(topBar = {
@@ -94,7 +96,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                     }
                     OutlinedTextField(value = query, onValueChange = ::changeQuery,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).testTag("plugins_search"),
-                        placeholder = { UiText("搜索名称、ID 或功能") }, singleLine = true,
+                        placeholder = { UiText("搜索名称、ID 或功能", maxLines = 1, overflow = TextOverflow.Ellipsis) }, singleLine = true,
                         leadingIcon = { Icon(Icons.Default.Search, null) },
                         trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { changeQuery("") }) { UiIcon(Icons.Default.Close, "清除搜索") } },
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -105,7 +107,7 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                         contentPadding = PaddingValues(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                if (tab == 1) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (tab == 1 && !imeVisible) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     listOf("全部", "已启用", "已停用").forEachIndexed { index, label ->
                                         FilterChip(selected = installedFilter == index,
                                             onClick = { installedFilter = index; finishSearch(); scope.launch { installedGrid.scrollToItem(0) } },
@@ -114,7 +116,10 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                                 }
                                 val count = if (tab == 0) visibleCatalog.size else visibleInstalled.size
                                 val total = if (tab == 0) catalog.size else installed.size
-                                UiText("显示 $count / $total 个插件", style = MaterialTheme.typography.labelMedium,
+                                val countLabel = uiString("显示 $count / $total 个插件")
+                                val summary = if (tab == 1 && imeVisible)
+                                    "${uiString(listOf("全部", "已启用", "已停用")[installedFilter])} · $countLabel" else countLabel
+                                Text(summary, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("plugins_result_count"))
                             }
                         }

@@ -64,6 +64,9 @@ class PluginBrowserDeviceTest {
             assertTrue("Search result must be fully visible above keyboard: top=$top height=${coordinates.size.height} viewport=$viewport",
                 top >= viewport.top && top + coordinates.size.height <= viewport.bottom + 1f)
             rule.onNodeWithTag("plugins_search").performImeAction()
+            rule.waitUntil(10_000) { rule.runOnUiThread {
+                WindowInspector.getGlobalWindowViews().none { it.rootWindowInsets?.isVisible(WindowInsets.Type.ime()) == true }
+            } && rule.onAllNodesWithTag("plugins_filter_1").fetchSemanticsNodes().isNotEmpty() }
             rule.onNodeWithTag("plugins_filter_1").performClick()
             rule.onNodeWithTag("plugins_filter_1").assertIsSelected()
             rule.onNodeWithTag("plugins_result_count").assertTextEquals("显示 1 / ${app.marketplace.installed.value.size} 个插件")
