@@ -45,3 +45,8 @@
 
 
 e373同APK组合39094357176中，浏览器两项已结束，旧底部方法仅出现开始记录，未输出断言或结束；120秒runner以124退出。归档12124147535（1069620字节）的大小/摘要/CRC、runner及TestRunner日志已核对，未找到Fatal/ANR，不能据此断言已修复底部路径。优先验证 `performScrollToNode` 的逐屏ScrollBy循环与该旧类StandardTestDispatcher排队的交互；其次检查跨类规则切换，最后检查真实末项不可达。读取AndroidX `compose/ui/ui-test/src/commonMain/kotlin/androidx/compose/ui/test/Actions.kt`（202b4bda8adfeb303ac30e359e8436a3752fe2b0）和 `actions/ScrollToKeyTest.kt`（c467614eb3fd738f1579b79011ba7c1c16e027b4）的实际实现/测试：公开按key动作通过IndexForKey调用ScrollToIndex，避免逐屏循环。只阅读Apache-2.0源码，不复制。改为现有插件ID的公开key动作，按本项目QueuedScroll.kt既有方式推进一帧，再有界等待真实节点可见，保留全部旧断言并记录前后截图。先对同一生产APK定向验证，再完整回归；不增加超时或改生产UI。
+
+
+完整39095347399的构建阶段通过628单元/Lint/固定签名，APK与三项39095031412定向用包大小及SHA-256一致。但全套在外部克隆CONFLICT恢复阶段发生SnapshotStateObserver跨线程崩溃，尚未执行常规模拟器套件；不得算全套通过或交付。失败UI归档12125015705（675177字节）的大小/摘要/CRC和原始runner/logcat已核对。日志明确记录DefaultDispatcher-worker-4经ApplyingContinuationInterceptor → TestMonotonicFrameClock → Recomposer → AndroidView更新 → PluginWebPage.kt:221调用WebView.evaluateJavascript，随后main绘制与前一线程49竞争。这是默认Unconfined测试调度的直接调用证据，不能推断普通生产环境同样使用该测试调度器。
+
+读取官方ui-test-android1.8.3 sources中ComposeUiTest.android.kt（225–262行）及AndroidX c500530fe429fb363e2aed6741a67c938b6f6891的CustomEffectContextTest.kt：默认TestDispatcher为Unconfined；明确提供StandardTestDispatcher时由MainTestClock驱动，官方测试保留实际帧推进。只阅读Apache-2.0源码，不复制。按本项目既有ChatLayoutTest/PdfChatDeviceTest模式，仅对有直接竞争证据的WorkspaceCloneProcessDeathTest排队组合效果；HTML等待同步推进一帧。原六场实际外部force-stop、PID、数据/目录inode、Shell、请求数、拒绝及显式恢复断言全部保留。新增同APK克隆六场定向入口，先验证这一实际失败链再完整回归；不改生产线程、依赖或恢复实现，也不吞掉异常。

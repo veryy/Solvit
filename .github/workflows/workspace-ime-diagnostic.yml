@@ -10,7 +10,7 @@ on:
         description: Existing full device scenario to repeat, stopping at first failure
         type: choice
         default: workspace-editor
-        options: [plugin-browser-bottom, plugin-browser, first-use, mcp-page, attachment-preview, pdf-chat, terminal-tabs, chat-drafts-sequence, chat-drafts, environment-ui, history-search, memory-labels, plugin-page-feedback, workspace-forms, workspace-editor, workspace-startup, workspace-startup-stress, workspace-startup-sequence, compose-lifecycle-dispatch, plugin-document-lifecycle, plugin-resume, chat-interaction, chat-interaction-large-text, settings-theme, language-settings, file-imports, chat-branches, queued-ui-scroll, queued-ui-follow-up, plugin-page-ready, workspace-user-lifecycle, workspace-user-lifecycle-stress, webview-plugin-host-control, plugin-native-entry]
+        options: [clone-recovery, plugin-browser-bottom, plugin-browser, first-use, mcp-page, attachment-preview, pdf-chat, terminal-tabs, chat-drafts-sequence, chat-drafts, environment-ui, history-search, memory-labels, plugin-page-feedback, workspace-forms, workspace-editor, workspace-startup, workspace-startup-stress, workspace-startup-sequence, compose-lifecycle-dispatch, plugin-document-lifecycle, plugin-resume, chat-interaction, chat-interaction-large-text, settings-theme, language-settings, file-imports, chat-branches, queued-ui-scroll, queued-ui-follow-up, plugin-page-ready, workspace-user-lifecycle, workspace-user-lifecycle-stress, webview-plugin-host-control, plugin-native-entry]
       repetitions:
         description: Number of repetitions (1 through 8)
         type: string
@@ -80,6 +80,9 @@ jobs:
         run: |
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
           ./gradlew :app:assembleDebugAndroidTest --stacktrace
+      - name: Prepare TLS Git backend for clone recovery
+        if: inputs.test_case == 'clone-recovery'
+        run: bash scripts/prepare-clone-git-fixture.sh
       - name: Enable emulator hardware acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules

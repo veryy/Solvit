@@ -5,6 +5,7 @@ solvit_diagnostic_expected='OK (1 test)'
 solvit_chat_font_scale=1
 solvit_memory_label_bounds=false
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
+  clone-recovery) solvit_diagnostic_test='' ;;
   plugin-browser-bottom) solvit_diagnostic_test='dev.solvit.app.PluginBrowserDeviceTest,dev.solvit.app.ChatLayoutTest#pluginPageCanReachBottomAndReturnToChat'; solvit_diagnostic_expected='OK (3 tests)' ;;
   plugin-browser) solvit_diagnostic_test='dev.solvit.app.PluginBrowserDeviceTest'; solvit_diagnostic_expected='OK (2 tests)' ;;
   first-use) solvit_diagnostic_test='dev.solvit.app.ChatFirstUseDeviceTest'; solvit_diagnostic_expected='OK (2 tests)' ;;
@@ -68,6 +69,13 @@ capture() {
 trap capture EXIT
 timeout 90s adb install -r diagnostic-apk/app-debug.apk
 timeout 90s adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+if [ "${SOLVIT_DIAGNOSTIC_CASE:-}" = clone-recovery ]; then
+  # Use the downloaded production APK with the existing full six-scenario script.
+  mkdir -p app/build/outputs/apk/debug
+  cp diagnostic-apk/app-debug.apk app/build/outputs/apk/debug/app-debug.apk
+  bash scripts/verify-workspace-clone-process-death.sh
+  exit
+fi
 for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
   echo "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor} diagnostic iteration $iteration/$solvit_diagnostic_repetitions"
   solvit_iteration_timeout=120s

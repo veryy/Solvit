@@ -28,8 +28,13 @@ import javax.net.ssl.*
 /** Invoked only by the external adb script. Production clone, durable intents and
  * native file/metadata moves run before a host checkpoint blocks for actual force-stop.
  * Verify starts in a different process and operates the actual packaged JS/HTML page. */
+@OptIn(ExperimentalTestApi::class)
 class WorkspaceCloneProcessDeathTest {
-    @get:Rule val rule=createAndroidComposeRule<MainActivity>()
+    // IO snapshot notifications must queue effects until the UI test clock drains them.
+    // The default unconfined test dispatcher ran AndroidView updates on a worker.
+    @get:Rule val rule=createAndroidComposeRule<MainActivity>(
+        effectContext = kotlinx.coroutines.test.StandardTestDispatcher()
+    )
     private val app get()=rule.activity.application as SolvitApplication
     private val fixture get()=File(app.noBackupFilesDir,"clone-recovery-fixture.json")
     private val marker get()=File(app.noBackupFilesDir,"clone-recovery-ready")
@@ -123,7 +128,10 @@ class WorkspaceCloneProcessDeathTest {
         HttpsURLConnection.setDefaultSSLSocketFactory(tls())
         val html=HtmlPageProbe(rule.activity);val manager=BuiltinWorkspaceManager(app,"dev.solvit.git")
         val workspaceBridge=WorkspacePageBridge(app.workspaces,null,chat)
-        fun waitDom(code:String){rule.waitUntil(15_000){runCatching { html.js(code)=="true" }.getOrDefault(false)}}
+        fun waitDom(code:String){rule.waitUntil(15_000){
+            rule.mainClock.advanceTimeByFrame()
+            runCatching { html.js(code)=="true" }.getOrDefault(false)
+        }}
         fun click(id:String){waitDom("!!document.querySelector('[data-node=$id]')&&!document.querySelector('[data-node=$id]').disabled");html.js("document.querySelector('[data-node=$id]').click()")}
         fun confirm(allow:Boolean) {
             rule.waitUntil(10_000){rule.onAllNodesWithTag("plugin_page_confirm").fetchSemanticsNodes().isNotEmpty()}
