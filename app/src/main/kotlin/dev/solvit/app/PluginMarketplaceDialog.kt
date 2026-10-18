@@ -1,22 +1,32 @@
 package dev.solvit.app
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import kotlinx.coroutines.launch
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -37,6 +47,28 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
     val configuring by vm.configuring.collectAsStateWithLifecycle()
     val configurationValues by vm.configurationValues.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    var marketQuery by rememberSaveable { mutableStateOf("") }
+    var installedQuery by rememberSaveable { mutableStateOf("") }
+    var installedFilter by rememberSaveable { mutableIntStateOf(0) }
+    val marketGrid = rememberLazyGridState()
+    val installedGrid = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+    fun changeQuery(value: String) {
+        if (tab == 0) marketQuery = value else installedQuery = value
+        val grid = if (tab == 0) marketGrid else installedGrid
+        scope.launch { grid.scrollToItem(0) }
+    }
+    val query = if (tab == 0) marketQuery else installedQuery
+    val search = query.trim()
+    val visibleCatalog = remember(catalog, search) { catalog.filter { entry ->
+        listOf(entry.id, entry.name, entry.description).any { it.contains(search, ignoreCase = true) }
+    } }
+    val visibleInstalled = remember(installed, search, installedFilter) { installed.filter { extension ->
+        (installedFilter == 0 || (installedFilter == 1) == extension.enabled) &&
+            (listOf(extension.id, extension.name).any { it.contains(search, ignoreCase = true) } ||
+                extension.tools.any { it.name.contains(search, ignoreCase = true) || it.description.contains(search, ignoreCase = true) } ||
+                extension.pages.any { it.title.contains(search, ignoreCase = true) })
+    } }
     var enableTarget by remember { mutableStateOf<InstalledExtension?>(null) }
     var deleteTarget by remember { mutableStateOf<InstalledExtension?>(null) }
     var marketTarget by remember { mutableStateOf<MarketEntry?>(null) }
@@ -44,6 +76,9 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
     var openedPage by remember { mutableStateOf<Pair<String, ExtensionPage>?>(null) }
 
     FullScreenPage(onDismissRequest = onDismiss) {
+        val focus = LocalFocusManager.current
+        val keyboard = LocalSoftwareKeyboardController.current
+        fun finishSearch() { focus.clearFocus(); keyboard?.hide() }
         Surface(Modifier.fillMaxSize()) {
             Scaffold(topBar = {
                 TopAppBar(title = { UiText("插件") }, navigationIcon = {
@@ -54,19 +89,49 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
             }) { padding ->
                 Column(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding)) {
                     TabRow(selectedTabIndex = tab) {
-                        Tab(selected = tab == 0, onClick = { tab = 0 }, text = { UiText("市场") })
-                        Tab(selected = tab == 1, onClick = { tab = 1 }, text = { UiText("已安装 (${installed.size})") })
+                        Tab(selected = tab == 0, onClick = { finishSearch(); tab = 0 }, modifier = Modifier.testTag("plugins_market_tab"), text = { UiText("市场") })
+                        Tab(selected = tab == 1, onClick = { finishSearch(); tab = 1 }, modifier = Modifier.testTag("plugins_installed_tab"), text = { UiText("已安装 (${installed.size})") })
                     }
+                    OutlinedTextField(value = query, onValueChange = ::changeQuery,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp).testTag("plugins_search"),
+                        placeholder = { UiText("搜索名称、ID 或功能") }, singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.Search, null) },
+                        trailingIcon = { if (query.isNotEmpty()) IconButton(onClick = { changeQuery("") }) { UiIcon(Icons.Default.Close, "清除搜索") } },
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { finishSearch() }))
                     if (loading || busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                     error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
-                    LazyVerticalGrid(columns = GridCells.Adaptive(140.dp), modifier = Modifier.weight(1f).testTag("plugins_list"),
+                    LazyVerticalGrid(columns = GridCells.Adaptive(140.dp), state = if (tab == 0) marketGrid else installedGrid, modifier = Modifier.weight(1f).testTag("plugins_list"),
                         contentPadding = PaddingValues(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                if (tab == 1) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    listOf("全部", "已启用", "已停用").forEachIndexed { index, label ->
+                                        FilterChip(selected = installedFilter == index,
+                                            onClick = { installedFilter = index; finishSearch(); scope.launch { installedGrid.scrollToItem(0) } },
+                                            label = { UiText(label) }, modifier = Modifier.testTag("plugins_filter_$index"))
+                                    }
+                                }
+                                val count = if (tab == 0) visibleCatalog.size else visibleInstalled.size
+                                val total = if (tab == 0) catalog.size else installed.size
+                                UiText("显示 $count / $total 个插件", style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("plugins_result_count"))
+                            }
+                        }
+                        val noMatch = if (tab == 0) catalog.isNotEmpty() && visibleCatalog.isEmpty() else installed.isNotEmpty() && visibleInstalled.isEmpty()
+                        if (noMatch) item(span = { GridItemSpan(maxLineSpan) }) {
+                            Column(Modifier.fillMaxWidth().padding(vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                UiText("没有匹配的插件", Modifier.testTag("plugins_no_results"))
+                                TextButton(onClick = { if (tab == 1) installedFilter = 0; changeQuery(""); finishSearch() },
+                                    modifier = Modifier.testTag("plugins_reset_search")) { UiText("清除筛选") }
+                            }
+                        }
                         if (tab == 0) {
                             if (catalog.isEmpty() && !loading) item(span = { GridItemSpan(maxLineSpan) }) { UiText("暂无插件，点击右上角刷新市场。") }
-                            items(catalog, key = { it.id }) { entry ->
+                            items(visibleCatalog, key = { it.id }) { entry ->
                                 val local = installed.firstOrNull { it.id == entry.id }
                                 val comparison = local?.let { compareExtensionVersions(entry.version, it.version) }
-                                Card(onClick = { marketTarget = entry }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = Modifier.fillMaxWidth().testTag("market_plugin_${entry.id}")) {
+                                Card(onClick = { finishSearch(); marketTarget = entry }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = Modifier.fillMaxWidth().testTag("market_plugin_${entry.id}")) {
                                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Text(entry.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         Text(entry.description, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -80,8 +145,8 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                             }
                         } else {
                             if (installed.isEmpty()) item(span = { GridItemSpan(maxLineSpan) }) { UiText("安装后可以在这里启用插件、管理权限和配置。") }
-                            items(installed, key = { it.id }) { extension ->
-                                Card(onClick = { installedTarget = extension.id }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = Modifier.fillMaxWidth().testTag("installed_plugin_${extension.id}")) {
+                            items(visibleInstalled, key = { it.id }) { extension ->
+                                Card(onClick = { finishSearch(); installedTarget = extension.id }, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow), modifier = Modifier.fillMaxWidth().testTag("installed_plugin_${extension.id}")) {
                                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                         Text(extension.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                         UiText(if (extension.enabled) "已启用" else "已停用", style = MaterialTheme.typography.labelSmall)

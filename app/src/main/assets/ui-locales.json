@@ -5598,5 +5598,53 @@
     "ja": "モデルを接続してチャットを始めましょう",
     "ko": "모델을 연결하고 대화를 시작하세요",
     "zh": "先连接模型，再开始聊天"
+  },
+  "搜索名称、ID 或功能": {
+    "zh": "搜索名称、ID 或功能",
+    "en": "Search name, ID, or capability",
+    "ja": "名前・ID・機能を検索",
+    "ko": "이름, ID 또는 기능 검색",
+    "es": "Buscar nombre, ID o función",
+    "fr": "Rechercher nom, ID ou fonction"
+  },
+  "清除搜索": {
+    "zh": "清除搜索",
+    "en": "Clear search",
+    "ja": "検索をクリア",
+    "ko": "검색 지우기",
+    "es": "Borrar búsqueda",
+    "fr": "Effacer la recherche"
+  },
+  "全部": {
+    "zh": "全部",
+    "en": "All",
+    "ja": "すべて",
+    "ko": "전체",
+    "es": "Todos",
+    "fr": "Tous"
+  },
+  "显示 {0} / {1} 个插件": {
+    "zh": "显示 {0} / {1} 个插件",
+    "en": "Showing {0} of {1} plugins",
+    "ja": "プラグイン {1} 件中 {0} 件",
+    "ko": "플러그인 {1}개 중 {0}개 표시",
+    "es": "Mostrando {0} de {1} plugins",
+    "fr": "{0} plugins affichés sur {1}"
+  },
+  "没有匹配的插件": {
+    "zh": "没有匹配的插件",
+    "en": "No matching plugins",
+    "ja": "一致するプラグインがありません",
+    "ko": "일치하는 플러그인이 없습니다",
+    "es": "No hay plugins coincidentes",
+    "fr": "Aucun plugin correspondant"
+  },
+  "清除筛选": {
+    "zh": "清除筛选",
+    "en": "Clear filters",
+    "ja": "絞り込みをクリア",
+    "ko": "필터 지우기",
+    "es": "Borrar filtros",
+    "fr": "Effacer les filtres"
   }
 }
