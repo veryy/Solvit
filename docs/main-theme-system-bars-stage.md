@@ -70,3 +70,8 @@ cf638118的诊断39083864732实际完成六步后明确失败，归档1211922892
 39085059302（2b7c10c3）正常动画的原完整路径仍在首个深色场景失败：实际导航对比采样0。归档12120487267（580324字节）大小/摘要/CRC及runner核对，实际PNG已查看；背景与请求状态通过，后续四种模式未执行，不能计作通过。开启动画不是修复，移除这一无效测试设置。
 
 下一同包诊断只增加绘制端的过滤状态，不改变操作、生产代码或像素断言。阅读AOSP android-15.0.0_r1 Launcher3 quickstep/src/com/android/launcher3/taskbar/NavbarButtonsViewController.java 231–235、674–695、1021–1042及TaskbarManager.java 522–524：统一导航可由Launcher绘制，除SystemUI intensity外还有基于系统主题的Taskbar背景颜色覆盖。此前仅检查SystemUI未覆盖这一边界。若实际Taskbar存在且覆盖值非零，系统主题色固定现象与此相符；若不存在则否定此假设，继续窗口/绘制对照。上游Apache-2.0代码只阅读，未复制或新增依赖。尚未证明实际镜像启用此路径，不提前宣布根因。
+
+
+39085794967（be7b896d）归档12120352462（565059字节）摘要/大小/CRC/runner及过滤日志已核对：实际存在Launcher TaskbarActivityContext/NavbarButtonsViewController，darkIntensity0，但背景颜色override1、multiplier1、slideIn0；SystemUI请求仍正确。此证据说明此前检查的SystemUI并不是唯一最终绘制端，不能再通过反复设置Window标志定位该灰色。阅读同版TaskbarDragLayerController.java 95–108、173–181、228–230：默认背景值及覆盖独立于应用请求；TaskbarBaseTestCase.kt仅mock控制器，无实际导航像素验收。
+
+下一次只做显式Home→恢复同一Activity对照，记录前后Launcher覆盖值与PNG，最后明确失败为probe而不当作通过。用于区分模拟器启动/前后台初始化与持续的系统绘制契约，不改APK、不改原始像素要求，也不在产品中加入跳Home的规避操作。原完整场景验证仍须保留。

@@ -92,13 +92,25 @@ class SystemBarsThemeDeviceTest {
                 "mNavigationLight=", "mHasLightNavigationBar=", "mNavbarColorManagedByIme=",
                 "mNavigationBarMode=", "mLightsOut=", "mAutoDim=", "mBackgroundColor=",
                 "mAreNavigationButtonForcedVisible=", "mNavigationMode=")
-            for (command in listOf(
-                "dumpsys activity service com.android.launcher3/com.android.quickstep.TouchInteractionService",
-                "dumpsys activity service com.android.systemui/.SystemUIService")) {
-                shell(command).decodeToString().lineSequence().map(String::trim)
-                    .filter { line -> fields.any { line.startsWith(it) } }
-                    .forEach { println("ROOT_NAV_OWNER $it") }
+            fun drawingState(label: String) {
+                for (command in listOf(
+                    "dumpsys activity service com.android.launcher3/com.android.quickstep.TouchInteractionService",
+                    "dumpsys activity service com.android.systemui/.SystemUIService")) {
+                    shell(command).decodeToString().lineSequence().map(String::trim)
+                        .filter { line -> fields.any { line.startsWith(it) } }
+                        .forEach { println("ROOT_NAV_OWNER $label $it") }
+                }
             }
+            drawingState("before-home")
+            // Explicit one-variable probe, never a replacement for the normal scenario.
+            shell("input keyevent KEYCODE_HOME")
+            InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(100, 2_000)
+            shell("am start -W -n dev.solvit.app/.MainActivity")
+            rule.waitUntil(10_000) { rule.runOnUiThread { rule.activity.hasWindowFocus() } }
+            mainPage()
+            shell("screencap -p /data/local/tmp/solvit-ui/nav-owner-after-home.png")
+            drawingState("after-home")
+            fail("Launcher foreground round-trip probe completed; diagnostic only, not acceptance")
         }
         rule.runOnUiThread {
             val window = rule.activity.window
