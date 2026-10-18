@@ -75,3 +75,6 @@ cf638118的诊断39083864732实际完成六步后明确失败，归档1211922892
 39085794967（be7b896d）归档12120352462（565059字节）摘要/大小/CRC/runner及过滤日志已核对：实际存在Launcher TaskbarActivityContext/NavbarButtonsViewController，darkIntensity0，但背景颜色override1、multiplier1、slideIn0；SystemUI请求仍正确。此证据说明此前检查的SystemUI并不是唯一最终绘制端，不能再通过反复设置Window标志定位该灰色。阅读同版TaskbarDragLayerController.java 95–108、173–181、228–230：默认背景值及覆盖独立于应用请求；TaskbarBaseTestCase.kt仅mock控制器，无实际导航像素验收。
 
 下一次只做显式Home→恢复同一Activity对照，记录前后Launcher覆盖值与PNG，最后明确失败为probe而不当作通过。用于区分模拟器启动/前后台初始化与持续的系统绘制契约，不改APK、不改原始像素要求，也不在产品中加入跳Home的规避操作。原完整场景验证仍须保留。
+
+
+39086174474（3d227a27）的Home对照未完成：am start新建标准Activity，原测试Activity焦点等待超时，不能据此判断前后台对照结果。归档12120507774（593514字节）摘要/大小/CRC/runner核对，仅原截图，无返回后截图。修正诊断使用原taskId与am task focus（实际AOSP15 ActivityManagerShellCommand.java runTask/runTaskFocus调用setFocusedTask），恢复同一任务，不改变产品启动模式。另在返回后独立记录启用系统导航对比保护的像素/Launcher状态；默认保护是Android官方edge-to-edge文档支持的三键可读性机制。依次保留每步截图，只作区分且最终明确probe失败，不将修改窗口后的结果当作原场景通过。
