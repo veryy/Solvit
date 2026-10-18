@@ -117,6 +117,8 @@ private fun SolvitTheme(window: Window, content: @Composable () -> Unit) {
         else -> lightColorScheme(primary = Color(0xFF526743), secondary = Color(0xFF576350), tertiary = Color(0xFF38666B))
     }
     SideEffect {
+        // Keep the Activity content behind the bars when the app theme changes.
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         applySystemBarAppearance(window, window.decorView, colors.surface.luminance() > .5f)
     }
     CompositionLocalProvider(LocalUiStrings provides strings, LocalUiLanguage provides language) {
