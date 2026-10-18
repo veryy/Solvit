@@ -76,13 +76,13 @@ jobs:
           mkdir -p .signing
           printf '%s' "$SOLVIT_KEYSTORE" | base64 --decode > .signing/debug.keystore
           chmod 600 .signing/debug.keystore
+      - name: Prepare TLS Git backend for clone recovery
+        if: inputs.test_case == 'clone-recovery'
+        run: bash scripts/prepare-clone-git-fixture.sh
       - name: Build instrumented test APK remotely
         run: |
           sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358' 'cmake;3.22.1'
           ./gradlew :app:assembleDebugAndroidTest --stacktrace
-      - name: Prepare TLS Git backend for clone recovery
-        if: inputs.test_case == 'clone-recovery'
-        run: bash scripts/prepare-clone-git-fixture.sh
       - name: Enable emulator hardware acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
