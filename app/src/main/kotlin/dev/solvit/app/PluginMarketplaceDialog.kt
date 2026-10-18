@@ -104,7 +104,8 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                     if (loading || busy) LinearProgressIndicator(Modifier.fillMaxWidth())
                     error?.let { UiText(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
                     LazyVerticalGrid(columns = GridCells.Adaptive(140.dp), state = if (tab == 0) marketGrid else installedGrid, modifier = Modifier.weight(1f).testTag("plugins_list"),
-                        contentPadding = PaddingValues(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        contentPadding = if (imeVisible) PaddingValues(horizontal = 12.dp, vertical = 4.dp) else PaddingValues(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         item(span = { GridItemSpan(maxLineSpan) }) {
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                 if (tab == 1 && !imeVisible) Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
