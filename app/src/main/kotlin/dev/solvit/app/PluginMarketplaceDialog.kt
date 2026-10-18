@@ -218,7 +218,11 @@ fun PluginMarketplaceDialog(vm: MarketplaceViewModel, workspaceAccess: ((Boolean
                 local?.let { item { UiText("已安装：${it.version}", style = MaterialTheme.typography.labelMedium) } }
                 item { UiText(permissionDescription(entry.permissions)) }
                 if (entry.dependencies.isNotEmpty()) item { UiText("依赖：${entry.dependencies.joinToString()}") }
-            } }, confirmButton = { TextButton(enabled = !busy && (comparison == null || comparison > 0), onClick = { vm.install(entry); marketTarget = null; tab = 1 }) {
+            } }, confirmButton = { TextButton(enabled = !busy && (comparison == null || comparison > 0), onClick = {
+                vm.install(entry); marketTarget = null
+                installedQuery = ""; installedFilter = 0; tab = 1
+                scope.launch { installedGrid.scrollToItem(0) }
+            }) {
                 UiText(when {
                     comparison == 0 -> "已安装"
                     comparison != null && comparison < 0 -> "本地版本较新"
