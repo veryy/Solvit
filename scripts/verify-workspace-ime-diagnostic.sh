@@ -4,8 +4,10 @@ set -euo pipefail
 solvit_diagnostic_expected='OK (1 test)'
 solvit_chat_font_scale=1
 solvit_memory_label_bounds=false
+solvit_root_navigation_probe=false
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
   root-theme) solvit_diagnostic_test='dev.solvit.app.SystemBarsThemeDeviceTest' ;;
+  root-theme-navigation-probe) solvit_diagnostic_test='dev.solvit.app.SystemBarsThemeDeviceTest'; solvit_root_navigation_probe=true ;;
   mcp-page) solvit_diagnostic_test='dev.solvit.app.McpPageUiTest' ;;
   attachment-preview) solvit_diagnostic_test='dev.solvit.app.AttachmentPreviewLayoutTest' ;;
   pdf-chat) solvit_diagnostic_test='dev.solvit.app.PdfChatDeviceTest#pickerSelectedScanPreviewHttpRetryReopenAndEditPreserveTheSameSelection' ;;
@@ -78,6 +80,7 @@ for iteration in $(seq 1 "$solvit_diagnostic_repetitions"); do
     -e class "$solvit_diagnostic_test" \
     -e chatFontScale "$solvit_chat_font_scale" \
     -e verifyMemoryLabelBounds "$solvit_memory_label_bounds" \
+    -e probeRootNavigation "$solvit_root_navigation_probe" \
     -e workspaceRecreations "$solvit_recreations" \
     -e branchHistoryAtEnd "$([ "${SOLVIT_DIAGNOSTIC_CASE:-}" = chat-branches ] && echo true || echo false)" \
     dev.solvit.app.test/androidx.test.runner.AndroidJUnitRunner \

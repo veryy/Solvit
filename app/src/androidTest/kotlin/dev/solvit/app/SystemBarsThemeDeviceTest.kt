@@ -65,7 +65,7 @@ class SystemBarsThemeDeviceTest {
         mainPage()
     }
 
-    private fun verifyBars(name: String, light: Boolean) {
+    private fun captureFrame(name: String) {
         // Capture only after a committed frame from the real Activity window.
         runBlocking {
             val frame = CompletableDeferred<Unit>()
@@ -81,6 +81,53 @@ class SystemBarsThemeDeviceTest {
         InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(100, 2_000)
         shell("mkdir -p /data/local/tmp/solvit-ui")
         shell("screencap -p /data/local/tmp/solvit-ui/$name.png")
+    }
+
+    /** Temporary explicit diagnosis; deliberately fails instead of claiming acceptance. */
+    @Suppress("DEPRECATION")
+    private fun probeNavigation() {
+        fun state(name: String) {
+            val windowFields = listOf("mFocusedWindow=", "mNavBarColorWindowCandidate=", "mTopFullscreenOpaqueWindowState=", "mInputMethodWindow=", "mSystemUiControllingWindow=", "mLastAppearance=")
+            val uiFields = listOf("mNavigationLight=", "mHasLightNavigationBar=", "mNavbarColorManagedByIme=", "mForceLightForScrim=", "mForceDarkForScrim=", "mNavigationBarMode=", "mAppearance=")
+            for ((command, fields) in listOf("dumpsys window displays" to windowFields,
+                "dumpsys activity service com.android.systemui/.SystemUIService" to uiFields)) {
+                shell(command).decodeToString().lineSequence().map(String::trim)
+                    .filter { line -> fields.any { line.startsWith(it) } }
+                    .forEach { println("ROOT_NAV_PROBE $name $it") }
+            }
+            rule.runOnUiThread {
+                val window = rule.activity.window
+                println("ROOT_NAV_PROBE $name requested=${window.insetsController?.systemBarsAppearance} windowFlags=${window.attributes.flags} uiFlags=${window.decorView.systemUiVisibility}")
+            }
+        }
+        fun probe(name: String, operation: () -> Unit = {}) {
+            rule.runOnUiThread(operation); rule.waitForIdle()
+            captureFrame("nav-probe-$name"); state(name)
+        }
+        probe("before")
+        InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(1_000, 5_000)
+        probe("settled")
+        probe("native-appearance") { rule.activity.window.insetsController?.setSystemBarsAppearance(0, 16) }
+        val bytes = shell("cat /data/local/tmp/solvit-ui/nav-probe-before.png")
+        val image = checkNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
+        val surface = image.getPixel(image.width / 100, image.height / 2); image.recycle()
+        probe("opaque-navigation") { rule.activity.window.navigationBarColor = surface }
+        probe("toggle-appearance") {
+            rule.activity.window.insetsController?.apply {
+                setSystemBarsAppearance(16, 16); setSystemBarsAppearance(0, 16)
+            }
+        }
+        probe("clear-input-focus") {
+            val activity = rule.activity
+            activity.currentFocus?.clearFocus()
+            (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
+                .hideSoftInputFromWindow(activity.window.decorView.windowToken, 0)
+        }
+        fail("Navigation appearance probe completed; diagnostic only, not acceptance")
+    }
+
+    private fun verifyBars(name: String, light: Boolean) {
+        captureFrame(name)
         rule.runOnUiThread {
             val window = rule.activity.window
             val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -141,6 +188,7 @@ class SystemBarsThemeDeviceTest {
             rule.activityRule.scenario.recreate()
             mainPage()
             chooseTheme("dark")
+            if (InstrumentationRegistry.getArguments().getString("probeRootNavigation") == "true") probeNavigation()
             verifyBars("main-theme-dark-system-light", light = false)
             rule.activityRule.scenario.recreate()
             mainPage()
