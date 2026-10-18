@@ -42,3 +42,6 @@
 
 
 完整39092306285的App实际92项中，仅旧 `pluginPageCanReachBottomAndReturnToChat` 失败，位置是最后插件可见断言；归档12123816312（13948763字节）的大小/摘要/CRC和原始XML已核对。新增浏览器两项及其他89项App通过，但后续Web/terminal与完整stdio门禁不能计作通过。该旧用例把纯插件数组下标用作包含新增头部项的网格下标。改为按最后插件ID执行语义滚动，保留名称可见、详情卸载入口、无试运行、返回聊天的所有原断言；生产代码不改。增加三用例组合定向，和完整流程重新验证，不能只重跑后忽略旧失败。
+
+
+e373同APK组合39094357176中，浏览器两项已结束，旧底部方法仅出现开始记录，未输出断言或结束；120秒runner以124退出。归档12124147535（1069620字节）的大小/摘要/CRC、runner及TestRunner日志已核对，未找到Fatal/ANR，不能据此断言已修复底部路径。优先验证 `performScrollToNode` 的逐屏ScrollBy循环与该旧类StandardTestDispatcher排队的交互；其次检查跨类规则切换，最后检查真实末项不可达。读取AndroidX `compose/ui/ui-test/src/commonMain/kotlin/androidx/compose/ui/test/Actions.kt`（202b4bda8adfeb303ac30e359e8436a3752fe2b0）和 `actions/ScrollToKeyTest.kt`（c467614eb3fd738f1579b79011ba7c1c16e027b4）的实际实现/测试：公开按key动作通过IndexForKey调用ScrollToIndex，避免逐屏循环。只阅读Apache-2.0源码，不复制。改为现有插件ID的公开key动作，按本项目QueuedScroll.kt既有方式推进一帧，再有界等待真实节点可见，保留全部旧断言并记录前后截图。先对同一生产APK定向验证，再完整回归；不增加超时或改生产UI。

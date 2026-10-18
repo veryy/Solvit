@@ -1066,11 +1066,16 @@ class ChatLayoutTest {
         rule.onNodeWithText("覆盖更新保留数据；卸载会删除本机数据，请先导出配置备份。").assertIsDisplayed()
     }
     @Test fun pluginPageCanReachBottomAndReturnToChat() {
+        screenshot("plugins-bottom-start")
         ready()
         rule.onNodeWithContentDescription("插件市场").performClick()
         rule.onNode(hasText("已安装 (", substring = true)).performClick()
         val last = (rule.activity.application as SolvitApplication).marketplace.installed.value.last()
-        rule.onNodeWithTag("plugins_list").performScrollToNode(hasTestTag("installed_plugin_${last.id}"))
+        screenshot("plugins-bottom-before-scroll")
+        rule.onNodeWithTag("plugins_list").performScrollToKey(last.id)
+        rule.mainClock.advanceTimeByFrame()
+        rule.waitUntil(10_000) { rule.onNodeWithTag("installed_plugin_${last.id}").isDisplayed() }
+        screenshot("plugins-bottom-after-scroll")
         rule.onNodeWithText(last.name).assertIsDisplayed()
         rule.onNodeWithText(last.name).performClick()
         rule.onNodeWithText("卸载").assertIsDisplayed()
