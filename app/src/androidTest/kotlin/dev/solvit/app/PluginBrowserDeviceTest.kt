@@ -4,6 +4,7 @@ import android.os.ParcelFileDescriptor
 import android.view.WindowInsets
 import android.view.inspector.WindowInspector
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.ViewModelProvider
@@ -56,6 +57,12 @@ class PluginBrowserDeviceTest {
             } }
             rule.onNodeWithTag("installed_plugin_${clock.id}").assertIsDisplayed()
             screenshot("plugins-search-large-text-keyboard")
+            val result = rule.onNodeWithTag("installed_plugin_${clock.id}").fetchSemanticsNode()
+            val coordinates = result.layoutInfo.coordinates
+            val viewport = rule.onNodeWithTag("plugins_list").fetchSemanticsNode().boundsInRoot
+            val top = coordinates.localToRoot(Offset.Zero).y
+            assertTrue("Search result must be fully visible above keyboard: top=$top height=${coordinates.size.height} viewport=$viewport",
+                top >= viewport.top && top + coordinates.size.height <= viewport.bottom + 1f)
             rule.onNodeWithTag("plugins_search").performImeAction()
             rule.onNodeWithTag("plugins_filter_1").performClick()
             rule.onNodeWithTag("plugins_filter_1").assertIsSelected()
