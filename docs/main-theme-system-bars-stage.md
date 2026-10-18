@@ -55,3 +55,7 @@ AndroidX官方activity1.9.3源码归档的EdgeToEdge.kt 71–97/135–145/298–
 加强定向39083410212实际在导航对比失败：背景、图标请求标志已通过，但可读采样0；content已完整[0,0]/1080×1920、uiFlags1792、windowFlags0x80810100（DRAWS_SYSTEM_BAR_BACKGROUNDS已设置，无半透明导航/状态标志）。归档12120225187（561573字节）大小/摘要/CRC与原始runner核对，实际PNG已查看，深色导航按钮确实难读。后续主题场景未达到；完整0b尚在执行，即使旧背景检查通过也不交付。
 
 读取AOSP15r1 DisplayPolicy.java 2380–2410、2452–2498（输入法/候选窗口决定导航外观）、LightBarController.java 206–244、425–450（实际深色图标与scrim/输入法控制）。继续同包显式诊断：限定输出窗口/系统UI外观字段，不输出整个系统dump或内容；比较原状、系统UI更长空闲、直接平台外观API、不透明导航背景、外观位切换、输入焦点退出。每步保存实际PNG与受限字段，结束明确失败，不能计作正式验收。生产源码暂不变，普通root-theme的背景与导航对比断言均保留。
+
+cf638118的诊断39083864732实际完成六步后明确失败，归档12119228928（1095622字节）的大小/摘要/CRC、runner及过滤字段已核对。六张导航区域像素直方图完全一致；已实际查看空闲后与退出输入焦点PNG。WMS焦点/全屏/导航候选均为同一MainActivity，SystemUI各副本mNavigationLight/mHasLightNavigationBar/mForceLightForScrim/mForceDarkForScrim/mNavbarColorManagedByIme均false，应用requested0；输入法接管、scrim强制、单纯延后、直接外观API与不透明颜色均不符合结果。原同帧true→false操作可能被WMS合并，不能当作分别绘制过两种外观。
+
+下一同包诊断补充实际导航tint转换状态与导航模式字段，拆开明暗请求为两次独立提交帧，并比较恢复系统动画及真实Activity重建，finally恢复原动画配置。阅读AOSP15r1 NavigationBarTransitions.java 183–201、232–243与LightBarTransitionsController.java 160–212、243–289、293–310：请求外观、导航模式与最终tint状态存在独立边界。当前不提前归因为应用或测试环境，也不以增加等待替代原实际图标断言；生产代码仍不改。

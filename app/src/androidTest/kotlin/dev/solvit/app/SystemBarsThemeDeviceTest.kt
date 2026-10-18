@@ -88,7 +88,8 @@ class SystemBarsThemeDeviceTest {
     private fun probeNavigation() {
         fun state(name: String) {
             val windowFields = listOf("mFocusedWindow=", "mNavBarColorWindowCandidate=", "mTopFullscreenOpaqueWindowState=", "mInputMethodWindow=", "mSystemUiControllingWindow=", "mLastAppearance=")
-            val uiFields = listOf("mNavigationLight=", "mHasLightNavigationBar=", "mNavbarColorManagedByIme=", "mForceLightForScrim=", "mForceDarkForScrim=", "mNavigationBarMode=", "mAppearance=")
+            val uiFields = listOf("mNavigationLight=", "mHasLightNavigationBar=", "mNavbarColorManagedByIme=", "mForceLightForScrim=", "mForceDarkForScrim=", "mNavigationBarMode=", "mAppearance=",
+                "StatusBarTransitionsController:", "NavigationBarTransitionsController:", "mTransitionDeferring=", "mTransitionPending=", "mPendingDarkIntensity=", "mAreNavigationButtonForcedVisible=", "mNavigationMode=")
             for ((command, fields) in listOf("dumpsys window displays" to windowFields,
                 "dumpsys activity service com.android.systemui/.SystemUIService" to uiFields)) {
                 shell(command).decodeToString().lineSequence().map(String::trim)
@@ -112,16 +113,25 @@ class SystemBarsThemeDeviceTest {
         val image = checkNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
         val surface = image.getPixel(image.width / 100, image.height / 2); image.recycle()
         probe("opaque-navigation") { rule.activity.window.navigationBarColor = surface }
-        probe("toggle-appearance") {
-            rule.activity.window.insetsController?.apply {
-                setSystemBarsAppearance(16, 16); setSystemBarsAppearance(0, 16)
-            }
-        }
+        probe("toggle-light") { rule.activity.window.insetsController?.setSystemBarsAppearance(16, 16) }
+        probe("toggle-dark") { rule.activity.window.insetsController?.setSystemBarsAppearance(0, 16) }
         probe("clear-input-focus") {
             val activity = rule.activity
             activity.currentFocus?.clearFocus()
             (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
                 .hideSoftInputFromWindow(activity.window.decorView.windowToken, 0)
+        }
+        val scales = listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale")
+            .associateWith { shell("settings get global $it").decodeToString().trim() }
+        try {
+            scales.keys.forEach { shell("settings put global $it 1") }
+            probe("animations-on")
+            rule.activityRule.scenario.recreate(); mainPage()
+            probe("live-recreated")
+        } finally {
+            scales.forEach { (key, value) ->
+                shell(if (value == "null") "settings delete global $key" else "settings put global $key $value")
+            }
         }
         fail("Navigation appearance probe completed; diagnostic only, not acceptance")
     }
