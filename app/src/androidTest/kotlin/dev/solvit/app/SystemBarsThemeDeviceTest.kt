@@ -100,7 +100,7 @@ class SystemBarsThemeDeviceTest {
             val insets = decor.rootWindowInsets
             Triple(insets.getInsets(WindowInsets.Type.statusBars()).top,
                 insets.getInsets(WindowInsets.Type.navigationBars()).bottom,
-                "decor=${box(decor)} content=${box(content)} child=${box((content as? ViewGroup)?.getChildAt(0))} uiFlags=${decor.systemUiVisibility} fitTypes=${window.attributes.fitInsetsTypes}")
+                "decor=${box(decor)} content=${box(content)} child=${box((content as? ViewGroup)?.getChildAt(0))} uiFlags=${decor.systemUiVisibility} windowFlags=${window.attributes.flags} fitTypes=${window.attributes.fitInsetsTypes}")
         }
         val bytes = shell("cat /data/local/tmp/solvit-ui/$name.png")
         val image = checkNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
@@ -112,6 +112,19 @@ class SystemBarsThemeDeviceTest {
                 .map { ColorUtils.calculateLuminance(image.getPixel(x, it)) }
             assertTrue("$name: app/status/nav backgrounds must follow the selected surface; luminance=$luminance; $geometry",
                 luminance.all { if (light) it > .7 else it < .2 })
+            // On the visible-bar emulator preset, verify actual navigation controls,
+            // not just the WindowInsetsController's requested light/dark flags.
+            val background = luminance.last()
+            var readableNavigationSamples = 0
+            for (row in image.height - navigationHeight until image.height step 2) {
+                for (column in 0 until image.width step 2) {
+                    val foreground = ColorUtils.calculateLuminance(image.getPixel(column, row))
+                    val contrast = (maxOf(background, foreground) + .05) / (minOf(background, foreground) + .05)
+                    if (contrast >= 3) readableNavigationSamples++
+                }
+            }
+            assertTrue("$name: actual navigation controls must contrast with their background; samples=$readableNavigationSamples; $geometry",
+                readableNavigationSamples >= 16)
         } finally { image.recycle() }
     }
 
