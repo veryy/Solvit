@@ -5,6 +5,7 @@ solvit_diagnostic_expected='OK (1 test)'
 solvit_chat_font_scale=1
 solvit_memory_label_bounds=false
 case "${SOLVIT_DIAGNOSTIC_CASE:-workspace-editor}" in
+  plugin-browser-bottom) solvit_diagnostic_test='dev.solvit.app.PluginBrowserDeviceTest,dev.solvit.app.ChatLayoutTest#pluginPageCanReachBottomAndReturnToChat'; solvit_diagnostic_expected='OK (3 tests)' ;;
   plugin-browser) solvit_diagnostic_test='dev.solvit.app.PluginBrowserDeviceTest'; solvit_diagnostic_expected='OK (2 tests)' ;;
   first-use) solvit_diagnostic_test='dev.solvit.app.ChatFirstUseDeviceTest'; solvit_diagnostic_expected='OK (2 tests)' ;;
   mcp-page) solvit_diagnostic_test='dev.solvit.app.McpPageUiTest' ;;
