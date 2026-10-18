@@ -59,3 +59,9 @@ AndroidX官方activity1.9.3源码归档的EdgeToEdge.kt 71–97/135–145/298–
 cf638118的诊断39083864732实际完成六步后明确失败，归档12119228928（1095622字节）的大小/摘要/CRC、runner及过滤字段已核对。六张导航区域像素直方图完全一致；已实际查看空闲后与退出输入焦点PNG。WMS焦点/全屏/导航候选均为同一MainActivity，SystemUI各副本mNavigationLight/mHasLightNavigationBar/mForceLightForScrim/mForceDarkForScrim/mNavbarColorManagedByIme均false，应用requested0；输入法接管、scrim强制、单纯延后、直接外观API与不透明颜色均不符合结果。原同帧true→false操作可能被WMS合并，不能当作分别绘制过两种外观。
 
 下一同包诊断补充实际导航tint转换状态与导航模式字段，拆开明暗请求为两次独立提交帧，并比较恢复系统动画及真实Activity重建，finally恢复原动画配置。阅读AOSP15r1 NavigationBarTransitions.java 183–201、232–243与LightBarTransitionsController.java 160–212、243–289、293–310：请求外观、导航模式与最终tint状态存在独立边界。当前不提前归因为应用或测试环境，也不以增加等待替代原实际图标断言；生产代码仍不改。
+
+39084383238全部九步完成并明确以probe失败结束，归档12120181466（1446630字节）摘要/大小/CRC、runner及字段已核对。原状实际导航模式0，mDarkIntensity/mNextDarkIntensity0，transitionPending/tintChangePending/deferring均false；分帧light请求的intensity实际变1，再dark实际回0，但像素仍深灰。开启动画本身不改变像素；随后真实Activity重建的PNG才出现白色可读按钮，且requested0、SystemUI导航外观/IME管理字段仍false。已实际查看该帧：IME提示/返回按钮仍有过渡，不能把它直接当作正常场景通过。旧完整0b在动画关闭时的重建PNG依旧灰色，说明有环境/重建交互线索，但尚不能单独归因。
+
+0b完整远程39082807604已成功：628单元/Lint、118设备（89/3/26）、15独立PID恢复、覆盖升级、150%聊天和实际stdio强杀均从原始归档12120690165核对。其测试尚无实际导航对比，因此不替代020失败，不交付。APK59666111字节SHA256 baf8992fae481af0c9b15b59155879864f7f7c5badbad83cae20c33339bbb6ce，固定签名与14内置包/目录已核对。
+
+下一同包验证移除全部临时probe及入口，恢复020的完整原操作与全部背景/图标/导航像素断言；只在该用例开始时把系统三项动画scale设1，finally恢复原值，仍执行原本的初始化重建、真实设置切换、返回与重建，不插入额外清焦点、外观切换或窗口修改。不提前声称正常动画解决，更不改生产代码绕过SystemUI。若全场景仍失败，继续记录；若通过，也必须明确与关闭动画时失败的范围，进一步判断真实限制，不能泛化至所有设备与动画配置。

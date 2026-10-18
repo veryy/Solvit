@@ -65,7 +65,7 @@ class SystemBarsThemeDeviceTest {
         mainPage()
     }
 
-    private fun captureFrame(name: String) {
+    private fun verifyBars(name: String, light: Boolean) {
         // Capture only after a committed frame from the real Activity window.
         runBlocking {
             val frame = CompletableDeferred<Unit>()
@@ -81,63 +81,6 @@ class SystemBarsThemeDeviceTest {
         InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(100, 2_000)
         shell("mkdir -p /data/local/tmp/solvit-ui")
         shell("screencap -p /data/local/tmp/solvit-ui/$name.png")
-    }
-
-    /** Temporary explicit diagnosis; deliberately fails instead of claiming acceptance. */
-    @Suppress("DEPRECATION")
-    private fun probeNavigation() {
-        fun state(name: String) {
-            val windowFields = listOf("mFocusedWindow=", "mNavBarColorWindowCandidate=", "mTopFullscreenOpaqueWindowState=", "mInputMethodWindow=", "mSystemUiControllingWindow=", "mLastAppearance=")
-            val uiFields = listOf("mNavigationLight=", "mHasLightNavigationBar=", "mNavbarColorManagedByIme=", "mForceLightForScrim=", "mForceDarkForScrim=", "mNavigationBarMode=", "mAppearance=",
-                "StatusBarTransitionsController:", "NavigationBarTransitionsController:", "mTransitionDeferring=", "mTransitionPending=", "mPendingDarkIntensity=", "mAreNavigationButtonForcedVisible=", "mNavigationMode=")
-            for ((command, fields) in listOf("dumpsys window displays" to windowFields,
-                "dumpsys activity service com.android.systemui/.SystemUIService" to uiFields)) {
-                shell(command).decodeToString().lineSequence().map(String::trim)
-                    .filter { line -> fields.any { line.startsWith(it) } }
-                    .forEach { println("ROOT_NAV_PROBE $name $it") }
-            }
-            rule.runOnUiThread {
-                val window = rule.activity.window
-                println("ROOT_NAV_PROBE $name requested=${window.insetsController?.systemBarsAppearance} windowFlags=${window.attributes.flags} uiFlags=${window.decorView.systemUiVisibility}")
-            }
-        }
-        fun probe(name: String, operation: () -> Unit = {}) {
-            rule.runOnUiThread(operation); rule.waitForIdle()
-            captureFrame("nav-probe-$name"); state(name)
-        }
-        probe("before")
-        InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(1_000, 5_000)
-        probe("settled")
-        probe("native-appearance") { rule.activity.window.insetsController?.setSystemBarsAppearance(0, 16) }
-        val bytes = shell("cat /data/local/tmp/solvit-ui/nav-probe-before.png")
-        val image = checkNotNull(BitmapFactory.decodeByteArray(bytes, 0, bytes.size))
-        val surface = image.getPixel(image.width / 100, image.height / 2); image.recycle()
-        probe("opaque-navigation") { rule.activity.window.navigationBarColor = surface }
-        probe("toggle-light") { rule.activity.window.insetsController?.setSystemBarsAppearance(16, 16) }
-        probe("toggle-dark") { rule.activity.window.insetsController?.setSystemBarsAppearance(0, 16) }
-        probe("clear-input-focus") {
-            val activity = rule.activity
-            activity.currentFocus?.clearFocus()
-            (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
-                .hideSoftInputFromWindow(activity.window.decorView.windowToken, 0)
-        }
-        val scales = listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale")
-            .associateWith { shell("settings get global $it").decodeToString().trim() }
-        try {
-            scales.keys.forEach { shell("settings put global $it 1") }
-            probe("animations-on")
-            rule.activityRule.scenario.recreate(); mainPage()
-            probe("live-recreated")
-        } finally {
-            scales.forEach { (key, value) ->
-                shell(if (value == "null") "settings delete global $key" else "settings put global $key $value")
-            }
-        }
-        fail("Navigation appearance probe completed; diagnostic only, not acceptance")
-    }
-
-    private fun verifyBars(name: String, light: Boolean) {
-        captureFrame(name)
         rule.runOnUiThread {
             val window = rule.activity.window
             val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -191,14 +134,20 @@ class SystemBarsThemeDeviceTest {
         val originalTheme = app.appearance.theme.value
         val originalDynamic = app.appearance.dynamicColors.value
         val originalNight = (app.getSystemService(Context.UI_MODE_SERVICE) as UiModeManager).nightMode
+        val animationScales = listOf("window_animation_scale", "transition_animation_scale", "animator_duration_scale")
+            .associateWith { key -> shell("settings get global $key").decodeToString().trim().also {
+                require(it == "null" || it.toFloatOrNull() != null)
+            } }
         try {
+            // Exercise actual system-bar drawing under normal system transitions.
+            // Restore the runner's animation settings after this pixel scenario.
+            animationScales.keys.forEach { shell("settings put global $it 1") }
             rule.runOnUiThread { app.appearance.setTheme("light"); app.appearance.setDynamicColors(false) }
             systemTheme(false)
             // Start with a real light-system Activity so the opposite app mode is observable.
             rule.activityRule.scenario.recreate()
             mainPage()
             chooseTheme("dark")
-            if (InstrumentationRegistry.getArguments().getString("probeRootNavigation") == "true") probeNavigation()
             verifyBars("main-theme-dark-system-light", light = false)
             rule.activityRule.scenario.recreate()
             mainPage()
@@ -215,6 +164,9 @@ class SystemBarsThemeDeviceTest {
         } finally {
             rule.runOnUiThread { app.appearance.setTheme(originalTheme); app.appearance.setDynamicColors(originalDynamic) }
             shell("cmd uimode night ${when (originalNight) { UiModeManager.MODE_NIGHT_YES -> "yes"; UiModeManager.MODE_NIGHT_NO -> "no"; else -> "auto" }}")
+            animationScales.forEach { (key, value) ->
+                shell(if (value == "null") "settings delete global $key" else "settings put global $key $value")
+            }
         }
     }
 }
