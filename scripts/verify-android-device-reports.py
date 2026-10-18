@@ -4,9 +4,11 @@ import sys
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-MINIMUM = {'app': 88, 'web-android': 3, 'terminal-android': 26}
+MINIMUM = {'app': 90, 'web-android': 3, 'terminal-android': 26}
 
 REQUIRED = {'terminal-android': {('dev.solvit.terminal.AndroidTerminalsTest', 'eofBeforeProcessExitWaitsForRealOutcomeAndRemainsCancellable')}, 'app': {
+    ('dev.solvit.app.ChatFirstUseDeviceTest', 'unsavedModelDoesNotAppearConnectedAndSavedModelSurvivesRecreation'),
+    ('dev.solvit.app.ChatFirstUseDeviceTest', 'compactLargeTextKeyboardKeepsFirstSetupReachableAndSaveReturnsToChat'),
     ('dev.solvit.app.AttachmentPreviewLayoutTest', 'longNameAndFileInformationKeepViewerNavigationUsableInBothThemes'),
     ('dev.solvit.app.ChatLayoutTest', 'switchingRealConversationsKeepsTheirUnsentTextAndNewChatsStartEmpty'),
     ('dev.solvit.app.ChatLayoutTest', 'historyTitleSearchOpensPersistedConversationAndReopeningResetsTheFilter'),

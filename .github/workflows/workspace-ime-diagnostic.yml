@@ -10,7 +10,7 @@ on:
         description: Existing full device scenario to repeat, stopping at first failure
         type: choice
         default: workspace-editor
-        options: [mcp-page, attachment-preview, pdf-chat, terminal-tabs, chat-drafts-sequence, chat-drafts, environment-ui, history-search, memory-labels, plugin-page-feedback, workspace-forms, workspace-editor, workspace-startup, workspace-startup-stress, workspace-startup-sequence, compose-lifecycle-dispatch, plugin-document-lifecycle, plugin-resume, chat-interaction, chat-interaction-large-text, settings-theme, language-settings, file-imports, chat-branches, queued-ui-scroll, queued-ui-follow-up, plugin-page-ready, workspace-user-lifecycle, workspace-user-lifecycle-stress, webview-plugin-host-control, plugin-native-entry]
+        options: [first-use, mcp-page, attachment-preview, pdf-chat, terminal-tabs, chat-drafts-sequence, chat-drafts, environment-ui, history-search, memory-labels, plugin-page-feedback, workspace-forms, workspace-editor, workspace-startup, workspace-startup-stress, workspace-startup-sequence, compose-lifecycle-dispatch, plugin-document-lifecycle, plugin-resume, chat-interaction, chat-interaction-large-text, settings-theme, language-settings, file-imports, chat-branches, queued-ui-scroll, queued-ui-follow-up, plugin-page-ready, workspace-user-lifecycle, workspace-user-lifecycle-stress, webview-plugin-host-control, plugin-native-entry]
       repetitions:
         description: Number of repetitions (1 through 8)
         type: string
