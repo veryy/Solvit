@@ -43,3 +43,9 @@ AndroidX官方activity1.9.3源码归档的EdgeToEdge.kt 71–97/135–145/298–
 4374123a重新应用候选的同包定向39082051408仍以完全相同的亮度与content范围失败；归档12119282596（575164字节）大小/摘要/CRC、原始runner已核对。单次根SideEffect重新应用不足以修复，不交付。其完整远程仍在运行；此前218完整流程由新生产候选触发的并发策略取消，不能计为全套通过。
 
 继续在同一437生产APK上做明确标记的布局诊断，不立即叠加生产修改：分别记录返回后的原状、晚调用fit=false、再调用外观helper、最后再次fit=false，以及旧版layout标志的窗口范围和实际PNG。优先区分外观兼容API修改legacy systemUiVisibility的冲突（WindowCompat文档明确警告此混用）与设置返回后晚期重置；若late调用仍无效，再检查原生窗口/内容契约。该显式probe参数完成后必定失败，不能用其变更过的窗口替代普通root-theme验收；默认回归的操作与像素断言保留。生产源码不变。
+
+同包诊断39082466688已完成全部五步并按设计以“diagnostic only, not acceptance”失败。归档12119268241（958610字节）大小/摘要/CRC与原始runner已核对：原状、late fit=false、之后外观helper、再次fit=false的content均[0,63]/1080×1731、flags0；唯独加入LAYOUT_STABLE/FULLSCREEN/HIDE_NAVIGATION后变为[0,0]/1080×1920、flags1792。实际查看前后PNG，正文布局与浮动输入保持，系统栏白色背景消失。证明这一API35/平台Material窗口组合中仅现代fit调用不足以传播全屏布局；没有证据支持外观helper本身重置布局或只需晚调用的猜测。探针不是正常验收，导航图标最终可读性仍需生产场景实际复核。
+
+额外阅读AOSP android-15.0.0_r1的DecorView.java 1160–1240（系统栏消费/内容边距）、PhoneWindow.java 159–167、2499–2523、4107–4126（默认内容insets与fit调用）、Window.java 1562–1567，以及AndroidX core1.17.0 WindowCompat.java的API30/API35分支；Operit ui/main/MainActivity.kt 182–183显式设置原生背景防主题露底。源码只阅读，没有复制或增加依赖；AOSP/AndroidX均保留上游Apache许可边界。没有沿用Operit固定黑色背景来掩盖浅色主题或窗口范围问题。
+
+生产修正只追加上述实测有效的三个兼容layout标志，保留现代fit契约，随后继续应用共享颜色/图标策略。标志控制绘制范围，不隐藏状态栏或导航栏；未修改Scaffold/聊天padding/IME。移除临时probe代码、参数和入口，恢复与61像素红测逐字节相同的正式设备测试。下一完整远程与同包定向必须重新通过，实际导航图标、深浅主题、重建及原有键盘/设备回归均继续检查，当前仍不交付101。

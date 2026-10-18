@@ -119,6 +119,13 @@ private fun SolvitTheme(window: Window, content: @Composable () -> Unit) {
     SideEffect {
         // Keep the Activity content behind the bars when the app theme changes.
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        // The platform Material window still fits legacy content on API 35 without
+        // these layout flags. They lay out behind the bars; they do not hide them.
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = window.decorView.systemUiVisibility or
+            android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+            android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+            android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
         applySystemBarAppearance(window, window.decorView, colors.surface.luminance() > .5f)
     }
     CompositionLocalProvider(LocalUiStrings provides strings, LocalUiLanguage provides language) {

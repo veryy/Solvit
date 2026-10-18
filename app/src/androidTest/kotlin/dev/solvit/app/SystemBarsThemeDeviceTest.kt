@@ -65,7 +65,7 @@ class SystemBarsThemeDeviceTest {
         mainPage()
     }
 
-    private fun captureFrame(name: String) {
+    private fun verifyBars(name: String, light: Boolean) {
         // Capture only after a committed frame from the real Activity window.
         runBlocking {
             val frame = CompletableDeferred<Unit>()
@@ -81,39 +81,6 @@ class SystemBarsThemeDeviceTest {
         InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(100, 2_000)
         shell("mkdir -p /data/local/tmp/solvit-ui")
         shell("screencap -p /data/local/tmp/solvit-ui/$name.png")
-    }
-
-    /** Explicit failing diagnostic; never substitutes for the normal acceptance scenario. */
-    @Suppress("DEPRECATION")
-    private fun probeLayout() {
-        fun probe(name: String, operation: () -> Unit) {
-            rule.runOnUiThread(operation)
-            rule.waitForIdle()
-            captureFrame("layout-probe-$name")
-            rule.runOnUiThread {
-                val window = rule.activity.window
-                val content = rule.activity.findViewById<View>(android.R.id.content)
-                val position = IntArray(2); content.getLocationOnScreen(position)
-                println("ROOT_LAYOUT_PROBE $name content=${position.toList()}/${content.width}x${content.height} flags=${window.decorView.systemUiVisibility}")
-            }
-        }
-        probe("before") {}
-        probe("late-fit-false") { WindowCompat.setDecorFitsSystemWindows(rule.activity.window, false) }
-        probe("appearance-after-fit") {
-            val window = rule.activity.window
-            applySystemBarAppearance(window, window.decorView, false)
-        }
-        probe("fit-after-appearance") { WindowCompat.setDecorFitsSystemWindows(rule.activity.window, false) }
-        probe("legacy-layout") {
-            val decor = rule.activity.window.decorView
-            decor.systemUiVisibility = decor.systemUiVisibility or View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-        }
-        fail("Window layout probe completed; diagnostic only, not acceptance")
-    }
-
-    private fun verifyBars(name: String, light: Boolean) {
-        captureFrame(name)
         rule.runOnUiThread {
             val window = rule.activity.window
             val controller = WindowCompat.getInsetsController(window, window.decorView)
@@ -161,7 +128,6 @@ class SystemBarsThemeDeviceTest {
             rule.activityRule.scenario.recreate()
             mainPage()
             chooseTheme("dark")
-            if (InstrumentationRegistry.getArguments().getString("probeRootLayout") == "true") probeLayout()
             verifyBars("main-theme-dark-system-light", light = false)
             rule.activityRule.scenario.recreate()
             mainPage()
