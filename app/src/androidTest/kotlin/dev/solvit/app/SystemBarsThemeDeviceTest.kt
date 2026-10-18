@@ -81,44 +81,6 @@ class SystemBarsThemeDeviceTest {
         InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(100, 2_000)
         shell("mkdir -p /data/local/tmp/solvit-ui")
         shell("screencap -p /data/local/tmp/solvit-ui/$name.png")
-        if (name == "main-theme-dark-system-light") {
-            // Temporary diagnosis: the launcher can draw the unified navigation buttons,
-            // independently of SystemUI's requested tint. Keep only named drawing fields.
-            val fields = listOf("TaskbarManager:", "TaskbarActivityContext:", "NavbarButtonsViewController:",
-                "mState=", "mSysuiStateFlags=", "mTaskbarNavButtonDarkIntensity=",
-                "mSlideInViewVisibleNavButtonColorOverride=", "mOnTaskbarBackgroundNavButtonColorOverride=",
-                "mOnBackgroundNavButtonColorOverrideMultiplier=", "mAreNavButtonsInSeparateWindow=",
-                "mTaskbarWindowHeight=", "mIsUserUnlocked=", "mTaskbarSharedState=",
-                "mNavigationLight=", "mHasLightNavigationBar=", "mNavbarColorManagedByIme=",
-                "mNavigationBarMode=", "mLightsOut=", "mAutoDim=", "mBackgroundColor=",
-                "mAreNavigationButtonForcedVisible=", "mNavigationMode=")
-            fun drawingState(label: String) {
-                for (command in listOf(
-                    "dumpsys activity service com.android.launcher3/com.android.quickstep.TouchInteractionService",
-                    "dumpsys activity service com.android.systemui/.SystemUIService")) {
-                    shell(command).decodeToString().lineSequence().map(String::trim)
-                        .filter { line -> fields.any { line.startsWith(it) } }
-                        .forEach { println("ROOT_NAV_OWNER $label $it") }
-                }
-            }
-            drawingState("before-home")
-            // Explicit one-variable probe, never a replacement for the normal scenario.
-            val taskId = rule.runOnUiThread { rule.activity.taskId }
-            shell("input keyevent KEYCODE_HOME")
-            InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(100, 2_000)
-            // Restore the existing task; am start would create another standard Activity.
-            shell("am task focus $taskId")
-            rule.waitUntil(10_000) { rule.runOnUiThread { rule.activity.hasWindowFocus() } }
-            mainPage()
-            shell("screencap -p /data/local/tmp/solvit-ui/nav-owner-after-home.png")
-            drawingState("after-home")
-            rule.runOnUiThread { rule.activity.window.isNavigationBarContrastEnforced = true }
-            rule.waitForIdle()
-            InstrumentationRegistry.getInstrumentation().uiAutomation.waitForIdle(1_000, 3_000)
-            shell("screencap -p /data/local/tmp/solvit-ui/nav-owner-system-contrast.png")
-            drawingState("system-contrast")
-            fail("Launcher foreground/contrast probes completed; diagnostic only, not acceptance")
-        }
         rule.runOnUiThread {
             val window = rule.activity.window
             val controller = WindowCompat.getInsetsController(window, window.decorView)
